@@ -1,0 +1,16 @@
+{
+	"name": "sladosti",
+	"short_name": "sladosti",
+	"description": "sladosti",
+	"start_url": "index.html",
+	"display": "fullscreen",
+	"orientation": "any",
+	"background_color": "#ffffff",
+	"icons": [
+		{
+			"src": "icons/icon-256.png",
+			"sizes": "256x256",
+			"type": "image/png"
+		}
+	]
+}
