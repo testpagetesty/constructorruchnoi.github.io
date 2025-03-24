@@ -12,27 +12,38 @@
         }
 
         async function redirectBasedOnIP() {
-            const russianURL = 'https://sladostivk.github.io/all/ru..html';
-            const otherURL = 'https://sladostivk.github.io/all/index..html';
+            // Исправленные URL (убраны двойные точки)
+            const russianURL = 'https://sladostivk.github.io/all/ru.html';
+            const otherURL = 'https://sladostivk.github.io/all/index.html';
 
             try {
-                // Пробуем сначала ipapi.co
+                // Добавляем вывод для отладки
+                console.log('Начинаем определение IP...');
+                
                 const data = await checkIP('https://ipapi.co/json/');
+                console.log('Полученные данные:', data);
+                console.log('Определенная страна:', data.country);
+
                 if (data.country === 'RU') {
+                    console.log('Определена Россия, перенаправление на:', russianURL);
                     window.location.href = russianURL;
                     return;
                 }
+                console.log('Определена другая страна, перенаправление на:', otherURL);
                 window.location.href = otherURL;
             } catch (error) {
                 console.log('Первый метод не сработал, пробуем второй');
                 
                 try {
-                    // Если первый не сработал, пробуем api.myip.com
                     const data = await checkIP('https://api.myip.com');
+                    console.log('Данные от второго сервиса:', data);
+
                     if (data.cc === 'RU') {
+                        console.log('Определена Россия, перенаправление на:', russianURL);
                         window.location.href = russianURL;
                         return;
                     }
+                    console.log('Определена другая страна, перенаправление на:', otherURL);
                     window.location.href = otherURL;
                 } catch (error) {
                     console.error('Оба метода не сработали:', error);
@@ -41,7 +52,7 @@
             }
         }
 
-        // Добавляем красивый индикатор загрузки
+        // Добавляем информацию на страницу
         document.body.innerHTML = `
             <div style="
                 text-align: center;
@@ -49,7 +60,7 @@
                 font-family: Arial, sans-serif;
                 color: #333;
             ">
-                <div>Пожалуйста, подождите...</div>
+                <div>Определяем ваше местоположение...</div>
                 <div style="
                     width: 50px;
                     height: 50px;
@@ -59,6 +70,7 @@
                     margin: 20px auto;
                     animation: spin 1s linear infinite;
                 "></div>
+                <div id="debug" style="margin-top: 20px; font-size: 12px;"></div>
             </div>
             <style>
                 @keyframes spin {
@@ -68,6 +80,7 @@
             </style>
         `;
 
+        // Запускаем перенаправление
         redirectBasedOnIP();
     </script>
 </body>
