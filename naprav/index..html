@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Перенаправление</title>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <script>
+        async function checkIP(url) {
+            const response = await fetch(url);
+            return await response.json();
+        }
+
+        async function redirectBasedOnIP() {
+            const russianURL = 'https://example-russian-site.com';
+            const otherURL = 'https://example-other-site.com';
+
+            try {
+                // Пробуем сначала ipapi.co
+                const data = await checkIP('https://ipapi.co/json/');
+                if (data.country === 'RU') {
+                    window.location.href = russianURL;
+                    return;
+                }
+                window.location.href = otherURL;
+            } catch (error) {
+                console.log('Первый метод не сработал, пробуем второй');
+                
+                try {
+                    // Если первый не сработал, пробуем api.myip.com
+                    const data = await checkIP('https://api.myip.com');
+                    if (data.cc === 'RU') {
+                        window.location.href = russianURL;
+                        return;
+                    }
+                    window.location.href = otherURL;
+                } catch (error) {
+                    console.error('Оба метода не сработали:', error);
+                    window.location.href = otherURL;
+                }
+            }
+        }
+
+        // Добавляем красивый индикатор загрузки
+        document.body.innerHTML = `
+            <div style="
+                text-align: center;
+                margin-top: 20px;
+                font-family: Arial, sans-serif;
+                color: #333;
+            ">
+                <div>Пожалуйста, подождите...</div>
+                <div style="
+                    width: 50px;
+                    height: 50px;
+                    border: 5px solid #f3f3f3;
+                    border-top: 5px solid #3498db;
+                    border-radius: 50%;
+                    margin: 20px auto;
+                    animation: spin 1s linear infinite;
+                "></div>
+            </div>
+            <style>
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+            </style>
+        `;
+
+        redirectBasedOnIP();
+    </script>
+</body>
+</html>
