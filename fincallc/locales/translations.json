@@ -1,0 +1,98 @@
+{
+  "ru": {
+    "nav": {
+      "finance": "Финансы",
+      "notes": "Заметки",
+      "settings": "Настройки"
+    },
+    "finance": {
+      "balance": "Баланс",
+      "income": "Доход",
+      "expense": "Расход",
+      "addTransaction": "Добавить транзакцию",
+      "categories": {
+        "food": "Еда",
+        "transport": "Транспорт",
+        "entertainment": "Развлечения",
+        "salary": "Зарплата"
+      }
+    },
+    "notes": {
+      "create": "Создать заметку",
+      "edit": "Редактировать",
+      "delete": "Удалить",
+      "search": "Поиск"
+    },
+    "settings": {
+      "language": "Язык",
+      "currency": "Валюта",
+      "export": "Экспорт данных",
+      "import": "Импорт данных",
+      "reset": "Сброс данных"
+    }
+  },
+  "en": {
+    "nav": {
+      "finance": "Finance",
+      "notes": "Notes",
+      "settings": "Settings"
+    },
+    "finance": {
+      "balance": "Balance",
+      "income": "Income",
+      "expense": "Expense",
+      "addTransaction": "Add Transaction",
+      "categories": {
+        "food": "Food",
+        "transport": "Transport",
+        "entertainment": "Entertainment",
+        "salary": "Salary"
+      }
+    },
+    "notes": {
+      "create": "Create Note",
+      "edit": "Edit",
+      "delete": "Delete",
+      "search": "Search"
+    },
+    "settings": {
+      "language": "Language",
+      "currency": "Currency",
+      "export": "Export Data",
+      "import": "Import Data",
+      "reset": "Reset Data"
+    }
+  },
+  "de": {
+    "nav": {
+      "finance": "Finanzen",
+      "notes": "Notizen",
+      "settings": "Einstellungen"
+    },
+    "finance": {
+      "balance": "Kontostand",
+      "income": "Einkommen",
+      "expense": "Ausgaben",
+      "addTransaction": "Transaktion hinzufügen",
+      "categories": {
+        "food": "Essen",
+        "transport": "Transport",
+        "entertainment": "Unterhaltung",
+        "salary": "Gehalt"
+      }
+    },
+    "notes": {
+      "create": "Notiz erstellen",
+      "edit": "Bearbeiten",
+      "delete": "Löschen",
+      "search": "Suchen"
+    },
+    "settings": {
+      "language": "Sprache",
+      "currency": "Währung",
+      "export": "Daten exportieren",
+      "import": "Daten importieren",
+      "reset": "Daten zurücksetzen"
+    }
+  }
+} 
