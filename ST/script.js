@@ -23,8 +23,29 @@ const state = {
     }
 };
 
+// Функция для обновления даты в заголовке на текущую
+function updateCurrentDateDisplay() {
+    const currentDate = new Date();
+    const day = currentDate.getDate();
+    
+    const monthNames = [
+        'январь', 'февраль', 'март', 'апрель', 'май', 'июнь',
+        'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'
+    ];
+    const month = monthNames[currentDate.getMonth()];
+    const year = currentDate.getFullYear();
+    
+    const dateElement = document.getElementById('current-date');
+    if (dateElement) {
+        dateElement.textContent = `${day} ${month} ${year} г.`;
+    }
+}
+
 // Инициализация приложения
 document.addEventListener('DOMContentLoaded', () => {
+    // Обновляем дату в заголовке
+    updateCurrentDateDisplay();
+    
     // Загружаем и применяем сохраненные позиции категорий
     loadCategoryPositions();
     
@@ -38,6 +59,30 @@ document.addEventListener('DOMContentLoaded', () => {
     addButton.addEventListener('click', () => {
         document.querySelector('.transaction-type-modal').classList.add('active');
     });
+    
+    // Обработчик для кнопки "назад" в модальном окне выбора типа операции
+    const backButton = document.querySelector('.transaction-type-modal .back-button');
+    if (backButton) {
+        backButton.addEventListener('click', () => {
+            document.querySelector('.transaction-type-modal').classList.remove('active');
+            
+            // Возвращаем активное состояние на главную страницу
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(navItem => navItem.classList.remove('active'));
+            const mainNavItem = document.querySelector('.nav-item[data-page="main"]');
+            if (mainNavItem) {
+                mainNavItem.classList.add('active');
+            }
+            
+            // Показываем главную страницу
+            const pages = document.querySelectorAll('.content');
+            pages.forEach(page => page.classList.remove('active'));
+            const mainPage = document.getElementById('main');
+            if (mainPage) {
+                mainPage.classList.add('active');
+            }
+        });
+    }
     
     // Инициализация перетаскивания категорий
     initializeDragAndDrop();
@@ -61,39 +106,47 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
     
-    // Обработчики навигации по месяцам
-    const prevMonth = document.querySelector('.prev-month');
-    const nextMonth = document.querySelector('.next-month');
-    
-    if (prevMonth) {
-        prevMonth.addEventListener('click', () => {
-            if (state.selectedMonth === 0) {
-                state.selectedMonth = 11;
-                state.selectedYear--;
-            } else {
-                state.selectedMonth--;
-            }
-            updateDateDisplay();
-            updateTransactionsDisplay();
-        });
-    }
-    
-    if (nextMonth) {
-        nextMonth.addEventListener('click', () => {
-            if (state.selectedMonth === 11) {
-                state.selectedMonth = 0;
-                state.selectedYear++;
-            } else {
-                state.selectedMonth++;
-            }
-            updateDateDisplay();
-            updateTransactionsDisplay();
-        });
+    // Обработчики навигации по месяцам НА ГЛАВНОЙ странице
+    const mainPage = document.getElementById('main');
+    if (mainPage) {
+        const prevMonthMain = mainPage.querySelector('.prev-month');
+        const nextMonthMain = mainPage.querySelector('.next-month');
+        
+        if (prevMonthMain) {
+            prevMonthMain.addEventListener('click', () => {
+                if (state.selectedMonth === 0) {
+                    state.selectedMonth = 11;
+                    state.selectedYear--;
+                } else {
+                    state.selectedMonth--;
+                }
+                updateDateDisplay();
+                updateTransactionsDisplay();
+            });
+        }
+        
+        if (nextMonthMain) {
+            nextMonthMain.addEventListener('click', () => {
+                if (state.selectedMonth === 11) {
+                    state.selectedMonth = 0;
+                    state.selectedYear++;
+                } else {
+                    state.selectedMonth++;
+                }
+                updateDateDisplay();
+                updateTransactionsDisplay();
+            });
+        }
     }
     
     // Обработчик выбора категории
-    document.querySelectorAll('.category-item').forEach(item => {
-        item.addEventListener('click', () => {
+    document.querySelector('.transaction-type-modal').querySelectorAll('.category-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+            // Проверяем, что клик был именно по категории в модальном окне выбора типа операции
+            if (!e.target.closest('.transaction-type-modal')) {
+                return;
+            }
+
             const category = item.dataset.category;
             const type = document.querySelector('.type-button.active').dataset.type;
             
@@ -106,7 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Снимаем выделение со всех категорий
-            document.querySelectorAll('.category-item').forEach(cat => {
+            document.querySelector('.transaction-type-modal').querySelectorAll('.category-item').forEach(cat => {
                 cat.classList.remove('selected');
             });
 
@@ -321,72 +374,79 @@ function hidePopupForm() {
 
 // Настройка навигации
 function setupNavigation() {
-    document.querySelectorAll('.nav-item').forEach(item => {
+    const navItems = document.querySelectorAll('.nav-item');
+    const pages = document.querySelectorAll('.content');
+    const reportsModal = document.querySelector('.reports-modal');
+
+    navItems.forEach(item => {
         item.addEventListener('click', () => {
-            const page = item.dataset.page;
+            // Получаем id страницы, которую нужно показать
+            const pageId = item.dataset.page;
             
-            // Обновляем активную страницу
-            document.querySelectorAll('.content').forEach(content => {
-                content.classList.remove('active');
-            });
+            // Если нажата кнопка категорий, открываем модальное окно выбора типа операции
+            if (pageId === 'categories') {
+                const reportsModal = document.querySelector('.reports-modal');
+                // Если открыто окно отчетов, закрываем его
+                if (reportsModal && reportsModal.classList.contains('active')) {
+                    reportsModal.classList.remove('active');
+                }
+                
+                // Убираем активный класс со всех элементов навигации
+                navItems.forEach(navItem => navItem.classList.remove('active'));
+                
+                // Добавляем активный класс к кнопке категорий и подсвечиваем её желтым
+                item.classList.add('active');
+                item.style.color = '#FFD60A';
+                
+                document.querySelector('.transaction-type-modal').classList.add('active');
+                return; // Прерываем выполнение функции
+            }
             
-            // Обновляем активную кнопку навигации
-            document.querySelectorAll('.nav-item').forEach(navItem => {
+            // Убираем активный класс со всех элементов навигации
+            navItems.forEach(navItem => {
                 navItem.classList.remove('active');
+                navItem.style.color = ''; // Сбрасываем цвет для всех кнопок
             });
+            
+            // Добавляем активный класс текущему элементу
             item.classList.add('active');
+            
+            // Скрываем все страницы
+            pages.forEach(page => page.classList.remove('active'));
+            
+            // Показываем нужную страницу
+            const targetPage = document.getElementById(pageId);
+            if (targetPage) targetPage.classList.add('active');
 
-            // Скрываем все модальные окна
-            document.querySelectorAll('.modal').forEach(modal => {
-                modal.classList.remove('active');
-            });
-
-            // Обработка специфических действий для каждой страницы
-            switch (page) {
-                case 'main':
-                    // Показываем основную страницу с транзакциями
-                    document.getElementById('main').classList.add('active');
-                    updateTransactionsList();
-                    updateSummary();
-                    document.querySelector('.add-button').style.display = 'flex';
-                    break;
-                    
-                case 'reports':
-                    // Показываем страницу отчетов
-                    document.getElementById('reports').classList.add('active');
-                    document.querySelector('.add-button').style.display = 'none';
-                    if (typeof initializeReports === 'function') {
-                        initializeReports();
-                    }
-                    break;
-                    
-                case 'categories':
-                    // Показываем модальное окно выбора типа транзакции
-                    document.querySelector('.transaction-type-modal').classList.add('active');
-                    document.querySelector('.add-button').style.display = 'none';
-                    break;
-                    
-                case 'settings':
-                    // Показываем страницу настроек
-                    document.getElementById('settings').classList.add('active');
-                    document.querySelector('.add-button').style.display = 'none';
-                    break;
+            // Если открыто модальное окно отчетов и нажата не кнопка отчетов, закрываем его
+            if (reportsModal && reportsModal.classList.contains('active') && pageId !== 'reports') {
+                reportsModal.classList.remove('active');
             }
 
-            state.currentPage = page;
+            // Если открыто модальное окно транзакций, закрываем его
+            const transactionTypeModal = document.querySelector('.transaction-type-modal');
+            if (transactionTypeModal && transactionTypeModal.classList.contains('active')) {
+                transactionTypeModal.classList.remove('active');
+            }
+
+            // Если открыта форма добавления транзакции, закрываем её
+            const popupForm = document.querySelector('.popup-form');
+            if (popupForm && popupForm.classList.contains('active')) {
+                popupForm.classList.remove('active');
+            }
         });
     });
-
-    // Инициализация - показываем главную страницу при загрузке
-    const mainContent = document.getElementById('main');
-    if (mainContent) {
-        mainContent.classList.add('active');
-        updateTransactionsList();
-        updateSummary();
-    }
-    const mainNavItem = document.querySelector('.nav-item[data-page="main"]');
-    if (mainNavItem) {
-        mainNavItem.classList.add('active');
+    
+    // Добавляем обработчик для закрытия модального окна выбора типа операции
+    const backButton = document.querySelector('.transaction-type-modal .back-button');
+    if (backButton) {
+        backButton.addEventListener('click', () => {
+            // Сбрасываем цвет для кнопки категорий
+            const categoriesButton = document.querySelector('.nav-item[data-page="categories"]');
+            if (categoriesButton) {
+                categoriesButton.style.color = '';
+            }
+        });
     }
 }
 
@@ -455,7 +515,7 @@ function initializeDragAndDrop() {
     
     categoryItems.forEach(item => {
         // Обработчики для мобильных устройств
-        item.addEventListener('touchstart', handleTouchStart, { passive: false });
+        item.addEventListener('touchstart', handleTouchStart, { passive: true }); // Изменено на passive: true для работы скролла
         item.addEventListener('touchmove', handleTouchMove, { passive: false });
         item.addEventListener('touchend', handleTouchEnd);
         
@@ -466,26 +526,70 @@ function initializeDragAndDrop() {
     });
 }
 
+// Переменные для отслеживания начального скролла
+let initialScrollY = 0;
+let isScrolling = false;
+let touchStartY = 0;
+
 function handleTouchStart(e) {
-    e.preventDefault();
+    // Сохраняем начальное положение скролла и касания
     const touch = e.touches[0];
-    startDrag(e.target.closest('.category-item'), touch.clientX, touch.clientY);
+    touchStartY = touch.clientY;
+    initialScrollY = e.target.closest('.categories-grid')?.scrollTop || 0;
+    isScrolling = false;
+    
+    // Запускаем таймер для долгого нажатия
+    state.dragState.longPressTimer = setTimeout(() => {
+        // Только если не было скролла, начинаем перетаскивание
+        if (!isScrolling) {
+            e.preventDefault(); // Теперь предотвращаем стандартное поведение
+            startDrag(e.target.closest('.category-item'), touch.clientX, touch.clientY);
+        }
+    }, 500);
 }
 
 function handleTouchMove(e) {
-    e.preventDefault();
-    if (!state.dragState.isDragging) return;
-    
     const touch = e.touches[0];
-    moveDrag(touch.clientX, touch.clientY);
+    const touchCurrentY = touch.clientY;
+    const grid = e.target.closest('.categories-grid');
+    
+    // Проверяем, происходит ли скролл (разница больше порога)
+    if (Math.abs(touchCurrentY - touchStartY) > 10) {
+        isScrolling = true;
+        
+        // Очищаем таймер долгого нажатия при скролле
+        if (state.dragState.longPressTimer) {
+            clearTimeout(state.dragState.longPressTimer);
+            state.dragState.longPressTimer = null;
+        }
+    }
+    
+    // Если уже перетаскиваем, то предотвращаем скролл
+    if (state.dragState.isDragging) {
+        e.preventDefault();
+        moveDrag(touch.clientX, touch.clientY);
+    }
 }
 
 function handleTouchEnd() {
+    // Очищаем таймер при завершении касания
+    if (state.dragState.longPressTimer) {
+        clearTimeout(state.dragState.longPressTimer);
+        state.dragState.longPressTimer = null;
+    }
+    
+    // Завершаем перетаскивание
     endDrag();
+    
+    // Сбрасываем флаг скролла
+    isScrolling = false;
 }
 
 function handleMouseDown(e) {
-    e.preventDefault();
+    // Запускаем перетаскивание только на основной кнопке мыши (левой)
+    if (e.button !== 0) return;
+    
+    // Начинаем перетаскивание
     startDrag(e.target.closest('.category-item'), e.clientX, e.clientY);
 }
 
@@ -499,6 +603,13 @@ function handleMouseUp() {
 }
 
 function startDrag(element, x, y) {
+    if (!element) return; // Проверка на существование элемента
+    
+    // Очищаем предыдущий таймер если он существует
+    if (state.dragState.longPressTimer) {
+        clearTimeout(state.dragState.longPressTimer);
+    }
+    
     // Запускаем таймер для определения долгого нажатия
     state.dragState.longPressTimer = setTimeout(() => {
         state.dragState.isDragging = true;
@@ -619,6 +730,17 @@ function initializeTransfers() {
         transferPlanner.addEventListener('click', (e) => {
             if (transferPlanner.classList.contains('collapsed') && !e.target.closest('.transfer-form')) {
                 transferPlanner.classList.remove('collapsed');
+                // Очищаем форму при открытии
+                const transferForm = transferPlanner.querySelector('.transfer-form');
+                if (transferForm) {
+                    transferForm.reset();
+                    delete transferForm.dataset.editId;
+                    const saveButton = transferForm.querySelector('.save-transfer');
+                    if (saveButton) {
+                        saveButton.textContent = 'Сохранить';
+                        saveButton.disabled = false;
+                    }
+                }
             }
         });
 
@@ -682,9 +804,6 @@ function initializeTransfers() {
             e.preventDefault();
             e.stopPropagation();
 
-            // Отключаем кнопку на время сохранения
-            saveButton.disabled = true;
-
             const fromBank = transferForm.querySelector('.bank-from .bank-select').value;
             const fromAccount = transferForm.querySelector('.bank-from .account-number').value;
             const toBank = transferForm.querySelector('.bank-to .bank-select').value;
@@ -693,35 +812,27 @@ function initializeTransfers() {
             const scheduleDay = transferForm.querySelector('.schedule-field input').value;
             const note = transferForm.querySelector('.note-field input').value;
 
-            if (!fromBank || !fromAccount || !toBank || !toAccount || !amount || !scheduleDay) {
-                alert('Пожалуйста, заполните все обязательные поля');
-                saveButton.disabled = false;
-                return;
-            }
-
-            // Проверяем корректность дня
-            const day = parseInt(scheduleDay);
-            if (isNaN(day) || day < 1 || day > 31) {
-                alert('Пожалуйста, введите корректный день месяца (1-31)');
-                saveButton.disabled = false;
-                return;
-            }
-
-            saveTransfer({
+            // Создаем и сохраняем перевод
+            const transfer = {
                 fromBank,
                 fromAccount,
                 toBank,
                 toAccount,
-                amount,
-                scheduleDay: day,
-                note
-            });
+                amount: parseFloat(amount),
+                scheduleDay: parseInt(scheduleDay),
+                note,
+                id: Date.now()
+            };
 
-            // Очищаем форму и сбрасываем состояние
+            // Сохраняем перевод
+            saveTransfer(transfer);
+
+            // Очищаем форму после сохранения
             transferForm.reset();
             delete transferForm.dataset.editId;
             saveButton.textContent = 'Сохранить';
-            saveButton.disabled = false;
+
+            // Сворачиваем форму
             transferPlanner.classList.add('collapsed');
         });
     }
@@ -892,13 +1003,12 @@ function openEditTransferForm(transfer) {
 function saveTransfer(transfer) {
     const savedTransfers = JSON.parse(localStorage.getItem('plannedTransfers') || '[]');
     const transferForm = document.querySelector('.transfer-form');
-    const editId = transferForm.dataset.editId;
+    const editId = transferForm?.dataset.editId;
     
     if (editId) {
         // Редактирование существующего перевода
         const transferIndex = savedTransfers.findIndex(t => t.id === parseInt(editId));
         if (transferIndex !== -1) {
-            // Сохраняем состояние уведомлений и ID
             savedTransfers[transferIndex] = {
                 ...transfer,
                 id: parseInt(editId),
@@ -916,6 +1026,40 @@ function saveTransfer(transfer) {
     
     // Обновляем отображение
     loadSavedTransfers();
+
+    // Очищаем форму и сворачиваем её
+    const transferPlanner = document.querySelector('.transfer-planner');
+    if (transferForm) {
+        // Очищаем все поля формы
+        const bankFromSelect = transferForm.querySelector('.bank-from .bank-select');
+        const bankFromAccount = transferForm.querySelector('.bank-from .account-number');
+        const bankToSelect = transferForm.querySelector('.bank-to .bank-select');
+        const bankToAccount = transferForm.querySelector('.bank-to .account-number');
+        const amountInput = transferForm.querySelector('.amount-field input');
+        const scheduleDayInput = transferForm.querySelector('.schedule-field input');
+        const noteInput = transferForm.querySelector('.note-field input');
+
+        if (bankFromSelect) bankFromSelect.value = '';
+        if (bankFromAccount) bankFromAccount.value = '';
+        if (bankToSelect) bankToSelect.value = '';
+        if (bankToAccount) bankToAccount.value = '';
+        if (amountInput) amountInput.value = '';
+        if (scheduleDayInput) scheduleDayInput.value = '';
+        if (noteInput) noteInput.value = '';
+
+        // Сбрасываем состояние формы
+        delete transferForm.dataset.editId;
+        const saveButton = transferForm.querySelector('.save-transfer');
+        if (saveButton) {
+            saveButton.textContent = 'Сохранить';
+            saveButton.disabled = false;
+        }
+    }
+
+    // Сворачиваем форму
+    if (transferPlanner) {
+        transferPlanner.classList.add('collapsed');
+    }
 }
 
 function loadSavedTransfers() {
@@ -1087,6 +1231,54 @@ function initializeCalendar() {
                     'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'
                 ];
                 headerTitle.textContent = `${i} ${monthNames[month]} ${year} г.`;
+
+                // Обновляем state
+                state.selectedMonth = month;
+                state.selectedYear = year;
+                state.selectedDay = i;
+
+                // Фильтруем и отображаем транзакции за выбранный день
+                const selectedTransactions = state.transactions.filter(transaction => {
+                    const transactionDate = new Date(transaction.date);
+                    return transactionDate.getDate() === i &&
+                           transactionDate.getMonth() === month &&
+                           transactionDate.getFullYear() === year;
+                });
+
+                // Обновляем отображение транзакций
+                const container = document.querySelector('.transactions');
+                container.innerHTML = '';
+
+                if (selectedTransactions.length === 0) {
+                    container.innerHTML = `
+                        <div class="no-records">
+                            <span class="material-icons">receipt_long</span>
+                            <p>Нет транзакций</p>
+                        </div>
+                    `;
+                } else {
+                    const group = document.createElement('div');
+                    group.className = 'transaction-group';
+
+                    const dateHeader = document.createElement('div');
+                    dateHeader.className = 'transaction-date';
+                    dateHeader.textContent = `${i} ${monthNames[month]}`;
+                    group.appendChild(dateHeader);
+
+                    const list = document.createElement('div');
+                    list.className = 'transaction-list';
+
+                    selectedTransactions.forEach(transaction => {
+                        const item = createTransactionItem(transaction);
+                        list.appendChild(item);
+                    });
+
+                    group.appendChild(list);
+                    container.appendChild(group);
+                }
+
+                // Обновляем суммы
+                updateSummary(selectedTransactions);
                 
                 // Закрываем календарь
                 setTimeout(() => {
@@ -1106,9 +1298,6 @@ function initializeCalendar() {
             calendarGrid.appendChild(dayButton);
         }
     }
-
-    // Инициализация при загрузке
-    updateMonthDisplay();
 }
 
 // Инициализируем календарь при загрузке страницы
@@ -1138,14 +1327,20 @@ function saveTransaction(transaction) {
     // Обновляем state
     state.transactions = transactions;
     
-    console.log('Транзакция сохранена:', transaction);
-    console.log('Всего транзакций:', transactions.length);
-
     // Обновляем отчеты, если модальное окно отчетов открыто
     const reportsModal = document.querySelector('.reports-modal');
     if (reportsModal && reportsModal.classList.contains('active')) {
-        updateReport();
+        // Инициализируем диаграмму, если её нет
+        if (!window.expenseChart) {
+            initializeChart();
+        }
+        // Обновляем данные без анимации
+        updateReport(false);
     }
+    
+    // Обновляем список транзакций и сводку
+    updateTransactionsList();
+    updateSummary();
 }
 
 function getTransactions() {
@@ -1550,221 +1745,51 @@ function reapplyCategories() {
 }
 
 function initializeChart() {
-    console.log('Initializing expense chart');
+    console.log('[initializeChart] Начало создания новой диаграммы');
     
-    // Получаем контекст холста
-    const ctx = document.getElementById('expenseChart')?.getContext('2d');
-    if (!ctx) {
-        console.error('Chart canvas not found');
-        return;
+    // Получаем canvas и контекст
+    const canvas = document.getElementById('expenseChart');
+    if (!canvas) {
+        console.error('[initializeChart] Canvas не найден');
+        return null;
     }
     
-    // Уничтожаем существующую диаграмму, если она есть
-    if (window.expenseChart instanceof Chart) {
-        window.expenseChart.destroy();
+    // Очищаем canvas (если была предыдущая диаграмма)
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Удаляем предыдущую диаграмму, если она есть
+    if (window.expenseChart) {
+        delete window.expenseChart;
     }
     
-    // Данные для диаграммы (фиксированные для простоты)
-    const data = {
-        labels: ['Инвестиции', 'Одежда', 'Транспорт', 'Дом'],
-        datasets: [{
-            data: [11112, 2223, 112, 1123],
-            backgroundColor: [
-                '#32D74B', // Зеленый для инвестиций (доход)
-                '#FF453A', // Красный для расходов
-                '#FF453A',
-                '#FF453A'
-            ],
-            borderWidth: 0,
-            spacing: 2
-        }]
-    };
+    // Принудительно устанавливаем размеры canvas
+    canvas.style.width = '90%';
+    canvas.style.height = '250px';
+    canvas.style.display = 'block';
     
-    // Создаем новую диаграмму
-    window.expenseChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: data,
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '70%',
-            plugins: {
-                legend: {
-                    display: false
-                },
-                tooltip: {
-                    enabled: false
-                }
+    try {
+        // Создаем простую диаграмму с минимальной конфигурацией
+        return new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Нет данных'],
+                datasets: [{
+                    data: [1],
+                    backgroundColor: ['#333'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%'
             }
-        }
-    });
-    
-    console.log('Chart initialized');
-}
-
-function initializeReports() {
-    console.log('Initializing reports');
-
-    // Получаем элементы для работы с отчетами
-    const reportsButton = document.querySelector('.nav-item[data-page="reports"]');
-    const reportsModal = document.querySelector('.reports-modal');
-    const closeButton = reportsModal.querySelector('.close-button');
-    
-    // Получаем переключатель периода
-    const periodButtons = reportsModal.querySelectorAll('.period-button');
-    
-    // Получаем кнопки переключения типа отчета
-    const expenseButton = reportsModal.querySelector('.expense-button');
-    const incomeButton = reportsModal.querySelector('.income-button');
-    
-    // Добавляем обработчик для открытия отчетов
-    reportsButton.addEventListener('click', () => {
-        reportsModal.classList.add('active');
-        
-        // Принудительно обновляем state из localStorage перед обновлением отчета
-        state.transactions = JSON.parse(localStorage.getItem('transactions')) || [];
-        
-        // Добавляем небольшую задержку перед загрузкой отчета
-        setTimeout(() => {
-            updateReport(); // Обновляем отчет с задержкой
-        }, 300);
-    });
-    
-    // Добавляем обработчик для закрытия отчетов
-    closeButton.addEventListener('click', () => {
-        reportsModal.classList.remove('active');
-    });
-    
-    // Добавляем обработчики для переключения периода
-    periodButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            // Снимаем активность со всех кнопок
-            periodButtons.forEach(btn => btn.classList.remove('active'));
-            // Делаем текущую кнопку активной
-            button.classList.add('active');
-            // Обновляем отчет с новым периодом
-            updateReport();
         });
-    });
-    
-    // Добавляем обработчики для переключения типа отчета
-    expenseButton.addEventListener('click', () => {
-        expenseButton.classList.add('active');
-        incomeButton.classList.remove('active');
-        updateReport();
-    });
-    
-    incomeButton.addEventListener('click', () => {
-        incomeButton.classList.add('active');
-        expenseButton.classList.remove('active');
-        updateReport();
-    });
-    
-    // Инициализируем диаграмму с задержкой при первой загрузке
-    setTimeout(() => {
-        initializeChart();
-    }, 300);
-    
-    console.log('Report initialization complete');
-}
-
-// Функция для обновления отчета
-function updateReport() {
-    console.log('Updating report...');
-    
-    // Определяем текущие режимы отчета
-    const isExpense = document.querySelector('.reports-modal .expense-button').classList.contains('active');
-    const isMonthPeriod = document.querySelector('.reports-modal .period-button.active').textContent === 'Месяц';
-    
-    // Получаем текущую дату из навигации или используем текущую
-    const dateText = document.querySelector('.reports-modal .date-text').textContent;
-    const currentDate = new Date();
-    const currentMonth = currentDate.getMonth();
-    const currentYear = currentDate.getFullYear();
-    
-    // Фильтруем транзакции по типу и текущему периоду
-    let filteredTransactions = state.transactions.filter(transaction => {
-        const transactionDate = new Date(transaction.date);
-        const transactionMonth = transactionDate.getMonth();
-        const transactionYear = transactionDate.getFullYear();
-        
-        // Проверяем соответствие типа (расход/доход)
-        const typeMatch = isExpense ? transaction.type === 'expense' : transaction.type === 'income';
-        
-        // Проверяем соответствие периода (месяц/год)
-        const periodMatch = isMonthPeriod 
-            ? transactionMonth === currentMonth && transactionYear === currentYear
-            : transactionYear === currentYear;
-        
-        return typeMatch && periodMatch;
-    });
-    
-    // Группируем транзакции по категориям и суммируем
-    const categories = {};
-    filteredTransactions.forEach(transaction => {
-        if (!categories[transaction.category]) {
-            categories[transaction.category] = 0;
-        }
-        categories[transaction.category] += parseFloat(transaction.amount);
-    });
-    
-    // Преобразуем в массив и сортируем по убыванию суммы
-    let categoriesArray = Object.keys(categories).map(category => {
-        return {
-            name: category,
-            amount: categories[category]
-        };
-    }).sort((a, b) => b.amount - a.amount);
-    
-    // Отфильтруем категорию "Другое"
-    categoriesArray = categoriesArray.filter(category => 
-        !category.name.includes('other_expense') && !category.name.includes('other_income'));
-    
-    // Вычисляем общую сумму
-    const total = categoriesArray.reduce((sum, category) => sum + category.amount, 0);
-    
-    // Обновляем отображение общей суммы
-    const chartTotal = document.querySelector('.chart-total');
-    if (chartTotal) {
-        chartTotal.textContent = Math.round(total).toLocaleString('ru-RU');
-        
-        // Устанавливаем цвет в зависимости от типа (расход/доход)
-        if (isExpense) {
-            chartTotal.style.color = '#FF453A'; // Красный для расходов
-        } else {
-            chartTotal.style.color = '#32D74B'; // Зеленый для доходов
-        }
+    } catch (error) {
+        console.error('[initializeChart] Ошибка создания диаграммы:', error);
+        return null;
     }
-    
-    // Обновляем заголовок с типом отчета
-    const reportTitle = document.querySelector('.reports-modal .title');
-    if (reportTitle) {
-        reportTitle.textContent = isExpense ? 'Расходы▼' : 'Доходы▼';
-    }
-    
-    // Подготавливаем данные для графика
-    const chartLabels = categoriesArray.map(category => category.name);
-    const chartData = categoriesArray.map(category => category.amount);
-    const chartColors = categoriesArray.map(category => getCategoryColor(category.name, isExpense));
-    
-    // Обновляем диаграмму с небольшой задержкой
-    setTimeout(() => {
-        if (window.expenseChart) {
-            window.expenseChart.data.labels = chartLabels;
-            window.expenseChart.data.datasets[0].data = chartData;
-            window.expenseChart.data.datasets[0].backgroundColor = chartColors;
-            window.expenseChart.update();
-        } else {
-            // Если диаграмма не инициализирована, создаем ее
-            initializeChart();
-        }
-    }, 200);
-    
-    // Обновляем список категорий
-    updateCategoryList(categoriesArray, total, isExpense);
-    
-    // Обновляем навигацию по датам
-    updateDateNavigation();
 }
 
 function updateCategoryList(categories, total, isExpense) {
@@ -1774,8 +1799,29 @@ function updateCategoryList(categories, total, isExpense) {
     // Очищаем текущий список
     categoryList.innerHTML = '';
     
+    // Сортируем категории по сумме в порядке убывания
+    const sortedCategories = [...categories].sort((a, b) => {
+        // Если суммы равны, сохраняем порядок
+        if (Math.abs(b.amount - a.amount) < 0.01) {
+            return 0;
+        }
+        return b.amount - a.amount;
+    });
+
+    // Если нет категорий, показываем сообщение
+    if (sortedCategories.length === 0) {
+        const emptyMessage = document.createElement('div');
+        emptyMessage.className = 'empty-category-message';
+        emptyMessage.textContent = 'Нет данных для отображения';
+        emptyMessage.style.color = '#666';
+        emptyMessage.style.textAlign = 'center';
+        emptyMessage.style.padding = '20px';
+        categoryList.appendChild(emptyMessage);
+        return;
+    }
+
     // Создаем элементы для каждой категории
-    categories.forEach(category => {
+    sortedCategories.forEach(category => {
         // Пропускаем категорию "Другое"
         if (category.name.includes('other_expense') || category.name.includes('other_income')) {
             return;
@@ -1873,103 +1919,38 @@ function getCategoryColor(category, isExpense) {
         'other_expense': '#8E8E93'
     };
     
-    // Цвета для доходов
+    // Полностью обновленная палитра для доходов с уникальными цветами
     const incomeColors = {
-        'salary': '#32D74B',
-        'investments': '#30D158',
-        'part-time': '#32D74B',
-        'rewards': '#FFD60A',
-        'rental': '#30D158',
-        'business': '#32D74B',
-        'dividends': '#30D158',
-        'freelance': '#32D74B',
-        'sales': '#30D158',
-        'other_income': '#32D74B'
+        'salary': '#2ECC71',        // Изумрудный зеленый
+        'investments': '#9B59B6',    // Аметистовый
+        'part-time': '#E67E22',     // Морковный
+        'rewards': '#F1C40F',       // Солнечный желтый
+        'rental': '#3498DB',        // Питерский голубой
+        'business': '#16A085',      // Бирюзовый
+        'dividends': '#8E44AD',     // Глубокий пурпурный
+        'freelance': '#E74C3C',     // Алый
+        'sales': '#D35400',         // Тыквенный
+        'other_income': '#27AE60'   // Нефритовый
     };
     
     // В зависимости от типа транзакции выбираем соответствующий набор цветов
     const colorMap = isExpense ? expenseColors : incomeColors;
     
     // Возвращаем цвет категории, если он есть в наборе, иначе возвращаем цвет по умолчанию
-    return colorMap[category] || (isExpense ? '#FF453A' : '#32D74B');
+    return colorMap[category] || (isExpense ? '#FF453A' : '#2ECC71');
 }
 
 // Функция для обновления навигации по датам
 function updateDateNavigation() {
-    const dateNavigation = document.querySelector('.reports-modal .date-navigation');
-    if (!dateNavigation) return;
-    
-    // Сохраняем выбранный месяц и год в атрибутах элемента
-    dateNavigation.dataset.selectedMonth = state.selectedMonth;
-    dateNavigation.dataset.selectedYear = state.selectedYear;
-    
-    // Получаем названия месяцев для отображения
-    const monthNames = [
-        'янв.', 'февр.', 'март', 'апр.', 'май', 'июнь',
-        'июль', 'авг.', 'сент.', 'окт.', 'нояб.', 'дек.'
+    const dateDisplay = document.querySelector('.reports-modal .date-display');
+    const months = [
+        'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+        'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
     ];
     
-    // Определяем месяц для отображения в навигации
-    const currentMonthName = monthNames[state.selectedMonth];
-    const currentYearShort = state.selectedYear;
-    
-    // Обновляем текст в навигации
-    dateNavigation.innerHTML = '';
-    
-    // Создаем навигационные точки
-    const dotsContainer = document.createElement('div');
-    dotsContainer.className = 'chart-navigation';
-    
-    // Создаем 5 точек, где средняя точка - текущий месяц
-    for (let i = -2; i <= 2; i++) {
-        const dot = document.createElement('div');
-        dot.className = 'dot';
-        if (i === 0) {
-            dot.classList.add('active');
-        }
-        
-        // Вычисляем месяц и год для этой точки
-        let navMonth = state.selectedMonth + i;
-        let navYear = state.selectedYear;
-        
-        // Корректируем переход между годами
-        if (navMonth < 0) {
-            navMonth = 12 + navMonth;
-            navYear--;
-        } else if (navMonth > 11) {
-            navMonth = navMonth - 12;
-            navYear++;
-        }
-        
-        // Сохраняем данные для точки
-        dot.dataset.month = navMonth;
-        dot.dataset.year = navYear;
-        
-        // Добавляем обработчик для переключения на выбранный месяц
-        dot.addEventListener('click', function() {
-            // Обновляем датасет навигации
-            dateNavigation.dataset.selectedMonth = this.dataset.month;
-            dateNavigation.dataset.selectedYear = this.dataset.year;
-            
-            // Обновляем активную точку
-            document.querySelectorAll('.chart-navigation .dot').forEach(d => d.classList.remove('active'));
-            this.classList.add('active');
-            
-            // Обновляем отчет
-            updateReport();
-        });
-        
-        dotsContainer.appendChild(dot);
+    if (dateDisplay) {
+        dateDisplay.textContent = `${months[state.selectedMonth]} ${state.selectedYear}`;
     }
-    
-    // Добавляем текст с текущим месяцем и годом
-    const dateText = document.createElement('div');
-    dateText.className = 'date-text';
-    dateText.textContent = `${currentMonthName} ${currentYearShort} г.`;
-    
-    // Добавляем элементы в навигацию
-    dateNavigation.appendChild(dateText);
-    dateNavigation.appendChild(dotsContainer);
 }
 
 // Добавляем функцию для очистки localStorage
@@ -2006,4 +1987,302 @@ function clearLocalStorage() {
     state.categoryPositions.income = JSON.parse(localStorage.getItem('incomeCategoryPositions')) || {};
     
     console.log('Локальное хранилище готово');
-} 
+}
+
+function initializeReports() {
+    console.log('[initializeReports] Начало инициализации отчетов');
+    
+    // Получаем элементы для работы с отчетами
+    const reportsButton = document.querySelector('.nav-item[data-page="reports"]');
+    const reportsModal = document.querySelector('.reports-modal');
+    
+    // Получаем переключатель периода
+    const periodButtons = reportsModal.querySelectorAll('.period-button');
+    
+    // Получаем кнопки переключения типа отчета
+    const expenseButton = reportsModal.querySelector('.expense-button');
+    const incomeButton = reportsModal.querySelector('.income-button');
+
+    // Получаем кнопки навигации ОТЧЕТОВ с новыми классами
+    const prevMonthButton = reportsModal.querySelector('.reports-prev-month');
+    const nextMonthButton = reportsModal.querySelector('.reports-next-month');
+
+    // Обработчики для кнопок навигации по месяцам в ОТЧЕТАХ
+    if (prevMonthButton) {
+        prevMonthButton.addEventListener('click', (e) => {
+            // Предотвращаем всплытие события
+            e.stopPropagation();
+            
+            if (state.selectedMonth === 0) {
+                state.selectedMonth = 11;
+                state.selectedYear--;
+            } else {
+                state.selectedMonth--;
+            }
+            updateDateNavigation();
+            updateReport(false);
+        });
+    }
+
+    if (nextMonthButton) {
+        nextMonthButton.addEventListener('click', (e) => {
+            // Предотвращаем всплытие события
+            e.stopPropagation();
+            
+            if (state.selectedMonth === 11) {
+                state.selectedMonth = 0;
+                state.selectedYear++;
+            } else {
+                state.selectedMonth++;
+            }
+            updateDateNavigation();
+            updateReport(false);
+        });
+    }
+
+    // Предварительно загружаем данные
+    console.log('[initializeReports] Загрузка данных из localStorage');
+    state.transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+    
+    // Добавляем обработчик для открытия отчетов
+    reportsButton.addEventListener('click', () => {
+        console.log('[reportsButton] Нажата кнопка отчетов');
+        
+        // Показываем модальное окно
+        reportsModal.classList.add('active');
+
+        // Простая задержка перед обновлением, чтобы DOM успел обновиться
+        setTimeout(() => {
+            // Обновляем навигацию по дате
+            updateDateNavigation();
+            
+            // Обновляем отчет (это создаст новую диаграмму)
+            updateReport(true);
+            
+            console.log('[reportsButton] Отчет обновлен');
+        }, 300);
+    });
+    
+    // Обработчики для переключения периода
+    periodButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            console.log('[periodButton] Переключение периода');
+            periodButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            updateReport(false);
+        });
+    });
+    
+    // Обработчики для переключения типа отчета
+    expenseButton.addEventListener('click', () => {
+        console.log('[typeButton] Переключение на расходы');
+        expenseButton.classList.add('active');
+        incomeButton.classList.remove('active');
+        updateReport(false);
+    });
+    
+    incomeButton.addEventListener('click', () => {
+        console.log('[typeButton] Переключение на доходы');
+        incomeButton.classList.add('active');
+        expenseButton.classList.remove('active');
+        updateReport(false);
+    });
+    
+    console.log('[initializeReports] Завершение инициализации отчетов');
+}
+
+function updateReport(animate = false) {
+    console.log('[updateReport] Начало обновления отчета');
+    
+    const reportsModal = document.querySelector('.reports-modal');
+    if (!reportsModal) {
+        console.log('[updateReport] Модальное окно отчетов не найдено');
+        return;
+    }
+
+    // Определяем текущие режимы отчета
+    const isExpense = document.querySelector('.reports-modal .expense-button').classList.contains('active');
+    const isMonthPeriod = document.querySelector('.reports-modal .period-button.active').textContent === 'Месяц';
+    
+    console.log(`[updateReport] Режим: ${isExpense ? 'расходы' : 'доходы'}, период: ${isMonthPeriod ? 'месяц' : 'год'}`);
+    
+    // Загружаем и фильтруем транзакции
+    const transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+    let filteredTransactions = transactions.filter(transaction => {
+        const transactionDate = new Date(transaction.date);
+        const transactionMonth = transactionDate.getMonth();
+        const transactionYear = transactionDate.getFullYear();
+        
+        const typeMatch = isExpense ? transaction.type === 'expense' : transaction.type === 'income';
+        const periodMatch = isMonthPeriod 
+            ? transactionMonth === state.selectedMonth && transactionYear === state.selectedYear
+            : transactionYear === state.selectedYear;
+        
+        return typeMatch && periodMatch;
+    });
+    
+    console.log(`[updateReport] Отфильтровано транзакций: ${filteredTransactions.length}`);
+    
+    // Группируем транзакции по категориям
+    const categories = {};
+    filteredTransactions.forEach(transaction => {
+        if (!categories[transaction.category]) {
+            categories[transaction.category] = 0;
+        }
+        categories[transaction.category] += parseFloat(transaction.amount);
+    });
+    
+    // Преобразуем в массив и сортируем
+    const categoriesArray = Object.entries(categories)
+        .map(([name, amount]) => ({ name, amount }))
+        .sort((a, b) => b.amount - a.amount);
+    
+    console.log(`[updateReport] Количество категорий: ${categoriesArray.length}`);
+    
+    // Пересоздаем canvas для диаграммы
+    recreateChartCanvas();
+    
+    // Создаем новую диаграмму вместо обновления существующей
+    try {
+        // Создаем данные для диаграммы
+        const chartLabels = categoriesArray.map(c => c.name);
+        const chartData = categoriesArray.map(c => c.amount);
+        const chartColors = categoriesArray.map(c => getCategoryColor(c.name, isExpense));
+        
+        // Если нет данных, показываем заглушку
+        if (chartData.length === 0) {
+            chartLabels.push('Нет данных');
+            chartData.push(1);
+            chartColors.push('#333');
+        }
+        
+        // Создаем новую диаграмму на чистом canvas
+        const canvas = document.getElementById('expenseChart');
+        if (canvas) {
+            // Принудительно задаем размеры canvas
+            canvas.style.width = '90%';
+            canvas.style.height = '250px';
+            canvas.style.display = 'block';
+            
+            try {
+                const ctx = canvas.getContext('2d');
+                
+                window.expenseChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: chartLabels,
+                        datasets: [{
+                            data: chartData,
+                            backgroundColor: chartColors,
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '70%',
+                        plugins: {
+                            tooltip: {
+                                enabled: true,
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                titleColor: '#fff',
+                                bodyColor: '#fff',
+                                titleFont: {
+                                    size: 16,
+                                    weight: 'bold',
+                                    family: 'system-ui'
+                                },
+                                bodyFont: {
+                                    size: 14,
+                                    family: 'system-ui'
+                                },
+                                padding: 16,
+                                displayColors: false,
+                                callbacks: {
+                                    // Изменение заголовка подсказки на русском
+                                    title: function(items) {
+                                        if (!items.length) return '';
+                                        const category = items[0].label;
+                                        return getCategoryName(category);
+                                    },
+                                    // Изменение текста подсказки на русском
+                                    label: function(context) {
+                                        const value = context.raw;
+                                        const total = context.dataset.data.reduce((sum, val) => sum + val, 0);
+                                        const percentage = ((value / total) * 100).toFixed(1);
+                                        return `${percentage}% (${Math.round(value).toLocaleString('ru-RU')} ₽)`;
+                                    },
+                                    // Локализация статистики
+                                    afterLabel: function(context) {
+                                        if (chartData.length <= 1) return '';
+                                        const total = context.dataset.data.reduce((sum, val) => sum + val, 0);
+                                        return `Из общей суммы: ${Math.round(total).toLocaleString('ru-RU')} ₽`;
+                                    }
+                                }
+                            },
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+                
+                console.log('[updateReport] Новая диаграмма успешно создана');
+            } catch (error) {
+                console.error('[updateReport] Ошибка создания диаграммы:', error);
+            }
+        }
+    } catch (error) {
+        console.error('[updateReport] Ошибка при работе с диаграммой:', error);
+    }
+    
+    // Обновляем список категорий
+    const total = categoriesArray.reduce((sum, category) => sum + category.amount, 0);
+    updateCategoryList(categoriesArray, total, isExpense);
+    
+    // Обновляем общую сумму
+    const totalElement = document.querySelector('.reports-modal .chart-total');
+    if (totalElement) {
+        totalElement.textContent = Math.round(total).toLocaleString('ru-RU');
+    }
+
+    // Обновляем отображение текущего месяца и навигацию
+    updateDateNavigation();
+    
+    console.log('[updateReport] Завершение обновления отчета');
+}
+
+// Полное удаление диаграммы из DOM для принудительного пересоздания
+function recreateChartCanvas() {
+    console.log('[recreateChartCanvas] Пересоздание canvas элемента для диаграммы');
+    
+    // Находим контейнер и текущий canvas
+    const container = document.querySelector('.chart-container');
+    const oldCanvas = document.getElementById('expenseChart');
+    
+    if (!container || !oldCanvas) {
+        console.error('[recreateChartCanvas] Не найден контейнер или canvas');
+        return false;
+    }
+    
+    // Получаем текущий общий элемент (число в центре)
+    const totalElement = document.querySelector('.chart-total');
+    
+    // Удаляем старый canvas
+    oldCanvas.remove();
+    
+    // Удаляем глобальную диаграмму, если она существует
+    if (window.expenseChart) {
+        delete window.expenseChart;
+    }
+    
+    // Создаем новый canvas
+    const newCanvas = document.createElement('canvas');
+    newCanvas.id = 'expenseChart';
+    
+    // Добавляем новый canvas перед элементом с суммой
+    container.insertBefore(newCanvas, totalElement);
+    
+    console.log('[recreateChartCanvas] Canvas успешно пересоздан');
+    return true;
+}

@@ -347,54 +347,29 @@ body {
 
 /* Выбор периода */
 .period-selector {
-    position: absolute;
-    top: calc(100% + 8px);
-    left: 0;
-    width: 280px;
-    background: #1E1E1E;
-    border: 1px solid #333;
-    border-radius: 8px;
-    padding: 16px;
-    display: none;
-    z-index: 1000;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-.period-selector.active {
-    display: block;
-}
-
-.period-header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 20px;
 }
 
-.period-title {
-    font-size: 16px;
-    font-weight: 500;
-    color: #fff;
-}
-
-.period-nav {
-    display: flex;
-    gap: 8px;
-}
-
-.period-nav button {
-    background: none;
+.period-button {
+    background: #2C2C2E;
     border: none;
-    color: #888;
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 20px;
     cursor: pointer;
-    padding: 4px;
-    border-radius: 4px;
-    transition: all 0.2s;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    font-weight: 500;
 }
 
-.period-nav button:hover {
-    color: #fff;
-    background: #333;
+.period-button.active {
+    background-color: #FFD60A;
+    color: #000;
+    transform: scale(1.05);
+    box-shadow: 0 0 10px rgba(255, 214, 10, 0.3);
 }
 
 /* Быстрые фильтры */
@@ -634,7 +609,7 @@ body {
     display: flex;
 }
 
-/* Нижняя навигация */
+/* Стили для нижней навигации */
 .bottom-nav {
     position: fixed;
     bottom: 0;
@@ -644,10 +619,10 @@ body {
     max-width: 390px;
     display: flex;
     justify-content: space-around;
-    background-color: #1a1a1a;
+    background-color: #1C1C1E;
     padding: 8px 0;
-    padding-bottom: calc(8px + env(safe-area-inset-bottom));
-    z-index: 1002; /* Увеличиваем z-index */
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 1001;
 }
 
 .nav-item {
@@ -657,10 +632,11 @@ body {
     padding: 8px;
     color: #888;
     cursor: pointer;
+    text-decoration: none;
 }
 
 .nav-item.active {
-    color: #FFD700;
+    color: #FFD60A;
 }
 
 .nav-item span:last-child {
@@ -692,10 +668,8 @@ body {
 .modal {
     position: fixed;
     top: 0;
-    left: 50%;
-    transform: translateX(-50%);
+    left: 0;
     width: 100%;
-    max-width: 390px;
     height: 100vh;
     background-color: #000;
     z-index: 1000;
@@ -711,7 +685,25 @@ body {
     visibility: visible;
 }
 
-.modal-header {
+.transaction-type-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 390px;
+    height: 100vh;
+    background-color: #000;
+    z-index: 1000;
+    overflow: hidden;
+}
+
+.transaction-type-modal.active {
+    display: block;
+}
+
+.transaction-type-selector {
     position: fixed;
     top: 0;
     left: 50%;
@@ -719,90 +711,11 @@ body {
     width: 100%;
     max-width: 390px;
     display: flex;
-    align-items: center;
-    justify-content: center;
+    justify-content: space-between;
     padding: 16px;
+    background-color: #000;
+    z-index: 1001;
     border-bottom: 1px solid #333;
-    background-color: #000;
-    z-index: 1001;
-}
-
-.back-button {
-    display: none; /* Скрываем кнопку назад */
-}
-
-.title {
-    font-size: 18px;
-    font-weight: 500;
-}
-
-.modal-content {
-    padding-top: 60px;
-    height: 100vh;
-    overflow-y: auto;
-    background-color: #000;
-    transform: translateY(20px);
-    transition: all 0.3s ease;
-}
-
-.modal.active .modal-content {
-    transform: translateY(0);
-}
-
-/* Форма добавления транзакции */
-.form-group {
-    margin-bottom: 16px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 8px;
-    color: #888;
-}
-
-.form-group input {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid #333;
-    border-radius: 8px;
-    background-color: #1a1a1a;
-    color: #fff;
-    font-size: 16px;
-}
-
-.form-group input:focus {
-    outline: none;
-    border-color: #FFD700;
-}
-
-.submit-button {
-    width: 100%;
-    padding: 16px;
-    background-color: #FFD700;
-    border: none;
-    border-radius: 8px;
-    color: #000;
-    font-size: 16px;
-    font-weight: 500;
-    cursor: pointer;
-    margin-top: 16px;
-}
-
-/* Селектор типа транзакции */
-.transaction-type-selector {
-    position: fixed;
-    top: 32px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
-    max-width: 390px;
-    display: flex;
-    background-color: #1a1a1a;
-    border-radius: 0;
-    padding: 4px;
-    z-index: 1001;
-    margin: 0;
-    gap: 1px;
 }
 
 .type-button {
@@ -810,90 +723,92 @@ body {
     padding: 12px;
     border: none;
     background: none;
-    color: #fff;
-    font-size: 14px;
-    font-weight: 500;
+    color: #888;
+    font-size: 16px;
     cursor: pointer;
-    border-radius: 6px;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
     position: relative;
 }
 
-.type-button:not(:last-child)::after {
-    content: '';
-    position: absolute;
-    right: -1px;
-    top: 25%;
-    height: 50%;
-    width: 1px;
-    background-color: #333;
-}
-
 .type-button.active {
-    background-color: #FFD700;
-    color: #000;
+    color: #FFD700;
 }
 
 .type-button.active::after {
-    display: none;
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: #FFD700;
 }
 
-.type-button:not(.active):hover {
-    background-color: rgba(255, 215, 0, 0.1);
-}
-
-/* Сетка категорий */
 .categories-grid {
     display: none;
-    opacity: 0;
-    transform: translateY(10px);
-    transition: all 0.3s ease;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 24px;
-    padding: 32px 16px 100px 16px;
-    margin: 0;
-    width: 100%;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    padding: 76px 12px 12px 12px;
+    background-color: #000;
+    height: calc(100vh - 76px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
 }
 
 .categories-grid.active {
     display: grid;
-    opacity: 1;
-    transform: translateY(0);
+    grid-auto-rows: min-content;
+    align-content: start;
 }
 
 .category-item {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    justify-content: center;
     padding: 8px;
+    background-color: #1a1a1a;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
     text-align: center;
+    aspect-ratio: 1;
+    touch-action: pan-y;
+    user-select: none;
+}
+
+.category-item:hover {
+    background-color: #2a2a2a;
+}
+
+.category-item.selected {
+    background-color: #FFD700;
+}
+
+.category-item.selected .category-icon,
+.category-item.selected .category-name {
+    color: #000;
 }
 
 .category-icon {
-    width: 64px;
-    height: 64px;
-    background-color: #1a1a1a;
-    border-radius: 50%;
+    width: 28px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
 }
 
 .category-icon .material-icons {
-    font-size: 28px;
-    color: #fff;
+    font-size: 18px;
+    color: #FFD700;
 }
 
 .category-name {
+    font-size: 11px;
     color: #fff;
-    font-size: 14px;
-    margin: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
+    margin-top: 2px;
 }
 
 .category-progress {
@@ -1143,12 +1058,14 @@ body {
     border-radius: 12px;
     margin-bottom: 24px;
     transition: all 0.3s ease;
+    margin-top: 60px; /* Добавляем отступ сверху */
 }
 
 .transfer-planner.collapsed {
     background-color: #1a1a1a;
     padding: 16px;
     cursor: pointer;
+    margin-top: 60px; /* Добавляем отступ сверху и для свернутого состояния */
 }
 
 .transfer-planner.collapsed .transfer-form {
@@ -1561,7 +1478,6 @@ label {
 
 /* Стили для модального окна отчетов */
 .reports-modal {
-    display: none;
     position: fixed;
     top: 0;
     left: 50%;
@@ -1571,136 +1487,108 @@ label {
     height: 100vh;
     background-color: #000;
     z-index: 1000;
+    display: none;
 }
 
 .reports-modal.active {
     display: block;
 }
 
-.reports-modal .modal-header {
-    position: fixed;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
-    max-width: 390px;
+.reports-header {
+    padding: 16px 16px 20px 16px; /* Увеличение отступа снизу */
     display: flex;
-    align-items: center;
-    padding: 16px;
-    background-color: #000;
-    z-index: 1001;
-    border-bottom: 1px solid #1a1a1a;
-}
-
-.reports-modal .close-button {
-    background: none;
-    border: none;
-    padding: 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
     justify-content: center;
-    color: #fff;
+    align-items: center;
+    background-color: #1C1C1E;
+    border-bottom: 1px solid #2C2C2E;
+    border-radius: 0 0 20px 20px; /* Овальная форма снизу */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Добавляем тень для объемности */
+    margin-bottom: 10px; /* Добавляем отступ снизу от шапки */
 }
 
-.reports-modal .title {
-    flex-grow: 1;
-    text-align: center;
+.reports-header .type-selector {
+    display: flex;
+    gap: 10px; /* Немного увеличиваем разрыв между кнопками */
+    position: relative; /* Для позиционирования эффекта свечения */
+}
+
+.reports-header .type-selector button {
+    padding: 10px 18px; /* Немного увеличиваем кнопки */
+    border: none;
+    border-radius: 20px; /* Еще более округлые кнопки */
+    font-size: 16px;
+    font-weight: 500;
     color: #fff;
-    font-size: 18px;
-    margin-right: 40px;
+    background-color: #2C2C2E;
+    transition: all 0.3s ease; /* Плавная анимация всех свойств */
+}
+
+.reports-header .type-selector button.active {
+    background-color: #FFD60A;
+    color: #000;
+    transform: scale(1.05); /* Немного увеличиваем активную кнопку */
+    box-shadow: 0 0 10px rgba(255, 214, 10, 0.3); /* Добавляем свечение для активной кнопки */
 }
 
 .reports-content {
-    padding: 70px 16px 16px;
-    height: 100vh;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    background-color: #000;
-}
-
-/* Переключатель периода */
-.period-switch {
-    background-color: #fff;
-    border-radius: 20px;
-    display: flex;
-    padding: 2px;
-    margin: 0 40px;
-}
-
-.period-button {
     flex: 1;
-    padding: 8px;
-    border: none;
-    background: none;
-    color: #000;
-    font-size: 14px;
-    border-radius: 16px;
-    cursor: pointer;
-}
-
-.period-button.active {
+    overflow-y: auto;
     background-color: #000;
-    color: #fff;
+    padding: 16px;
 }
 
-/* Стили для навигации по датам */
-.reports-modal .date-navigation {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-bottom: 16px;
-    gap: 12px;
-}
-
-.reports-modal .date-text {
-    color: #FFFFFF;
-    font-size: 17px;
-    font-weight: 500;
-}
-
-.reports-modal .chart-navigation {
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-    margin-bottom: 16px;
-}
-
-.reports-modal .dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background-color: rgba(255, 255, 255, 0.3);
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.reports-modal .dot.active {
-    background-color: #FFFFFF;
-    transform: scale(1.2);
-}
-
-/* Стили для диаграммы */
-.reports-modal .chart-container {
+.chart-container {
     position: relative;
+    width: 90%;
+    height: 250px;
+    margin: 15px auto;
+    overflow: visible;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.month-navigation {
     width: 100%;
-    max-width: 200px;
-    height: 200px;
-    margin: 0 auto;
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 16px;
+    margin: 15px 0;
+    padding: 12px;
+    background-color: transparent;
+    border-radius: 0;
 }
 
-.reports-modal #expenseChart {
-    width: 200px !important;
-    height: 200px !important;
-    display: block !important;
+.month-navigation .nav-button {
+    background: #2C2C2E;
+    border: none;
+    padding: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    width: 40px;
+    height: 40px;
 }
 
-.reports-modal .chart-total {
+.month-navigation .nav-button:hover {
+    background-color: #3C3C3E;
+    transform: scale(1.1);
+}
+
+.month-navigation .date-display {
+    font-size: 18px;
+    font-weight: 500;
+    color: #fff;
+    min-width: 140px;
+    text-align: center;
+}
+
+.chart-total {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -1712,171 +1600,89 @@ label {
     width: 100%;
 }
 
-/* Новые стили для категорий в отчетах (полная замена) */
-.reports-modal .category-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 0 16px;
-    margin-top: 24px;
+.category-list {
+    margin-bottom: 16px;
+    padding-bottom: 80px;
+    overflow-y: visible;
 }
 
-/* Используем стандартные стили транзакций для элементов категорий в отчетах */
-.reports-modal .transaction-item {
-    position: relative;
-    background: #2C2C2E;
-    border-radius: 16px;
-    margin-bottom: 8px;
-    overflow: hidden;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-/* Стили для суммы в списке категорий */
-.reports-modal .transaction-item.expense .transaction-amount {
-    color: #FF453A;
-}
-
-.reports-modal .transaction-item.income .transaction-amount {
-    color: #32D74B;
-}
-
-/* Другие специфические стили для отчетов */
-.reports-modal .category-list .category-item {
-    display: flex;
-    align-items: center;
-    padding: 16px;
-    background-color: #1C1C1E;
-    border-radius: 16px;
-    gap: 12px;
-    margin: 0;
-}
-
-.reports-modal .category-list .category-item .category-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    background-color: #2C2C2E;
-    flex-shrink: 0;
-}
-
-.reports-modal .category-list .category-item .category-icon .material-icons {
-    font-size: 18px;
-    color: #FFFFFF;
-}
-
-.reports-modal .category-list .category-item:nth-child(1) .category-icon {
-    background-color: #32D74B;
-}
-
-.reports-modal .category-list .category-item:nth-child(2) .category-icon {
-    background-color: #FF453A;
-}
-
-.reports-modal .category-list .category-item:nth-child(3) .category-icon {
-    background-color: #FF9500;
-}
-
-.reports-modal .category-list .category-item:nth-child(4) .category-icon {
-    background-color: #30D158;
-}
-
-.reports-modal .category-list .category-item .category-info {
-    flex: 1;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.reports-modal .category-list .category-item .category-info .category-name {
-    color: #FFFFFF;
-    font-size: 17px;
-    font-weight: 400;
-}
-
-.reports-modal .category-list .category-item .category-info .category-amount {
-    color: #FF453A;
-    font-size: 17px;
-    font-weight: 400;
-}
-
-.reports-modal .category-list .category-item .category-info .category-amount.income {
-    color: #32D74B;
-}
-
-/* Переключатель периода */
-.reports-modal .period-switch {
-    display: flex;
-    background: rgba(118, 118, 128, 0.24);
-    border-radius: 8.91px;
-    padding: 2px;
-    margin: 16px 16px 24px 16px;
-}
-
-.reports-modal .period-button {
-    flex: 1;
-    padding: 7px 16px;
-    border: none;
-    background: none;
-    font-size: 15px;
-    color: #FFFFFF;
-    border-radius: 7px;
-    cursor: pointer;
-}
-
-.reports-modal .period-button.active {
-    background: #FFFFFF;
-    color: #000000;
-}
-
-/* Скрытие прогресс-бара и процентов */
-.reports-modal .category-progress,
-.reports-modal .category-percentage,
-.reports-modal .category-stats {
+.category-list::-webkit-scrollbar {
     display: none;
 }
 
-.reports-modal .modal-header {
-    padding: 16px;
+.type-selector,
+.period-selector {
     display: flex;
-    flex-direction: column;
-    gap: 16px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.reports-modal .report-type-switch {
-    display: flex;
-    justify-content: center;
     gap: 8px;
-    margin: 0 auto;
-    background: #2C2C2E;
-    padding: 4px;
-    border-radius: 20px;
-    width: fit-content;
 }
 
-.reports-modal .expense-button,
-.reports-modal .income-button {
-    padding: 8px 16px;
-    border: none;
-    border-radius: 16px;
+.back-button {
     background: none;
+    border: none;
     color: #fff;
-    font-size: 14px;
+    padding: 8px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s;
 }
 
-.reports-modal .expense-button.active,
-.reports-modal .income-button.active {
-    background: #FFD60A;
+.back-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Удаляем старые стили */
+.date-navigation,
+.chart-navigation {
+    display: none;
+}
+
+/* Стили для кнопок типа и периода */
+.expense-button,
+.income-button,
+.period-button {
+    background: none;
+    border: none;
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.expense-button.active,
+.income-button.active,
+.period-button.active {
+    background-color: #FFD60A;
     color: #000;
 }
 
-.reports-modal .expense-button:hover,
-.reports-modal .income-button:hover {
-    opacity: 0.8;
+#expenseChart {
+    width: 90% !important;
+    height: 90% !important;
+    display: block !important;
+    margin: 0 auto;
+    min-height: 250px !important;
+}
+
+/* Стили для отчетов */
+.reports-modal .reports-content {
+    padding: 16px;
+    height: calc(100% - 60px);
+    overflow-y: auto !important;
+    max-height: 100vh;
+    scroll-behavior: smooth;
+    padding-bottom: 100px; /* Увеличиваю отступ снизу для лучшего скроллинга */
+}
+
+/* Отображаем период-селектор (возвращаем как было) */
+.reports-modal .period-selector {
+    display: flex;
+}
+
+/* Подстраиваем отступы с учетом возвращенного period-selector */
+.reports-modal .month-navigation {
+    margin-top: 15px;
 } 

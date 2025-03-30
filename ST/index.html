@@ -6,6 +6,13 @@
     <title>Финансовый трекер</title>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Дополнительные стили для отчетов */
+        .reports-content {
+            overflow-y: auto !important;
+            max-height: calc(100vh - 60px) !important;
+        }
+    </style>
 </head>
 <body>
     <div class="app">
@@ -18,7 +25,7 @@
                     <button class="calendar-button">
                         <span class="material-icons">event</span>
                     </button>
-                    <div class="header-title">27 март 2025 г.</div>
+                    <div class="header-title" id="current-date">27 март 2025 г.</div>
                 </div>
 
                 <!-- Сводка -->
@@ -513,237 +520,35 @@
 
         <!-- Модальное окно отчетов -->
         <div class="reports-modal">
-            <div class="modal-header">
-                <button class="close-button">
-                    <span class="material-icons">close</span>
-                </button>
-                <div class="report-type-switch">
+            <div class="reports-header">
+                <div class="type-selector">
                     <button class="expense-button active">Расходы</button>
                     <button class="income-button">Доходы</button>
                 </div>
-                <div class="period-switch">
+            </div>
+            <div class="reports-content">
+                <div class="period-selector">
                     <button class="period-button active">Месяц</button>
                     <button class="period-button">Год</button>
                 </div>
-            </div>
-            <div class="reports-content">
-                <!-- Навигация по датам -->
-                <div class="date-navigation">
-                    <div class="date-text">окт. 2024 г.</div>
-                    <div class="chart-navigation">
-                        <div class="dot"></div>
-                        <div class="dot"></div>
-                        <div class="dot active"></div>
-                        <div class="dot"></div>
-                        <div class="dot"></div>
-                    </div>
+                <div class="month-navigation">
+                    <button class="nav-button reports-prev-month">
+                        <span class="material-icons">chevron_left</span>
+                    </button>
+                    <div class="date-display"></div>
+                    <button class="nav-button reports-next-month">
+                        <span class="material-icons">chevron_right</span>
+                    </button>
                 </div>
-
-                <!-- Круговая диаграмма -->
                 <div class="chart-container">
-                    <canvas id="expenseChart" width="200" height="200"></canvas>
-                    <div class="chart-total">111</div>
+                    <canvas id="expenseChart"></canvas>
+                    <div class="chart-total">0</div>
                 </div>
-
-                <!-- Список категорий -->
-                <div class="category-list">
-                    <!-- Категории будут добавлены динамически через JavaScript -->
-                </div>
+                <div class="category-list"></div>
             </div>
         </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script src="script.js"></script>
-    <script>
-        // Непосредственное добавление обработчика при загрузке страницы
-        document.addEventListener('DOMContentLoaded', function() {
-            // Сразу инициализируем отчеты
-            initializeReports();
-            
-            // Прямая привязка к кнопке отчетов
-            const reportsButton = document.querySelector('.nav-item[data-page="reports"]');
-            if (reportsButton) {
-                reportsButton.onclick = function() {
-                    console.log('Direct reports click handler');
-                    const reportsModal = document.querySelector('.reports-modal');
-                    reportsModal.classList.add('active');
-                    
-                    // Принудительное обновление категорий несколько раз с разными интервалами
-                    setTimeout(reapplyCategories, 50);
-                    setTimeout(reapplyCategories, 100);
-                    setTimeout(reapplyCategories, 200);
-                    setTimeout(reapplyCategories, 500);
-                };
-            }
-
-            // Прямая привязка к кнопке закрытия
-            const closeButton = document.querySelector('.reports-modal .close-button');
-            if (closeButton) {
-                closeButton.onclick = function() {
-                    console.log('Direct close click handler');
-                    document.querySelector('.reports-modal').classList.remove('active');
-                };
-            }
-            
-            // Принудительное обновление категорий при загрузке страницы
-            setTimeout(reapplyCategories, 100);
-            setTimeout(reapplyCategories, 500);
-            setTimeout(reapplyCategories, 1000);
-        });
-    </script>
-    
-    <!-- Инлайн-скрипт для гарантированного отображения категорий -->
-    <script>
-        (function() {
-            // Принудительное добавление категорий без зависимостей от других функций
-            function setCategories() {
-                const categoryList = document.querySelector('.reports-modal .category-list');
-                if (categoryList) {
-                    // Категории будут добавлены динамически через updateReport
-                    categoryList.innerHTML = '';
-                }
-            }
-            
-            // Инициализация диаграммы напрямую
-            function setChart() {
-                const ctx = document.getElementById('expenseChart')?.getContext('2d');
-                if (!ctx) return;
-                
-                // Если диаграмма уже существует, уничтожаем ее
-                if (window.expenseChart instanceof Chart) {
-                    window.expenseChart.destroy();
-                }
-                
-                // Создаем новую диаграмму (пустую, которая будет заполнена через updateReport)
-                window.expenseChart = new Chart(ctx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: [],
-                        datasets: [{
-                            data: [],
-                            backgroundColor: [],
-                            borderWidth: 0,
-                            hoverOffset: 0,
-                            spacing: 0
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        cutout: '70%',
-                        rotation: 0,
-                        plugins: {
-                            legend: {
-                                display: false
-                            },
-                            tooltip: {
-                                enabled: false
-                            }
-                        },
-                        animation: {
-                            animateRotate: true,
-                            animateScale: false
-                        }
-                    }
-                });
-            }
-            
-            // Добавить кнопке отчетов событие клика
-            window.addEventListener('load', function() {
-                const reportsButton = document.querySelector('.nav-item[data-page="reports"]');
-                if (reportsButton) {
-                    reportsButton.addEventListener('click', function() {
-                        // Обновляем категории и диаграмму несколько раз для надежности
-                        setTimeout(function() {
-                            setCategories();
-                            setChart();
-                        }, 0);
-                        setTimeout(function() {
-                            setCategories();
-                            setChart();
-                        }, 100);
-                        setTimeout(function() {
-                            setCategories();
-                            setChart();
-                        }, 300);
-                    });
-                }
-                
-                // Установить категории и диаграмму сразу
-                setCategories();
-                setChart();
-                
-                // И еще раз с задержкой для надежности
-                setTimeout(function() {
-                    setCategories();
-                    setChart();
-                }, 500);
-            });
-        })();
-    </script>
-    <script>
-        function reapplyCategories() {
-            console.log('Reapplying categories HTML and refreshing data');
-            
-            // Обновляем отчет с актуальными данными
-            if (typeof updateReport === 'function') {
-                // Если функция определена, вызываем ее
-                updateReport();
-            } else {
-                // Временная загрузка данных, если функция еще не определена
-                console.log('updateReport function not available, using fallback');
-                const categoryList = document.querySelector('.reports-modal .category-list');
-                if (categoryList) {
-                    // Очищаем список категорий (будет заполнен через updateReport)
-                    categoryList.innerHTML = '';
-                }
-                
-                // Обновляем диаграмму с временными данными (пустую)
-                const ctx = document.getElementById('expenseChart')?.getContext('2d');
-                if (ctx) {
-                    console.log('Initializing expense chart with fallback data');
-                    
-                    // Если диаграмма уже существует, уничтожаем ее
-                    if (window.expenseChart instanceof Chart) {
-                        window.expenseChart.destroy();
-                    }
-                    
-                    // Создаем новую диаграмму (пустую)
-                    window.expenseChart = new Chart(ctx, {
-                        type: 'doughnut',
-                        data: {
-                            labels: [],
-                            datasets: [{
-                                data: [],
-                                backgroundColor: [],
-                                borderWidth: 0,
-                                hoverOffset: 0,
-                                spacing: 0
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            cutout: '70%',
-                            rotation: 0,
-                            plugins: {
-                                legend: {
-                                    display: false
-                                },
-                                tooltip: {
-                                    enabled: false
-                                }
-                            },
-                            animation: {
-                                animateRotate: true,
-                                animateScale: false
-                            }
-                        }
-                    });
-                    console.log('Chart initialized with fallback data');
-                }
-            }
-        }
-    </script>
 </body>
 </html> 
