@@ -43,6 +43,9 @@ function updateCurrentDateDisplay() {
 
 // Инициализация приложения
 document.addEventListener('DOMContentLoaded', () => {
+    // Предотвращаем скроллинг за пределы экрана для iOS
+    preventIOSBounce();
+    
     // Обновляем дату в заголовке
     updateCurrentDateDisplay();
     
@@ -238,6 +241,42 @@ document.addEventListener('DOMContentLoaded', () => {
     // Инициализация отчетов
     initializeReports();
 });
+
+// Функция для предотвращения отскока на iOS устройствах
+function preventIOSBounce() {
+    // Предотвращаем отскок на iOS
+    document.body.addEventListener('touchmove', function(e) {
+        if (e.target.closest('.transactions-container, .categories-grid, .modal-content, .reports-content')) {
+            // Разрешаем скролл внутри этих контейнеров
+            const scrollElement = e.target.closest('.transactions-container, .categories-grid, .modal-content, .reports-content');
+            
+            // Проверяем, достигли ли мы края скрола
+            if ((scrollElement.scrollTop <= 0 && e.touches[0].clientY > 50) || 
+                (scrollElement.scrollTop + scrollElement.clientHeight >= scrollElement.scrollHeight && e.touches[0].clientY < window.innerHeight - 50)) {
+                // Предотвращаем стандартное поведение только если мы на краю
+                e.preventDefault();
+            }
+        } else if (!e.target.closest('input, select, textarea')) {
+            // Запрещаем скролл вне контейнеров (исключая поля ввода)
+            e.preventDefault();
+        }
+    }, { passive: false });
+    
+    // Улучшенная обработка кликов для мобильных устройств
+    document.querySelectorAll('button, .nav-item, .category-item, .transaction-item').forEach(element => {
+        element.addEventListener('touchstart', function() {
+            this.classList.add('touch-active');
+        });
+        
+        element.addEventListener('touchend', function() {
+            this.classList.remove('touch-active');
+        });
+        
+        element.addEventListener('touchcancel', function() {
+            this.classList.remove('touch-active');
+        });
+    });
+}
 
 // Функции для работы с данными
 function loadData() {

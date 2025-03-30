@@ -6,6 +6,14 @@
     -webkit-tap-highlight-color: transparent;
 }
 
+html, body {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+}
+
 /* Стили для скроллбара */
 ::-webkit-scrollbar {
     width: 8px;
@@ -26,18 +34,23 @@ body {
     background-color: #000;
     color: #fff;
     width: 100%;
-    height: 100vh;
+    height: 100%;
     display: flex;
     justify-content: center;
+    -webkit-text-size-adjust: 100%;
+    touch-action: pan-y;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 /* Приложение */
 .app {
     width: 100%;
-    max-width: 390px;
+    max-width: 100%; /* Убираем максимальную ширину для мобильных */
     margin: 0 auto;
     position: relative;
-    height: 100vh;
+    height: 100%;
     overflow: hidden;
     background-color: #000;
 }
@@ -45,7 +58,7 @@ body {
 /* Контент */
 .content {
     padding: 0;
-    height: 100vh;
+    height: 100%;
     overflow: hidden;
     display: none;
     background-color: #000;
@@ -65,10 +78,9 @@ body {
 .fixed-header {
     position: fixed;
     top: 0;
-    left: 50%;
-    transform: translateX(-50%);
+    left: 0;
+    right: 0;
     width: 100%;
-    max-width: 390px;
     background: #000;
     z-index: 10;
     padding: 16px 16px 0 16px;
@@ -405,9 +417,11 @@ body {
 /* Прокручиваемая область с транзакциями */
 .transactions-container {
     margin-top: 140px; /* Высота фиксированной части */
-    height: calc(100vh - 140px - 80px); /* Вычитаем высоту фиксированной части и нижней навигации */
+    height: calc(100% - 140px - 80px); /* Вычитаем высоту фиксированной части и нижней навигации */
     overflow-y: auto;
-    padding: 0 16px;
+    padding: 0 16px 80px 16px; /* Добавляем отступ снизу для последних элементов */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
 }
 
 /* Список транзакций */
@@ -437,10 +451,11 @@ body {
     position: relative;
     background: #2C2C2E;
     border-radius: 16px;
-    margin-bottom: 8px;
+    margin-bottom: 12px; /* Увеличиваем отступ */
     overflow: hidden;
     cursor: pointer;
     transition: all 0.3s ease;
+    padding: 2px; /* Небольшой отступ внутри */
 }
 
 .transaction-item:active {
@@ -450,8 +465,8 @@ body {
 .transaction-content {
     display: flex;
     align-items: center;
-    padding: 12px 16px;
-    gap: 12px;
+    padding: 14px 16px; /* Увеличиваем вертикальный отступ */
+    gap: 16px; /* Больше пространства между элементами */
     transition: all 0.3s ease;
 }
 
@@ -539,8 +554,8 @@ body {
 }
 
 .transaction-icon {
-    width: 36px;
-    height: 36px;
+    width: 44px; /* Увеличиваем размер иконки */
+    height: 44px;
     border-radius: 12px;
     background: #2C2C2E;
     display: flex;
@@ -550,7 +565,7 @@ body {
 }
 
 .transaction-icon .material-icons {
-    font-size: 20px;
+    font-size: 24px; /* Увеличиваем размер иконки */
     color: #FFD60A;
 }
 
@@ -561,21 +576,21 @@ body {
 
 .transaction-category {
     color: #FFFFFF;
-    font-size: 15px;
+    font-size: 16px; /* Увеличиваем размер текста */
     font-weight: 500;
-    margin-bottom: 2px;
+    margin-bottom: 4px;
 }
 
 .transaction-note {
     color: #8E8E93;
-    font-size: 13px;
+    font-size: 14px; /* Увеличиваем размер текста */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
 .transaction-amount {
-    font-size: 15px;
+    font-size: 16px; /* Увеличиваем размер текста */
     font-weight: 600;
     white-space: nowrap;
 }
@@ -613,16 +628,16 @@ body {
 .bottom-nav {
     position: fixed;
     bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
+    left: 0;
+    right: 0;
     width: 100%;
-    max-width: 390px;
     display: flex;
     justify-content: space-around;
     background-color: #1C1C1E;
     padding: 8px 0;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     z-index: 1001;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)); /* Поддержка безопасной зоны для iPhone X+ */
 }
 
 .nav-item {
@@ -633,6 +648,7 @@ body {
     color: #888;
     cursor: pointer;
     text-decoration: none;
+    min-width: 64px; /* Минимальная ширина для тач-таргета */
 }
 
 .nav-item.active {
@@ -647,7 +663,7 @@ body {
 /* Кнопка добавления */
 .add-button {
     position: fixed;
-    bottom: 80px;
+    bottom: calc(80px + env(safe-area-inset-bottom, 0px)); /* Учитываем нижнюю безопасную зону */
     left: 50%;
     transform: translateX(-50%);
     width: 56px;
@@ -662,6 +678,8 @@ body {
     align-items: center;
     justify-content: center;
     z-index: 901;
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 /* Модальные окна */
@@ -689,27 +707,32 @@ body {
     display: none;
     position: fixed;
     top: 0;
-    left: 50%;
-    transform: translateX(-50%);
+    left: 0;
+    right: 0;
     width: 100%;
-    max-width: 390px;
-    height: 100vh;
+    height: 100%;
     background-color: #000;
     z-index: 1000;
     overflow: hidden;
+    transition: transform 0.3s ease-out;
+    transform: translateY(0);
 }
 
 .transaction-type-modal.active {
     display: block;
+    transform: translateY(0);
+}
+
+.transaction-type-modal:not(.active) {
+    transform: translateY(100%);
 }
 
 .transaction-type-selector {
     position: fixed;
     top: 0;
-    left: 50%;
-    transform: translateX(-50%);
+    left: 0;
+    right: 0;
     width: 100%;
-    max-width: 390px;
     display: flex;
     justify-content: space-between;
     padding: 16px;
@@ -747,13 +770,15 @@ body {
 .categories-grid {
     display: none;
     grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
+    gap: 12px; /* Увеличиваем разрыв между элементами */
     padding: 76px 12px 12px 12px;
     background-color: #000;
-    height: calc(100vh - 76px);
+    height: calc(100% - 76px);
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
+    transition: transform 0.1s ease; /* Плавность для scroll snap */
+    scroll-snap-type: y proximity; /* Применяем snap-скроллинг */
 }
 
 .categories-grid.active {
@@ -1006,19 +1031,23 @@ body {
 @media (max-width: 390px) {
     .modal {
         left: 0;
-        transform: none;
+        right: 0;
+        width: 100%;
         max-width: 100%;
+        transform: none;
     }
     
     .transaction-type-selector {
         left: 0;
+        right: 0;
+        width: 100%;
         transform: none;
-        max-width: 100%;
     }
 
     .calendar-modal {
         left: 0;
-        transform: none;
+        right: 0;
+        width: 100%;
     }
 
     .calendar-grid {
@@ -1036,18 +1065,46 @@ body {
         padding: 6px;
         font-size: 11px;
     }
+    
+    .categories-grid {
+        grid-template-columns: repeat(3, 1fr); /* 3 элемента в строке вместо 4 для лучшего тач-таргетинга */
+    }
+    
+    .category-item {
+        padding: 12px; /* Увеличиваем отступы для лучшего тач-таргетинга */
+    }
+    
+    .category-icon {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .category-icon .material-icons {
+        font-size: 22px;
+    }
+    
+    .category-name {
+        font-size: 13px;
+    }
 }
 
-/* Обновляем стили для корректного скролла */
-.modal-content {
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: contain;
-    scroll-padding-top: 70px;
-}
-
-@supports (-webkit-touch-callout: none) {
+/* Поддержка безопасных зон для iOS */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
     .bottom-nav {
         padding-bottom: calc(8px + env(safe-area-inset-bottom));
+    }
+    
+    .add-button {
+        bottom: calc(80px + env(safe-area-inset-bottom));
+    }
+    
+    .popup-form.active {
+        bottom: calc(80px + env(safe-area-inset-bottom));
+    }
+    
+    .transaction-type-modal {
+        padding-top: env(safe-area-inset-top);
+        height: calc(100% - env(safe-area-inset-top) - env(safe-area-inset-bottom));
     }
 }
 
@@ -1685,4 +1742,72 @@ label {
 /* Подстраиваем отступы с учетом возвращенного period-selector */
 .reports-modal .month-navigation {
     margin-top: 15px;
+}
+
+/* Входная форма - активно используется на мобильных */
+input, select, textarea {
+    font-size: 16px !important; /* Предотвращает iOS zoom при фокусе */
+    max-height: 45px;
+    border-radius: 10px;
+    padding: 12px !important;
+}
+
+/* Стили для активного состояния при касании */
+.touch-active {
+    opacity: 0.8;
+    transform: scale(0.98);
+}
+
+/* Улучшение видимого отклика для кнопок при касании */
+button, .nav-item, .category-item, .transaction-item {
+    transition: transform 0.1s ease-out, opacity 0.1s ease-out;
+}
+
+/* Бесконечное отображение страницы - убираем скролл страницы */
+html {
+    height: 100%;
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    -webkit-overflow-scrolling: touch;
+    overflow-scrolling: touch;
+}
+
+/* Улучшение шрифтов для мобильных устройств */
+body {
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Улучшение отзывчивости сенсорных элементов */
+.category-item, .transaction-item, button, .nav-item {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+}
+
+/* Улучшение видимого отклика при касании */
+.touch-active {
+    opacity: 0.8;
+    transform: scale(0.98);
+}
+
+button, .nav-item, .category-item, .transaction-item {
+    transition: transform 0.1s ease-out, opacity 0.1s ease-out;
+}
+
+.category-item {
+    touch-action: pan-y;
+    user-select: none;
+    position: relative;
+    transition: all 0.2s ease;
+    border-radius: 10px; /* Увеличиваем радиус для лучшего отображения */
+}
+
+.category-item:active {
+    transform: scale(0.95);
+    background-color: #222;
 } 
