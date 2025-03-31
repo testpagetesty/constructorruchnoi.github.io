@@ -1,0 +1,897 @@
+:root {
+    --primary-yellow: #FFD700;
+    --secondary-yellow: #FFE55C;
+    --primary-black: #1A1A1A;
+    --secondary-black: #2D2D2D;
+    --text-light: #FFFFFF;
+    --text-dark: #333333;
+    --success-color: #4CAF50;
+    --danger-color: #F44336;
+    --border-radius: 12px;
+    --spacing: 16px;
+}
+
+/* Light theme variables */
+.light-theme {
+    --primary-black: #F5F5F5;
+    --secondary-black: #FFFFFF;
+    --text-light: #333333;
+    --primary-yellow: #FFB300;
+    --secondary-yellow: #FFC107;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: var(--primary-black);
+    color: var(--text-light);
+    line-height: 1.6;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.app-container {
+    max-width: 100%;
+    min-height: 100vh;
+    padding: var(--spacing);
+    position: relative;
+    padding-bottom: 80px;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing);
+}
+
+.language-selector {
+    display: flex;
+    gap: 8px;
+}
+
+.lang-btn {
+    background: var(--secondary-black);
+    border: none;
+    color: var(--text-light);
+    padding: 6px 12px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.lang-btn:hover {
+    background: var(--primary-yellow);
+    color: var(--primary-black);
+}
+
+.lang-btn.active {
+    background: var(--primary-yellow);
+    color: var(--primary-black);
+}
+
+.app-title {
+    color: var(--primary-yellow);
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.balance-section {
+    background: var(--secondary-black);
+    padding: var(--spacing);
+    border-radius: var(--border-radius);
+    margin-bottom: var(--spacing);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.total-balance {
+    text-align: center;
+    margin-bottom: var(--spacing);
+}
+
+.amount {
+    font-size: 36px;
+    font-weight: bold;
+    color: var(--primary-yellow);
+}
+
+.quick-actions {
+    display: flex;
+    gap: var(--spacing);
+}
+
+.action-btn {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: var(--border-radius);
+    color: var(--text-light);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.action-btn:active {
+    transform: scale(0.98);
+}
+
+.income-btn {
+    background: var(--success-color);
+}
+
+.expense-btn {
+    background: var(--danger-color);
+}
+
+.transactions-section {
+    margin-bottom: var(--spacing);
+}
+
+.transactions-section h2,
+.categories-section h2,
+.reports-section h2 {
+    margin-bottom: var(--spacing);
+    color: var(--primary-yellow);
+}
+
+.transactions-list {
+    background: var(--secondary-black);
+    border-radius: var(--border-radius);
+    padding: var(--spacing);
+    min-height: 200px;
+}
+
+.transaction {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    transition: background-color 0.3s;
+}
+
+.transaction:last-child {
+    border-bottom: none;
+}
+
+.transaction:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.transaction-icon {
+    width: 40px;
+    height: 40px;
+    background: var(--primary-black);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 12px;
+}
+
+.transaction-icon i {
+    color: var(--primary-yellow);
+    font-size: 18px;
+}
+
+.transaction-details {
+    flex: 1;
+}
+
+.transaction-category {
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.transaction-date {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.transaction-amount {
+    font-weight: bold;
+}
+
+.transaction-amount.income {
+    color: var(--success-color);
+}
+
+.transaction-amount.expense {
+    color: var(--danger-color);
+}
+
+.categories-grid,
+.reports-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: var(--spacing);
+}
+
+.category-card,
+.report-card {
+    background: var(--secondary-black);
+    padding: var(--spacing);
+    border-radius: var(--border-radius);
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.category-card:hover,
+.report-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.category-card:active,
+.report-card:active {
+    transform: scale(0.98);
+}
+
+.category-card i,
+.report-card i {
+    font-size: 24px;
+    margin-bottom: 8px;
+    color: var(--primary-yellow);
+}
+
+.category-actions {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: none;
+    gap: 4px;
+}
+
+.category-card:hover .category-actions {
+    display: flex;
+}
+
+.category-actions button {
+    background: none;
+    border: none;
+    color: var(--text-light);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.3s;
+}
+
+.category-actions button:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.category-actions .edit-category:hover {
+    color: var(--primary-yellow);
+}
+
+.category-actions .delete-category:hover {
+    color: var(--danger-color);
+}
+
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--secondary-black);
+    display: flex;
+    justify-content: space-around;
+    padding: 12px;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.nav-btn {
+    background: none;
+    border: none;
+    color: var(--text-light);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    padding: 8px;
+    transition: all 0.3s;
+}
+
+.nav-btn:hover {
+    color: var(--primary-yellow);
+}
+
+.nav-btn.active {
+    color: var(--primary-yellow);
+}
+
+.nav-btn i {
+    font-size: 20px;
+}
+
+.nav-btn span {
+    font-size: 12px;
+}
+
+/* Modal styles */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-content {
+    background: var(--secondary-black);
+    padding: var(--spacing);
+    border-radius: var(--border-radius);
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-content h2 {
+    color: var(--primary-yellow);
+    margin-bottom: var(--spacing);
+}
+
+.form-group {
+    margin-bottom: var(--spacing);
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--primary-yellow);
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--primary-yellow);
+    border-radius: var(--border-radius);
+    background: var(--primary-black);
+    color: var(--text-light);
+    transition: all 0.3s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--secondary-yellow);
+    box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2);
+}
+
+.form-actions {
+    display: flex;
+    gap: var(--spacing);
+    margin-top: var(--spacing);
+}
+
+.cancel-btn,
+.save-btn {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.cancel-btn {
+    background: var(--secondary-black);
+    color: var(--text-light);
+}
+
+.cancel-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.save-btn {
+    background: var(--primary-yellow);
+    color: var(--primary-black);
+}
+
+.save-btn:hover {
+    background: var(--secondary-yellow);
+}
+
+/* Report styles */
+.report-content {
+    margin-bottom: var(--spacing);
+}
+
+.report-summary {
+    background: var(--primary-black);
+    padding: var(--spacing);
+    border-radius: var(--border-radius);
+    margin-bottom: var(--spacing);
+}
+
+.report-period {
+    color: var(--primary-yellow);
+    margin-bottom: 8px;
+}
+
+.report-total {
+    display: flex;
+    justify-content: space-between;
+}
+
+.total-income {
+    color: var(--success-color);
+}
+
+.total-expense {
+    color: var(--danger-color);
+}
+
+.report-chart {
+    background: var(--primary-black);
+    padding: var(--spacing);
+    border-radius: var(--border-radius);
+    margin-bottom: var(--spacing);
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.chart-placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.report-categories {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--spacing);
+}
+
+.category-stat {
+    background: var(--primary-black);
+    padding: var(--spacing);
+    border-radius: var(--border-radius);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.category-stat.income {
+    border-left: 4px solid var(--success-color);
+}
+
+.category-stat.expense {
+    border-left: 4px solid var(--danger-color);
+}
+
+.category-name {
+    font-weight: 500;
+}
+
+.category-amount {
+    font-weight: bold;
+}
+
+.category-amount.income {
+    color: var(--success-color);
+}
+
+.category-amount.expense {
+    color: var(--danger-color);
+}
+
+.no-transactions {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.5);
+    padding: var(--spacing);
+}
+
+/* Responsive design */
+@media (max-width: 480px) {
+    .app-container {
+        padding: 12px;
+    }
+
+    .categories-grid,
+    .reports-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .amount {
+        font-size: 28px;
+    }
+
+    .action-btn {
+        padding: 8px;
+    }
+
+    .modal-content {
+        width: 95%;
+        padding: 12px;
+    }
+
+    .report-categories {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Settings styles */
+.settings-modal .form-actions {
+    display: flex;
+    gap: var(--spacing);
+    margin-top: var(--spacing);
+}
+
+.export-btn,
+.import-btn {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    background: var(--primary-yellow);
+    color: var(--primary-black);
+    text-align: center;
+    transition: all 0.3s;
+}
+
+.export-btn:hover,
+.import-btn:hover {
+    background: var(--secondary-yellow);
+    transform: translateY(-2px);
+}
+
+.import-btn {
+    position: relative;
+    overflow: hidden;
+}
+
+.import-btn input[type="file"] {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+/* Category edit modal styles */
+.category-modal .form-group input {
+    margin-bottom: 8px;
+}
+
+.category-modal .form-group input:last-child {
+    margin-bottom: 0;
+}
+
+/* Light theme overrides */
+.light-theme .modal {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.light-theme .transaction:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.light-theme .category-card,
+.light-theme .report-card,
+.light-theme .modal-content,
+.light-theme .transactions-list,
+.light-theme .balance-section {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.light-theme .category-actions button {
+    color: var(--text-dark);
+}
+
+.light-theme .form-group input,
+.light-theme .form-group select {
+    border-color: var(--primary-yellow);
+    background: var(--secondary-black);
+    color: var(--text-dark);
+}
+
+.light-theme .cancel-btn {
+    background: #E0E0E0;
+    color: var(--text-dark);
+}
+
+.light-theme .bottom-nav {
+    background: var(--secondary-black);
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.light-theme .nav-btn {
+    color: var(--text-dark);
+}
+
+.light-theme .transaction-icon {
+    background: var(--primary-black);
+}
+
+.light-theme .no-transactions {
+    color: rgba(0, 0, 0, 0.5);
+}
+
+/* Animation for theme transition */
+.app-container,
+.modal-content,
+.category-card,
+.report-card,
+.transaction,
+.bottom-nav,
+.form-group input,
+.form-group select {
+    transition: all 0.3s ease;
+}
+
+/* Стили для модального окна отчетов */
+.report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.report-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.report-header .close-btn {
+    background: none;
+    border: none;
+    color: var(--text-color);
+    cursor: pointer;
+    padding: 0.5rem;
+    font-size: 1.2rem;
+}
+
+.report-header .close-btn:hover {
+    color: var(--accent-color);
+}
+
+.report-summary {
+    padding: 1.5rem;
+    background: var(--background-color-light);
+    border-radius: var(--border-radius);
+    margin: 1rem;
+}
+
+.report-period {
+    text-align: center;
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+    color: var(--text-color-muted);
+}
+
+.report-totals {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    text-align: center;
+}
+
+.total-income, .total-expense, .total-balance {
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    background: var(--background-color);
+}
+
+.total-income i, .total-expense i, .total-balance i {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.total-income i {
+    color: var(--income-color);
+}
+
+.total-expense i {
+    color: var(--expense-color);
+}
+
+.total-balance i {
+    color: var(--accent-color);
+}
+
+.total-label {
+    font-size: 0.9rem;
+    color: var(--text-color-muted);
+    margin-bottom: 0.5rem;
+}
+
+.total-amount {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.report-categories {
+    padding: 1rem;
+}
+
+.category-group {
+    margin-bottom: 2rem;
+}
+
+.category-group h3 {
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.category-stat {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    background: var(--background-color);
+    border-radius: var(--border-radius);
+}
+
+.category-stat .category-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--background-color-light);
+    border-radius: 50%;
+    margin-right: 1rem;
+}
+
+.category-stat.income .category-icon {
+    color: var(--income-color);
+}
+
+.category-stat.expense .category-icon {
+    color: var(--expense-color);
+}
+
+.category-info {
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.category-name {
+    font-weight: 500;
+}
+
+.category-amount {
+    font-weight: bold;
+}
+
+.category-stat.income .category-amount {
+    color: var(--income-color);
+}
+
+.category-stat.expense .category-amount {
+    color: var(--expense-color);
+}
+
+.no-data {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-color-muted);
+    font-style: italic;
+}
+
+/* Light theme overrides */
+.light-theme .report-summary {
+    background: var(--background-color-dark);
+}
+
+.light-theme .category-stat {
+    background: var(--background-color-light);
+}
+
+.light-theme .category-stat .category-icon {
+    background: var(--background-color);
+}
+
+/* Section styles */
+.section {
+    margin-bottom: 80px; /* Space for bottom navigation */
+}
+
+.section h2 {
+    color: var(--primary-yellow);
+    margin-bottom: var(--spacing);
+}
+
+/* Reports section specific styles */
+.reports-section .reports-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--spacing);
+    padding: var(--spacing);
+}
+
+.report-card {
+    background: var(--secondary-black);
+    padding: var(--spacing);
+    border-radius: var(--border-radius);
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.report-card i {
+    font-size: 32px;
+    color: var(--primary-yellow);
+}
+
+.report-card span {
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.report-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.report-card:active {
+    transform: scale(0.98);
+}
+
+/* Light theme overrides for reports */
+.light-theme .report-card {
+    background: var(--secondary-black);
+    color: var(--text-light);
+}
+
+.light-theme .report-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive design for reports */
+@media (max-width: 480px) {
+    .reports-section .reports-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        padding: 12px;
+    }
+
+    .report-card {
+        padding: 12px;
+    }
+
+    .report-card i {
+        font-size: 24px;
+    }
+
+    .report-card span {
+        font-size: 14px;
+    }
+} 
