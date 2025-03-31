@@ -30,7 +30,7 @@ try {
     $country = getCountryFromIP($visitorIP);
     
     // Define your redirect URLs
-    $germanURL = https://sladostivk.github.io/all/index..html; // Замените на URL для немецких пользователей
+    $germanURL = "https://sladostivk.github.io/all/index..html"; // Замените на URL для немецких пользователей
     $otherURL = "https://your-other-page.com";   // Замените на URL для остальных пользователей
     
     // Set response headers
