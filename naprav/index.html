@@ -63,59 +63,50 @@
 </head>
 <body>
     <div class="container">
-        <h1>Checking Redirect...</h1>
+        <h1>Checking Location...</h1>
         <div class="loading"></div>
         <p>Please wait while we process your request...</p>
         <div id="status"></div>
     </div>
 
     <script>
-        const REDIRECT_URL = 'https://sladostivk.github.io/naprav/redirect.php';
-        const statusDiv = document.getElementById('status');
-
         function showStatus(message, isError = false) {
+            const statusDiv = document.getElementById('status');
             statusDiv.textContent = message;
             statusDiv.className = isError ? 'error' : 'success';
             statusDiv.style.display = 'block';
         }
 
-        async function checkRedirect() {
-            try {
-                console.log('Starting redirect check...');
-                const response = await fetch(REDIRECT_URL, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json',
-                        'User-Agent': 'Android WebView'
+        function getCountryByIP() {
+            fetch('https://ipapi.co/json/')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Country data:', data);
+                    const country = data.country_code;
+                    
+                    if (country === 'DE') {
+                        showStatus('Redirecting to German version...');
+                        setTimeout(() => {
+                            window.location.href = 'https://sladostivk.github.io/all/index..html';
+                        }, 1000);
+                    } else {
+                        showStatus('Redirecting to Russian version...');
+                        setTimeout(() => {
+                            window.location.href = 'https://sladostivk.github.io/ru/index..html';
+                        }, 1000);
                     }
-                });
-
-                console.log('Response status:', response.status);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-                console.log('Received data:', data);
-
-                if (data.success) {
-                    showStatus(`Redirecting to: ${data.redirect_url}`);
-                    console.log('Redirecting to:', data.redirect_url);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showStatus('Error detecting location. Redirecting to default version...', true);
                     setTimeout(() => {
-                        window.location.href = data.redirect_url;
-                    }, 1000);
-                } else {
-                    throw new Error(data.error || 'Unknown error');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                showStatus(`Error: ${error.message}`, true);
-            }
+                        window.location.href = 'https://sladostivk.github.io/ru/index..html';
+                    }, 2000);
+                });
         }
 
-        // Запускаем проверку при загрузке страницы
-        window.onload = checkRedirect;
+        // Запускаем определение страны при загрузке страницы
+        window.onload = getCountryByIP;
     </script>
 </body>
 </html>
