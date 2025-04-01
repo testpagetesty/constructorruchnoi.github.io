@@ -92,6 +92,7 @@ try {
     header('Cache-Control: no-cache, no-store, must-revalidate');
     header('Pragma: no-cache');
     header('Expires: 0');
+    header('Access-Control-Allow-Origin: *');
     
     // Логируем информацию о запросе
     writeLog("Request - IP: {$visitorIP}, Country: {$country}, Redirect URL: {$redirectUrl}");
@@ -112,6 +113,7 @@ try {
     // Обработка ошибок
     header('Content-Type: application/json');
     header('HTTP/1.1 500 Internal Server Error');
+    header('Access-Control-Allow-Origin: *');
     
     writeLog("Error: " . $e->getMessage(), 'error');
     
@@ -121,4 +123,4 @@ try {
         'timestamp' => date('Y-m-d H:i:s')
     ]);
 }
-?>
+?> 
