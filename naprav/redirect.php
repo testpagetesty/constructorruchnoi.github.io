@@ -14,28 +14,42 @@ function writeLog($message, $type = 'info') {
 // Функция для получения IP посетителя
 function getVisitorIP() {
     $ipaddress = '';
-    $headers = array(
-        'HTTP_CLIENT_IP',
-        'HTTP_X_FORWARDED_FOR',
-        'HTTP_X_FORWARDED',
-        'HTTP_FORWARDED_FOR',
-        'HTTP_FORWARDED',
-        'REMOTE_ADDR'
-    );
+    
+    // Сначала проверяем REMOTE_ADDR
+    if (isset($_SERVER['REMOTE_ADDR'])) {
+        $ipaddress = $_SERVER['REMOTE_ADDR'];
+        writeLog("IP from REMOTE_ADDR: $ipaddress");
+    }
+    
+    // Если IP пустой или невалидный, проверяем другие заголовки
+    if (empty($ipaddress) || filter_var($ipaddress, FILTER_VALIDATE_IP) === false) {
+        $headers = array(
+            'HTTP_CLIENT_IP',
+            'HTTP_X_FORWARDED_FOR',
+            'HTTP_X_FORWARDED',
+            'HTTP_FORWARDED_FOR',
+            'HTTP_FORWARDED'
+        );
 
-    foreach ($headers as $header) {
-        if (isset($_SERVER[$header])) {
-            $ipaddress = $_SERVER[$header];
-            break;
+        foreach ($headers as $header) {
+            if (isset($_SERVER[$header])) {
+                $ip = $_SERVER[$header];
+                writeLog("Found IP in header $header: $ip");
+                if (filter_var($ip, FILTER_VALIDATE_IP) !== false) {
+                    $ipaddress = $ip;
+                    writeLog("Valid IP found in header $header: $ipaddress");
+                    break;
+                }
+            }
         }
     }
 
-    // Проверка на валидность IP
-    if (filter_var($ipaddress, FILTER_VALIDATE_IP) === false) {
-        writeLog("Invalid IP detected: $ipaddress", 'error');
+    if (empty($ipaddress) || filter_var($ipaddress, FILTER_VALIDATE_IP) === false) {
+        writeLog("No valid IP found, using UNKNOWN", 'error');
         return 'UNKNOWN';
     }
 
+    writeLog("Final IP address: $ipaddress");
     return $ipaddress;
 }
 
@@ -82,9 +96,9 @@ function getCountryFromIP($ip) {
 try {
     // Получаем IP
     $visitorIP = getVisitorIP();
-    writeLog("Visitor IP: $visitorIP");
+    writeLog("Processing request for IP: $visitorIP");
     
-    // Определяем URL для редиректа (для теста всегда возвращаем немецкую версию)
+    // Для тестирования всегда возвращаем немецкую версию
     $redirectUrl = "https://sladostivk.github.io/all/index..html";
     
     // Устанавливаем заголовки
@@ -96,30 +110,28 @@ try {
     header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
     header('Access-Control-Allow-Headers: Content-Type');
     
-    // Логируем информацию о запросе
-    writeLog("Request - IP: {$visitorIP}, Redirect URL: {$redirectUrl}");
-    
     // Формируем ответ
     $response = [
         'success' => true,
         'ip' => $visitorIP,
         'country' => 'Germany', // Для теста всегда возвращаем Германию
         'redirect_url' => $redirectUrl,
-        'timestamp' => date('Y-m-d H:i:s')
+        'timestamp' => date('Y-m-d H:i:s'),
+        'debug_info' => [
+            'server_vars' => $_SERVER,
+            'headers' => getallheaders()
+        ]
     ];
     
-    // Отправляем ответ
+    writeLog("Sending response: " . json_encode($response));
     echo json_encode($response);
     
 } catch (Exception $e) {
-    // Обработка ошибок
+    writeLog("Error occurred: " . $e->getMessage(), 'error');
+    
     header('Content-Type: application/json');
     header('HTTP/1.1 500 Internal Server Error');
     header('Access-Control-Allow-Origin: *');
-    header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-    header('Access-Control-Allow-Headers: Content-Type');
-    
-    writeLog("Error: " . $e->getMessage(), 'error');
     
     echo json_encode([
         'success' => false,
