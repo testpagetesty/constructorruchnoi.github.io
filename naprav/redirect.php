@@ -43,7 +43,22 @@ function getVisitorIP() {
 function getCountryFromIP($ip) {
     try {
         $url = "http://ip-api.com/json/{$ip}";
-        $response = file_get_contents($url);
+        
+        // Используем cURL вместо file_get_contents
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($httpCode !== 200) {
+            writeLog("Failed to get country for IP: $ip, HTTP Code: $httpCode", 'error');
+            return 'UNKNOWN';
+        }
         
         if ($response === false) {
             writeLog("Failed to get country for IP: $ip", 'error');
@@ -82,6 +97,8 @@ try {
     header('Pragma: no-cache');
     header('Expires: 0');
     header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type');
     
     // Логируем информацию о запросе
     writeLog("Request - IP: {$visitorIP}, Country: {$country}, Redirect URL: {$redirectUrl}");
@@ -103,6 +120,8 @@ try {
     header('Content-Type: application/json');
     header('HTTP/1.1 500 Internal Server Error');
     header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type');
     
     writeLog("Error: " . $e->getMessage(), 'error');
     
