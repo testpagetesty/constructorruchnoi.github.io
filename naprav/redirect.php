@@ -64,12 +64,6 @@ function getCountryFromIP($ip) {
     }
 }
 
-// Функция для проверки доступности URL
-function isUrlAccessible($url) {
-    $headers = get_headers($url);
-    return $headers && strpos($headers[0], '200') !== false;
-}
-
 try {
     // Получаем IP и страну
     $visitorIP = getVisitorIP();
@@ -79,13 +73,8 @@ try {
     $germanURL = "https://sladostivk.github.io/all/index..html";
     $otherURL = "https://sladostivk.github.io/ru/index..html";
     
-    // Проверяем доступность URL
+    // Определяем URL для редиректа
     $redirectUrl = ($country === 'Germany') ? $germanURL : $otherURL;
-    
-    if (!isUrlAccessible($redirectUrl)) {
-        writeLog("Redirect URL not accessible: $redirectUrl", 'error');
-        throw new Exception("Redirect URL is not accessible");
-    }
     
     // Устанавливаем заголовки
     header('Content-Type: application/json');
