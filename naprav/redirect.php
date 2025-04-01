@@ -1,55 +1,124 @@
 <?php
-// Function to get visitor's IP address
+// Настройка отображения ошибок
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+// Функция для логирования
+function writeLog($message, $type = 'info') {
+    $logFile = $type === 'error' ? 'redirect_error.log' : 'redirect.log';
+    $timestamp = date('Y-m-d H:i:s');
+    $logMessage = "[$timestamp] $message\n";
+    file_put_contents($logFile, $logMessage, FILE_APPEND);
+}
+
+// Функция для получения IP посетителя
 function getVisitorIP() {
     $ipaddress = '';
-    if (isset($_SERVER['HTTP_CLIENT_IP']))
-        $ipaddress = $_SERVER['HTTP_CLIENT_IP'];
-    else if(isset($_SERVER['HTTP_X_FORWARDED_FOR']))
-        $ipaddress = $_SERVER['HTTP_X_FORWARDED_FOR'];
-    else if(isset($_SERVER['HTTP_X_FORWARDED']))
-        $ipaddress = $_SERVER['HTTP_X_FORWARDED'];
-    else if(isset($_SERVER['HTTP_FORWARDED_FOR']))
-        $ipaddress = $_SERVER['HTTP_FORWARDED_FOR'];
-    else if(isset($_SERVER['HTTP_FORWARDED']))
-        $ipaddress = $_SERVER['HTTP_FORWARDED'];
-    else if(isset($_SERVER['REMOTE_ADDR']))
-        $ipaddress = $_SERVER['REMOTE_ADDR'];
-    else
-        $ipaddress = 'UNKNOWN';
+    $headers = array(
+        'HTTP_CLIENT_IP',
+        'HTTP_X_FORWARDED_FOR',
+        'HTTP_X_FORWARDED',
+        'HTTP_FORWARDED_FOR',
+        'HTTP_FORWARDED',
+        'REMOTE_ADDR'
+    );
+
+    foreach ($headers as $header) {
+        if (isset($_SERVER[$header])) {
+            $ipaddress = $_SERVER[$header];
+            break;
+        }
+    }
+
+    // Проверка на валидность IP
+    if (filter_var($ipaddress, FILTER_VALIDATE_IP) === false) {
+        writeLog("Invalid IP detected: $ipaddress", 'error');
+        return 'UNKNOWN';
+    }
+
     return $ipaddress;
 }
 
-// Function to get country from IP
+// Функция для получения страны по IP
 function getCountryFromIP($ip) {
-    $details = json_decode(file_get_contents("http://ip-api.com/json/{$ip}"));
-    return $details->country ?? 'UNKNOWN';
+    try {
+        $url = "http://ip-api.com/json/{$ip}";
+        $response = file_get_contents($url);
+        
+        if ($response === false) {
+            writeLog("Failed to get country for IP: $ip", 'error');
+            return 'UNKNOWN';
+        }
+
+        $details = json_decode($response);
+        
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            writeLog("JSON decode error for IP: $ip", 'error');
+            return 'UNKNOWN';
+        }
+
+        return $details->country ?? 'UNKNOWN';
+    } catch (Exception $e) {
+        writeLog("Exception while getting country for IP $ip: " . $e->getMessage(), 'error');
+        return 'UNKNOWN';
+    }
+}
+
+// Функция для проверки доступности URL
+function isUrlAccessible($url) {
+    $headers = get_headers($url);
+    return $headers && strpos($headers[0], '200') !== false;
 }
 
 try {
+    // Получаем IP и страну
     $visitorIP = getVisitorIP();
     $country = getCountryFromIP($visitorIP);
     
-    // Define your redirect URLs
-    $germanURL = "https://sladostivk.github.io/all/index..html"; // Замените на URL для немецких пользователей
-    $otherURL = "https://sladostivk.github.io/ru/index..html";   // Замените на URL для остальных пользователей
+    // Определяем URL для редиректа
+    $germanURL = "https://sladostivk.github.io/all/index..html";
+    $otherURL = "https://sladostivk.github.io/ru/index..html";
     
-    // Set response headers
+    // Проверяем доступность URL
+    $redirectUrl = ($country === 'Germany') ? $germanURL : $otherURL;
+    
+    if (!isUrlAccessible($redirectUrl)) {
+        writeLog("Redirect URL not accessible: $redirectUrl", 'error');
+        throw new Exception("Redirect URL is not accessible");
+    }
+    
+    // Устанавливаем заголовки
     header('Content-Type: application/json');
+    header('Cache-Control: no-cache, no-store, must-revalidate');
+    header('Pragma: no-cache');
+    header('Expires: 0');
     
-    // Return JSON response with redirect information
-    echo json_encode([
+    // Логируем информацию о запросе
+    writeLog("Request - IP: {$visitorIP}, Country: {$country}, Redirect URL: {$redirectUrl}");
+    
+    // Формируем ответ
+    $response = [
         'success' => true,
         'ip' => $visitorIP,
         'country' => $country,
-        'redirect_url' => ($country === 'Germany') ? $germanURL : $otherURL
-    ]);
+        'redirect_url' => $redirectUrl,
+        'timestamp' => date('Y-m-d H:i:s')
+    ];
+    
+    // Отправляем ответ
+    echo json_encode($response);
     
 } catch (Exception $e) {
-    // Handle any errors
+    // Обработка ошибок
     header('Content-Type: application/json');
+    header('HTTP/1.1 500 Internal Server Error');
+    
+    writeLog("Error: " . $e->getMessage(), 'error');
+    
     echo json_encode([
         'success' => false,
-        'error' => $e->getMessage()
+        'error' => $e->getMessage(),
+        'timestamp' => date('Y-m-d H:i:s')
     ]);
 }
-?> 
+?>
