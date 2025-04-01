@@ -80,16 +80,12 @@ function getCountryFromIP($ip) {
 }
 
 try {
-    // Получаем IP и страну
+    // Получаем IP
     $visitorIP = getVisitorIP();
-    $country = getCountryFromIP($visitorIP);
+    writeLog("Visitor IP: $visitorIP");
     
-    // Определяем URL для редиректа
-    $germanURL = "https://sladostivk.github.io/all/index..html";
-    $otherURL = "https://sladostivk.github.io/ru/index..html";
-    
-    // Определяем URL для редиректа
-    $redirectUrl = ($country === 'Germany') ? $germanURL : $otherURL;
+    // Определяем URL для редиректа (для теста всегда возвращаем немецкую версию)
+    $redirectUrl = "https://sladostivk.github.io/all/index..html";
     
     // Устанавливаем заголовки
     header('Content-Type: application/json');
@@ -101,13 +97,13 @@ try {
     header('Access-Control-Allow-Headers: Content-Type');
     
     // Логируем информацию о запросе
-    writeLog("Request - IP: {$visitorIP}, Country: {$country}, Redirect URL: {$redirectUrl}");
+    writeLog("Request - IP: {$visitorIP}, Redirect URL: {$redirectUrl}");
     
     // Формируем ответ
     $response = [
         'success' => true,
         'ip' => $visitorIP,
-        'country' => $country,
+        'country' => 'Germany', // Для теста всегда возвращаем Германию
         'redirect_url' => $redirectUrl,
         'timestamp' => date('Y-m-d H:i:s')
     ];
