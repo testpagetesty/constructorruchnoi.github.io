@@ -32,8 +32,14 @@ class PongGame {
             down: false
         };
 
-        // Для локального тестирования используем localhost
-        this.socket = io('http://localhost:3000');
+        // Для локального тестирования
+        const SERVER_URL = 'http://localhost:3000';
+        this.socket = io(SERVER_URL, {
+            transports: ['websocket'],
+            cors: {
+                origin: "*"
+            }
+        });
         this.setupSocketListeners();
         this.setupEventListeners();
         this.setupScreenHandlers();
@@ -307,4 +313,4 @@ class PongGame {
 // Создание экземпляра игры при загрузке страницы
 window.addEventListener('load', () => {
     new PongGame();
-}); 
+});
