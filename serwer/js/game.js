@@ -33,7 +33,7 @@ class PongGame {
         };
 
         // Подключение к серверу
-        const SERVER_URL = 'http://31.185.7.85:3000';
+        const SERVER_URL = 'https://31.185.7.85:3000';
         console.log('Подключение к серверу:', SERVER_URL);
         this.socket = io(SERVER_URL, {
             transports: ['websocket'],
