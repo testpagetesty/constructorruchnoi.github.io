@@ -32,8 +32,8 @@ class PongGame {
             down: false
         };
 
-        // Для локального тестирования
-        const SERVER_URL = 'http://localhost:3000';
+        // Подключение к серверу
+        const SERVER_URL = 'http://31.185.7.85:3000';
         this.socket = io(SERVER_URL, {
             transports: ['websocket'],
             cors: {
