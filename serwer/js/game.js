@@ -34,12 +34,22 @@ class PongGame {
 
         // Подключение к серверу
         const SERVER_URL = 'http://31.185.7.85:3000';
+        console.log('Подключение к серверу:', SERVER_URL);
         this.socket = io(SERVER_URL, {
             transports: ['websocket'],
             cors: {
                 origin: "*"
             }
         });
+
+        this.socket.on('connect', () => {
+            console.log('Подключено к серверу');
+        });
+
+        this.socket.on('connect_error', (error) => {
+            console.error('Ошибка подключения:', error);
+        });
+
         this.setupSocketListeners();
         this.setupEventListeners();
         this.setupScreenHandlers();
@@ -48,10 +58,12 @@ class PongGame {
 
     setupSocketListeners() {
         this.socket.on('registered', (data) => {
+            console.log('Зарегистрирован, рейтинг:', data.rating);
             this.rating = data.rating;
         });
 
         this.socket.on('gameStart', (data) => {
+            console.log('Игра началась:', data);
             this.side = data.side;
             this.opponentName = data.opponent;
             this.showScreen('game');
@@ -59,6 +71,7 @@ class PongGame {
         });
 
         this.socket.on('waiting', () => {
+            console.log('Ожидание второго игрока');
             this.showScreen('waiting');
         });
 
@@ -97,9 +110,13 @@ class PongGame {
         });
 
         document.getElementById('play-button').addEventListener('click', () => {
+            console.log('Кнопка "Играть" нажата');
             const playerName = document.getElementById('player-name').value;
+            console.log('Имя игрока:', playerName);
             if (playerName.trim()) {
+                console.log('Отправка register');
                 this.socket.emit('register', { name: playerName });
+                console.log('Отправка findGame');
                 this.socket.emit('findGame');
             }
         });
@@ -313,4 +330,4 @@ class PongGame {
 // Создание экземпляра игры при загрузке страницы
 window.addEventListener('load', () => {
     new PongGame();
-});
+}); 
