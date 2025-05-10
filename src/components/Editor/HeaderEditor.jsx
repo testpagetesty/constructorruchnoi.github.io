@@ -30,6 +30,7 @@ import ConfigLoader from '../ConfigLoader/ConfigLoader';
 import { styled } from '@mui/material/styles';
 import imageCompression from 'browser-image-compression';
 import { imageCacheService } from '../../utils/imageCacheService';
+import { headerPresets } from '../../utils/headerPresets';
 
 const ExpandMore = styled((props) => {
   const { expand, ...other } = props;
@@ -51,6 +52,7 @@ const HeaderEditor = ({
   expanded,
   onToggle
 }) => {
+  const [selectedPreset, setSelectedPreset] = useState('');
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const fileInputRef = useRef(null);
@@ -151,7 +153,7 @@ const HeaderEditor = ({
       // Всегда используем fon.jpg как имя файла
       const filename = 'fon.jpg';
 
-      // Сохранение в кеш
+      // Сохранение в кэш
       await imageCacheService.saveImage(filename, blob);
 
       // Создание URL для превью
@@ -171,69 +173,13 @@ const HeaderEditor = ({
         lastModified: new Date().toISOString()
       };
 
-      // Сохранение метаданных в localStorage
-      localStorage.setItem('siteBackgroundMetadata', JSON.stringify(imageMetadata));
+      // Сохранение метаданных в кэш
+      await imageCacheService.saveMetadata('siteBackgroundMetadata', imageMetadata);
+      console.log('✓ Метаданные фонового изображения сохранены в кэш:', imageMetadata);
 
       // Показываем уведомление
-      alert('Фоновое изображение успешно обработано и сохранено в кеш');
+      alert('Фоновое изображение успешно обработано и сохранено в кэш');
 
-      // Обновляем превью
-      const previewArea = document.querySelector('.preview-area');
-      if (previewArea) {
-        // Удаляем существующий фон
-        const existingBackground = previewArea.querySelector('.background-image');
-        if (existingBackground) {
-          existingBackground.remove();
-        }
-
-        // Создаем новый элемент фона
-        const backgroundImage = document.createElement('div');
-        backgroundImage.className = 'background-image';
-        backgroundImage.style.position = 'absolute';
-        backgroundImage.style.top = '0';
-        backgroundImage.style.left = '0';
-        backgroundImage.style.right = '0';
-        backgroundImage.style.bottom = '0';
-        backgroundImage.style.background = `url(${imageUrl}) no-repeat center center fixed`;
-        backgroundImage.style.backgroundSize = 'cover';
-        backgroundImage.style.zIndex = '-2';
-
-        // Применяем размытие
-        if (headerData.siteBackgroundBlur > 0) {
-          backgroundImage.style.filter = `blur(${headerData.siteBackgroundBlur}px)`;
-        }
-
-        previewArea.appendChild(backgroundImage);
-
-        // Обновляем или создаем оверлей
-        let overlay = previewArea.querySelector('.site-overlay');
-        if (headerData.siteBackgroundDarkness > 0) {
-          if (!overlay) {
-            overlay = document.createElement('div');
-            overlay.className = 'site-overlay';
-            overlay.style.position = 'absolute';
-            overlay.style.top = '0';
-            overlay.style.left = '0';
-            overlay.style.right = '0';
-            overlay.style.bottom = '0';
-            overlay.style.zIndex = '-1';
-            previewArea.appendChild(overlay);
-          }
-          overlay.style.backgroundColor = `rgba(0, 0, 0, ${headerData.siteBackgroundDarkness / 100})`;
-        } else if (overlay) {
-          overlay.remove();
-        }
-      }
-
-      // Проверяем, что изображение действительно загрузилось
-      const img = new Image();
-      img.onload = () => {
-        console.log('Фоновое изображение успешно загружено в превью');
-      };
-      img.onerror = () => {
-        throw new Error('Ошибка при загрузке изображения');
-      };
-      img.src = imageUrl;
     } catch (error) {
       console.error('Ошибка при загрузке:', error);
       alert('Ошибка при загрузке изображения: ' + error.message);
@@ -327,6 +273,26 @@ const HeaderEditor = ({
     }
   };
 
+  const handlePresetChange = (presetKey) => {
+    setSelectedPreset(presetKey);
+    const preset = headerPresets[presetKey];
+    onHeaderChange({
+      ...headerData,
+      titleColor: preset.titleColor,
+      backgroundColor: preset.backgroundColor,
+      linksColor: preset.linksColor,
+      siteBackgroundType: preset.siteBackgroundType,
+      ...(preset.siteBackgroundType === 'solid' && {
+        siteBackgroundColor: preset.siteBackgroundColor
+      }),
+      ...(preset.siteBackgroundType === 'gradient' && {
+        siteGradientColor1: preset.siteGradientColor1,
+        siteGradientColor2: preset.siteGradientColor2,
+        siteGradientDirection: preset.siteGradientDirection
+      })
+    });
+  };
+
   return (
     <Box>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
@@ -357,18 +323,9 @@ const HeaderEditor = ({
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             Настройки шапки
           </Typography>
-          <ExpandMore
-            expand={expanded}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleToggle();
-            }}
-            aria-expanded={expanded}
-            aria-label="show more"
-            sx={{ cursor: 'pointer' }}
-          >
-            {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-          </ExpandMore>
+          <IconButton onClick={handleToggle} sx={{ transform: expanded ? 'rotate(180deg)' : 'none' }}>
+            <ExpandMoreIcon />
+          </IconButton>
         </Box>
         
         {showLanguageWarning && (
@@ -537,6 +494,42 @@ const HeaderEditor = ({
                 </Grid>
               </Grid>
             </Paper>
+
+            {/* Предустановленные стили */}
+            <Grid item xs={12}>
+              <Paper sx={{ p: 2, bgcolor: '#f5f5f5', borderRadius: 1, mb: 2 }}>
+                <Typography variant="subtitle2" sx={{ mb: 2, color: '#1565c0' }}>
+                  Предустановленные стили оформления
+                </Typography>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Выберите стиль</InputLabel>
+                  <Select
+                    value={selectedPreset}
+                    label="Выберите стиль"
+                    onChange={(e) => handlePresetChange(e.target.value)}
+                  >
+                    {Object.entries(headerPresets).map(([key, preset]) => (
+                      <MenuItem key={key} value={key}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                          <Box
+                            sx={{
+                              width: 32,
+                              height: 32,
+                              borderRadius: 1,
+                              background: preset.siteBackgroundType === 'gradient'
+                                ? `linear-gradient(${preset.siteGradientDirection || 'to right'}, ${preset.siteGradientColor1}, ${preset.siteGradientColor2})`
+                                : preset.backgroundColor,
+                              border: `2px solid ${preset.titleColor}`
+                            }}
+                          />
+                          <Typography>{preset.name}</Typography>
+                        </Box>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Paper>
+            </Grid>
 
             {/* Группа настроек фона сайта */}
             <Paper sx={{ p: 2, bgcolor: '#e8f5e9', borderRadius: 1, boxShadow: 2 }}>

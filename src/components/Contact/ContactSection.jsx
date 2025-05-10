@@ -120,7 +120,8 @@ const ContactSection = React.forwardRef(({
           sx={{
             mb: 2,
             fontWeight: 700,
-            color: dataTitleColor,
+            color: dataTitleColor || '#1565c0',
+            textShadow: '0 1px 2px rgba(0,0,0,0.1)',
             ...getFontStyle(dataTitleFont)
           }}
         >
@@ -132,7 +133,8 @@ const ContactSection = React.forwardRef(({
           align="center"
           sx={{
             mb: 6,
-            color: dataDescriptionColor,
+            color: dataDescriptionColor || '#424242',
+            fontWeight: 500,
             ...getFontStyle(dataTextFont)
           }}
         >
@@ -149,7 +151,16 @@ const ContactSection = React.forwardRef(({
                 borderWidth: formBorderWidth
               }}
             >
-              <ContactForm />
+              <ContactForm 
+                customStyles={{
+                  inputBackgroundColor: contactData.inputBackgroundColor,
+                  inputTextColor: contactData.inputTextColor,
+                  formBorderColor: contactData.formBorderColor,
+                  labelColor: contactData.labelColor,
+                  buttonColor: contactData.buttonColor,
+                  buttonTextColor: contactData.buttonTextColor
+                }}
+              />
             </StyledPaper>
           </Grid>
 

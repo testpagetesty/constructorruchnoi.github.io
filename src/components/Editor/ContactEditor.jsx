@@ -12,14 +12,11 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Alert,
-  Button,
-  Tooltip
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { styled } from '@mui/material/styles';
+import { contactPresets } from '../../utils/contactPresets';
 
 const ExpandMore = styled((props) => {
   const { expand, ...other } = props;
@@ -33,7 +30,7 @@ const ExpandMore = styled((props) => {
 }));
 
 const ContactEditor = ({ contactData = {}, onContactChange, expanded, onToggle, headerData = {} }) => {
-  const [copySuccess, setCopySuccess] = useState(false);
+  const [selectedPreset, setSelectedPreset] = useState('');
   
   const defaultContactData = {
     title: 'Свяжитесь с нами',
@@ -46,23 +43,28 @@ const ContactEditor = ({ contactData = {}, onContactChange, expanded, onToggle, 
       lat: 55.7558,
       lng: 37.6173
     },
-    titleColor: '#1976d2',
-    descriptionColor: '#666666',
+    titleColor: '#1565c0',
+    descriptionColor: '#424242',
     companyInfoColor: '#333333',
     formVariant: 'outlined',
     infoVariant: 'elevation',
     formBackgroundColor: '#ffffff',
     infoBackgroundColor: '#ffffff',
-    formBorderColor: '#1976d2',
-    infoBorderColor: '#1976d2',
-    titleFont: 'default',
-    textFont: 'default'
+    formBorderColor: '#1565c0',
+    infoBorderColor: '#e0e0e0',
+    labelColor: '#333333',
+    inputBackgroundColor: '#ffffff',
+    inputTextColor: '#333333',
+    buttonColor: '#1565c0',
+    buttonTextColor: '#ffffff',
+    iconColor: '#1565c0',
+    infoTitleColor: '#1565c0',
+    infoTextColor: '#424242'
   };
 
   // Эффект для синхронизации названия сайта с названием компании
   useEffect(() => {
     if (headerData && headerData.siteName) {
-      // Если есть название сайта в headerData, обновляем название компании
       handleChange('companyName', headerData.siteName);
     }
   }, [headerData?.siteName]);
@@ -74,26 +76,41 @@ const ContactEditor = ({ contactData = {}, onContactChange, expanded, onToggle, 
       [field]: value
     });
   };
-  
-  // Шаблон промпта для раздела "Свяжитесь с нами"
-  const contactPromptTemplate = `Контакты
 
-(Мы ценим каждого клиента и готовы оказать профессиональную юридическую поддержку. Наши специалисты всегда на связи и оперативно ответят на все ваши вопросы)
-
-Адрес  
-г. Санкт-Петербург, Невский проспект, д. 20, офис 101
-
-Телефон  
-+7 (812) 123-45-67
-
-Email  
-info@vashepravo.ru`;
-
-  const copyPromptToClipboard = () => {
-    navigator.clipboard.writeText(contactPromptTemplate);
-    setCopySuccess(true);
-    setTimeout(() => setCopySuccess(false), 3000);
+  // Функция для применения пресета
+  const handlePresetChange = (presetKey) => {
+    const preset = contactPresets[presetKey];
+    if (preset) {
+      setSelectedPreset(presetKey);
+      onContactChange({
+        ...contactData,
+        ...preset,
+        companyName: contactData.companyName || headerData.siteName || defaultContactData.companyName,
+        address: contactData.address || defaultContactData.address,
+        phone: contactData.phone || defaultContactData.phone,
+        email: contactData.email || defaultContactData.email,
+        mapCoordinates: contactData.mapCoordinates || defaultContactData.mapCoordinates
+      });
+    }
   };
+
+  // Эффект для определения текущего пресета при изменении цветов
+  useEffect(() => {
+    if (contactData) {
+      const currentPreset = Object.entries(contactPresets).find(([_, preset]) => {
+        return preset.titleColor === contactData.titleColor &&
+               preset.descriptionColor === contactData.descriptionColor &&
+               preset.formBackgroundColor === contactData.formBackgroundColor &&
+               preset.formBorderColor === contactData.formBorderColor;
+      });
+      
+      if (currentPreset) {
+        setSelectedPreset(currentPreset[0]);
+      } else {
+        setSelectedPreset('');
+      }
+    }
+  }, [contactData]);
 
   return (
     <Paper sx={{ 
@@ -127,33 +144,45 @@ info@vashepravo.ru`;
       </Box>
 
       <Collapse in={expanded} timeout="auto" unmountOnExit>
-        {/* Блок с промптом для генерации контактной информации */}
-        <Box sx={{ mb: 3, mt: 2, p: 2, bgcolor: '#e3f2fd', borderRadius: 1 }}>
-          <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
-            Шаблон для генерации контактной информации
-          </Typography>
-          <Typography variant="body2" sx={{ mb: 2, whiteSpace: 'pre-line' }}>
-            {contactPromptTemplate}
-          </Typography>
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <Tooltip title="Копировать в буфер обмена">
-              <Button 
-                startIcon={<ContentCopyIcon />} 
-                size="small" 
-                onClick={copyPromptToClipboard}
-                variant="outlined"
-              >
-                Копировать шаблон
-              </Button>
-            </Tooltip>
-          </Box>
-          {copySuccess && (
-            <Alert severity="success" sx={{ mt: 1 }}>
-              Шаблон скопирован в буфер обмена
-            </Alert>
-          )}
+        {/* Селектор пресетов */}
+        <Box sx={{ mb: 3, mt: 2 }}>
+          <FormControl fullWidth>
+            <InputLabel>Готовые стили оформления</InputLabel>
+            <Select
+              value={selectedPreset}
+              onChange={(e) => handlePresetChange(e.target.value)}
+              label="Готовые стили оформления"
+            >
+              <MenuItem value="">
+                <em>Пользовательский</em>
+              </MenuItem>
+              {Object.entries(contactPresets).map(([key, preset]) => (
+                <MenuItem 
+                  key={key} 
+                  value={key}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: 1,
+                      backgroundColor: preset.titleColor,
+                      border: '2px solid',
+                      borderColor: preset.formBorderColor
+                    }}
+                  />
+                  {preset.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         </Box>
-        
+
         <Grid container spacing={2}>
           <Grid item xs={12}>
             <Typography variant="subtitle1" sx={{ mb: 1 }}>Основная информация</Typography>
@@ -399,4 +428,4 @@ info@vashepravo.ru`;
   );
 };
 
-export default ContactEditor; 
+export default ContactEditor;

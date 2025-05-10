@@ -15,12 +15,9 @@ const storage = multer.diskStorage({
   },
   filename: function (req, file, cb) {
     // Получаем ID секции из запроса
-    // В multer данные формы ещё не распарсены полностью на этом этапе
-    // Используем временный, уникальный идентификатор для имени файла
+    // Используем временное имя с меткой времени, позже переименуем
     const timestamp = Date.now();
-    const randomStr = Math.random().toString(36).substring(2, 8);
-    const fileExt = path.extname(file.originalname);
-    cb(null, `section_${timestamp}_${randomStr}${fileExt}`);
+    cb(null, `temp_${timestamp}.jpg`);
   }
 });
 
@@ -63,116 +60,54 @@ export default function handler(req, res) {
       let filePath = req.file.path;
       console.log(`Uploaded file path: ${filePath}, mimetype: ${req.file.mimetype}, originalname: ${req.file.originalname}`);
       
-      // После загрузки файла, теперь имеем доступ к данным формы
-      const sectionId = req.body.sectionId || 'section';
+      // После загрузки файла получаем ID секции
+      const sectionId = req.body.sectionId;
+      if (!sectionId) {
+        throw new Error('ID секции не указан');
+      }
       console.log(`Section ID: ${sectionId}`);
       
-      // Если получили ID секции, переименуем файл
-      if (sectionId !== 'section') {
-        const uploadDir = path.join(process.cwd(), 'public', 'images', 'sections');
-        console.log(`Upload directory: ${uploadDir}`);
-        
-        const newFileName = `${sectionId}.jpg`; // Всегда сохраняем как jpg
-        const newFilePath = path.join(uploadDir, newFileName);
-        console.log(`New file path: ${newFilePath}`);
-        
-        // Обрабатываем сначала изображение и сохраняем в формате JPG
-        console.log(`Processing image with sharp...`);
-        try {
-          // Создаем буфер из оригинального файла
-          const inputBuffer = fs.readFileSync(filePath);
-          console.log(`File read into buffer, size: ${inputBuffer.length} bytes`);
-          
-          // Обрабатываем и сохраняем в формате JPG
-          const outputBuffer = await sharp(inputBuffer)
-            .resize(800, 600, { fit: 'inside', withoutEnlargement: true })
-            .jpeg({ quality: 80 })
-            .toBuffer();
-            
-          console.log(`Image processed to buffer, size: ${outputBuffer.length} bytes`);
-          
-          // Записываем буфер в файл
-          fs.writeFileSync(newFilePath, outputBuffer);
-          console.log(`Image successfully saved to ${newFilePath}, size: ${fs.statSync(newFilePath).size} bytes`);
-          
-        } catch (sharpError) {
-          console.error(`Error processing image with sharp: ${sharpError.message}`);
-          throw sharpError;
-        }
-        
-        // Если файл с таким именем существует (кроме только что созданного) - удаляем старый
-        if (fs.existsSync(filePath)) {
-          console.log(`Removing original file: ${filePath}`);
-          fs.unlinkSync(filePath);
-          console.log(`Original file removed`);
-        }
-        
-        // Обновляем путь к файлу
-        req.file.filename = newFileName;
-        console.log(`Updated filename: ${req.file.filename}`);
-        
-      } else {
-        // Если нет нужды переименовывать, сохраняем как временный файл с jpg-расширением
-        const uploadDir = path.join(process.cwd(), 'public', 'images', 'sections');
-        console.log(`Upload directory for generic section: ${uploadDir}`);
-        
-        const newFileName = `section_${Date.now()}.jpg`;
-        const newFilePath = path.join(uploadDir, newFileName);
-        console.log(`New file path for generic section: ${newFilePath}`);
-        
-        // Обрабатываем и сохраняем в формате JPG
-        console.log(`Processing image with sharp...`);
-        try {
-          // Создаем буфер из оригинального файла
-          const inputBuffer = fs.readFileSync(filePath);
-          console.log(`File read into buffer, size: ${inputBuffer.length} bytes`);
-          
-          // Обрабатываем и сохраняем в формате JPG
-          const outputBuffer = await sharp(inputBuffer)
-            .resize(800, 600, { fit: 'inside', withoutEnlargement: true })
-            .jpeg({ quality: 80 })
-            .toBuffer();
-            
-          console.log(`Image processed to buffer, size: ${outputBuffer.length} bytes`);
-          
-          // Записываем буфер в файл
-          fs.writeFileSync(newFilePath, outputBuffer);
-          console.log(`Image successfully saved to ${newFilePath}, size: ${fs.statSync(newFilePath).size} bytes`);
-          
-        } catch (sharpError) {
-          console.error(`Error processing image with sharp: ${sharpError.message}`);
-          throw sharpError;
-        }
-        
-        // Удаляем оригинальный файл
-        if (fs.existsSync(filePath)) {
-          console.log(`Removing original file: ${filePath}`);
-          fs.unlinkSync(filePath);
-          console.log(`Original file removed`);
-        }
-        
-        // Обновляем путь к файлу
-        req.file.filename = newFileName;
-        console.log(`Updated filename: ${req.file.filename}`);
-      }
-
-      // Формируем относительный путь для использования на фронтенде
-      const relativePath = `/images/sections/${req.file.filename}`;
-      console.log(`Final relative path: ${relativePath}`);
+      const uploadDir = path.join(process.cwd(), 'public', 'images', 'sections');
+      // Используем тот же формат имени файла, что и в превью
+      const newFileName = `${sectionId}.jpg`;
+      const newFilePath = path.join(uploadDir, newFileName);
       
-      res.status(200).json({ 
-        message: 'Файл успешно загружен и обработан',
-        path: relativePath
-      });
+      // Обрабатываем изображение и сохраняем в формате JPG
+      try {
+        const inputBuffer = fs.readFileSync(filePath);
+        const outputBuffer = await sharp(inputBuffer)
+          .resize(800, 600, { fit: 'inside', withoutEnlargement: true })
+          .jpeg({ quality: 80 })
+          .toBuffer();
+        
+        // Записываем буфер в файл
+        fs.writeFileSync(newFilePath, outputBuffer);
+        
+        // Удаляем временный файл
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+        
+        // Формируем относительный путь для фронтенда
+        const relativePath = `/images/sections/${newFileName}`;
+        
+        res.status(200).json({ 
+          message: 'Файл успешно загружен и обработан',
+          path: relativePath
+        });
+      } catch (sharpError) {
+        console.error('Ошибка при обработке изображения:', sharpError);
+        throw sharpError;
+      }
     } catch (error) {
       console.error('Ошибка при обработке изображения:', error);
-      res.status(500).json({ message: 'Ошибка при обработке изображения' });
+      res.status(500).json({ message: error.message || 'Ошибка при обработке изображения' });
     }
   });
 }
 
 export const config = {
   api: {
-    bodyParser: false, // Отключаем встроенный парсер, так как multer сам обрабатывает formData
+    bodyParser: false,
   },
 }; 

@@ -22,6 +22,7 @@ import FooterSection from '../Footer/FooterSection';
 import Header from '../Header/Header';
 import TestimonialCard from '../Testimonial/TestimonialCard';
 import ReactDOM from 'react-dom/client';
+import { imageCacheService } from '../../utils/imageCacheService';
 
 const SimpleCard = styled(Card)(({ theme, card }) => ({
   display: 'flex',
@@ -210,6 +211,7 @@ const PagePreview = ({
     darkness: headerData?.siteBackgroundDarkness || 0
   });
   const [showBorders, setShowBorders] = useState(true);
+  const [sectionImages, setSectionImages] = useState({});
 
   // Добавляем стили для анимации рамки
   const globalStyles = `
@@ -288,6 +290,10 @@ const PagePreview = ({
   };
 
   const renderSection = (section) => {
+    if (!section) return null;
+    
+    const sectionImgUrl = sectionImages[section.id] || section.imagePath;
+    
     // Получаем цвета из карточек секции для градиента рамки
     const getBorderColors = () => {
       if (section.cards && section.cards.length > 0) {
@@ -312,10 +318,11 @@ const PagePreview = ({
     };
 
     const borderColors = getBorderColors();
-
+    
     if (section.id === 'about') {
       const showCards = section.cardType !== CARD_TYPES.NONE && section.cards?.length > 0;
       const isNoCards = section.cardType === CARD_TYPES.NONE;
+      
       return (
         <Box className="about-section" sx={{ 
           display: 'flex', 
@@ -326,25 +333,24 @@ const PagePreview = ({
           borderRadius: '16px',
           background: 'linear-gradient(145deg, #ffffff, #f5f5f5)',
           boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-          position: 'relative',
+            position: 'relative',
           '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
             borderRadius: '16px',
             padding: '2px',
             background: 'linear-gradient(45deg, #1976d2, #42a5f5)',
             mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-            maskComposite: 'exclude',
+              maskComposite: 'exclude',
             WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
             WebkitMaskComposite: 'xor',
             zIndex: 0
           }
         }}>
-          {/* Если без карточек — картинка справа, текст обтекает */}
           {isNoCards ? (
             <Box sx={{ width: '100%', display: { xs: 'block', md: 'flex' }, alignItems: 'flex-start', position: 'relative' }}>
               {section.imagePath && (
@@ -365,7 +371,7 @@ const PagePreview = ({
                   }}
                 >
                   <img
-                    src={section.imagePath}
+                    src={sectionImgUrl}
                     alt="About us"
                     style={{
                       width: '100%',
@@ -374,6 +380,8 @@ const PagePreview = ({
                       display: 'block',
                       transition: 'transform 0.3s ease'
                     }}
+                    onMouseOver={(e) => { e.currentTarget.style.transform = 'scale(1.02)' }}
+                    onMouseOut={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
                   />
                 </Box>
               )}
@@ -451,9 +459,9 @@ const PagePreview = ({
                   opacity: 0.3
                 }
               }}>
-                {section.imagePath ? (
+                {section.imagePath && (
                   <img 
-                    src={section.imagePath}
+                    src={sectionImgUrl}
                     alt="About us"
                     style={{
                       width: '100%',
@@ -466,20 +474,6 @@ const PagePreview = ({
                     onMouseOver={(e) => { e.currentTarget.style.transform = 'scale(1.02)' }}
                     onMouseOut={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
                   />
-                ) : (
-                  <Box sx={{ 
-                    width: '100%', 
-                    maxWidth: '600px',
-                    height: '400px', 
-                    backgroundColor: '#f0f0f0',
-                    borderRadius: '12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#999'
-                  }}>
-                    <Typography>Изображение не выбрано</Typography>
-                  </Box>
                 )}
               </Box>
               <Box className="about-content" sx={{ 
@@ -489,7 +483,7 @@ const PagePreview = ({
                 gap: 2,
                 pl: { xs: 0, md: 2 },
                 pt: { xs: 2, md: 0 },
-                position: 'relative',
+              position: 'relative', 
                 textAlign: 'left',
                 '&::before': {
                   content: '""',
@@ -508,7 +502,7 @@ const PagePreview = ({
               }}>
                 <Typography 
                   variant="h3" 
-                  component="h2"
+                  component="h2" 
                   sx={{ 
                     fontSize: { xs: '1.75rem', sm: '2rem', md: '2.5rem' },
                     fontWeight: 700,
@@ -530,7 +524,7 @@ const PagePreview = ({
                 >
                   {section.title || ''}
                 </Typography>
-                {section.description && (
+              {section.description && (
                   <Typography 
                     variant="body1" 
                     sx={{ 
@@ -592,10 +586,11 @@ const PagePreview = ({
         sx={{
           py: 8,
           px: 2,
-          backgroundColor: section.backgroundColor || 'transparent',
+          backgroundColor: section.showBackground !== false ? (section.backgroundColor || 'transparent') : 'transparent',
           color: section.textColor || 'inherit',
           position: 'relative',
           overflow: 'hidden',
+          borderRadius: '20px',
           '&::before': showBorders ? {
             content: '""',
             position: 'absolute',
@@ -629,7 +624,7 @@ const PagePreview = ({
           />
         </Box>
         {/* Фоновое изображение с размытием */}
-        {section.backgroundImage && (
+        {section.backgroundImage && section.showBackground !== false && (
           <Box
             sx={{
               position: 'absolute',
@@ -648,7 +643,7 @@ const PagePreview = ({
         )}
         
         {/* Затемнение */}
-        {section.enableOverlay && (
+        {section.enableOverlay && section.showBackground !== false && (
           <Box
             sx={{
               position: 'absolute',
@@ -716,7 +711,7 @@ const PagePreview = ({
                 </Typography>
               </Fade>
             )}
-            
+
             {/* Добавляем отображение изображения секции только если есть карточки */}
             {section.cardType !== CARD_TYPES.NONE && section.cards?.length > 0 && section.imagePath && (
               <Fade in timeout={1800}>
@@ -727,8 +722,8 @@ const PagePreview = ({
                   maxWidth: '100%'
                 }}>
                   <img 
-                    src={section.imagePath} 
-                    alt={section.title || 'Section image'} 
+                    src={sectionImgUrl}
+                    alt={section.title || 'Section image'}
                     loading="lazy"
                     style={{
                       maxWidth: '100%',
@@ -746,27 +741,27 @@ const PagePreview = ({
           </Box>
 
           {section.cardType !== CARD_TYPES.NONE && section.cards?.length > 0 ? (
-            <Box sx={{ 
-              mt: section.description ? 0 : 16,
-              pt: section.description ? 8 : 0
+              <Box sx={{ 
+                mt: section.description ? 0 : 16,
+                pt: section.description ? 8 : 0
             }} className="cards-container">
-              <Grid container spacing={4}>
-                {section.cards?.map((card, index) => (
-                  <Grid item xs={12} sm={6} md={4} key={card.id}>
-                    <Grow in timeout={1000 + index * 200}>
-                      <Box>
-                        {section.id === 'testimonials' ? (
-                          <TestimonialCard testimonial={card} />
-                        ) : (
-                          <Box sx={{ height: '100%' }}>
-                            {renderCard(card, section.cardType, section)}
-                          </Box>
-                        )}
-                      </Box>
-                    </Grow>
-                  </Grid>
-                ))}
-              </Grid>
+                <Grid container spacing={4}>
+                  {section.cards?.map((card, index) => (
+                    <Grid item xs={12} sm={6} md={4} key={card.id}>
+                      <Grow in timeout={1000 + index * 200}>
+                        <Box>
+                          {section.id === 'testimonials' ? (
+                            <TestimonialCard testimonial={card} />
+                          ) : (
+                            <Box sx={{ height: '100%' }}>
+                              {renderCard(card, section.cardType, section)}
+                            </Box>
+                          )}
+                        </Box>
+                      </Grow>
+                    </Grid>
+                  ))}
+                </Grid>
             </Box>
           ) : (
             <Box sx={{ 
@@ -842,20 +837,28 @@ const PagePreview = ({
                       opacity: 0.3
                     }
                   }}>
-                    <img 
-                      src={section.imagePath} 
-                      alt={section.title || 'Section image'} 
-                      style={{
-                        width: '100%',
-                        height: 'auto',
-                        borderRadius: '12px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                        transition: 'transform 0.3s ease',
-                        display: 'block'
-                      }}
-                      onMouseOver={(e) => { e.currentTarget.style.transform = 'scale(1.02)' }}
-                      onMouseOut={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
-                    />
+                    {sectionImgUrl && (
+                      <img 
+                        src={sectionImgUrl}
+                        alt={section.title || 'Section image'}
+                        style={{
+                          width: '100%',
+                          height: 'auto',
+                          borderRadius: '12px',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                          transition: 'transform 0.3s ease',
+                          display: 'block'
+                        }}
+                        onError={(e) => {
+                          console.error('Image load error:', e);
+                          if (e.target.src !== section.imagePath) {
+                            console.log('Falling back to direct imagePath');
+                            e.target.src = section.imagePath;
+                          }
+                        }}
+                        onLoad={() => console.log('Image loaded successfully:', sectionImgUrl)}
+                      />
+                    )}
                   </Box>
                 )}
                 <Box sx={{ pl: 2 }}>
@@ -910,6 +913,50 @@ const PagePreview = ({
       </Box>
     );
   };
+
+  useEffect(() => {
+    const loadSectionImages = async () => {
+      const newImages = {};
+      const sections = Object.values(sectionsData || {});
+      
+      for (const section of sections) {
+        if (section && section.imagePath) {
+          try {
+            // Получаем имя файла из пути
+            const filename = section.imagePath.split('/').pop();
+            
+            // Пытаемся получить изображение из кэша
+            const blob = await imageCacheService.getImage(filename);
+            
+            if (blob) {
+              // Если есть в кэше, создаем URL
+              const url = URL.createObjectURL(blob);
+              newImages[section.id] = url;
+            } else {
+              // Если нет в кэше, используем путь из секции
+              newImages[section.id] = section.imagePath;
+            }
+          } catch (error) {
+            console.error('Error loading section image:', error);
+            // При ошибке используем путь из секции
+            newImages[section.id] = section.imagePath;
+          }
+        }
+      }
+      setSectionImages(newImages);
+    };
+
+    loadSectionImages();
+
+    return () => {
+      // Очищаем только blob URLs
+      Object.values(sectionImages).forEach(url => {
+        if (url && url.startsWith('blob:')) {
+          URL.revokeObjectURL(url);
+        }
+      });
+    };
+  }, [sectionsData]);
 
   useEffect(() => {
     const updateCardHeights = () => {
@@ -1058,71 +1105,34 @@ const PagePreview = ({
     }
   }, [headerData]);
 
-  // Обработчик сообщений для обновления фона и изображений секций
+  // Обновляем обработчик сообщений
   const handleMessage = useCallback((event) => {
-    if (event.data.type === 'UPDATE_BACKGROUND') {
-      const backgroundImage = document.querySelector('.background-image');
-      if (backgroundImage) {
-        backgroundImage.style.backgroundImage = `url(${event.data.imageUrl})`;
-      }
-    } else if (event.data.type === 'UPDATE_SECTION_IMAGE') {
-      // Обновляем изображение для конкретной секции
-      const { sectionId, imagePath } = event.data;
-      if (sectionId && imagePath) {
-        console.log(`Updating image for section ${sectionId}: ${imagePath}`);
-        // Добавляем параметр времени, чтобы избежать кеширования браузером
-        const imageUrl = `${imagePath}?t=${Date.now()}`;
-        
-        // Найти элемент изображения секции
-        const sectionElement = document.getElementById(sectionId);
-        if (sectionElement) {
-          const imgElement = sectionElement.querySelector('.section-image img');
-          if (imgElement) {
-            imgElement.src = imageUrl;
-          } else if (sectionId === 'about') {
-            // Для секции "О нас" структура может быть другой
-            const aboutImgElement = sectionElement.querySelector('.about-image img');
-            if (aboutImgElement) {
-              aboutImgElement.src = imageUrl;
-            }
-          }
+    switch (event.data.type) {
+      case 'UPDATE_SECTION_IMAGE':
+        const { sectionId, imagePath } = event.data;
+        if (sectionId && imagePath) {
+          // Обновляем изображение в состоянии
+          setSectionImages(prev => ({
+            ...prev,
+            [sectionId]: imagePath
+          }));
         }
-      }
-    } else if (event.data.type === 'REMOVE_SECTION_IMAGE') {
-      // Обрабатываем удаление изображения секции
-      const { sectionId } = event.data;
-      if (sectionId) {
-        console.log(`Removing image for section ${sectionId}`);
-        
-        // Найти элемент изображения секции
-        const sectionElement = document.getElementById(sectionId);
-        if (sectionElement) {
-          // В зависимости от структуры секции, ищем разные элементы
-          if (sectionId === 'about') {
-            // Для секции "О нас"
-            const aboutImgElement = sectionElement.querySelector('.about-image img');
-            if (aboutImgElement) {
-              // Можно скрыть или поставить заглушку
-              aboutImgElement.style.display = 'none';
-              // Или установить заглушку 
-              // aboutImgElement.src = '/placeholder.jpg'; 
-            }
-          } else {
-            // Для обычных секций
-            const sectionImageDiv = sectionElement.querySelector('.section-image');
-            if (sectionImageDiv) {
-              sectionImageDiv.style.display = 'none';
-            }
-          }
+        break;
+      case 'REMOVE_SECTION_IMAGE':
+        setSectionImages(prev => {
+          const newImages = { ...prev };
+          delete newImages[event.data.sectionId];
+          return newImages;
+        });
+        break;
+      case 'SCROLL_TO_SECTION':
+        const element = sectionRefs.current[event.data.sectionId];
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
         }
-      }
-    } else if (event.data.type === 'SCROLL_TO_SECTION') {
-      const element = sectionRefs.current[event.data.sectionId];
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
-      }
+        break;
     }
-  }, [sectionRefs]);
+  }, []);
 
   useEffect(() => {
     window.addEventListener('message', handleMessage);
@@ -1251,6 +1261,7 @@ const PagePreview = ({
             footerData={footerData}
             contactData={contactData}
             legalDocuments={legalDocuments}
+            headerData={headerData}
           />
         </Box>
       </Box>

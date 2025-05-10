@@ -28,6 +28,55 @@ export const SECTION_KEYWORDS = {
   LEGAL: ['правовые документы', 'документы', 'политика', 'соглашение', 'legal documents', 'policy', 'terms']
 };
 
+// Функция для генерации случайного телефонного номера, сохраняя исходный формат
+const generateRandomPhone = (originalPhone) => {
+  // Если номер не предоставлен, создаем стандартный российский формат
+  if (!originalPhone) {
+    const cityCodes = ['495', '499', '812', '383', '343', '831'];
+    const cityCode = cityCodes[Math.floor(Math.random() * cityCodes.length)];
+    
+    // Генерируем 7 случайных цифр
+    let digits = '';
+    for (let i = 0; i < 7; i++) {
+      digits += Math.floor(Math.random() * 10);
+    }
+    
+    return `+7 (${cityCode}) ${digits.substring(0, 3)}-${digits.substring(3, 5)}-${digits.substring(5, 7)}`;
+  }
+  
+  // Извлекаем все цифры из исходного номера
+  const allDigits = originalPhone.replace(/\D/g, '');
+  
+  // Определяем, сколько цифр нужно сохранить с начала (все кроме последних 7)
+  const digitsToPersist = Math.max(0, allDigits.length - 7);
+  const persistedPart = allDigits.substring(0, digitsToPersist);
+  
+  // Генерируем 7 случайных цифр для замены
+  let randomDigits = '';
+  for (let i = 0; i < 7; i++) {
+    randomDigits += Math.floor(Math.random() * 10);
+  }
+  
+  // Если оригинал содержит только цифры, то просто объединяем части
+  if (originalPhone.match(/^\d+$/)) {
+    return persistedPart + randomDigits;
+  }
+  
+  // Для форматированных номеров - заменяем последние 7 цифр, сохраняя форматирование
+  let result = originalPhone;
+  let replacedCount = 0;
+  
+  // Заменяем цифры с конца, сохраняя форматирование
+  for (let i = originalPhone.length - 1; i >= 0 && replacedCount < 7; i--) {
+    if (/\d/.test(originalPhone[i])) {
+      result = result.substring(0, i) + randomDigits[6 - replacedCount] + result.substring(i + 1);
+      replacedCount++;
+    }
+  }
+  
+  return result;
+};
+
 // Функции парсинга для разных типов контента
 export const parseServices = (content) => {
   try {
@@ -810,9 +859,45 @@ export const parseContacts = (content, headerData = {}) => {
         if (i === currentIndex && !contactData.address) {
           contactData.address = cleanEmailsInText(fieldValue);
         } else if (i === currentIndex + 1 && !contactData.phone) {
-          contactData.phone = cleanEmailsInText(fieldValue);
+          const phoneValue = cleanEmailsInText(fieldValue);
+          
+          // Всегда генерируем случайный телефонный номер с сохранением формата
+          contactData.phone = generateRandomPhone(phoneValue);
         } else if (i === currentIndex + 2 && !contactData.email) {
-          contactData.email = cleanEmail(fieldValue);
+          // Всегда генерируем стандартный email на основе названия сайта
+          if (headerData?.siteName) {
+            // Создаем email из названия сайта
+            const domainName = headerData.siteName
+              .toLowerCase()
+              .replace(/[^a-zа-яё0-9]/g, '-') // Заменяем все специальные символы на дефисы
+              .replace(/-+/g, '-') // Убираем множественные дефисы
+              .replace(/^-|-$/g, '') // Убираем дефисы в начале и конце
+              .replace(/[а-яё]/g, char => { // Транслитерация русских букв
+                const translit = {
+                  'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'e',
+                  'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm',
+                  'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
+                  'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch',
+                  'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
+                };
+                return translit[char] || char;
+              });
+            
+            // Выбираем случайный префикс для email из списка возможных вариантов
+            const emailPrefixes = [
+              'info', 'contact', 'office', 'hello', 'support', 'mail', 'team', 'admin',
+              'service', 'sales', 'clients', 'help', 'legal', 'company', 'director',
+              'manager', 'secretary', 'consulting', 'general', 'reception', 'inquiry', 
+              'hr', 'jobs', 'career', 'business', 'partners', 'marketing', 'press'
+            ];
+            const randomPrefix = emailPrefixes[Math.floor(Math.random() * emailPrefixes.length)];
+            
+            // Всегда используем .com в конце
+            contactData.email = `${randomPrefix}@${domainName}.com`;
+          } else {
+            // Если название сайта не определено, используем стандартный адрес
+            contactData.email = 'info@example.com';
+          }
         }
       }
     }
@@ -824,7 +909,7 @@ export const parseContacts = (content, headerData = {}) => {
   }
 };
 
-export const parseLegalDocuments = (content) => {
+export const parseLegalDocuments = (content, contactData = {}) => {
   try {
     const documents = {
       privacyPolicy: {
@@ -841,22 +926,59 @@ export const parseLegalDocuments = (content) => {
       }
     };
 
-    // Предварительная обработка текста: нормализуем переносы строк
-    const normalizedContent = content.replace(/\n{3,}/g, '\n\n\n');
+    // Нормализуем переносы строк
+    const normalizedContent = content.replace(/\r\n/g, '\n');
+
+    // Регулярное выражение для поиска заголовков в скобках и последующего текста
+    const documentPattern = /\(([^)]+)\)([\s\S]*?)(?=\([^)]+\)|$)/g;
     
-    // Разделяем на документы (блоки, разделенные тройными переносами строк)
-    const docBlocks = normalizedContent.split('\n\n\n').filter(block => block.trim());
+    // Массив типов документов в порядке их следования
+    const documentTypes = ['privacyPolicy', 'termsOfService', 'cookiePolicy'];
+    let documentIndex = 0;
     
-    const documentKeys = ['privacyPolicy', 'termsOfService', 'cookiePolicy'];
-    
-    // Распределяем блоки по документам
-    docBlocks.forEach((block, index) => {
-      if (index < 3) {
-        // Весь текст блока идет в content, title оставляем пустым
-        documents[documentKeys[index]].content = block.trim();
+    let match;
+    while ((match = documentPattern.exec(normalizedContent)) !== null) {
+      const title = match[1].trim();
+      let documentContent = match[2].trim();
+
+      // Определяем тип документа по порядку следования
+      const documentType = documentTypes[documentIndex];
+      
+      if (documentType && documents[documentType]) {
+        // Добавляем заголовок как первую строку контента
+        documents[documentType].content = title + '\n\n' + documentContent;
       }
-    });
-    
+      
+      documentIndex++;
+    }
+
+    // Добавляем контактную информацию в конец каждого документа, если она доступна
+    if (contactData && Object.keys(contactData).length > 0) {
+      Object.keys(documents).forEach(docType => {
+        if (documents[docType].content && !documents[docType].content.toLowerCase().includes('контактная информация')) {
+          let contactBlock = '\n\nКонтактная информация:\n';
+          
+          if (contactData.companyName) {
+            contactBlock += `${contactData.companyName}\n`;
+          }
+          
+          if (contactData.address) {
+            contactBlock += `Адрес: ${contactData.address}\n`;
+          }
+          
+          if (contactData.phone) {
+            contactBlock += `Телефон: ${contactData.phone}\n`;
+          }
+          
+          if (contactData.email) {
+            contactBlock += `Email: ${contactData.email}\n`;
+          }
+          
+          documents[docType].content += contactBlock;
+        }
+      });
+    }
+
     return documents;
   } catch (error) {
     console.error('Error parsing legal documents:', error);

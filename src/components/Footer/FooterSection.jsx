@@ -41,8 +41,9 @@ const FooterContainer = styled(Box)(({ theme }) => ({
 }));
 
 const FooterSection = ({
-  backgroundColor = '#f5f5f5',
-  textColor = '#333333',
+  footerData = {},
+  contactData = {},
+  legalDocuments = {},
   companyName = 'Название компании',
   phone = '+7 (XXX) XXX-XX-XX',
   email = 'info@example.com',
@@ -56,17 +57,16 @@ const FooterSection = ({
   },
   copyrightYear = new Date().getFullYear(),
   copyrightText = 'Все права защищены',
-  legalDocuments = {
-    privacyPolicy: '',
-    termsOfService: '',
-    cookiePolicy: ''
-  },
   menuItems = [],
   onMenuClick,
-  headerData,
-  contactData
+  headerData
 }) => {
   const theme = useTheme();
+
+  // Цвета: сначала из футера, если не задан — из шапки, если и там нет — дефолт
+  const backgroundColor = footerData.backgroundColor || headerData?.backgroundColor || '#f5f5f5';
+  const textColor = footerData.textColor || headerData?.titleColor || '#333333';
+  const linksColor = footerData.linksColor || headerData?.linksColor || '#1976d2';
 
   const handleLinkClick = (e, sectionId) => {
     e.preventDefault();
@@ -128,28 +128,28 @@ const FooterSection = ({
               <Box sx={{ mt: 2 }}>
                 <MuiLink
                   href={socialLinks.facebook}
-                  color={textColor}
+                  color={linksColor}
                   sx={{ mx: 1, '&:hover': { color: theme.palette.primary.main } }}
                 >
                   Facebook
                 </MuiLink>
                 <MuiLink
                   href={socialLinks.twitter}
-                  color={textColor}
+                  color={linksColor}
                   sx={{ mx: 1, '&:hover': { color: theme.palette.primary.main } }}
                 >
                   Twitter
                 </MuiLink>
                 <MuiLink
                   href={socialLinks.instagram}
-                  color={textColor}
+                  color={linksColor}
                   sx={{ mx: 1, '&:hover': { color: theme.palette.primary.main } }}
                 >
                   Instagram
                 </MuiLink>
                 <MuiLink
                   href={socialLinks.linkedin}
-                  color={textColor}
+                  color={linksColor}
                   sx={{ mx: 1, '&:hover': { color: theme.palette.primary.main } }}
                 >
                   LinkedIn
@@ -165,7 +165,7 @@ const FooterSection = ({
                   key={item.id}
                   href={`#${item.id}`}
                   onClick={(e) => handleLinkClick(e, item.id)}
-                  color={textColor}
+                  color={linksColor}
                   sx={{
                     textDecoration: 'none',
                     '&:hover': {
@@ -185,7 +185,7 @@ const FooterSection = ({
                   key={item.id}
                   href={`#${item.id}`}
                   onClick={(e) => handleLinkClick(e, item.id)}
-                  color={textColor}
+                  color={linksColor}
                   sx={{
                     textDecoration: 'none',
                     '&:hover': {
@@ -199,7 +199,7 @@ const FooterSection = ({
               <MuiLink
                 href="#contact"
                 onClick={(e) => handleLinkClick(e, 'contact')}
-                color={textColor}
+                color={linksColor}
                 sx={{
                   textDecoration: 'none',
                   '&:hover': {

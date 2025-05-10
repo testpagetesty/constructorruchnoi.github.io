@@ -1,10 +1,10 @@
 export const CARD_TYPES = {
+  NONE: 'none',
   SIMPLE: 'simple',
+  ACCENT: 'accent',
   ELEVATED: 'elevated',
   OUTLINED: 'outlined',
-  ACCENT: 'accent',
-  GRADIENT: 'gradient',
-  NONE: 'none'
+  GRADIENT: 'gradient'
 };
 
 export const BACKGROUND_TYPES = {
@@ -56,6 +56,7 @@ export const createSection = (id, title, cardType = CARD_TYPES.SIMPLE) => ({
   titleColor: '#000000',
   descriptionColor: '#666666',
   contentColor: '#333333',
+  showBackground: true,
   cards: []
 });
 

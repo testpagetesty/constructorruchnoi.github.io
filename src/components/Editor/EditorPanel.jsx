@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Box, Paper, Typography, Grid, TextField, Button, Collapse, Stack, IconButton, FormControl, InputLabel, Select, MenuItem, FormControlLabel, Switch, Container, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import HeaderEditor from './HeaderEditor';
 import HeroEditor from './HeroEditor';
 import ContactEditor from './ContactEditor';
 import FooterEditor from './FooterEditor';
 import LegalDocumentsEditor from './LegalDocumentsEditor';
-import AiParser from '../AiParser/AiParser'; // Импорт компонента AiParser
+import AiParser from '../AiParser/AiParser';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import AddIcon from '@mui/icons-material/Add';
@@ -21,6 +21,1102 @@ import { imageCacheService } from '../../utils/imageCacheService';
 import imageCompression from 'browser-image-compression';
 import AuthPanel from '../Auth/AuthPanel';
 
+const STYLE_PRESETS = {
+  CORPORATE: {
+    titleColor: '#1a237e',
+    descriptionColor: '#455a64',
+    cardType: CARD_TYPES.ELEVATED,
+    backgroundColor: '#ffffff',
+    borderColor: '#e0e0e0',
+    cardBackgroundColor: '#f5f5f5',
+    cardBorderColor: '#e0e0e0',
+    cardTitleColor: '#1a237e',
+    cardContentColor: '#455a64',
+    cardBackgroundType: 'solid',
+    cardGradientColor1: '#f5f5f5',
+    cardGradientColor2: '#e0e0e0',
+    cardGradientDirection: 'to bottom',
+    style: {
+      shadow: '0 2px 4px rgba(0,0,0,0.1)',
+      borderRadius: '8px'
+    }
+  },
+  MODERN: {
+    titleColor: '#6200ea',
+    descriptionColor: '#424242',
+    cardType: CARD_TYPES.GRADIENT,
+    backgroundColor: '#fafafa',
+    borderColor: '#e0e0e0',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#7c4dff',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#ffffff',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#6200ea',
+    cardGradientColor2: '#9c27b0',
+    cardGradientDirection: '45deg',
+    style: {
+      shadow: '0 4px 6px rgba(0,0,0,0.1)',
+      borderRadius: '12px',
+      padding: '16px'
+    }
+  },
+  MINIMAL: {
+    titleColor: '#212121',
+    descriptionColor: '#757575',
+    cardType: CARD_TYPES.SIMPLE,
+    backgroundColor: '#ffffff',
+    borderColor: '#e0e0e0',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#eeeeee',
+    cardTitleColor: '#212121',
+    cardContentColor: '#757575',
+    cardBackgroundType: 'solid',
+    cardGradientColor1: '#ffffff',
+    cardGradientColor2: '#f5f5f5',
+    cardGradientDirection: 'to bottom',
+    style: {
+      shadow: 'none',
+      borderRadius: '4px'
+    }
+  },
+  NATURE: {
+    titleColor: '#1b5e20',
+    descriptionColor: '#2e7d32',
+    cardType: CARD_TYPES.ELEVATED,
+    backgroundColor: '#f1f8e9',
+    borderColor: '#c5e1a5',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#a5d6a7',
+    cardTitleColor: '#1b5e20',
+    cardContentColor: '#2e7d32',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#e8f5e9',
+    cardGradientColor2: '#c8e6c9',
+    cardGradientDirection: 'to bottom',
+    style: {
+      shadow: '0 2px 4px rgba(0,0,0,0.1)',
+      borderRadius: '8px'
+    }
+  },
+  OCEAN: {
+    titleColor: '#01579b',
+    descriptionColor: '#0277bd',
+    cardType: CARD_TYPES.GRADIENT,
+    backgroundColor: '#e1f5fe',
+    borderColor: '#b3e5fc',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#81d4fa',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#e1f5fe',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#0288d1',
+    cardGradientColor2: '#039be5',
+    cardGradientDirection: '45deg',
+    style: {
+      shadow: '0 4px 6px rgba(0,0,0,0.1)',
+      borderRadius: '12px',
+      padding: '16px'
+    }
+  },
+  SUNSET: {
+    titleColor: '#bf360c',
+    descriptionColor: '#d84315',
+    cardType: CARD_TYPES.GRADIENT,
+    backgroundColor: '#fff3e0',
+    borderColor: '#ffe0b2',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#ffab91',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#fff3e0',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#e64a19',
+    cardGradientColor2: '#f4511e',
+    cardGradientDirection: '45deg',
+    style: {
+      shadow: '0 4px 6px rgba(0,0,0,0.1)',
+      borderRadius: '12px',
+      padding: '16px'
+    }
+  },
+  DARK_MODE: {
+    titleColor: '#ffffff',
+    descriptionColor: '#b0bec5',
+    cardType: 'elevated',
+    backgroundColor: '#263238',
+    borderColor: '#37474f',
+    cardBackgroundColor: '#37474f',
+    cardBorderColor: '#455a64',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#b0bec5',
+    cardBackgroundType: 'solid',
+    cardGradientColor1: '#37474f',
+    cardGradientColor2: '#455a64',
+    cardGradientDirection: 'to bottom',
+    style: {
+      shadow: '0 4px 6px rgba(0,0,0,0.2)',
+      borderRadius: '8px'
+    }
+  },
+  PASTEL: {
+    titleColor: '#6a1b9a',
+    descriptionColor: '#8e24aa',
+    cardType: 'simple',
+    backgroundColor: '#f3e5f5',
+    borderColor: '#e1bee7',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#ce93d8',
+    cardTitleColor: '#6a1b9a',
+    cardContentColor: '#8e24aa',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#f3e5f5',
+    cardGradientColor2: '#e1bee7',
+    cardGradientDirection: 'to bottom',
+    style: {
+      shadow: '0 2px 4px rgba(0,0,0,0.05)',
+      borderRadius: '12px'
+    }
+  },
+  FOREST: {
+    titleColor: '#1b5e20',
+    descriptionColor: '#2e7d32',
+    cardType: 'elevated',
+    backgroundColor: '#e8f5e9',
+    borderColor: '#c8e6c9',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#a5d6a7',
+    cardTitleColor: '#1b5e20',
+    cardContentColor: '#2e7d32',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#81c784',
+    cardGradientColor2: '#66bb6a',
+    cardGradientDirection: '45deg',
+    style: {
+      shadow: '0 4px 6px rgba(0,0,0,0.1)',
+      borderRadius: '8px'
+    }
+  },
+  ROYAL: {
+    titleColor: '#4a148c',
+    descriptionColor: '#6a1b9a',
+    cardType: CARD_TYPES.GRADIENT,
+    backgroundColor: '#f3e5f5',
+    borderColor: '#e1bee7',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#ba68c8',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#f3e5f5',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#7b1fa2',
+    cardGradientColor2: '#6a1b9a',
+    cardGradientDirection: '45deg',
+    style: {
+      shadow: '0 4px 6px rgba(0,0,0,0.1)',
+      borderRadius: '12px'
+    }
+  },
+  WINTER: {
+    titleColor: '#01579b',
+    descriptionColor: '#0288d1',
+    cardType: CARD_TYPES.ELEVATED,
+    backgroundColor: '#e3f2fd',
+    borderColor: '#bbdefb',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#90caf9',
+    cardTitleColor: '#01579b',
+    cardContentColor: '#0288d1',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#e3f2fd',
+    cardGradientColor2: '#bbdefb',
+    cardGradientDirection: 'to bottom',
+    style: {
+      shadow: '0 2px 4px rgba(0,0,0,0.1)',
+      borderRadius: '8px'
+    }
+  },
+  AUTUMN: {
+    titleColor: '#bf360c',
+    descriptionColor: '#d84315',
+    cardType: CARD_TYPES.GRADIENT,
+    backgroundColor: '#fbe9e7',
+    borderColor: '#ffccbc',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#ffab91',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#fbe9e7',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#ff5722',
+    cardGradientColor2: '#f4511e',
+    cardGradientDirection: '45deg',
+    style: {
+      shadow: '0 4px 6px rgba(0,0,0,0.1)',
+      borderRadius: '12px'
+    }
+  },
+  SPRING: {
+    titleColor: '#ad1457',
+    descriptionColor: '#d81b60',
+    cardType: CARD_TYPES.ELEVATED,
+    backgroundColor: '#fce4ec',
+    borderColor: '#f8bbd0',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#f48fb1',
+    cardTitleColor: '#ad1457',
+    cardContentColor: '#d81b60',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#fce4ec',
+    cardGradientColor2: '#f8bbd0',
+    cardGradientDirection: 'to bottom',
+    style: {
+      shadow: '0 2px 4px rgba(0,0,0,0.1)',
+      borderRadius: '8px'
+    }
+  },
+  BERRY: {
+    titleColor: '#880e4f',
+    descriptionColor: '#ad1457',
+    cardType: CARD_TYPES.GRADIENT,
+    backgroundColor: '#fce4ec',
+    borderColor: '#f8bbd0',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#f48fb1',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#fce4ec',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#c2185b',
+    cardGradientColor2: '#d81b60',
+    cardGradientDirection: '45deg',
+    style: {
+      shadow: '0 4px 6px rgba(0,0,0,0.1)',
+      borderRadius: '12px'
+    }
+  },
+  LAVENDER: {
+    titleColor: '#4a148c',
+    descriptionColor: '#6a1b9a',
+    cardType: CARD_TYPES.ELEVATED,
+    backgroundColor: '#f3e5f5',
+    borderColor: '#e1bee7',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#ce93d8',
+    cardTitleColor: '#4a148c',
+    cardContentColor: '#6a1b9a',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#f3e5f5',
+    cardGradientColor2: '#e1bee7',
+    cardGradientDirection: 'to bottom',
+    style: {
+      shadow: '0 2px 4px rgba(0,0,0,0.1)',
+      borderRadius: '8px'
+    }
+  },
+  SKY: {
+    titleColor: '#0277bd',
+    descriptionColor: '#0288d1',
+    cardType: CARD_TYPES.GRADIENT,
+    backgroundColor: '#e1f5fe',
+    borderColor: '#b3e5fc',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#81d4fa',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#e1f5fe',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#03a9f4',
+    cardGradientColor2: '#039be5',
+    cardGradientDirection: '45deg',
+    style: {
+      shadow: '0 4px 6px rgba(0,0,0,0.1)',
+      borderRadius: '12px'
+    }
+  },
+  LEMON: {
+    titleColor: '#f57f17',
+    descriptionColor: '#f9a825',
+    cardType: CARD_TYPES.ELEVATED,
+    backgroundColor: '#fffde7',
+    borderColor: '#fff59d',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#fff176',
+    cardTitleColor: '#f57f17',
+    cardContentColor: '#f9a825',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#fffde7',
+    cardGradientColor2: '#fff59d',
+    cardGradientDirection: 'to bottom',
+    style: {
+      shadow: '0 2px 4px rgba(0,0,0,0.1)',
+      borderRadius: '8px'
+    }
+  },
+  MINT: {
+    titleColor: '#00695c',
+    descriptionColor: '#00796b',
+    cardType: CARD_TYPES.GRADIENT,
+    backgroundColor: '#e0f2f1',
+    borderColor: '#b2dfdb',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#80cbc4',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#e0f2f1',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#009688',
+    cardGradientColor2: '#00897b',
+    cardGradientDirection: '45deg',
+    style: {
+      shadow: '0 4px 6px rgba(0,0,0,0.1)',
+      borderRadius: '12px'
+    }
+  },
+  PEACH: {
+    titleColor: '#e64a19',
+    descriptionColor: '#f4511e',
+    cardType: CARD_TYPES.ELEVATED,
+    backgroundColor: '#fbe9e7',
+    borderColor: '#ffccbc',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#ffab91',
+    cardTitleColor: '#e64a19',
+    cardContentColor: '#f4511e',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#fbe9e7',
+    cardGradientColor2: '#ffccbc',
+    cardGradientDirection: 'to bottom',
+    style: {
+      shadow: '0 2px 4px rgba(0,0,0,0.1)',
+      borderRadius: '8px'
+    }
+  },
+  SAND: {
+    titleColor: '#795548',
+    descriptionColor: '#8d6e63',
+    cardType: CARD_TYPES.GRADIENT,
+    backgroundColor: '#efebe9',
+    borderColor: '#d7ccc8',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#bcaaa4',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#efebe9',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#8d6e63',
+    cardGradientColor2: '#795548',
+    cardGradientDirection: '45deg',
+    style: {
+      shadow: '0 4px 6px rgba(0,0,0,0.1)',
+      borderRadius: '12px'
+    }
+  },
+  ICE: {
+    titleColor: '#00bcd4',
+    descriptionColor: '#4dd0e1',
+    cardType: CARD_TYPES.GRADIENT,
+    backgroundColor: '#e0f7fa',
+    borderColor: '#b2ebf2',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#80deea',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#e0f7fa',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#00bcd4',
+    cardGradientColor2: '#26c6da',
+    cardGradientDirection: '45deg',
+    style: {
+      shadow: '0 4px 6px rgba(0,0,0,0.1)',
+      borderRadius: '12px'
+    }
+  },
+  CORAL: {
+    titleColor: '#d32f2f',
+    descriptionColor: '#e53935',
+    cardType: CARD_TYPES.ELEVATED,
+    backgroundColor: '#ffebee',
+    borderColor: '#ffcdd2',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#ef9a9a',
+    cardTitleColor: '#d32f2f',
+    cardContentColor: '#e53935',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#ffebee',
+    cardGradientColor2: '#ffcdd2',
+    cardGradientDirection: 'to bottom',
+    style: {
+      shadow: '0 2px 4px rgba(0,0,0,0.1)',
+      borderRadius: '8px'
+    }
+  },
+  EMERALD: {
+    titleColor: '#004d40',
+    descriptionColor: '#00695c',
+    cardType: CARD_TYPES.GRADIENT,
+    backgroundColor: '#e0f2f1',
+    borderColor: '#b2dfdb',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#80cbc4',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#e0f2f1',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#00897b',
+    cardGradientColor2: '#00796b',
+    cardGradientDirection: '135deg',
+    style: {
+      shadow: '0 4px 8px rgba(0, 77, 64, 0.15)',
+      borderRadius: '12px'
+    }
+  },
+  AMETHYST: {
+    titleColor: '#4a148c',
+    descriptionColor: '#6a1b9a',
+    cardType: CARD_TYPES.ELEVATED,
+    backgroundColor: '#f3e5f5',
+    borderColor: '#e1bee7',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#ce93d8',
+    cardTitleColor: '#4a148c',
+    cardContentColor: '#6a1b9a',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#9c27b0',
+    cardGradientColor2: '#8e24aa',
+    cardGradientDirection: '120deg',
+    style: {
+      shadow: '0 4px 8px rgba(74, 20, 140, 0.12)',
+      borderRadius: '10px'
+    }
+  },
+  COPPER: {
+    titleColor: '#bf360c',
+    descriptionColor: '#d84315',
+    cardType: CARD_TYPES.GRADIENT,
+    backgroundColor: '#fbe9e7',
+    borderColor: '#ffccbc',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#ffab91',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#fbe9e7',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#e64a19',
+    cardGradientColor2: '#f4511e',
+    cardGradientDirection: '150deg',
+    style: {
+      shadow: '0 4px 8px rgba(191, 54, 12, 0.15)',
+      borderRadius: '14px'
+    }
+  },
+  SILVER: {
+    titleColor: '#455a64',
+    descriptionColor: '#546e7a',
+    cardType: CARD_TYPES.ELEVATED,
+    backgroundColor: '#eceff1',
+    borderColor: '#cfd8dc',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#b0bec5',
+    cardTitleColor: '#455a64',
+    cardContentColor: '#546e7a',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#eceff1',
+    cardGradientColor2: '#cfd8dc',
+    cardGradientDirection: '165deg',
+    style: {
+      shadow: '0 4px 8px rgba(69, 90, 100, 0.12)',
+      borderRadius: '8px'
+    }
+  },
+  MARINE: {
+    titleColor: '#006064',
+    descriptionColor: '#00838f',
+    cardType: CARD_TYPES.GRADIENT,
+    backgroundColor: '#e0f7fa',
+    borderColor: '#b2ebf2',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#80deea',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#e0f7fa',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#00acc1',
+    cardGradientColor2: '#0097a7',
+    cardGradientDirection: '140deg',
+    style: {
+      shadow: '0 4px 8px rgba(0, 96, 100, 0.15)',
+      borderRadius: '16px'
+    }
+  },
+  GOLDEN: {
+    titleColor: '#f57f17',
+    descriptionColor: '#ffa000',
+    cardType: CARD_TYPES.ELEVATED,
+    backgroundColor: '#fff8e1',
+    borderColor: '#ffecb3',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#ffd54f',
+    cardTitleColor: '#f57f17',
+    cardContentColor: '#ffa000',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#ffd54f',
+    cardGradientColor2: '#ffb300',
+    cardGradientDirection: '165deg',
+    style: {
+      shadow: '0 4px 8px rgba(245, 127, 23, 0.12)',
+      borderRadius: '12px'
+    }
+  },
+  RUBY: {
+    titleColor: '#c62828',
+    descriptionColor: '#d32f2f',
+    cardType: CARD_TYPES.GRADIENT,
+    backgroundColor: '#ffebee',
+    borderColor: '#ffcdd2',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#ef9a9a',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#ffebee',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#d32f2f',
+    cardGradientColor2: '#c62828',
+    cardGradientDirection: '45deg',
+    style: {
+      shadow: '0 4px 6px rgba(0,0,0,0.1)',
+      borderRadius: '12px'
+    }
+  },
+  SAPPHIRE: {
+    titleColor: '#1565c0',
+    descriptionColor: '#1976d2',
+    cardType: CARD_TYPES.ELEVATED,
+    backgroundColor: '#e3f2fd',
+    borderColor: '#bbdefb',
+    cardBackgroundColor: '#ffffff',
+    cardTitleColor: '#1565c0',
+    cardContentColor: '#1976d2',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#64b5f6',
+    cardGradientColor2: '#1976d2',
+    cardGradientDirection: '145deg',
+    style: { shadow: '0 4px 8px rgba(21, 101, 192, 0.12)', borderRadius: '16px' }
+  },
+  BRONZE: {
+    titleColor: '#795548',
+    descriptionColor: '#8d6e63',
+    cardType: CARD_TYPES.GRADIENT,
+    backgroundColor: '#efebe9',
+    borderColor: '#d7ccc8',
+    cardBackgroundColor: '#ffffff',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#ffffff',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#8d6e63',
+    cardGradientColor2: '#5d4037',
+    cardGradientDirection: '155deg',
+    style: { shadow: '0 4px 8px rgba(121, 85, 72, 0.15)', borderRadius: '12px' }
+  },
+  TURQUOISE: {
+    titleColor: '#00838f',
+    descriptionColor: '#0097a7',
+    cardType: CARD_TYPES.ELEVATED,
+    backgroundColor: '#e0f7fa',
+    borderColor: '#b2ebf2',
+    cardBackgroundColor: '#ffffff',
+    cardTitleColor: '#00838f',
+    cardContentColor: '#0097a7',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#4dd0e1',
+    cardGradientColor2: '#00acc1',
+    cardGradientDirection: '165deg',
+    style: { shadow: '0 4px 8px rgba(0, 131, 143, 0.12)', borderRadius: '14px' }
+  },
+  GRAPHITE: {
+    titleColor: '#263238',
+    descriptionColor: '#37474f',
+    cardType: CARD_TYPES.ELEVATED,
+    backgroundColor: '#eceff1',
+    borderColor: '#cfd8dc',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#b0bec5',
+    cardTitleColor: '#263238',
+    cardContentColor: '#37474f',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#eceff1',
+    cardGradientColor2: '#cfd8dc',
+    cardGradientDirection: '135deg',
+    style: {
+      shadow: '0 4px 8px rgba(38, 50, 56, 0.12)',
+      borderRadius: '10px'
+    }
+  },
+  ROSE_GOLD: {
+    titleColor: '#c2185b',
+    descriptionColor: '#d81b60',
+    cardType: CARD_TYPES.GRADIENT,
+    backgroundColor: '#fce4ec',
+    borderColor: '#f8bbd0',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#f48fb1',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#fce4ec',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#ec407a',
+    cardGradientColor2: '#d81b60',
+    cardGradientDirection: '150deg',
+    style: {
+      shadow: '0 4px 8px rgba(194, 24, 91, 0.15)',
+      borderRadius: '14px'
+    }
+  },
+  JADE: {
+    titleColor: '#00695c',
+    descriptionColor: '#00796b',
+    cardType: CARD_TYPES.ELEVATED,
+    backgroundColor: '#e0f2f1',
+    borderColor: '#b2dfdb',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#80cbc4',
+    cardTitleColor: '#00695c',
+    cardContentColor: '#00796b',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#26a69a',
+    cardGradientColor2: '#00897b',
+    cardGradientDirection: '120deg',
+    style: {
+      shadow: '0 4px 8px rgba(0, 105, 92, 0.12)',
+      borderRadius: '12px'
+    }
+  },
+  PLUM: {
+    titleColor: '#4a148c',
+    descriptionColor: '#6a1b9a',
+    cardType: CARD_TYPES.GRADIENT,
+    backgroundColor: '#f3e5f5',
+    borderColor: '#e1bee7',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#ce93d8',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#f3e5f5',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#8e24aa',
+    cardGradientColor2: '#6a1b9a',
+    cardGradientDirection: '140deg',
+    style: {
+      shadow: '0 4px 8px rgba(74, 20, 140, 0.15)',
+      borderRadius: '16px'
+    }
+  },
+  DEEP_OCEAN: {
+    titleColor: '#01579b',
+    descriptionColor: '#0277bd',
+    cardType: CARD_TYPES.GRADIENT,
+    backgroundColor: '#e1f5fe',
+    borderColor: '#b3e5fc',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#81d4fa',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#e1f5fe',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#0288d1',
+    cardGradientColor2: '#01579b',
+    cardGradientDirection: '130deg',
+    style: {
+      shadow: '0 4px 8px rgba(1, 87, 155, 0.15)',
+      borderRadius: '12px'
+    }
+  },
+  CRIMSON: {
+    titleColor: '#b71c1c',
+    descriptionColor: '#c62828',
+    cardType: CARD_TYPES.ELEVATED,
+    backgroundColor: '#ffebee',
+    borderColor: '#ffcdd2',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#ef9a9a',
+    cardTitleColor: '#b71c1c',
+    cardContentColor: '#c62828',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#ffebee',
+    cardGradientColor2: '#ffcdd2',
+    cardGradientDirection: '120deg',
+    style: {
+      shadow: '0 4px 8px rgba(183, 28, 28, 0.12)',
+      borderRadius: '10px'
+    }
+  },
+  OLIVE: {
+    titleColor: '#33691e',
+    descriptionColor: '#558b2f',
+    cardType: CARD_TYPES.GRADIENT,
+    backgroundColor: '#f1f8e9',
+    borderColor: '#dcedc8',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#c5e1a5',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#f1f8e9',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#7cb342',
+    cardGradientColor2: '#558b2f',
+    cardGradientDirection: '145deg',
+    style: {
+      shadow: '0 4px 8px rgba(51, 105, 30, 0.12)',
+      borderRadius: '14px'
+    }
+  },
+  SLATE: {
+    titleColor: '#263238',
+    descriptionColor: '#37474f',
+    cardType: CARD_TYPES.ELEVATED,
+    backgroundColor: '#eceff1',
+    borderColor: '#cfd8dc',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#b0bec5',
+    cardTitleColor: '#263238',
+    cardContentColor: '#37474f',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#eceff1',
+    cardGradientColor2: '#cfd8dc',
+    cardGradientDirection: '135deg',
+    style: {
+      shadow: '0 4px 8px rgba(38, 50, 56, 0.12)',
+      borderRadius: '12px'
+    }
+  },
+  BURGUNDY: {
+    titleColor: '#880e4f',
+    descriptionColor: '#ad1457',
+    cardType: CARD_TYPES.GRADIENT,
+    backgroundColor: '#fce4ec',
+    borderColor: '#f8bbd0',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#f48fb1',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#fce4ec',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#c2185b',
+    cardGradientColor2: '#880e4f',
+    cardGradientDirection: '150deg',
+    style: {
+      shadow: '0 4px 8px rgba(136, 14, 79, 0.15)',
+      borderRadius: '14px'
+    }
+  },
+  TEAL: {
+    titleColor: '#004d40',
+    descriptionColor: '#00695c',
+    cardType: CARD_TYPES.ELEVATED,
+    backgroundColor: '#e0f2f1',
+    borderColor: '#b2dfdb',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#80cbc4',
+    cardTitleColor: '#004d40',
+    cardContentColor: '#00695c',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#e0f2f1',
+    cardGradientColor2: '#b2dfdb',
+    cardGradientDirection: '140deg',
+    style: {
+      shadow: '0 4px 8px rgba(0, 77, 64, 0.12)',
+      borderRadius: '12px'
+    }
+  },
+  JADE: {
+    titleColor: '#004d40',
+    descriptionColor: '#00695c',
+    cardType: 'elevated',
+    backgroundColor: '#e0f2f1',
+    borderColor: '#80cbc4',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#4db6ac',
+    cardTitleColor: '#004d40',
+    cardContentColor: '#00695c',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#ffffff',
+    cardGradientColor2: '#b2dfdb',
+    cardGradientDirection: '120deg',
+    style: {
+      shadow: '0 4px 8px rgba(0, 105, 92, 0.12)',
+      borderRadius: '12px'
+    }
+  },
+  TURQUOISE: {
+    titleColor: '#004d40',
+    descriptionColor: '#00695c',
+    cardType: 'gradient',
+    backgroundColor: '#e0f2f1',
+    borderColor: '#80cbc4',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#4db6ac',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#e0f2f1',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#00897b',
+    cardGradientColor2: '#00695c',
+    cardGradientDirection: '135deg',
+    style: {
+      shadow: '0 4px 8px rgba(0, 137, 123, 0.15)',
+      borderRadius: '14px'
+    }
+  },
+  SAPPHIRE: {
+    titleColor: '#01579b',
+    descriptionColor: '#0277bd',
+    cardType: 'gradient',
+    backgroundColor: '#e1f5fe',
+    borderColor: '#81d4fa',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#4fc3f7',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#e1f5fe',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#0288d1',
+    cardGradientColor2: '#0277bd',
+    cardGradientDirection: '135deg',
+    style: {
+      shadow: '0 4px 8px rgba(2, 119, 189, 0.15)',
+      borderRadius: '14px'
+    }
+  },
+  GOLDEN: {
+    titleColor: '#663c00',
+    descriptionColor: '#804c00',
+    cardType: 'gradient',
+    backgroundColor: '#fff8e1',
+    borderColor: '#ffd54f',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#ffca28',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#fff8e1',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#ffa000',
+    cardGradientColor2: '#ff8f00',
+    cardGradientDirection: '135deg',
+    style: {
+      shadow: '0 4px 8px rgba(255, 160, 0, 0.15)',
+      borderRadius: '14px'
+    }
+  },
+  NEON_AQUA: {
+    titleColor: '#00ffff',
+    descriptionColor: '#40ffff',
+    cardType: 'gradient',
+    backgroundColor: '#001a1a',
+    borderColor: '#00ffff',
+    cardBackgroundColor: '#002626',
+    cardBorderColor: '#00ffff',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#b3ffff',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#003333',
+    cardGradientColor2: '#006666',
+    cardGradientDirection: '135deg',
+    style: {
+      shadow: '0 0 15px rgba(0, 255, 255, 0.5)',
+      borderRadius: '14px'
+    }
+  },
+  NEON_MAGENTA: {
+    titleColor: '#ff00ff',
+    descriptionColor: '#ff40ff',
+    cardType: 'gradient',
+    backgroundColor: '#1a001a',
+    borderColor: '#ff00ff',
+    cardBackgroundColor: '#260026',
+    cardBorderColor: '#ff00ff',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#ffb3ff',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#330033',
+    cardGradientColor2: '#660066',
+    cardGradientDirection: '135deg',
+    style: {
+      shadow: '0 0 15px rgba(255, 0, 255, 0.5)',
+      borderRadius: '14px'
+    }
+  },
+  NEON_GOLD: {
+    titleColor: '#ffd700',
+    descriptionColor: '#ffeb3b',
+    cardType: 'gradient',
+    backgroundColor: '#1a1500',
+    borderColor: '#ffd700',
+    cardBackgroundColor: '#262100',
+    cardBorderColor: '#ffd700',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#fff9c4',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#332b00',
+    cardGradientColor2: '#665600',
+    cardGradientDirection: '135deg',
+    style: {
+      shadow: '0 0 15px rgba(255, 215, 0, 0.5)',
+      borderRadius: '14px'
+    }
+  },
+  NEON_ICE: {
+    titleColor: '#00ffff',
+    descriptionColor: '#80ffff',
+    cardType: 'gradient',
+    backgroundColor: '#000033',
+    borderColor: '#00ffff',
+    cardBackgroundColor: '#000040',
+    cardBorderColor: '#00ffff',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#e6ffff',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#000066',
+    cardGradientColor2: '#0000cc',
+    cardGradientDirection: '45deg',
+    style: {
+      shadow: '0 0 20px rgba(0, 255, 255, 0.6)',
+      borderRadius: '14px'
+    }
+  },
+  NEON_FIRE: {
+    titleColor: '#ff4d00',
+    descriptionColor: '#ff7043',
+    cardType: 'gradient',
+    backgroundColor: '#1a0500',
+    borderColor: '#ff4d00',
+    cardBackgroundColor: '#260800',
+    cardBorderColor: '#ff4d00',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#ffccbc',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#330a00',
+    cardGradientColor2: '#661400',
+    cardGradientDirection: '-45deg',
+    style: {
+      shadow: '0 0 20px rgba(255, 77, 0, 0.6)',
+      borderRadius: '14px'
+    }
+  },
+  NEON_TOXIC: {
+    titleColor: '#39ff14',
+    descriptionColor: '#7fff00',
+    cardType: 'gradient',
+    backgroundColor: '#0a1f00',
+    borderColor: '#39ff14',
+    cardBackgroundColor: '#0d2600',
+    cardBorderColor: '#39ff14',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#d4ffcc',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#133300',
+    cardGradientColor2: '#1f4d00',
+    cardGradientDirection: '165deg',
+    style: {
+      shadow: '0 0 20px rgba(57, 255, 20, 0.6)',
+      borderRadius: '14px'
+    }
+  },
+  NEON_SUNSET: {
+    titleColor: '#ff6b6b',
+    descriptionColor: '#ffd93d',
+    cardType: 'gradient',
+    backgroundColor: '#1a0033',
+    borderColor: '#ff6b6b',
+    cardBackgroundColor: '#260040',
+    cardBorderColor: '#ff6b6b',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#ffe8e8',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#330066',
+    cardGradientColor2: '#cc0066',
+    cardGradientDirection: '120deg',
+    style: {
+      shadow: '0 0 20px rgba(255, 107, 107, 0.6)',
+      borderRadius: '14px'
+    }
+  },
+  NEON_GALAXY: {
+    titleColor: '#9d00ff',
+    descriptionColor: '#00ffff',
+    cardType: 'gradient',
+    backgroundColor: '#000033',
+    borderColor: '#9d00ff',
+    cardBackgroundColor: '#000040',
+    cardBorderColor: '#9d00ff',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#e6ccff',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#1a0033',
+    cardGradientColor2: '#4d0099',
+    cardGradientDirection: '150deg',
+    style: {
+      shadow: '0 0 25px rgba(157, 0, 255, 0.6)',
+      borderRadius: '14px'
+    }
+  },
+  NEON_OCEAN: {
+    titleColor: '#00fff5',
+    descriptionColor: '#00ccff',
+    cardType: 'gradient',
+    backgroundColor: '#001433',
+    borderColor: '#00fff5',
+    cardBackgroundColor: '#001940',
+    cardBorderColor: '#00fff5',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#e6fffd',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#002966',
+    cardGradientColor2: '#005c99',
+    cardGradientDirection: '130deg',
+    style: {
+      shadow: '0 0 22px rgba(0, 255, 245, 0.65)',
+      borderRadius: '14px'
+    }
+  },
+  NEON_CYBER: {
+    titleColor: '#ff2a6d',
+    descriptionColor: '#05ffa1',
+    cardType: 'gradient',
+    backgroundColor: '#1a1a2e',
+    borderColor: '#ff2a6d',
+    cardBackgroundColor: '#202040',
+    cardBorderColor: '#ff2a6d',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#ffcce0',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#2d2d52',
+    cardGradientColor2: '#3d3d7a',
+    cardGradientDirection: '145deg',
+    style: {
+      shadow: '0 0 25px rgba(255, 42, 109, 0.65)',
+      borderRadius: '14px'
+    }
+  },
+  NEON_AURORA: {
+    titleColor: '#7df9ff',
+    descriptionColor: '#9d72ff',
+    cardType: 'gradient',
+    backgroundColor: '#001433',
+    borderColor: '#7df9ff',
+    cardBackgroundColor: '#001940',
+    cardBorderColor: '#7df9ff',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#e6faff',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#002966',
+    cardGradientColor2: '#4d0099',
+    cardGradientDirection: '165deg',
+    style: {
+      shadow: '0 0 20px rgba(125, 249, 255, 0.6)',
+      borderRadius: '14px'
+    }
+  },
+  NEON_PLASMA: {
+    titleColor: '#fb33db',
+    descriptionColor: '#7b2ff7',
+    cardType: 'gradient',
+    backgroundColor: '#10002b',
+    borderColor: '#fb33db',
+    cardBackgroundColor: '#1a0044',
+    cardBorderColor: '#fb33db',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#ffd5f6',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#240052',
+    cardGradientColor2: '#3c0087',
+    cardGradientDirection: '155deg',
+    style: {
+      shadow: '0 0 23px rgba(251, 51, 219, 0.65)',
+      borderRadius: '14px'
+    }
+  },
+  // ... еще 21 стиль (добавлю далее, если нужно) ...
+};
 
 const EditorPanel = ({
   headerData = {
@@ -61,9 +1157,7 @@ const EditorPanel = ({
     header: false,
     hero: false,
     menu: false,
-    menuItems: {
-      'about': false
-    },
+    menuItems: {},
     contact: false,
     footer: false,
     legal: false
@@ -341,35 +1435,101 @@ const EditorPanel = ({
     setSectionToDelete(null);
   };
 
-  const handleSectionChange = (id, field, value) => {
-    console.log('handleSectionChange called:', { id, field, value });
+  const handleSectionChange = (sectionId, field, value) => {
+    if (!sectionsData[sectionId]) return;
     
-    // Проверяем, существует ли секция
-    let sectionExists = sectionsData[id] !== undefined;
-    
-    if (!sectionExists) {
-      // Если секции нет, создаем новую с базовыми параметрами
-      const newSection = {
-        id: id,
-        title: '',
-        description: '',
-        cardType: CARD_TYPES.ACCENT,
-        cards: [],
-        titleColor: '#0d47a1',
-        descriptionColor: '#546e7a',
-        backgroundType: 'gradient'
-      };
-      onSectionsChange({ ...sectionsData, [id]: newSection });
+    // Если меняется тип карточки, проверяем его значение
+    if (field === 'cardType' && !Object.values(CARD_TYPES).includes(value)) {
+      console.error('Неверное значение типа карточки:', value);
+      return;
     }
 
-    // Обновляем существующую секцию
-    onSectionsChange({
+    const updatedSections = {
       ...sectionsData,
-      [id]: {
-        ...sectionsData[id],
+      [sectionId]: {
+        ...sectionsData[sectionId],
         [field]: value
       }
-    });
+    };
+    
+    onSectionsChange(updatedSections);
+  };
+
+  const applyPreset = (presetName, sectionId) => {
+    const preset = STYLE_PRESETS[presetName];
+    if (!preset || !sectionId) return;
+
+    // Обновляем только выбранную секцию
+    const updatedSections = {
+      ...sectionsData,
+      [sectionId]: {
+        ...sectionsData[sectionId],
+        titleColor: preset.titleColor,
+        descriptionColor: preset.descriptionColor,
+        cardType: preset.cardType,
+        backgroundColor: preset.backgroundColor,
+        borderColor: preset.borderColor,
+        // Обновляем карточки только в выбранной секции
+        cards: sectionsData[sectionId]?.cards?.map(card => ({
+          ...card,
+          titleColor: preset.cardTitleColor,
+          contentColor: preset.cardContentColor,
+          backgroundColor: preset.cardBackgroundColor,
+          borderColor: preset.cardBorderColor,
+          backgroundType: preset.cardBackgroundType,
+          gradientColor1: preset.cardGradientColor1,
+          gradientColor2: preset.cardGradientColor2,
+          gradientDirection: preset.cardGradientDirection,
+          style: {
+            ...card.style,
+            ...preset.style
+          }
+        })) || []
+      }
+    };
+
+    onSectionsChange(updatedSections);
+  };
+
+  const processImage = async (file, sectionId) => {
+    try {
+      // Сжатие изображения
+      const compressedFile = await imageCompression(file, {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true
+      });
+
+      // Конвертация в Blob
+      const blob = new Blob([compressedFile], { type: 'image/jpeg' });
+      
+      // Используем ID секции для имени файла
+      const filename = `${sectionId}.jpg`;
+
+      // Сохранение в кэш
+      await imageCacheService.saveImage(filename, blob);
+
+      // Создание URL для предпросмотра
+      const url = URL.createObjectURL(blob);
+
+      // Сохранение метаданных изображения
+      const imageMetadata = {
+        filename,
+        type: 'image/jpeg',
+        size: blob.size,
+        lastModified: new Date().toISOString()
+      };
+
+      // Сохранение метаданных в кэш
+      const metadataKey = `section_${sectionId}_metadata`;
+      await imageCacheService.saveMetadata(metadataKey, imageMetadata);
+      console.log('✓ Метаданные изображения сохранены в кэш:', imageMetadata);
+
+      return { url, filename, blob };
+    } catch (error) {
+      console.error('Ошибка при обработке изображения:', error);
+      throw error;
+    }
   };
 
   const handleSectionImageUpload = async (id, event) => {
@@ -382,106 +1542,42 @@ const EditorPanel = ({
         throw new Error('Пожалуйста, выберите изображение');
       }
 
-      // Сжатие изображения
-      let compressedFile;
-      try {
-        const options = {
-          maxSizeMB: 1,
-          maxWidthOrHeight: 1000,
-          useWebWorker: true
-        };
-        
-        compressedFile = await imageCompression(file, options);
-      } catch (compressionError) {
-        console.warn('Ошибка сжатия изображения, используем оригинал:', compressionError);
-        compressedFile = file;
-      }
-      
-      // Создаем FormData
-      const formData = new FormData();
-      formData.append('image', compressedFile);
-      formData.append('sectionId', id); // Добавляем ID секции для именования файла
-      
-      // Отправляем запрос на сервер с обработкой ошибок
-      let response;
-      try {
-        response = await fetch('/api/upload-section-image', {
-          method: 'POST',
-          body: formData
-        });
-      } catch (networkError) {
-        console.error('Ошибка сети при загрузке:', networkError);
-        throw new Error('Ошибка соединения. Проверьте подключение к интернету.');
-      }
+      const { url, filename } = await processImage(file, id);
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Ошибка загрузки:', response.status, errorData);
-        throw new Error(errorData.message || `Ошибка загрузки: ${response.status}`);
-      }
-
-      let data;
-      try {
-        data = await response.json();
-      } catch (jsonError) {
-        console.error('Ошибка при разборе ответа:', jsonError);
-        throw new Error('Ошибка при обработке ответа сервера');
-      }
-      
-      // Сохраняем метаданные изображения в localStorage
-      const imageMetadata = {
-        filename: data.path.split('/').pop(),
-        originalPath: data.path,
-        timestamp: Date.now()
-      };
-      
-      console.log('Метаданные изображения секции:', imageMetadata);
-      localStorage.setItem(`section_${id}_ImageMetadata`, JSON.stringify(imageMetadata));
-      
-      // Кешируем изображение
-      try {
-        // Добавляем временную метку, чтобы избежать кеширования браузером
-        const imageUrl = `${data.path}?t=${Date.now()}`;
-        const imageBlob = await (await fetch(imageUrl)).blob();
-        await imageCacheService.saveImage(imageMetadata.filename, imageBlob);
-      } catch (cacheError) {
-        console.warn('Ошибка при кешировании изображения:', cacheError);
-        // Продолжаем выполнение, кеширование некритично
-      }
-      
       // Обновляем путь к изображению в данных секции
+      const imagePath = `/images/sections/${filename}`;
+      console.log('Сохраняем изображение с путем:', imagePath);
+      
+      // Обновляем данные секции
       onSectionsChange({
         ...sectionsData,
         [id]: {
           ...sectionsData[id],
-          imagePath: data.path
+          imagePath: imagePath
         }
       });
-      
+
       // Отправляем сообщение в превью для обновления изображения
       try {
-        // Находим iframe с превью
         const previewIframe = document.querySelector('iframe.preview-iframe');
         if (previewIframe && previewIframe.contentWindow) {
-          // Отправляем сообщение с информацией об обновлении изображения
           previewIframe.contentWindow.postMessage({
             type: 'UPDATE_SECTION_IMAGE',
             sectionId: id,
-            imagePath: data.path
+            imagePath: url // Используем blob URL для мгновенного отображения
           }, '*');
-          console.log(`Отправлено сообщение для обновления изображения секции ${id}`);
-        } else {
-          console.warn('Iframe превью не найден');
+          console.log('Отправлено сообщение для обновления изображения:', url);
         }
-      } catch (messageError) {
-        console.error('Ошибка при отправке сообщения в превью:', messageError);
-        // Не критичная ошибка, продолжаем выполнение
+      } catch (error) {
+        console.error('Ошибка при отправке сообщения в превью:', error);
       }
-      
-      alert('Изображение успешно загружено');
+
+      // Показываем уведомление
+      alert('Изображение секции успешно обработано и сохранено в кэш');
+
     } catch (error) {
-      console.error('Ошибка при загрузке изображения:', error);
-      alert(error.message || 'Произошла ошибка при загрузке изображения');
+      console.error('Ошибка при загрузке:', error);
+      alert('Ошибка при загрузке изображения: ' + error.message);
     }
   };
 
@@ -489,25 +1585,8 @@ const EditorPanel = ({
     const section = sectionsData[sectionId];
     if (!section) return;
 
-    // Определяем, является ли поле стилевым
-    const isStyleField = [
-      'titleColor',
-      'contentColor',
-      'backgroundType',
-      'backgroundColor',
-      'gradientColor1',
-      'gradientColor2',
-      'gradientDirection',
-      'borderColor',
-      'style'
-    ].includes(field);
-
     const updatedCards = section.cards.map(card => {
-      // Если это поле стиля, применяем его ко всем карточкам
-      if (isStyleField) {
-        return { ...card, [field]: value };
-      }
-      // Если это поле контента, применяем только к выбранной карточке
+      // Применяем изменения только к выбранной карточке
       if (card.id === cardId) {
         return { ...card, [field]: value };
       }
@@ -665,7 +1744,7 @@ const EditorPanel = ({
   "></div>
   ` : ''}
   <header>
-    <nav style="background-color: ${data.headerData.backgroundColor || '#ffffff'};">
+    <nav style="background-color: ${data.headerData.backgroundColor || '#ffffff'}; --menu-bg-color: ${data.headerData.backgroundColor || '#fff'}; --menu-link-color: ${data.headerData.linksColor || '#1976d2'};">
       <div class="nav-container">
         <div class="logo" style="color: ${data.headerData.titleColor || '#000000'}">${data.headerData.siteName || 'Мой сайт'}</div>
         <button class="menu-toggle" aria-label="Меню">
@@ -763,43 +1842,134 @@ const EditorPanel = ({
       let cardsClass = '';
       if (cardsCount === 2) cardsClass = 'cards-2';
       if (cardsCount === 3) cardsClass = 'cards-3';
+      if (section.cardType === 'none') {
+        // Собираем текст из карточек
+        const cardsText = (section.cards || []).map(card => `
+          ${card.title ? `<br><strong style=\"color:${card.titleColor || '#1976d2'}\">${card.title}</strong>` : ''}
+          ${card.content ? `<br>${card.content}` : ''}
+        `).join('');
+        return `
+          <section id="${section.id}" class="section" style="
+            padding: 4rem 0;
+            position: relative;
+            background: ${section.showBackground !== false ? (section.backgroundColor || '#ffffff') : 'transparent'};
+            border-top: 1px solid rgba(0,0,0,0.1);
+          ">
+            <div class="section-container" style="
+              max-width: 1200px;
+              margin: 0 auto;
+              padding: 0 1rem;
+            ">
+              <div class="about-section no-card-section" style="
+                display: flex;
+                flex-direction: row-reverse;
+                align-items: flex-start;
+                gap: 2rem;
+                padding: 2rem;
+                position: relative;
+                border-radius: 16px;
+                background: linear-gradient(145deg, #ffffff, #f5f5f5);
+                box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+              ">
+                <style>
+                  @media (max-width: 1024px) {
+                    #${section.id} .about-section {
+                      flex-direction: column !important;
+                      align-items: center !important;
+                    }
+                    #${section.id} .about-image {
+                      min-width: 100% !important;
+                      max-width: 500px !important;
+                      margin: 0 auto 2rem auto !important;
+                      order: -1 !important;
+                    }
+                    #${section.id} .about-content {
+                      width: 100% !important;
+                      text-align: center !important;
+                    }
+                    #${section.id} .about-content h2,
+                    #${section.id} .about-content p,
+                    #${section.id} .about-content div {
+                      text-align: center !important;
+                    }
+                    #${section.id} .about-content div br {
+                      display: none !important;
+                    }
+                    #${section.id} .about-content div strong {
+                      display: block !important;
+                      margin-top: 1rem !important;
+                      margin-bottom: 0.5rem !important;
+                    }
+                  }
+                </style>
+                ${section.imagePath || section.id === 'about' ? `
+                  <div class="about-image" style="flex:1; min-width:220px; max-width:400px;">
+                    <img 
+                      src="assets/images/${section.id === 'about' ? 'about.jpg' : section.imagePath.split('/').pop()}" 
+                      alt="About us" 
+                      loading="lazy" 
+                      class="about-image-float"
+                      style="width:100%; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); margin-bottom: 16px;"
+                    />
+                  </div>
+                ` : ''}
+                <div class="about-content" style="flex:2; position:relative; text-align:left; padding-left:0;">
+                  <h2 style="color: ${section.titleColor || '#000000'}; text-align:left; margin-bottom:0.7rem;">${section.title || ''}</h2>
+                  ${section.description ? `<p style=\"color: ${section.descriptionColor || '#666666'}; text-align:left; margin-bottom:0.7rem;\">${section.description}</p>` : ''}
+                  ${cardsText ? `<div style=\"margin-top:0.5rem;\">${cardsText}</div>` : ''}
+                </div>
+              </div>
+            </div>
+          </section>
+        `;
+      }
       return `
-        <section id="${section.id}" class="section" style="
-          --border-start-color: ${borderColors.start};
-          --border-end-color: ${borderColors.end};
-          ${section.id === 'about' ? '' : section.backgroundImage ? `background-image: url('${section.backgroundImage}'); background-size: cover; background-position: center;` : ''}
-          position: relative;
-          overflow: hidden;
-          border-radius: 20px;
-        ">
-          ${section.enableOverlay ? `
+        <section id="${section.id}" class="section" 
+          data-show-background="${section.showBackground !== false}"
+          style="
+            --border-start-color: ${borderColors.start};
+            --border-end-color: ${borderColors.end};
+            --section-background-color: ${section.backgroundColor || 'transparent'};
+            <?php if ($section['id'] !== 'about' && isset($section['backgroundImage']) && $section['backgroundImage']): ?>
+              background-image: url('<?php echo $section['backgroundImage']; ?>');
+              background-size: cover;
+              background-position: center;
+            <?php endif; ?>
+            position: relative;
+            overflow: hidden;
+            border-radius: 20px;
+          "
+        >
+        
+          <?php if (isset($section['enableOverlay']) && $section['enableOverlay'] && isset($section['showBackground']) && $section['showBackground'] !== false): ?>
             <div class="section-overlay" style="
               position: absolute;
               top: 0;
               left: 0;
               right: 0;
               bottom: 0;
-              background-color: rgba(0, 0, 0, ${section.overlayOpacity || 0.5});
+              background-color: rgba(0, 0, 0, <?php echo isset($section['overlayOpacity']) ? $section['overlayOpacity'] : '0.5'; ?>);
               z-index: 1;
               border-radius: 20px;
             "></div>
-          ` : ''}
-          ${section.backgroundImage && section.enableBlur ? `
+          <?php endif; ?>
+
+          <?php if (isset($section['backgroundImage']) && $section['backgroundImage'] && isset($section['enableBlur']) && $section['enableBlur'] && isset($section['showBackground']) && $section['showBackground'] !== false): ?>
             <div class="section-background-blur" style="
               position: absolute;
               top: -5%;
               left: -5%;
               right: -5%;
               bottom: -5%;
-              background-image: url('${section.backgroundImage}');
+              background-image: url('<?php echo $section['backgroundImage']; ?>');
               background-size: cover;
               background-position: center;
-              filter: blur(${section.blurAmount || 5}px);
+              filter: blur(<?php echo isset($section['blurAmount']) ? $section['blurAmount'] : '5'; ?>px);
               z-index: 0;
               animation: zoomIn 20s ease-in-out infinite alternate;
               border-radius: 20px;
             "></div>
-          ` : ''}
+          <?php endif; ?>
           <div class="section-container" style="position: relative; z-index: 2;">
             ${section.id === 'about' ? `
               <div class="about-section">
@@ -1223,85 +2393,59 @@ const EditorPanel = ({
     </div>
   </footer>
 
-  <!-- Modal for testimonials -->
-  <div id="modalOverlay" class="modal-overlay">
-    <div class="modal">
-      <div class="modal-header">
-        <h3 id="modalTitle"></h3>
-        <button class="modal-close" onclick="closeModal()">&times;</button>
-      </div>
-      <div class="modal-content" id="modalContent"></div>
-    </div>
-  </div>
-
   <script src="assets/js/script.js"></script>
 
   <!-- Cookie consent notification -->
   <div id="cookieConsent" style="
     position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background-color: rgba(0, 0, 0, 0.9);
+    left: 20px;
+    bottom: 20px;
+    background: rgba(30, 30, 30, 0.97);
     color: #fff;
-    padding: 1rem;
-    display: none;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+    padding: 1.2rem 1.5rem;
     z-index: 9999;
-    backdrop-filter: blur(5px);
+    display: none;
+    min-width: 280px;
+    max-width: 350px;
+    font-size: 1rem;
+    animation: fadeInUp 0.7s cubic-bezier(.23,1.01,.32,1) both;
   ">
-    <div style="
-      max-width: 1200px;
-      margin: 0 auto;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 1rem;
-      flex-wrap: wrap;
-    ">
-      <div style="flex: 1;">
-        <p style="margin: 0;">
-          We use cookies to enhance your browsing experience. By continuing to use our site, you agree to our 
-          <a href="cookie-policy.html" style="color: #1976d2; text-decoration: underline;">cookie policy</a>.
-        </p>
+    <div style="display: flex; align-items: flex-start; gap: 1rem;">
+      <div style="flex:1;">
+        <strong>We use cookies</strong><br>
+        This website uses cookies to ensure you get the best experience on our website. <a href="cookie-policy.html" style="color:#90caf9;text-decoration:underline;">Learn more</a>.
       </div>
-      <div style="display: flex; gap: 1rem;">
-        <button onclick="acceptCookies()" style="
-          background-color: #1976d2;
-          color: white;
-          border: none;
-          padding: 0.5rem 1rem;
-          border-radius: 4px;
-          cursor: pointer;
-          transition: background-color 0.3s;
-        ">Accept</button>
-        <button onclick="declineCookies()" style="
-          background-color: transparent;
-          color: white;
-          border: 1px solid white;
-          padding: 0.5rem 1rem;
-          border-radius: 4px;
-          cursor: pointer;
-          transition: all 0.3s;
-        ">Decline</button>
-      </div>
+      <button id="cookieAcceptBtn" style="margin-left: 8px; background: #1976d2; color: #fff; border: none; border-radius: 6px; padding: 0.5rem 1.1rem; font-weight: 500; cursor: pointer; transition: background 0.2s;">Accept</button>
     </div>
   </div>
 
-  <Dialog
-    open={deleteDialogOpen}
-    onClose={handleCancelDelete}
-    PaperProps={{
-      sx: {
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        maxWidth: '400px',
-        width: '100%',
-        p: 2
+  <style>
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(40px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    #cookieConsent a:hover { color: #fff; text-decoration: underline; }
+    #cookieAcceptBtn:hover { background: #1565c0; }
+  </style>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var consent = localStorage.getItem('cookieConsent');
+      var consentBox = document.getElementById('cookieConsent');
+      var acceptBtn = document.getElementById('cookieAcceptBtn');
+      if (!consent && consentBox) {
+        consentBox.style.display = 'block';
       }
-    }}
-  >
+      if (acceptBtn) {
+        acceptBtn.onclick = function() {
+          localStorage.setItem('cookieConsent', 'accepted');
+          if (consentBox) consentBox.style.display = 'none';
+        };
+      }
+    });
+  </script>
 
   </body>
 </html>`;
@@ -1410,7 +2554,7 @@ const EditorPanel = ({
         top: 100%;
         left: 0;
         right: 0;
-        background: #fff;
+        background: var(--menu-bg-color, #fff);
         padding: 1rem 0;
         flex-direction: column;
         box-shadow: 0 2px 8px rgba(0,0,0,0.15);
@@ -1434,7 +2578,9 @@ const EditorPanel = ({
         padding: 0.75rem 1rem;
         font-size: 1.1rem;
         font-weight: 500;
-        color: #1976d2;
+        color: var(--menu-link-color, #1976d2) !important;
+        background: transparent;
+        transition: color 0.3s;
       }
 
       .nav-menu a::after {
@@ -1659,6 +2805,17 @@ const EditorPanel = ({
       box-sizing: border-box;
       position: relative;
       overflow: hidden;
+      background-color: var(--section-background-color, transparent);
+    }
+
+    .section[data-show-background="false"] {
+      background-color: transparent !important;
+      background-image: none !important;
+    }
+
+    .section[data-show-background="false"] .section-background-blur,
+    .section[data-show-background="false"] .section-overlay {
+      display: none !important;
     }
 
     @keyframes zoomIn {
@@ -1748,37 +2905,6 @@ const EditorPanel = ({
       -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
       -webkit-mask-composite: xor;
       mask-composite: exclude;
-    }
-
-    .about-image {
-      flex: 1;
-      position: relative;
-    }
-
-    .about-image img {
-      width: 100%;
-      max-width: 600px;
-      height: auto;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      transition: transform 0.3s ease;
-    }
-
-    .about-image img:hover {
-      transform: scale(1.02);
-    }
-
-    .about-image::after {
-      content: "";
-      position: absolute;
-      top: -8px;
-      left: -8px;
-      right: -8px;
-      bottom: -8px;
-      background: linear-gradient(45deg, #1976d2, #42a5f5);
-      border-radius: 16px;
-      z-index: -1;
-      opacity: 0.3;
     }
 
     .about-content {
@@ -1902,13 +3028,13 @@ const EditorPanel = ({
     }
     .card {
       flex: 1 1 0;
-      min-width: 260px;
-      max-width: 100%;
+      min-width: 180px;
+      max-width: 260px;
       margin: 0;
       box-sizing: border-box;
       display: flex;
       flex-direction: column;
-      border-radius: 8px;
+      border-radius: 4px;
     }
     @media (max-width: 1024px) {
       .card {
@@ -1940,6 +3066,8 @@ const EditorPanel = ({
       font-weight: 500;
       margin: 0;
       text-align: center;
+      margin-top: 10px;
+      margin-bottom: 1.2rem;
     }
 
     .card:hover .card-header h3 {
@@ -1949,9 +3077,20 @@ const EditorPanel = ({
 
     .card-content {
       transition: all 0.3s ease-in-out;
-      font-size: 1rem;
+      font-size: 0.98rem;
       line-height: 1.6;
-      text-align: justify;
+      text-align: left;
+      word-break: break-word;
+      hyphens: auto;
+      padding: 16px 18px 16px 18px;
+    }
+
+    .content-wrapper {
+      padding: 0;
+    }
+
+    .card-content .content-wrapper {
+      padding: 0;
     }
 
     .card:hover .card-content {
@@ -2062,7 +3201,7 @@ const EditorPanel = ({
 
     @media (max-width: 1024px) {
       .cards-container {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: 1fr;
       }
     }
 
@@ -2152,14 +3291,82 @@ const EditorPanel = ({
     }
 
     .cards-container.cards-2 {
-      max-width: 820px;
+      max-width: 1200px;
       margin-left: auto;
       margin-right: auto;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 2rem;
     }
     .cards-container.cards-3 {
-      max-width: 1040px;
+      max-width: 1200px;
       margin-left: auto;
       margin-right: auto;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem;
+    }
+    
+    @media (max-width: 1024px) {
+      .cards-container.cards-2,
+      .cards-container.cards-3 {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .cards-container.cards-2 .card,
+    .cards-container.cards-3 .card {
+      max-width: 100%;
+      width: 100%;
+    }
+
+    .card, .section-image img, .about-image img {
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 0.8s cubic-bezier(0.4,0,0.2,1), transform 0.8s cubic-bezier(0.4,0,0.2,1);
+    }
+    .card.animate-on-scroll, .section-image img.animate-on-scroll, .about-image img.animate-on-scroll {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .about-section::before, .about-content::before {
+      display: none !important;
+    }
+
+    @media (max-width: 1024px) {
+      .no-card-section {
+        flex-direction: column;
+        align-items: center;
+      }
+      
+      .no-card-section .about-image {
+        min-width: 100%;
+        max-width: 500px;
+        margin: 0 auto 2rem auto;
+        order: -1;
+      }
+      
+      .no-card-section .about-content {
+        width: 100%;
+        text-align: center;
+      }
+      
+      .no-card-section .about-content h2,
+      .no-card-section .about-content p,
+      .no-card-section .about-content div {
+        text-align: center !important;
+      }
+      
+      .no-card-section .about-content div br {
+        display: none;
+      }
+      
+      .no-card-section .about-content div strong {
+        display: block;
+        margin-top: 1rem;
+        margin-bottom: 0.5rem;
+      }
     }
   `;
   };
@@ -2221,6 +3428,18 @@ const EditorPanel = ({
           // Открываем страницу merci.html в новой вкладке
           window.open('merci.html', '_blank');
         };
+
+        // Анимация появления карточек и изображений при скролле
+        const animatedEls = document.querySelectorAll('.card, .section-image img, .about-image img');
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('animate-on-scroll');
+              observer.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.15 });
+        animatedEls.forEach(el => observer.observe(el));
       });
     `;
   };
@@ -3281,7 +4500,59 @@ EOL;
   <?php endif; ?>
 </head>
 <body>
-${mainHtml}`;
+${mainHtml}
+
+<!-- Cookie consent notification -->
+<div id="cookieConsent" style="
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
+  background: rgba(30, 30, 30, 0.97);
+  color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  padding: 1.2rem 1.5rem;
+  z-index: 9999;
+  display: none;
+  min-width: 280px;
+  max-width: 350px;
+  font-size: 1rem;
+  animation: fadeInUp 0.7s cubic-bezier(.23,1.01,.32,1) both;
+">
+  <div style="display: flex; align-items: flex-start; gap: 1rem;">
+    <div style="flex:1;">
+      <strong>We use cookies</strong><br>
+      This website uses cookies to ensure you get the best experience on our website. <a href="cookie-policy.html" style="color:#90caf9;text-decoration:underline;">Learn more</a>.
+    </div>
+    <button id="cookieAcceptBtn" style="margin-left: 8px; background: #1976d2; color: #fff; border: none; border-radius: 6px; padding: 0.5rem 1.1rem; font-weight: 500; cursor: pointer; transition: background 0.2s;">Accept</button>
+  </div>
+</div>
+<style>
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(40px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  #cookieConsent a:hover { color: #fff; text-decoration: underline; }
+  #cookieAcceptBtn:hover { background: #1565c0; }
+</style>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var consent = localStorage.getItem('cookieConsent');
+    var consentBox = document.getElementById('cookieConsent');
+    var acceptBtn = document.getElementById('cookieAcceptBtn');
+    if (!consent && consentBox) {
+      consentBox.style.display = 'block';
+    }
+    if (acceptBtn) {
+      acceptBtn.onclick = function() {
+        localStorage.setItem('cookieConsent', 'accepted');
+        if (consentBox) consentBox.style.display = 'none';
+      };
+    }
+  });
+</script>
+</body>
+</html>`;
   };
 
   const generateLegalDocument = (siteData, type) => {
@@ -3641,7 +4912,11 @@ ${mainHtml}`;
         throw new Error('ID секции не указан');
       }
 
-      // Обновляем данные секции, удаляя путь к изображению
+      // Удаляем изображение из кеша
+      const filename = `section_${sectionId}.jpg`;
+      await imageCacheService.deleteImage(filename);
+
+      // Обновляем данные секции
       onSectionsChange({
         ...sectionsData,
         [sectionId]: {
@@ -3649,11 +4924,8 @@ ${mainHtml}`;
           imagePath: null
         }
       });
-      
-      // Удаляем метаданные изображения из localStorage
-      localStorage.removeItem(`section_${sectionId}_ImageMetadata`);
-      
-      // Отправляем сообщение в превью для обновления отображения
+
+      // Отправляем сообщение в превью
       try {
         const previewIframe = document.querySelector('iframe.preview-iframe');
         if (previewIframe && previewIframe.contentWindow) {
@@ -3661,14 +4933,11 @@ ${mainHtml}`;
             type: 'REMOVE_SECTION_IMAGE',
             sectionId: sectionId
           }, '*');
-          console.log(`Отправлено сообщение для удаления изображения секции ${sectionId}`);
-        } else {
-          console.warn('Iframe превью не найден');
         }
       } catch (messageError) {
         console.error('Ошибка при отправке сообщения в превью:', messageError);
       }
-      
+
       alert('Изображение успешно удалено');
     } catch (error) {
       console.error('Ошибка при удалении изображения:', error);
@@ -3967,6 +5236,78 @@ ${mainHtml}`;
                             onChange={(e) => handleSectionChange(item.id, 'descriptionColor', e.target.value)}
                           />
                         </Box>
+
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <FormControlLabel
+                            control={
+                              <Switch
+                                checked={section.showBackground ?? true}
+                                onChange={(e) => handleSectionChange(item.id, 'showBackground', e.target.checked)}
+                                color="primary"
+                              />
+                            }
+                            label="Показывать фон секции"
+                          />
+                        </Box>
+
+                        <Box sx={{ mb: 2, mt: 2 }}>
+                          <Typography variant="subtitle2" sx={{ mb: 1 }}>Быстрые стили</Typography>
+                          <FormControl fullWidth size="small">
+                            <InputLabel>Выберите стиль</InputLabel>
+                            <Select
+                              label="Выберите стиль"
+                              onChange={(e) => applyPreset(e.target.value, item.id)}
+                              defaultValue=""
+                              MenuProps={{
+                                PaperProps: {
+                                  style: {
+                                    maxHeight: 400,
+                                    overflowY: 'auto'
+                                  }
+                                }
+                              }}
+                              sx={{
+                                '& .MuiSelect-select': {
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 1
+                                }
+                              }}
+                            >
+                              {Object.entries(STYLE_PRESETS).map(([key, preset]) => (
+                                <MenuItem 
+                                  key={key} 
+                                  value={key}
+                                  sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 1,
+                                    minHeight: '48px',
+                                    '&:hover': {
+                                      backgroundColor: 'rgba(0, 0, 0, 0.04)'
+                                    }
+                                  }}
+                                >
+                                  <Box
+                                    sx={{
+                                      width: 24,
+                                      height: 24,
+                                      borderRadius: 1,
+                                      background: preset.cardBackgroundType === 'gradient'
+                                        ? `linear-gradient(${preset.cardGradientDirection}, ${preset.cardGradientColor1}, ${preset.cardGradientColor2})`
+                                        : preset.cardBackgroundColor,
+                                      border: `1px solid ${preset.borderColor}`,
+                                      boxShadow: preset.style.shadow
+                                    }}
+                                  />
+                                  <Typography>
+                                    {key.split('_').map(word => word.charAt(0) + word.slice(1).toLowerCase()).join(' ')}
+                                  </Typography>
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        </Box>
                     
                         <FormControl fullWidth size="small">
                           <InputLabel>Тип карточки</InputLabel>
@@ -3975,11 +5316,11 @@ ${mainHtml}`;
                             label="Тип карточки"
                             onChange={(e) => handleSectionChange(item.id, 'cardType', e.target.value)}
                           >
-                            <MenuItem value="none">Без карточек</MenuItem>
-                            <MenuItem value="simple">Простая</MenuItem>
-                            <MenuItem value="accent">Акцентная</MenuItem>
-                            <MenuItem value="elevated">Приподнятая</MenuItem>
-                            <MenuItem value="gradient">Градиентная</MenuItem>
+                            <MenuItem value={CARD_TYPES.NONE}>Без карточек</MenuItem>
+                            <MenuItem value={CARD_TYPES.SIMPLE}>Простая</MenuItem>
+                            <MenuItem value={CARD_TYPES.ACCENT}>Акцентная</MenuItem>
+                            <MenuItem value={CARD_TYPES.ELEVATED}>Приподнятая</MenuItem>
+                            <MenuItem value={CARD_TYPES.GRADIENT}>Градиентная</MenuItem>
                           </Select>
                         </FormControl>
 
@@ -4323,31 +5664,30 @@ ${mainHtml}`;
   return (
     <Container maxWidth="lg">
       <Paper sx={{ p: 3 }}>
-        {aiParserBlock} {/* Перемещаем блок AI парсера в начало */}
+        {aiParserBlock}
         {headerEditorBlock}
         {heroEditorBlock}
         {sectionsEditor}
         {contactEditorBlock}
         {footerEditorBlock}
         {legalDocumentsEditorBlock}
-        {aboutEditorBlock}
         
         <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center', gap: 2 }}>
         <Button 
           variant="contained" 
           color="primary" 
-            startIcon={<DownloadIcon />}
-            onClick={handleDownloadSite}
-          >
-            Скачать сайт
-          </Button>
-          <Button
-            variant="contained"
-            color="secondary"
-            startIcon={<DownloadIcon />}
-            onClick={handleDownloadPHP}
-          >
-            Скачать PHP версию
+          startIcon={<DownloadIcon />}
+          onClick={handleDownloadSite}
+        >
+          Скачать сайт
+        </Button>
+        <Button
+          variant="contained"
+          color="secondary"
+          startIcon={<DownloadIcon />}
+          onClick={handleDownloadPHP}
+        >
+          Скачать PHP версию
         </Button>
       </Box>
       </Paper>

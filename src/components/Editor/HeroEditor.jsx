@@ -148,22 +148,30 @@ const HeroEditor = ({ heroData = {}, onHeroChange, expanded, onToggle }) => {
       });
 
       // Конвертация в Blob
-      const blob = new Blob([compressedFile], { type: file.type });
+      const blob = new Blob([compressedFile], { type: 'image/jpeg' });
       
       // Всегда используем hero.jpg как имя файла
       const filename = 'hero.jpg';
 
-      // Сохранение в кеш
+      // Сохранение в кэш
       await imageCacheService.saveImage(filename, blob);
 
       // Создание URL для превью
-      const imageUrl = URL.createObjectURL(blob);
+      const url = URL.createObjectURL(blob);
 
-      return {
-        url: imageUrl,
+      // Сохранение метаданных изображения
+      const imageMetadata = {
         filename,
-        blob
+        type: 'image/jpeg',
+        size: blob.size,
+        lastModified: new Date().toISOString()
       };
+
+      // Сохранение метаданных в кэш
+      await imageCacheService.saveMetadata('heroImageMetadata', imageMetadata);
+      console.log('✓ Метаданные hero изображения сохранены в кэш:', imageMetadata);
+
+      return { url, filename, blob };
     } catch (error) {
       console.error('Ошибка при обработке изображения:', error);
       throw error;
@@ -193,11 +201,12 @@ const HeroEditor = ({ heroData = {}, onHeroChange, expanded, onToggle }) => {
         lastModified: new Date().toISOString()
       };
 
-      // Сохранение метаданных в localStorage
-      localStorage.setItem('heroImageMetadata', JSON.stringify(imageMetadata));
+      // Сохранение метаданных в кэш вместо localStorage
+      await imageCacheService.saveMetadata('heroImageMetadata', imageMetadata);
+      console.log('✓ Метаданные hero изображения сохранены в кэш:', imageMetadata);
 
       // Показ уведомления
-      alert('Изображение успешно обработано и сохранено в кеш');
+      alert('Изображение успешно обработано и сохранено в кэш');
 
       // Принудительное обновление превью
       const heroImage = document.querySelector('.hero-background');

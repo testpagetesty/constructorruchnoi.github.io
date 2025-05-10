@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { 
   Box, 
   Typography, 
@@ -25,6 +25,8 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import ColorLensIcon from '@mui/icons-material/ColorLens';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ImageIcon from '@mui/icons-material/Image';
+import { headerPresets } from '../../utils/headerPresets';
 
 const defaultMenuItems = [
   { id: 1, title: 'Главная', url: '/' },
@@ -47,10 +49,11 @@ const initialHeaderData = {
   ]
 };
 
-const HeaderEditor = ({ headerData, onHeaderChange }) => {
+const HeaderEditor = ({ headerData, onHeaderChange, expanded, setExpanded }) => {
   const [editingItem, setEditingItem] = useState(null);
-  const [expanded, setExpanded] = useState(false);
   const [menuExpanded, setMenuExpanded] = useState(false);
+  const [selectedPreset, setSelectedPreset] = useState('');
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (!headerData.menuItems || headerData.menuItems.length === 0) {
@@ -95,6 +98,30 @@ const HeaderEditor = ({ headerData, onHeaderChange }) => {
     setEditingItem(null);
   };
 
+  const handlePresetChange = (presetKey) => {
+    setSelectedPreset(presetKey);
+    const preset = headerPresets[presetKey];
+    onHeaderChange({
+      ...headerData,
+      titleColor: preset.titleColor,
+      backgroundColor: preset.backgroundColor,
+      linksColor: preset.linksColor,
+      siteBackgroundType: preset.siteBackgroundType,
+      ...(preset.siteBackgroundType === 'solid' && {
+        siteBackgroundColor: preset.siteBackgroundColor
+      }),
+      ...(preset.siteBackgroundType === 'gradient' && {
+        siteGradientColor1: preset.siteGradientColor1,
+        siteGradientColor2: preset.siteGradientColor2,
+        siteGradientDirection: preset.siteGradientDirection
+      })
+    });
+  };
+
+  const handleFaviconUpload = (e) => {
+    // Implementation of handleFaviconUpload
+  };
+
   return (
     <Box>
       <Accordion expanded={expanded} onChange={() => setExpanded(!expanded)}>
@@ -106,77 +133,151 @@ const HeaderEditor = ({ headerData, onHeaderChange }) => {
         >
           <Typography variant="subtitle1">Настройки шапки</Typography>
         </AccordionSummary>
-        <AccordionDetails sx={{ p: 1 }}>
-          <Grid container spacing={1}>
+        <AccordionDetails sx={{ p: 2 }}>
+          <Grid container spacing={2}>
             <Grid item xs={12}>
               <TextField
                 fullWidth
                 size="small"
                 label="Название сайта"
-                value={headerData.title}
+                value={headerData.title || headerData.siteName}
                 onChange={(e) => onHeaderChange({ ...headerData, title: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Цвет фона"
-                type="color"
-                value={headerData.backgroundColor}
-                onChange={(e) => onHeaderChange({ ...headerData, backgroundColor: e.target.value })}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <IconButton size="small">
-                        <ColorLensIcon fontSize="small" />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
+            
+            <Grid item xs={12} sm={4}>
+              <Box>
+                <Typography variant="body2" sx={{ mb: 1, color: '#1565c0' }}>Цвет заголовка</Typography>
+                <input
+                  type="color"
+                  value={headerData.titleColor}
+                  onChange={(e) => onHeaderChange({ ...headerData, titleColor: e.target.value })}
+                  style={{ width: '100%', height: '40px', borderRadius: '4px' }}
+                />
+              </Box>
             </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Цвет текста названия"
-                type="color"
-                value={headerData.titleColor}
-                onChange={(e) => onHeaderChange({ ...headerData, titleColor: e.target.value })}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <IconButton size="small">
-                        <ColorLensIcon fontSize="small" />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
+            <Grid item xs={12} sm={4}>
+              <Box>
+                <Typography variant="body2" sx={{ mb: 1, color: '#1565c0' }}>Цвет фона шапки</Typography>
+                <input
+                  type="color"
+                  value={headerData.backgroundColor}
+                  onChange={(e) => onHeaderChange({ ...headerData, backgroundColor: e.target.value })}
+                  style={{ width: '100%', height: '40px', borderRadius: '4px' }}
+                />
+              </Box>
             </Grid>
+            <Grid item xs={12} sm={4}>
+              <Box>
+                <Typography variant="body2" sx={{ mb: 1, color: '#1565c0' }}>Цвет ссылок</Typography>
+                <input
+                  type="color"
+                  value={headerData.linksColor}
+                  onChange={(e) => onHeaderChange({ ...headerData, linksColor: e.target.value })}
+                  style={{ width: '100%', height: '40px', borderRadius: '4px' }}
+                />
+              </Box>
+            </Grid>
+
             <Grid item xs={12}>
-              <TextField
+              <Divider sx={{ my: 2 }} />
+              <Typography variant="subtitle2" gutterBottom sx={{ color: '#1565c0' }}>
+                Предустановленные стили
+              </Typography>
+              <FormControl fullWidth size="small">
+                <InputLabel>Выберите стиль оформления</InputLabel>
+                <Select
+                  value={selectedPreset}
+                  label="Выберите стиль оформления"
+                  onChange={(e) => handlePresetChange(e.target.value)}
+                >
+                  {Object.entries(headerPresets).map(([key, preset]) => (
+                    <MenuItem 
+                      key={key} 
+                      value={key}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 2,
+                        py: 1
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 1,
+                          background: preset.siteBackgroundType === 'gradient'
+                            ? `linear-gradient(${preset.siteGradientDirection || 'to right'}, ${preset.siteGradientColor1}, ${preset.siteGradientColor2})`
+                            : preset.backgroundColor,
+                          border: `2px solid ${preset.titleColor}`,
+                          flexShrink: 0
+                        }}
+                      />
+                      <Typography>{preset.name}</Typography>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <Divider sx={{ my: 2 }} />
+            </Grid>
+
+            <Grid item xs={12}>
+              <Button
+                variant="outlined"
+                component="label"
+                startIcon={<ImageIcon />}
                 fullWidth
-                size="small"
-                label="Цвет текста ссылок"
-                type="color"
-                value={headerData.linksColor}
-                onChange={(e) => onHeaderChange({ ...headerData, linksColor: e.target.value })}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <IconButton size="small">
-                        <ColorLensIcon fontSize="small" />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
+              >
+                Загрузить Favicon
+                <input
+                  type="file"
+                  hidden
+                  accept="image/*"
+                  onChange={handleFaviconUpload}
+                />
+              </Button>
+              <Typography variant="caption" sx={{ display: 'block', mt: 1, color: 'text.secondary' }}>
+                Рекомендуемый размер: 32x32 пикселей, формат PNG
+              </Typography>
+            </Grid>
+
+            <Grid item xs={12} sm={4}>
+              <Box>
+                <Typography variant="body2" sx={{ mb: 1, color: '#1565c0' }}>Цвет заголовка</Typography>
+                <input
+                  type="color"
+                  value={headerData.titleColor}
+                  onChange={(e) => onHeaderChange({ ...headerData, titleColor: e.target.value })}
+                  style={{ width: '100%', height: '40px', borderRadius: '4px' }}
+                />
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Box>
+                <Typography variant="body2" sx={{ mb: 1, color: '#1565c0' }}>Цвет фона шапки</Typography>
+                <input
+                  type="color"
+                  value={headerData.backgroundColor}
+                  onChange={(e) => onHeaderChange({ ...headerData, backgroundColor: e.target.value })}
+                  style={{ width: '100%', height: '40px', borderRadius: '4px' }}
+                />
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Box>
+                <Typography variant="body2" sx={{ mb: 1, color: '#1565c0' }}>Цвет ссылок</Typography>
+                <input
+                  type="color"
+                  value={headerData.linksColor}
+                  onChange={(e) => onHeaderChange({ ...headerData, linksColor: e.target.value })}
+                  style={{ width: '100%', height: '40px', borderRadius: '4px' }}
+                />
+              </Box>
             </Grid>
           </Grid>
 
-          <Divider sx={{ my: 1 }} />
+          <Divider sx={{ my: 2 }} />
 
           <Accordion 
             expanded={menuExpanded} 

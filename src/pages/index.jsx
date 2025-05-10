@@ -218,13 +218,36 @@ export default function Home() {
   const handleHeaderChange = (newHeaderData) => {
     console.log('handleHeaderChange called with:', newHeaderData);
     setHeaderData(newHeaderData);
+    
+    // Обновляем футер
     setFooterData(prev => {
       const newFooterData = {
         ...prev,
-        menuItems: newHeaderData.menuItems
+        menuItems: newHeaderData.menuItems,
+        backgroundColor: newHeaderData.backgroundColor,
+        textColor: newHeaderData.titleColor,
+        companyNameColor: newHeaderData.titleColor,
+        phoneColor: newHeaderData.titleColor,
+        emailColor: newHeaderData.titleColor,
+        addressColor: newHeaderData.titleColor,
+        copyrightTextColor: newHeaderData.titleColor,
+        socialLinksColor: newHeaderData.titleColor,
+        menuItemsColor: newHeaderData.titleColor,
+        legalDocumentsColor: newHeaderData.titleColor
       };
       console.log('Footer data updated:', newFooterData);
       return newFooterData;
+    });
+
+    // Обновляем hero секцию
+    setHeroData(prev => {
+      const newHeroData = {
+        ...prev,
+        titleColor: newHeaderData.titleColor,
+        subtitleColor: newHeaderData.linksColor
+      };
+      console.log('Hero data updated:', newHeroData);
+      return newHeroData;
     });
   };
 
