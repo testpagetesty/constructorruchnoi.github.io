@@ -955,23 +955,26 @@ export const parseLegalDocuments = (content, contactData = {}) => {
     // Добавляем контактную информацию в конец каждого документа, если она доступна
     if (contactData && Object.keys(contactData).length > 0) {
       Object.keys(documents).forEach(docType => {
-        if (documents[docType].content && !documents[docType].content.toLowerCase().includes('контактная информация')) {
-          let contactBlock = '\n\nКонтактная информация:\n';
+        if (documents[docType].content && !documents[docType].content.toLowerCase().includes('📞') && 
+            !documents[docType].content.toLowerCase().includes('📍') && 
+            !documents[docType].content.toLowerCase().includes('📧')) {
+          
+          let contactBlock = '\n\n';
           
           if (contactData.companyName) {
-            contactBlock += `${contactData.companyName}\n`;
+            contactBlock += `🏢 ${contactData.companyName}\n`;
           }
           
           if (contactData.address) {
-            contactBlock += `Адрес: ${contactData.address}\n`;
+            contactBlock += `📍 ${contactData.address}\n`;
           }
           
           if (contactData.phone) {
-            contactBlock += `Телефон: ${contactData.phone}\n`;
+            contactBlock += `📞 ${contactData.phone}\n`;
           }
           
           if (contactData.email) {
-            contactBlock += `Email: ${contactData.email}\n`;
+            contactBlock += `📧 ${contactData.email}\n`;
           }
           
           documents[docType].content += contactBlock;

@@ -22,13 +22,39 @@ import CloseIcon from '@mui/icons-material/Close';
 import { styled } from '@mui/material/styles';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(0),
-  marginBottom: theme.spacing(2),
-  backgroundColor: '#ffffff',
-  boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
-  borderRadius: '8px',
-  overflow: 'hidden',
-  width: '100%'
+  '& .MuiTextField-root': {
+    marginBottom: theme.spacing(2)
+  },
+  '& th, & td': {
+    border: '1px solid #ddd',
+    padding: '0.75rem',
+    textAlign: 'left'
+  },
+  '& th': {
+    backgroundColor: '#f5f5f5',
+    fontWeight: 500
+  },
+  '& hr': {
+    border: 'none',
+    borderTop: '1px solid #ddd',
+    margin: '2rem 0'
+  },
+  '& .date': {
+    textAlign: 'right',
+    marginTop: '30px',
+    color: '#666',
+    fontStyle: 'italic'
+  },
+  '& .contact-info': {
+    marginTop: '2rem',
+    padding: '1rem',
+    backgroundColor: '#f8f9fa',
+    borderRadius: '8px',
+    '& .emoji': {
+      marginRight: '0.5rem',
+      fontSize: '1.2em'
+    }
+  }
 }));
 
 const SectionHeader = styled(Box)(({ theme }) => ({
@@ -184,12 +210,30 @@ const formatLegalDocument = (content) => {
   
   const paragraphs = remainingContent.split('\n');
   
+  let isContactSection = false;
+  
   paragraphs.forEach(paragraph => {
     paragraph = paragraph.trim();
     
     if (!paragraph) {
       processedContent += '<br>';
       return;
+    }
+
+    // Проверяем, начинается ли строка с эмодзи
+    if (/^[🏢📍📞📧🌐⏰📱💬]/.test(paragraph)) {
+      if (!isContactSection) {
+        isContactSection = true;
+        processedContent += '<div class="contact-info">';
+      }
+      const [emoji, ...rest] = paragraph.split(' ');
+      processedContent += `<p><span class="emoji">${emoji}</span>${rest.join(' ')}</p>`;
+      return;
+    }
+
+    if (isContactSection && !/^[🏢📍📞📧🌐⏰📱💬]/.test(paragraph)) {
+      isContactSection = false;
+      processedContent += '</div>';
     }
     
     const match1 = paragraph.match(sectionHeaderPattern);
@@ -226,6 +270,10 @@ const formatLegalDocument = (content) => {
       }
     }
   });
+
+  if (isContactSection) {
+    processedContent += '</div>';
+  }
   
   processedContent = processedContent
     .replace(/(\d+\.\d+\.\d+\.)/g, '<strong>$1</strong>')

@@ -27,7 +27,25 @@ const LegalDocumentPage = ({
           sx={{ 
             p: 4,
             borderRadius: 2,
-            backgroundColor: 'rgba(255, 255, 255, 0.9)'
+            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            '& .contact-info': {
+              marginTop: '2rem',
+              padding: '1.5rem',
+              backgroundColor: '#f8f9fa',
+              borderRadius: '8px',
+              border: '1px solid rgba(0, 0, 0, 0.1)',
+              '& p': {
+                display: 'flex',
+                alignItems: 'center',
+                margin: '0.5rem 0',
+                '& .emoji': {
+                  marginRight: '1rem',
+                  fontSize: '1.5em',
+                  width: '1.5em',
+                  textAlign: 'center'
+                }
+              }
+            }
           }}
         >
           <Typography 
