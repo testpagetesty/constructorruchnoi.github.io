@@ -74,4 +74,65 @@ const testContent = `
 * Persistent cookies: cookies that remain on your device for a set period of time (or until you delete them).
 `;
 
-console.log(JSON.stringify(parseLegalDocuments(testContent), null, 2)); 
+console.log(JSON.stringify(parseLegalDocuments(testContent), null, 2));
+
+const fs = require('fs');
+const path = require('path');
+
+// Импортируем функции парсинга из модуля
+const parsingFunctions = require('./src/components/AiParser/parsingFunctions');
+
+// Текст для теста
+const testText = `ID секции: преимущества
+Neden Biz?
+Koçluk sürecinde güvenilir, deneyimli ve sonuç odaklı bir partner arıyorsanız doğru yerdesiniz.
+Avantajlarımız
+
+Deneyimli Uzmanlar
+Ekibimiz, iş dünyasında uzun yıllara dayanan koçluk ve yönetim tecrübesine sahiptir.
+
+Sonuç Odaklı Yaklaşım
+Koçluk süreçlerimiz ölçülebilir sonuçlar ve kalıcı gelişim sağlamaya yöneliktir.
+
+Esnek ve Kişiye Özel
+İşletmenizin ihtiyaçlarına uygun, esnek ve özel olarak uyarlanmış çözümler sunuyoruz.`;
+
+// Парсим текст
+const parsedData = parsingFunctions.parseAdvantagesSection(testText);
+
+// Функция для проверки и исправления перепутанных заголовков и содержания
+function renderFeatureCards(cards) {
+  if (!cards || !Array.isArray(cards)) {
+    return [];
+  }
+  
+  // Создаем новый массив с исправленными карточками
+  return cards.map(card => {
+    // Проверяем условия для перестановки полей
+    const titleIsTooLong = card.title && card.title.length > 50;
+    const contentIsShort = !card.content || card.content.length < 30 || card.content === '\\';
+    
+    // Если заголовок длинный, а содержимое короткое, меняем их местами
+    if (titleIsTooLong && contentIsShort) {
+      return {
+        ...card,
+        title: card.content,
+        content: card.title
+      };
+    }
+    
+    // Иначе возвращаем карточку без изменений
+    return card;
+  });
+}
+
+// Применяем функцию исправления карточек
+if (parsedData && parsedData.cards) {
+  parsedData.cards = renderFeatureCards(parsedData.cards);
+}
+
+// Выводим результат
+console.log(JSON.stringify(parsedData, null, 2));
+
+// Сохраняем результат в файл для анализа
+fs.writeFileSync(path.join(__dirname, 'parsed_advantages.json'), JSON.stringify(parsedData, null, 2)); 

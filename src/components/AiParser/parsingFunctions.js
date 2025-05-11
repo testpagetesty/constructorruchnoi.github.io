@@ -269,10 +269,12 @@ export const parseAdvantagesSection = (content) => {
     let sectionId = 'features'; // Default value
     let sectionTitle = '';
     let sectionDescription = '';
+    let menuText = '';
     const cards = [];
     let currentCard = null;
     let isHeaderSection = true;
     let emptyLineCount = 0;
+    let isProcessingContacts = false;
     
     for (let i = 0; i < lines.length; i++) {
       const line = cleanEmailsInText(lines[i].trim());
@@ -287,6 +289,25 @@ export const parseAdvantagesSection = (content) => {
         continue;
       }
       emptyLineCount = 0;
+
+      // Проверяем, не начинается ли секция контактной информации
+      if (line.toLowerCase().includes('контактная информация')) {
+        isProcessingContacts = true;
+        if (currentCard && currentCard.content) {
+          cards.push(currentCard);
+          currentCard = null;
+        }
+        continue;
+      }
+
+      // Пропускаем обработку контактной информации
+      if (isProcessingContacts || 
+          line.toLowerCase().includes('телефон:') || 
+          line.toLowerCase().includes('email:') || 
+          line.toLowerCase().includes('адрес:') ||
+          line.toLowerCase().includes('мы готовы')) {
+        continue;
+      }
 
       // Parse section ID from "ID секции: ..."
       if (line.toLowerCase().startsWith('id секции:')) {
@@ -310,12 +331,16 @@ export const parseAdvantagesSection = (content) => {
         }
         if (!sectionDescription && sectionTitle) {
           sectionDescription = line;
+          continue;
+        }
+        if (!menuText && sectionDescription) {
+          menuText = line;
           isHeaderSection = false;
           continue;
         }
       }
 
-      // Process advantages cards
+      // Process advantages cards - используем тот же подход, что и в parseServices
       if (sectionDescription && !isHeaderSection) {
         if (line.length < 100 && (!currentCard || (currentCard && currentCard.content))) {
           if (currentCard && currentCard.content) {
@@ -324,17 +349,7 @@ export const parseAdvantagesSection = (content) => {
           currentCard = {
             id: `advantage_${cards.length + 1}`,
             title: line,
-            content: '',
-            showTitle: true,
-            titleColor: '#1976d2',
-            contentColor: '#333333',
-            borderColor: '#e0e0e0',
-            backgroundType: 'solid',
-            backgroundColor: '#ffffff',
-            style: {
-              borderRadius: '15px',
-              shadow: '0 4px 15px rgba(0, 0, 0, 0.1)'
-            }
+            content: ''
           };
         } else if (currentCard) {
           currentCard.content += (currentCard.content ? '\n' : '') + line;
@@ -358,7 +373,19 @@ export const parseAdvantagesSection = (content) => {
       title: sectionTitle || 'Наши преимущества',
       description: sectionDescription || 'Почему клиенты выбирают нас',
       cardType: 'ELEVATED',
-      cards: cleanedCards,
+      cards: cleanedCards.map(card => ({
+        ...card,
+        showTitle: true,
+        titleColor: '#1976d2',
+        contentColor: '#333333',
+        borderColor: '#e0e0e0',
+        backgroundType: 'solid',
+        backgroundColor: '#ffffff',
+        style: {
+          borderRadius: '15px',
+          shadow: '0 4px 15px rgba(0, 0, 0, 0.1)'
+        }
+      })),
       titleColor: '#1976d2',
       descriptionColor: '#666666',
       backgroundColor: '#ffffff',

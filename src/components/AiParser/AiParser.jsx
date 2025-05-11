@@ -1292,67 +1292,54 @@ Email: example@example.com
         case 'FEATURES':
           parsedData = parsers.parseAdvantagesSection(content);
           if (parsedData) {
+            // Применяем функцию renderFeatureCards для исправления перепутанных заголовков и контента
+            if (parsedData.cards && Array.isArray(parsedData.cards)) {
+              parsedData.cards = renderFeatureCards(parsedData.cards);
+            }
+                    
             // Проверяем, существует ли уже пункт меню с таким ID
-            const menuItemExists = headerData.menuItems.some(item => item.id === parsedData.id);
-            
-            // Если пункт меню существует, то обновляем его параметры вместо добавления нового
-            let updatedMenuItems;
-            if (menuItemExists) {
-              updatedMenuItems = headerData.menuItems.map(item => 
-                item.id === parsedData.id 
-                  ? {
-                      ...item,
-                      text: parsedData.id,
-                      link: `#${parsedData.id}`,
-                      backgroundColor: parsedData.backgroundColor,
-                      textColor: parsedData.textColor,
-                      borderColor: parsedData.borderColor,
-                      shadowColor: parsedData.shadowColor,
-                      gradientStart: parsedData.gradientStart,
-                      gradientEnd: parsedData.gradientEnd,
-                      gradientDirection: parsedData.gradientDirection
-                    }
-                  : item
-              );
+            const existingFeatureMenuItem = headerData.menuItems.find(item => item.id === parsedData.id);
+                    
+            // Обновляем пункт меню, если он существует
+            if (existingFeatureMenuItem) {
+              // Находим индекс существующего пункта меню
+              const featureMenuIndex = headerData.menuItems.findIndex(item => item.id === parsedData.id);
+                        
+              // Создаем обновленный список пунктов меню
+              const updatedFeatureMenuItems = [...headerData.menuItems];
+              updatedFeatureMenuItems[featureMenuIndex] = {
+                ...existingFeatureMenuItem,
+                text: parsedData.id,
+                link: `#${parsedData.id}`
+              };
+                        
+              // Обновляем headerData
+              onHeaderChange({
+                ...headerData,
+                menuItems: updatedFeatureMenuItems
+              });
             } else {
-              // Create new menu item
-              const menuItem = {
+              // Создаем новый пункт меню
+              const newFeatureMenuItem = {
                 id: parsedData.id,
                 text: parsedData.id,
-                link: `#${parsedData.id}`,
-                backgroundColor: parsedData.backgroundColor,
-                textColor: parsedData.textColor,
-                borderColor: parsedData.borderColor,
-                shadowColor: parsedData.shadowColor,
-                gradientStart: parsedData.gradientStart,
-                gradientEnd: parsedData.gradientEnd,
-                gradientDirection: parsedData.gradientDirection
+                link: `#${parsedData.id}`
               };
-              updatedMenuItems = [...headerData.menuItems, menuItem];
+                        
+              // Обновляем headerData
+              onHeaderChange({
+                ...headerData,
+                menuItems: [...headerData.menuItems, newFeatureMenuItem]
+              });
             }
-            
-            // Update headerData with new or updated menu item
-            onHeaderChange({ ...headerData, menuItems: updatedMenuItems });
-            
-            // Create or update section
-            const newSection = {
-              id: parsedData.id,
-              title: parsedData.title,
-              description: parsedData.description,
-              cardType: parsedData.cardType,
-              cards: parsedData.cards,
-              titleColor: parsedData.titleColor,
-              descriptionColor: parsedData.descriptionColor
-            };
-            
-            // Update sectionsData
-            onSectionsChange({ ...sectionsData, [parsedData.id]: newSection });
-            
-            if (menuItemExists) {
-              setParserMessage('Секция преимуществ успешно обновлена.');
-            } else {
-              setParserMessage('Секция преимуществ успешно добавлена в меню.');
-            }
+                    
+            // Сохраняем обновленные данные
+            onSectionsChange({
+              ...sectionsData,
+              [parsedData.id]: parsedData
+            });
+                    
+            setParserMessage('Данные раздела "Преимущества" успешно обновлены.');
           }
           break;
         case 'ABOUT':
@@ -1834,6 +1821,33 @@ Email: example@example.com
     // Применяем выбранный стиль ко всему сайту
     handleApplyWholeWebsiteStyle(randomStyleName, randomStylePreset);
   };
+
+  // Функция для исправления карточек с перепутанными полями title и content
+  function renderFeatureCards(cards) {
+    // Проверка входных данных
+    if (!cards || !Array.isArray(cards)) {
+      return [];
+    }
+    
+    // Создаем новый массив с исправленными карточками
+    return cards.map(card => {
+      // Проверяем условия для перестановки полей
+      const titleIsTooLong = card.title && card.title.length > 50;
+      const contentIsShort = !card.content || card.content.length < 30 || card.content === '\\';
+      
+      // Если заголовок длинный, а содержимое короткое, меняем их местами
+      if (titleIsTooLong && contentIsShort) {
+        return {
+          ...card,
+          title: card.content,
+          content: card.title
+        };
+      }
+      
+      // Иначе возвращаем карточку без изменений
+      return card;
+    });
+  }
 
   return (
     <Accordion defaultExpanded={false} sx={{ mb: 2 }}>
