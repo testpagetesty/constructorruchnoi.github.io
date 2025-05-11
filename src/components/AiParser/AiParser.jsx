@@ -28,7 +28,8 @@ import {
   Chip,
   FormControlLabel,
   Checkbox,
-  Grid
+  Grid,
+  Slider
 } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -36,9 +37,14 @@ import EditIcon from '@mui/icons-material/Edit';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import TuneIcon from '@mui/icons-material/Tune';
+import StyleIcon from '@mui/icons-material/Style';
+import ShuffleIcon from '@mui/icons-material/Shuffle';
 import { CARD_TYPES } from '../../utils/configUtils';
 import GlobalSettings, { WEBSITE_THEMES, LANGUAGES, CONTENT_STYLES } from './GlobalSettings';
+import SiteStyleManager from '../SiteStyleSettings/SiteStyleManager';
 import * as parsers from './parsingFunctions';
+import { STYLE_PRESETS } from '../../utils/editorStylePresets';
+import { contactPresets } from '../../utils/contactPresets';
 
 // Функция для удаления Markdown форматирования
 const stripMarkdown = (text) => {
@@ -57,6 +63,99 @@ const stripMarkdown = (text) => {
 
 // Добавляем объект с предустановленными промптами
 const DEFAULT_PROMPTS = {
+  FULL_SITE: `Создайте полный контент для сайта. Строго следуйте формату ниже.
+
+ВАЖНО: Каждый раздел должен начинаться с "=== РАЗДЕЛ: ИМЯ_РАЗДЕЛА ===" и заканчиваться "=== КОНЕЦ РАЗДЕЛА ==="
+
+=== РАЗДЕЛ: HERO ===
+1. Первая строка - название сайта (максимум 2 слова)
+2. Вторая строка - заголовок hero секции (4-7 слов)
+3. Третья строка - описание (15-25 слов)
+=== КОНЕЦ РАЗДЕЛА ===
+
+=== РАЗДЕЛ: О НАС ===
+ID секции: о_нас (укажите ID секции на вашем языке)
+Заголовок раздела
+Описание раздела (20-30 слов)
+Название для меню навигации
+
+[4-6 карточек в формате:]
+Заголовок карточки
+Описание (50-100 слов)
+=== КОНЕЦ РАЗДЕЛА ===
+
+=== РАЗДЕЛ: УСЛУГИ ===
+ID секции: услуги (укажите ID секции на вашем языке)
+Заголовок раздела
+Описание раздела (20-30 слов)
+Название для меню навигации
+
+[4-6 карточек услуг в формате:]
+Название услуги
+Описание услуги (50-100 слов)
+=== КОНЕЦ РАЗДЕЛА ===
+
+=== РАЗДЕЛ: ПРЕИМУЩЕСТВА ===
+ID секции: преимущества (укажите ID секции на вашем языке)
+Заголовок раздела
+Описание раздела (20-30 слов)
+Название для меню навигации
+
+[4-6 преимуществ в формате:]
+Заголовок преимущества
+Описание преимущества (30-50 слов)
+=== КОНЕЦ РАЗДЕЛА ===
+
+=== РАЗДЕЛ: НОВОСТИ ===
+ID секции: новости (укажите ID секции на вашем языке)
+Заголовок раздела
+Описание раздела (20-30 слов)
+Название для меню навигации
+
+[3-5 новостей в формате:]
+Заголовок новости
+Текст новости (50-100 слов)
+=== КОНЕЦ РАЗДЕЛА ===
+
+=== РАЗДЕЛ: ВОПРОСЫ ===
+ID секции: вопросы (укажите ID секции на вашем языке)
+Заголовок раздела
+Описание раздела (20-30 слов)
+Название для меню навигации
+
+[4-6 вопросов в формате:]
+Вопрос?
+Ответ (50-100 слов)
+=== КОНЕЦ РАЗДЕЛА ===
+
+=== РАЗДЕЛ: ОТЗЫВЫ ===
+ID секции: отзывы (укажите ID секции на вашем языке)
+Заголовок раздела
+Описание раздела (20-30 слов)
+Название для меню навигации
+
+[3-5 отзывов в формате:]
+Имя автора
+Текст отзыва (50-80 слов)
+=== КОНЕЦ РАЗДЕЛА ===
+
+=== РАЗДЕЛ: КОНТАКТЫ ===
+Заголовок раздела (например, "Контакты")
+Название компании
+Адрес компании
+Телефон: +7 XXX XXX XX XX
+Email: example@example.com
+=== КОНЕЦ РАЗДЕЛА ===
+
+Важные требования:
+1. Укажите "ID секции:" на необходимом языке (например, "ID секции: новости" для русского или "ID секции: news" для английского)
+2. После "ID секции:" укажите название раздела на том же языке, на котором вы создаете контент
+3. Весь контент должен быть на одном языке
+4. Каждый раздел должен быть отделен разделителями === РАЗДЕЛ: ИМЯ === и === КОНЕЦ РАЗДЕЛА ===
+5. Не использовать специальные символы и форматирование
+6. Каждый элемент должен начинаться с новой строки
+7. Между карточками/пунктами оставлять ОДНУ пустую строку`,
+
   HERO: `Создайте контент для сайта. Строго следуйте формату ниже.
 
 Требуемый формат:
@@ -411,6 +510,170 @@ info@your-law.com
 - КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО использовать символы форматирования`,
 };
 
+// Добавляем компонент настройки промпта полного сайта
+const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings }) => {
+  const [settings, setSettings] = useState(initialSettings || {
+    includedSections: {
+      HERO: true,
+      ABOUT: true,
+      SERVICES: true,
+      FEATURES: true,
+      NEWS: true,
+      FAQ: true,
+      TESTIMONIALS: true,
+      CONTACTS: true
+    },
+    cardCounts: {
+      ABOUT: 4,
+      SERVICES: 4,
+      FEATURES: 4,
+      NEWS: 3,
+      FAQ: 4,
+      TESTIMONIALS: 3
+    }
+  });
+
+  const handleSectionToggle = (section) => {
+    setSettings(prev => ({
+      ...prev,
+      includedSections: {
+        ...prev.includedSections,
+        [section]: !prev.includedSections[section]
+      }
+    }));
+  };
+
+  const handleCardCountChange = (section, value) => {
+    setSettings(prev => ({
+      ...prev,
+      cardCounts: {
+        ...prev.cardCounts,
+        [section]: value
+      }
+    }));
+  };
+
+  // Добавляем функцию для рандомизации количества карточек
+  const handleRandomizeCardCounts = () => {
+    const newCardCounts = { ...settings.cardCounts };
+    
+    // Рандомизируем количество карточек для каждого раздела, 
+    // учитывая ограничение для услуг (минимум 4)
+    Object.keys(newCardCounts).forEach(section => {
+      if (section === 'SERVICES') {
+        // Для услуг минимум 4 карточки, максимум 8
+        newCardCounts[section] = Math.floor(Math.random() * 5) + 4; // 4-8
+      } else {
+        // Для остальных разделов от 2 до 7 карточек
+        newCardCounts[section] = Math.floor(Math.random() * 6) + 2; // 2-7
+      }
+    });
+    
+    setSettings(prev => ({
+      ...prev,
+      cardCounts: newCardCounts
+    }));
+  };
+
+  const handleSave = () => {
+    onSave(settings);
+    onClose();
+  };
+
+  const sectionLabels = {
+    HERO: 'Hero секция',
+    ABOUT: 'О нас',
+    SERVICES: 'Услуги',
+    FEATURES: 'Преимущества',
+    NEWS: 'Новости',
+    FAQ: 'Вопросы и ответы',
+    TESTIMONIALS: 'Отзывы',
+    CONTACTS: 'Контакты'
+  };
+
+  return (
+    <Dialog 
+      open={open} 
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
+    >
+      <DialogTitle>
+        Настройка промпта полного сайта
+      </DialogTitle>
+      <DialogContent>
+        <Box sx={{ mb: 3, mt: 1 }}>
+          <Typography variant="subtitle1" gutterBottom>
+            Выберите разделы для включения в промпт:
+          </Typography>
+          <Grid container spacing={2}>
+            {Object.keys(settings.includedSections).map((section) => (
+              <Grid item xs={6} sm={4} key={section}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={settings.includedSections[section]}
+                      onChange={() => handleSectionToggle(section)}
+                      disabled={section === 'HERO'} // Hero секция всегда включена
+                    />
+                  }
+                  label={sectionLabels[section]}
+                />
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+        
+        <Divider sx={{ my: 2 }} />
+        
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="subtitle1">
+            Количество карточек в каждом разделе:
+          </Typography>
+          <Button 
+            variant="outlined" 
+            color="secondary" 
+            size="small" 
+            onClick={handleRandomizeCardCounts}
+            startIcon={<TuneIcon />}
+          >
+            Случайное кол-во
+          </Button>
+        </Box>
+        
+        <Grid container spacing={3}>
+          {Object.keys(settings.cardCounts).map((section) => (
+            settings.includedSections[section] && (
+              <Grid item xs={12} sm={6} key={section}>
+                <Typography id={`${section}-slider-label`}>
+                  {sectionLabels[section]}: {settings.cardCounts[section]}
+                </Typography>
+                <Slider
+                  value={settings.cardCounts[section]}
+                  onChange={(e, newValue) => handleCardCountChange(section, newValue)}
+                  aria-labelledby={`${section}-slider-label`}
+                  valueLabelDisplay="auto"
+                  step={1}
+                  marks
+                  min={section === 'SERVICES' ? 4 : 1} // Минимум 4 для услуг, 1 для остальных
+                  max={8}
+                  sx={{ width: '90%' }}
+                />
+              </Grid>
+            )
+          ))}
+        </Grid>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Отмена</Button>
+        <Button onClick={handleSave} variant="contained" color="primary">
+          Применить настройки
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
 const AiParser = ({ 
   sectionsData = {}, 
   onSectionsChange, 
@@ -456,6 +719,194 @@ const AiParser = ({
     customInstructions: '',
     customLanguage: ''
   });
+  
+  // Добавляем состояние для настроек промпта полного сайта
+  const [showFullSiteSettings, setShowFullSiteSettings] = useState(false);
+  const [fullSiteSettings, setFullSiteSettings] = useState({
+    includedSections: {
+      HERO: true,
+      ABOUT: true,
+      SERVICES: true,
+      FEATURES: true,
+      NEWS: true,
+      FAQ: true,
+      TESTIMONIALS: true,
+      CONTACTS: true
+    },
+    cardCounts: {
+      ABOUT: 4,
+      SERVICES: 4,
+      FEATURES: 4,
+      NEWS: 3,
+      FAQ: 4,
+      TESTIMONIALS: 3
+    }
+  });
+  
+  // Добавляем состояние для управления стилями сайта
+  const [showStyleManager, setShowStyleManager] = useState(false);
+  
+  // Функция для генерации промпта полного сайта с учетом настроек
+  const generateFullSitePrompt = (settings) => {
+    let sectionsPrompt = `Создайте полный контент для сайта. Строго следуйте формату ниже.
+
+ВАЖНО: Каждый раздел должен начинаться с "=== РАЗДЕЛ: ИМЯ_РАЗДЕЛА ===" и заканчиваться "=== КОНЕЦ РАЗДЕЛА ==="\n\n`;
+
+    if (settings.includedSections.HERO) {
+      sectionsPrompt += `=== РАЗДЕЛ: HERO ===
+1. Первая строка - название сайта (максимум 2 слова)
+2. Вторая строка - заголовок hero секции (4-7 слов)
+3. Третья строка - описание (15-25 слов)
+=== КОНЕЦ РАЗДЕЛА ===\n\n`;
+    }
+
+    if (settings.includedSections.ABOUT) {
+      sectionsPrompt += `=== РАЗДЕЛ: О НАС ===
+ID секции: о_нас (укажите ID секции на вашем языке)
+Заголовок раздела
+Описание раздела (20-30 слов)
+Название для меню навигации
+
+[${settings.cardCounts.ABOUT} карточек в формате:]
+Заголовок карточки
+Описание (50-100 слов)
+=== КОНЕЦ РАЗДЕЛА ===\n\n`;
+    }
+
+    if (settings.includedSections.SERVICES) {
+      sectionsPrompt += `=== РАЗДЕЛ: УСЛУГИ ===
+ID секции: услуги (укажите ID секции на вашем языке)
+Заголовок раздела
+Описание раздела (20-30 слов)
+Название для меню навигации
+
+[${settings.cardCounts.SERVICES} карточек услуг в формате:]
+Название услуги
+Описание услуги (50-100 слов)
+=== КОНЕЦ РАЗДЕЛА ===\n\n`;
+    }
+
+    if (settings.includedSections.FEATURES) {
+      sectionsPrompt += `=== РАЗДЕЛ: ПРЕИМУЩЕСТВА ===
+ID секции: преимущества (укажите ID секции на вашем языке)
+Заголовок раздела
+Описание раздела (20-30 слов)
+Название для меню навигации
+
+[${settings.cardCounts.FEATURES} преимуществ в формате:]
+Заголовок преимущества
+Описание преимущества (30-50 слов)
+=== КОНЕЦ РАЗДЕЛА ===\n\n`;
+    }
+
+    if (settings.includedSections.NEWS) {
+      sectionsPrompt += `=== РАЗДЕЛ: НОВОСТИ ===
+ID секции: новости (укажите ID секции на вашем языке)
+Заголовок раздела
+Описание раздела (20-30 слов)
+Название для меню навигации
+
+[${settings.cardCounts.NEWS} новостей в формате:]
+Заголовок новости
+Текст новости (50-100 слов)
+=== КОНЕЦ РАЗДЕЛА ===\n\n`;
+    }
+
+    if (settings.includedSections.FAQ) {
+      sectionsPrompt += `=== РАЗДЕЛ: ВОПРОСЫ ===
+ID секции: вопросы (укажите ID секции на вашем языке)
+Заголовок раздела
+Описание раздела (20-30 слов)
+Название для меню навигации
+
+[${settings.cardCounts.FAQ} вопросов в формате:]
+Вопрос?
+Ответ (50-100 слов)
+=== КОНЕЦ РАЗДЕЛА ===\n\n`;
+    }
+
+    if (settings.includedSections.TESTIMONIALS) {
+      sectionsPrompt += `=== РАЗДЕЛ: ОТЗЫВЫ ===
+ID секции: отзывы (укажите ID секции на вашем языке)
+Заголовок раздела
+Описание раздела (20-30 слов)
+Название для меню навигации
+
+[${settings.cardCounts.TESTIMONIALS} отзывов в формате:]
+Имя автора
+Текст отзыва (50-80 слов)
+=== КОНЕЦ РАЗДЕЛА ===\n\n`;
+    }
+
+    if (settings.includedSections.CONTACTS) {
+      sectionsPrompt += `=== РАЗДЕЛ: КОНТАКТЫ ===
+Заголовок раздела (например, "Контакты")
+Название компании
+Адрес компании
+Телефон: +7 XXX XXX XX XX
+Email: example@example.com
+=== КОНЕЦ РАЗДЕЛА ===\n\n`;
+    }
+
+    sectionsPrompt += `Важные требования:
+1. Укажите "ID секции:" на необходимом языке (например, "ID секции: новости" для русского или "ID секции: news" для английского)
+2. После "ID секции:" укажите название раздела на том же языке, на котором вы создаете контент
+3. Весь контент должен быть на одном языке
+4. Каждый раздел должен быть отделен разделителями === РАЗДЕЛ: ИМЯ === и === КОНЕЦ РАЗДЕЛА ===
+5. Не использовать специальные символы и форматирование
+6. Каждый элемент должен начинаться с новой строки
+7. Между карточками/пунктами оставлять ОДНУ пустую строку`;
+
+    return sectionsPrompt;
+  };
+
+  // Модифицируем функцию копирования промпта
+  const copyPromptToClipboard = () => {
+    // Для полного сайта показываем диалог настроек
+    if (targetSection === 'FULL_SITE') {
+      setShowFullSiteSettings(true);
+      return;
+    }
+    
+    const prompt = prompts[targetSection] || `Сгенерируйте для меня ${
+      targetSection === 'FEATURES' ? 'преимущества' : 
+      targetSection === 'ABOUT' ? 'информацию о' :
+      'раздел'} для сайта.`;
+    
+    const enhancedPrompt = applyGlobalSettings(prompt);
+    
+    navigator.clipboard.writeText(enhancedPrompt)
+      .then(() => {
+        setParserMessage('Промпт с глобальными настройками скопирован в буфер обмена.');
+        // Очищаем текстовое поле после копирования
+        handleClearText();
+      })
+      .catch(() => {
+        setParserMessage('Не удалось скопировать промпт.');
+      });
+  };
+  
+  // Функция для обработки сохранения настроек промпта полного сайта
+  const handleFullSiteSettingsSave = (settings) => {
+    setFullSiteSettings(settings);
+    
+    // Генерируем промпт на основе настроек
+    const fullSitePrompt = generateFullSitePrompt(settings);
+    
+    // Применяем глобальные настройки
+    const enhancedPrompt = applyGlobalSettings(fullSitePrompt);
+    
+    // Копируем промпт в буфер обмена
+    navigator.clipboard.writeText(enhancedPrompt)
+      .then(() => {
+        setParserMessage('Настроенный промпт полного сайта скопирован в буфер обмена.');
+        // Очищаем текстовое поле после копирования
+        handleClearText();
+      })
+      .catch(() => {
+        setParserMessage('Не удалось скопировать промпт.');
+      });
+  };
 
   // Функция для применения глобальных настроек к промпту
   const applyGlobalSettings = (promptText) => {
@@ -501,26 +952,6 @@ const AiParser = ({
     enhancedPrompt += promptText;
 
     return enhancedPrompt;
-  };
-
-  // Модифицируем функцию копирования промпта
-  const copyPromptToClipboard = () => {
-    const prompt = prompts[targetSection] || `Сгенерируйте для меня ${
-      targetSection === 'FEATURES' ? 'преимущества' : 
-      targetSection === 'ABOUT' ? 'информацию о' :
-      'раздел'} для сайта.`;
-    
-    const enhancedPrompt = applyGlobalSettings(prompt);
-    
-    navigator.clipboard.writeText(enhancedPrompt)
-      .then(() => {
-        setParserMessage('Промпт с глобальными настройками скопирован в буфер обмена.');
-        // Очищаем текстовое поле после копирования
-        handleClearText();
-      })
-      .catch(() => {
-        setParserMessage('Не удалось скопировать промпт.');
-      });
   };
 
   // Добавляем функцию для обновления кода языка в headerData при изменении языка в глобальных настройках
@@ -609,19 +1040,189 @@ const AiParser = ({
         return;
       }
       
-      // If no target section is selected or it's AUTO, try to detect the type
-      if (!targetSection || targetSection === 'AUTO') {
-        const detectedType = parsers.autoDetectSectionType(content);
-        if (detectedType === 'AUTO') {
-          setParserMessage('Не удалось автоматически определить тип контента. Пожалуйста, выберите раздел вручную.');
-          return;
-        }
-        setTargetSection(detectedType);
-      }
+      if (targetSection) {
+        let parsedData = null;
+        
+        switch (targetSection) {
+          case 'FULL_SITE':
+            parsedData = parsers.parseFullSite(content, headerData);
+            if (parsedData) {
+              console.log('Результаты парсинга полного сайта:', parsedData);
+              
+              // Создаем новый объект для всех секций
+              const updatedSections = { ...sectionsData };
+              
+              // Обновляем Hero секцию и заголовок сайта
+              if (parsedData.hero) {
+                console.log('Обрабатываем Hero секцию:', parsedData.hero);
+                
+                // Обновляем данные hero-секции
+                const updatedHeroData = { ...heroData };
+                
+                if (parsedData.hero.title) {
+                  updatedHeroData.title = parsedData.hero.title;
+                }
+                
+                if (parsedData.hero.description) {
+                  updatedHeroData.subtitle = parsedData.hero.description;
+                }
+                
+                // Применяем обновления hero
+                onHeroChange(updatedHeroData);
+                
+                // Обновляем название сайта в headerData
+                if (parsedData.hero.siteName) {
+                  // Создаем копию headerData для обновления
+                  const updatedHeaderData = { 
+                    ...headerData,
+                    siteName: parsedData.hero.siteName
+                  };
+                  onHeaderChange(updatedHeaderData);
+                }
+              }
+              
+              // Определяем порядок секций для меню: О нас, Услуги, Преимущества, Новости, FAQ, Отзывы
+              const sectionOrder = ['about', 'services', 'features', 'news', 'faq', 'testimonials'];
 
-      let parsedData = null;
-      
-      switch (targetSection) {
+              // Создаем список пунктов меню, сохраняя нужный порядок
+              const processOrderedSections = () => {
+                // Создаем список секций в нужном порядке
+                const orderedMenuItems = [];
+                
+                console.log('Доступные секции в parsedData:', Object.keys(parsedData));
+                
+                // Обрабатываем каждую секцию
+                for (const sectionId of sectionOrder) {
+                  console.log(`Обрабатываем секцию ${sectionId}`);
+                  
+                  // Получаем заголовок секции из parsedData
+                  let section = null;
+                  
+                  switch (sectionId) {
+                    case 'about':
+                      section = parsedData.about;
+                      break;
+                    case 'services':
+                      section = parsedData.services;
+                      break;
+                    case 'features':
+                      section = parsedData.features;
+                      break;
+                    case 'news':
+                      section = parsedData.news;
+                      console.log('Секция новостей:', section);
+                      break;
+                    case 'faq':
+                      section = parsedData.faq;
+                      break;
+                    case 'testimonials':
+                      section = parsedData.testimonials;
+                      break;
+                  }
+                  
+                  if (section) {
+                    console.log(`Секция ${sectionId} найдена:`, section);
+                    
+                    // ВАЖНОЕ ИЗМЕНЕНИЕ: 
+                    // 1. Сохраняем секцию по её ID, а не по ключу массива
+                    // 2. Явно указываем все важные поля, включая заголовок и описание 
+                    updatedSections[section.id] = {
+                      id: section.id,
+                      title: section.title,
+                      description: section.description,
+                      cardType: section.cardType || 'ELEVATED',
+                      cards: section.cards || [],
+                      titleColor: section.titleColor || '#1976d2',
+                      descriptionColor: section.descriptionColor || '#666666'
+                    };
+                    
+                    console.log(`Обновлена секция ${section.id}:`, updatedSections[section.id]);
+                    
+                    // Используем заголовок секции для названия в меню
+                    let menuText = section.id;
+                    let menuId = section.id;
+
+                    if (sectionId === 'news') {
+                      console.log('Обрабатываем раздел новостей, ID из контента:', section.id);
+                    }
+                    
+                    // Проверяем существование пункта меню
+                    const existingMenuItem = headerData.menuItems.find(item => item.id === menuId);
+                    
+                    if (existingMenuItem) {
+                      // Обновляем существующий пункт меню
+                      orderedMenuItems.push({
+                        ...existingMenuItem,
+                        text: menuText,
+                        link: `#${menuId}`
+                      });
+                    } else {
+                      // Добавляем новый пункт меню
+                      orderedMenuItems.push({
+                        id: menuId,
+                        text: menuText,
+                        link: `#${menuId}`,
+                        backgroundColor: '#ffffff',
+                        textColor: '#000000',
+                        borderColor: '#e0e0e0',
+                        shadowColor: 'rgba(0,0,0,0.1)',
+                        gradientStart: '#ffffff',
+                        gradientEnd: '#f5f5f5',
+                        gradientDirection: 'to right'
+                      });
+                    }
+                  }
+                }
+                
+                return orderedMenuItems;
+              };
+
+              // Заменяем существующий код создания menuItems этой функцией
+              const menuItems = processOrderedSections();
+              
+              console.log('Обновленные секции перед применением:', updatedSections);
+
+              // Обновляем все секции за один вызов
+              onSectionsChange(updatedSections);
+
+              // Обновляем меню с правильным порядком секций
+              const finalHeaderData = {
+                ...headerData,
+                menuItems: menuItems
+              };
+
+              // Проверим, был ли обновлен заголовок сайта через hero
+              if (parsedData.hero && parsedData.hero.siteName) {
+                finalHeaderData.siteName = parsedData.hero.siteName;
+              }
+
+              // Теперь применяем все обновления к headerData
+              onHeaderChange(finalHeaderData);
+              
+              // Обновляем контакты
+              if (parsedData.contacts) {
+                // Проверяем, что данные контактов заполнены правильно
+                const contactsData = {
+                  title: parsedData.contacts.title || 'Контакты',
+                  description: parsedData.contacts.description || '',
+                  companyName: parsedData.contacts.companyName || headerData.siteName || '',
+                  address: parsedData.contacts.address || '',
+                  phone: parsedData.contacts.phone || '',
+                  email: parsedData.contacts.email || ''
+                };
+                onContactChange(contactsData);
+              }
+              
+              // Добавляем принудительное обновление для гарантии применения всех изменений
+              setTimeout(() => {
+                console.log('Принудительное обновление страницы для применения изменений');
+                // Повторно применяем обновления всех секций
+                onSectionsChange({...updatedSections});
+              }, 100);
+              
+              setParserMessage('Все разделы сайта успешно обновлены');
+            }
+            break;
         case 'SERVICES':
           parsedData = parsers.parseServices(content);
           if (parsedData) {
@@ -955,6 +1556,8 @@ const AiParser = ({
         case 'NEWS':
           parsedData = parsers.parseNews(content);
           if (parsedData) {
+              console.log('Результат обработки новостей:', parsedData);
+              
             // Проверяем, существует ли уже пункт меню с таким ID
             const menuItemExists = headerData.menuItems.some(item => item.id === parsedData.id);
             
@@ -1060,6 +1663,7 @@ const AiParser = ({
         setResult(parsedData);
       } else {
         setParserMessage('Не удалось обработать текст. Проверьте формат и попробуйте снова.');
+        }
       }
     } catch (error) {
       console.error('Error in handleParse:', error);
@@ -1071,6 +1675,164 @@ const AiParser = ({
     setEditingPromptType(sectionType);
     setEditingPromptText(prompts[sectionType] || '');
     setShowPromptEditor(true);
+  };
+
+  // Обработчик для применения стиля ко всему сайту
+  const handleApplyWholeWebsiteStyle = (styleName, stylePreset) => {
+    console.log(`Применяем стиль ${styleName} ко всему сайту`);
+    
+    // Применяем стиль к шапке сайта
+    if (onHeaderChange && headerData) {
+      onHeaderChange({
+        ...headerData,
+        titleColor: stylePreset.titleColor,
+        backgroundColor: stylePreset.backgroundColor,
+        borderColor: stylePreset.borderColor,
+      });
+    }
+
+    // Применяем стиль к разделам
+    if (onSectionsChange && sectionsData) {
+      const updatedSections = {};
+      
+      // Применяем стиль к каждой секции независимо от её ID
+      Object.keys(sectionsData).forEach(sectionId => {
+        const section = sectionsData[sectionId];
+        
+        // Обновляем свойства секции
+        updatedSections[sectionId] = {
+          ...section,
+          titleColor: stylePreset.titleColor,
+          descriptionColor: stylePreset.descriptionColor,
+          backgroundColor: stylePreset.backgroundColor,
+          borderColor: stylePreset.borderColor,
+          cardType: stylePreset.cardType || section.cardType,
+          
+          // Обновляем свойства карточек внутри секции
+          cards: (section.cards || []).map(card => ({
+            ...card,
+            titleColor: stylePreset.cardTitleColor,
+            contentColor: stylePreset.cardContentColor,
+            backgroundColor: stylePreset.cardBackgroundColor,
+            borderColor: stylePreset.cardBorderColor,
+            backgroundType: stylePreset.cardBackgroundType,
+            gradientColor1: stylePreset.cardGradientColor1,
+            gradientColor2: stylePreset.cardGradientColor2,
+            gradientDirection: stylePreset.cardGradientDirection,
+            style: {
+              ...card.style,
+              shadow: stylePreset.style?.shadow || '0 2px 4px rgba(0,0,0,0.1)',
+              borderRadius: stylePreset.style?.borderRadius || '8px'
+            }
+          }))
+        };
+      });
+      
+      // Применяем все изменения за один раз
+      onSectionsChange(updatedSections);
+    }
+
+    // Применяем соответствующий стиль к контактной форме из contactPresets
+    if (onContactChange && contactData) {
+      // Пытаемся найти подходящий стиль контактов
+      let matchingContactStyle = null;
+      
+      // Ищем стиль контактов с тем же названием
+      if (contactPresets[styleName]) {
+        matchingContactStyle = contactPresets[styleName];
+      } else {
+        // Или находим стиль, который лучше всего соответствует цветовой схеме
+        const matchingStyles = Object.entries(contactPresets).filter(([key, preset]) => {
+          return (
+            preset.titleColor === stylePreset.titleColor ||
+            preset.formBackgroundColor === stylePreset.backgroundColor ||
+            preset.buttonColor === stylePreset.titleColor
+          );
+        });
+        
+        if (matchingStyles.length > 0) {
+          // Берем первый подходящий стиль
+          matchingContactStyle = matchingStyles[0][1];
+        } else {
+          // Или ищем стиль, который близок по цветовой гамме
+          const styleFirstWord = styleName.split('_')[0].toLowerCase();
+          const matchByName = Object.entries(contactPresets).find(([key, preset]) => 
+            key.toLowerCase().includes(styleFirstWord) || 
+            (preset.name && preset.name.toLowerCase().includes(styleFirstWord))
+          );
+          
+          if (matchByName) {
+            matchingContactStyle = matchByName[1];
+          }
+        }
+      }
+      
+      // Если нашли подходящий стиль, применяем его
+      if (matchingContactStyle) {
+        console.log('Применяем соответствующий стиль контактов:', matchingContactStyle.name || 'без имени');
+        
+        onContactChange({
+          ...contactData,
+          titleColor: matchingContactStyle.titleColor,
+          descriptionColor: matchingContactStyle.descriptionColor,
+          companyInfoColor: matchingContactStyle.companyInfoColor,
+          formVariant: matchingContactStyle.formVariant,
+          infoVariant: matchingContactStyle.infoVariant,
+          formBackgroundColor: matchingContactStyle.formBackgroundColor,
+          infoBackgroundColor: matchingContactStyle.infoBackgroundColor,
+          formBorderColor: matchingContactStyle.formBorderColor,
+          infoBorderColor: matchingContactStyle.infoBorderColor,
+          labelColor: matchingContactStyle.labelColor,
+          inputBackgroundColor: matchingContactStyle.inputBackgroundColor,
+          inputTextColor: matchingContactStyle.inputTextColor,
+          buttonColor: matchingContactStyle.buttonColor,
+          buttonTextColor: matchingContactStyle.buttonTextColor,
+          iconColor: matchingContactStyle.iconColor,
+          infoTitleColor: matchingContactStyle.infoTitleColor,
+          infoTextColor: matchingContactStyle.infoTextColor
+        });
+      } else {
+        // Если не нашли, используем базовые цвета из выбранного стиля
+        console.log('Используем базовые цвета для контактов из выбранного стиля сайта');
+        
+        onContactChange({
+          ...contactData,
+          titleColor: stylePreset.titleColor,
+          descriptionColor: stylePreset.descriptionColor,
+          buttonColor: stylePreset.titleColor,
+          buttonTextColor: stylePreset.cardBackgroundColor,
+          formBorderColor: stylePreset.borderColor,
+          infoTitleColor: stylePreset.titleColor,
+          infoTextColor: stylePreset.descriptionColor
+        });
+      }
+    }
+
+    // Применяем стиль к герою
+    if (onHeroChange && heroData) {
+      onHeroChange({
+        ...heroData,
+        titleColor: stylePreset.titleColor,
+        descriptionColor: stylePreset.descriptionColor,
+        backgroundColor: stylePreset.backgroundColor,
+        borderColor: stylePreset.borderColor,
+      });
+    }
+  };
+
+  // Добавляем функцию для выбора случайного стиля
+  const applyRandomStyle = () => {
+    // Получаем все доступные стили из STYLE_PRESETS
+    const styleNames = Object.keys(STYLE_PRESETS);
+    
+    // Выбираем случайный стиль
+    const randomStyleName = styleNames[Math.floor(Math.random() * styleNames.length)];
+    const randomStylePreset = STYLE_PRESETS[randomStyleName];
+    
+    console.log(`Применяем случайный стиль: ${randomStyleName}`);
+    
+    // Применяем выбранный стиль ко всему сайту
+    handleApplyWholeWebsiteStyle(randomStyleName, randomStylePreset);
   };
 
   return (
@@ -1086,23 +1848,96 @@ const AiParser = ({
       <AccordionDetails sx={{ p: 0 }}>
         <Paper sx={{ boxShadow: 'none' }}>
           <Box sx={{ p: 2, borderBottom: '1px solid rgba(0, 0, 0, 0.12)' }}>  
-            <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+            <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+              {/* Скрываем кнопку "НАСТРОЙКИ ПАРСЕРА", но сохраняем функционал */}
+              {false && (
+                <Button
+                  variant="outlined"
+                  onClick={() => setShowSettings(true)}
+                  sx={{
+                    color: '#0288d1',
+                    borderColor: '#0288d1',
+                    '&:hover': {
+                      borderColor: '#0277bd',
+                      backgroundColor: 'rgba(2, 136, 209, 0.04)'
+                    },
+                    textTransform: 'none',
+                    fontSize: '0.9rem'
+                  }}
+                  startIcon={
+                    <Box sx={{ color: '#0288d1', display: 'flex', alignItems: 'center' }}>
+                      <SettingsIcon />
+                    </Box>
+                  }
+                >
+                  НАСТРОЙКИ ПАРСЕРА
+                </Button>
+              )}
               <Button
                 variant="outlined"
-                color="primary"
-                onClick={() => setShowSettings(true)}
-                startIcon={<SettingsIcon />}
-              >
-                Настройки парсера
-              </Button>
-              <Button
-                variant="outlined"
-                color="secondary"
                 onClick={() => setShowGlobalSettings(true)}
-                startIcon={<TuneIcon />}
+                sx={{
+                  color: '#e91e63',
+                  borderColor: '#e91e63',
+                  '&:hover': {
+                    borderColor: '#d81b60',
+                    backgroundColor: 'rgba(233, 30, 99, 0.04)'
+                  },
+                  textTransform: 'none',
+                  fontSize: '0.9rem'
+                }}
+                startIcon={
+                  <Box sx={{ color: '#e91e63', display: 'flex', alignItems: 'center' }}>
+                    <TuneIcon />
+                  </Box>
+                }
               >
-                Настройки контента
+                НАСТРОЙКИ КОНТЕНТА
               </Button>
+            </Box>
+            
+            <Box sx={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', mt: 1 }}>
+              <Button
+                variant="outlined"
+                onClick={() => setShowStyleManager(true)}
+                sx={{
+                  color: '#4caf50',
+                  borderColor: '#4caf50',
+                  '&:hover': {
+                    borderColor: '#43a047',
+                    backgroundColor: 'rgba(76, 175, 80, 0.04)'
+                  },
+                  textTransform: 'none',
+                  fontSize: '0.9rem',
+                  mr: 1
+                }}
+                startIcon={
+                  <Box sx={{ color: '#4caf50', display: 'flex', alignItems: 'center' }}>
+                    <StyleIcon />
+                  </Box>
+                }
+              >
+                СТИЛИ САЙТА
+              </Button>
+              
+              <Tooltip title="Применить случайный стиль ко всему сайту" placement="top">
+                <IconButton 
+                  onClick={applyRandomStyle}
+                  size="small"
+                  sx={{
+                    color: '#4caf50',
+                    border: '1px solid #4caf50',
+                    backgroundColor: 'white',
+                    '&:hover': {
+                      backgroundColor: 'rgba(76, 175, 80, 0.04)'
+                    },
+                    width: 34,
+                    height: 34
+                  }}
+                >
+                  <ShuffleIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
             </Box>
           </Box>
 
@@ -1112,6 +1947,14 @@ const AiParser = ({
             onClose={() => setShowGlobalSettings(false)}
             settings={globalSettings}
             onSettingsChange={handleGlobalSettingsChange}
+          />
+          
+          {/* Добавляем компонент настроек промпта полного сайта */}
+          <FullSitePromptSettings
+            open={showFullSiteSettings}
+            onClose={() => setShowFullSiteSettings(false)}
+            onSave={handleFullSiteSettingsSave}
+            initialSettings={fullSiteSettings}
           />
             
           <Box sx={{ p: 2 }}>
@@ -1124,6 +1967,7 @@ const AiParser = ({
                 onChange={(e) => setTargetSection(e.target.value)}
               >
                 <MenuItem value="AUTO">Автоопределение</MenuItem>
+                <MenuItem value="FULL_SITE">Полный сайт</MenuItem>
                 <MenuItem value="HERO">Hero секция</MenuItem>
                 <MenuItem value="ABOUT">О нас</MenuItem>
                 <MenuItem value="FEATURES">Преимущества</MenuItem>
@@ -1156,7 +2000,7 @@ const AiParser = ({
                 }
               }
             }}>
-              <Tooltip title="Скопировать шаблон промпта" arrow placement="top">
+              <Tooltip title={targetSection === 'FULL_SITE' ? "Настроить и скопировать промпт" : "Скопировать шаблон промпта"} arrow placement="top">
                 <span>
                 <Button 
                   variant="outlined" 
@@ -1171,7 +2015,7 @@ const AiParser = ({
                       }
                     }}
                   >
-                    Копировать
+                    {targetSection === 'FULL_SITE' ? 'Настроить' : 'Копировать'}
                 </Button>
                 </span>
               </Tooltip>
@@ -1307,6 +2151,22 @@ const AiParser = ({
               <Button onClick={() => setShowSettings(false)}>Закрыть</Button>
             </DialogActions>
           </Dialog>
+
+          {/* Компонент управления стилями */}
+          <SiteStyleManager 
+            open={showStyleManager}
+            onClose={() => setShowStyleManager(false)}
+            headerData={headerData}
+            sectionsData={sectionsData}
+            heroData={heroData}
+            contactData={contactData}
+            footerData={{}}
+            onApplyToWholeWebsite={handleApplyWholeWebsiteStyle}
+            onHeaderChange={onHeaderChange}
+            onSectionsChange={onSectionsChange}
+            onHeroChange={onHeroChange}
+            onContactChange={onContactChange}
+          />
         </Paper>
       </AccordionDetails>
     </Accordion>

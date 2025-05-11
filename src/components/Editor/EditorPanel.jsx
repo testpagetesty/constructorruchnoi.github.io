@@ -199,242 +199,34 @@ const STYLE_PRESETS = {
   ROYAL: {
     titleColor: '#4a148c',
     descriptionColor: '#6a1b9a',
-    cardType: CARD_TYPES.GRADIENT,
-    backgroundColor: '#f3e5f5',
-    borderColor: '#e1bee7',
-    cardBackgroundColor: '#ffffff',
-    cardBorderColor: '#ba68c8',
-    cardTitleColor: '#ffffff',
-    cardContentColor: '#f3e5f5',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#7b1fa2',
-    cardGradientColor2: '#6a1b9a',
-    cardGradientDirection: '45deg',
-    style: {
-      shadow: '0 4px 6px rgba(0,0,0,0.1)',
-      borderRadius: '12px'
-    }
-  },
-  WINTER: {
-    titleColor: '#01579b',
-    descriptionColor: '#0288d1',
-    cardType: CARD_TYPES.ELEVATED,
-    backgroundColor: '#e3f2fd',
-    borderColor: '#bbdefb',
-    cardBackgroundColor: '#ffffff',
-    cardBorderColor: '#90caf9',
-    cardTitleColor: '#01579b',
-    cardContentColor: '#0288d1',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#e3f2fd',
-    cardGradientColor2: '#bbdefb',
-    cardGradientDirection: 'to bottom',
-    style: {
-      shadow: '0 2px 4px rgba(0,0,0,0.1)',
-      borderRadius: '8px'
-    }
-  },
-  AUTUMN: {
-    titleColor: '#bf360c',
-    descriptionColor: '#d84315',
-    cardType: CARD_TYPES.GRADIENT,
-    backgroundColor: '#fbe9e7',
-    borderColor: '#ffccbc',
-    cardBackgroundColor: '#ffffff',
-    cardBorderColor: '#ffab91',
-    cardTitleColor: '#ffffff',
-    cardContentColor: '#fbe9e7',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#ff5722',
-    cardGradientColor2: '#f4511e',
-    cardGradientDirection: '45deg',
-    style: {
-      shadow: '0 4px 6px rgba(0,0,0,0.1)',
-      borderRadius: '12px'
-    }
-  },
-  SPRING: {
-    titleColor: '#ad1457',
-    descriptionColor: '#d81b60',
-    cardType: CARD_TYPES.ELEVATED,
-    backgroundColor: '#fce4ec',
-    borderColor: '#f8bbd0',
-    cardBackgroundColor: '#ffffff',
-    cardBorderColor: '#f48fb1',
-    cardTitleColor: '#ad1457',
-    cardContentColor: '#d81b60',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#fce4ec',
-    cardGradientColor2: '#f8bbd0',
-    cardGradientDirection: 'to bottom',
-    style: {
-      shadow: '0 2px 4px rgba(0,0,0,0.1)',
-      borderRadius: '8px'
-    }
-  },
-  BERRY: {
-    titleColor: '#880e4f',
-    descriptionColor: '#ad1457',
-    cardType: CARD_TYPES.GRADIENT,
-    backgroundColor: '#fce4ec',
-    borderColor: '#f8bbd0',
-    cardBackgroundColor: '#ffffff',
-    cardBorderColor: '#f48fb1',
-    cardTitleColor: '#ffffff',
-    cardContentColor: '#fce4ec',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#c2185b',
-    cardGradientColor2: '#d81b60',
-    cardGradientDirection: '45deg',
-    style: {
-      shadow: '0 4px 6px rgba(0,0,0,0.1)',
-      borderRadius: '12px'
-    }
-  },
-  LAVENDER: {
-    titleColor: '#4a148c',
-    descriptionColor: '#6a1b9a',
-    cardType: CARD_TYPES.ELEVATED,
+    cardType: 'gradient',
     backgroundColor: '#f3e5f5',
     borderColor: '#e1bee7',
     cardBackgroundColor: '#ffffff',
     cardBorderColor: '#ce93d8',
-    cardTitleColor: '#4a148c',
-    cardContentColor: '#6a1b9a',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#f3e5f5',
-    cardGradientColor2: '#e1bee7',
-    cardGradientDirection: 'to bottom',
-    style: {
-      shadow: '0 2px 4px rgba(0,0,0,0.1)',
-      borderRadius: '8px'
-    }
-  },
-  SKY: {
-    titleColor: '#0277bd',
-    descriptionColor: '#0288d1',
-    cardType: CARD_TYPES.GRADIENT,
-    backgroundColor: '#e1f5fe',
-    borderColor: '#b3e5fc',
-    cardBackgroundColor: '#ffffff',
-    cardBorderColor: '#81d4fa',
     cardTitleColor: '#ffffff',
-    cardContentColor: '#e1f5fe',
+    cardContentColor: '#f3e5f5',
     cardBackgroundType: 'gradient',
-    cardGradientColor1: '#03a9f4',
-    cardGradientColor2: '#039be5',
+    cardGradientColor1: '#6a1b9a',
+    cardGradientColor2: '#8e24aa',
     cardGradientDirection: '45deg',
     style: {
       shadow: '0 4px 6px rgba(0,0,0,0.1)',
-      borderRadius: '12px'
+      borderRadius: '12px',
+      padding: '16px'
     }
   },
-  LEMON: {
-    titleColor: '#f57f17',
-    descriptionColor: '#f9a825',
-    cardType: CARD_TYPES.ELEVATED,
-    backgroundColor: '#fffde7',
-    borderColor: '#fff59d',
-    cardBackgroundColor: '#ffffff',
-    cardBorderColor: '#fff176',
-    cardTitleColor: '#f57f17',
-    cardContentColor: '#f9a825',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#fffde7',
-    cardGradientColor2: '#fff59d',
-    cardGradientDirection: 'to bottom',
-    style: {
-      shadow: '0 2px 4px rgba(0,0,0,0.1)',
-      borderRadius: '8px'
-    }
-  },
-  MINT: {
-    titleColor: '#00695c',
-    descriptionColor: '#00796b',
-    cardType: CARD_TYPES.GRADIENT,
-    backgroundColor: '#e0f2f1',
-    borderColor: '#b2dfdb',
-    cardBackgroundColor: '#ffffff',
-    cardBorderColor: '#80cbc4',
-    cardTitleColor: '#ffffff',
-    cardContentColor: '#e0f2f1',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#009688',
-    cardGradientColor2: '#00897b',
-    cardGradientDirection: '45deg',
-    style: {
-      shadow: '0 4px 6px rgba(0,0,0,0.1)',
-      borderRadius: '12px'
-    }
-  },
-  PEACH: {
-    titleColor: '#e64a19',
-    descriptionColor: '#f4511e',
-    cardType: CARD_TYPES.ELEVATED,
-    backgroundColor: '#fbe9e7',
-    borderColor: '#ffccbc',
-    cardBackgroundColor: '#ffffff',
-    cardBorderColor: '#ffab91',
-    cardTitleColor: '#e64a19',
-    cardContentColor: '#f4511e',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#fbe9e7',
-    cardGradientColor2: '#ffccbc',
-    cardGradientDirection: 'to bottom',
-    style: {
-      shadow: '0 2px 4px rgba(0,0,0,0.1)',
-      borderRadius: '8px'
-    }
-  },
-  SAND: {
-    titleColor: '#795548',
-    descriptionColor: '#8d6e63',
-    cardType: CARD_TYPES.GRADIENT,
-    backgroundColor: '#efebe9',
-    borderColor: '#d7ccc8',
-    cardBackgroundColor: '#ffffff',
-    cardBorderColor: '#bcaaa4',
-    cardTitleColor: '#ffffff',
-    cardContentColor: '#efebe9',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#8d6e63',
-    cardGradientColor2: '#795548',
-    cardGradientDirection: '45deg',
-    style: {
-      shadow: '0 4px 6px rgba(0,0,0,0.1)',
-      borderRadius: '12px'
-    }
-  },
-  ICE: {
-    titleColor: '#00bcd4',
-    descriptionColor: '#4dd0e1',
-    cardType: CARD_TYPES.GRADIENT,
-    backgroundColor: '#e0f7fa',
-    borderColor: '#b2ebf2',
-    cardBackgroundColor: '#ffffff',
-    cardBorderColor: '#80deea',
-    cardTitleColor: '#ffffff',
-    cardContentColor: '#e0f7fa',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#00bcd4',
-    cardGradientColor2: '#26c6da',
-    cardGradientDirection: '45deg',
-    style: {
-      shadow: '0 4px 6px rgba(0,0,0,0.1)',
-      borderRadius: '12px'
-    }
-  },
-  CORAL: {
-    titleColor: '#d32f2f',
-    descriptionColor: '#e53935',
-    cardType: CARD_TYPES.ELEVATED,
+  CRIMSON_TIDE: {
+    titleColor: '#b71c1c',
+    descriptionColor: '#c62828',
+    cardType: 'elevated',
     backgroundColor: '#ffebee',
     borderColor: '#ffcdd2',
     cardBackgroundColor: '#ffffff',
     cardBorderColor: '#ef9a9a',
-    cardTitleColor: '#d32f2f',
-    cardContentColor: '#e53935',
-    cardBackgroundType: 'gradient',
+    cardTitleColor: '#b71c1c',
+    cardContentColor: '#c62828',
+    cardBackgroundType: 'solid',
     cardGradientColor1: '#ffebee',
     cardGradientColor2: '#ffcdd2',
     cardGradientDirection: 'to bottom',
@@ -443,10 +235,206 @@ const STYLE_PRESETS = {
       borderRadius: '8px'
     }
   },
-  EMERALD: {
+  AMBER_GOLD: {
+    titleColor: '#ff6f00',
+    descriptionColor: '#ff8f00',
+    cardType: 'gradient',
+    backgroundColor: '#fff8e1',
+    borderColor: '#ffecb3',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#ffe082',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#fff8e1',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#ff8f00',
+    cardGradientColor2: '#ffb300',
+    cardGradientDirection: '45deg',
+    style: {
+      shadow: '0 4px 6px rgba(0,0,0,0.1)',
+      borderRadius: '12px',
+      padding: '16px'
+    }
+  },
+  TEAL_ELEGANCE: {
+    titleColor: '#00695c',
+    descriptionColor: '#00796b',
+    cardType: 'elevated',
+    backgroundColor: '#e0f2f1',
+    borderColor: '#b2dfdb',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#80cbc4',
+    cardTitleColor: '#00695c',
+    cardContentColor: '#00796b',
+    cardBackgroundType: 'solid',
+    cardGradientColor1: '#e0f2f1',
+    cardGradientColor2: '#b2dfdb',
+    cardGradientDirection: 'to bottom',
+    style: {
+      shadow: '0 2px 4px rgba(0,0,0,0.1)',
+      borderRadius: '8px'
+    }
+  },
+  CYBER_NEON: {
+    titleColor: '#00e5ff',
+    descriptionColor: '#00b8d4',
+    cardType: 'gradient',
+    backgroundColor: '#0a0a1f',
+    borderColor: '#121236',
+    cardBackgroundColor: '#0a0a1f',
+    cardBorderColor: '#121236',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#e0f7fa',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#121236',
+    cardGradientColor2: '#1a1a4a',
+    cardGradientDirection: '135deg',
+    style: {
+      shadow: '0 4px 8px rgba(0,229,255,0.3)',
+      borderRadius: '12px',
+      padding: '16px'
+    }
+  },
+  GRAPE_SODA: {
+    titleColor: '#4a148c',
+    descriptionColor: '#6a1b9a',
+    cardType: 'gradient',
+    backgroundColor: '#f3e5f5',
+    borderColor: '#e1bee7',
+    cardBackgroundColor: '#4a148c',
+    cardBorderColor: '#7b1fa2',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#f3e5f5',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#4a148c',
+    cardGradientColor2: '#7b1fa2',
+    cardGradientDirection: 'to right',
+    style: {
+      shadow: '0 4px 8px rgba(0,0,0,0.2)',
+      borderRadius: '12px',
+      padding: '16px'
+    }
+  },
+  COFFEE_CREAM: {
+    titleColor: '#3e2723',
+    descriptionColor: '#4e342e',
+    cardType: 'elevated',
+    backgroundColor: '#efebe9',
+    borderColor: '#d7ccc8',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#bcaaa4',
+    cardTitleColor: '#3e2723',
+    cardContentColor: '#4e342e',
+    cardBackgroundType: 'solid',
+    cardGradientColor1: '#efebe9',
+    cardGradientColor2: '#d7ccc8',
+    cardGradientDirection: 'to bottom',
+    style: {
+      shadow: '0 2px 4px rgba(0,0,0,0.1)',
+      borderRadius: '8px'
+    }
+  },
+  SPRING_BLOOM: {
+    titleColor: '#ad1457',
+    descriptionColor: '#c2185b',
+    cardType: 'elevated',
+    backgroundColor: '#fce4ec',
+    borderColor: '#f8bbd0',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#f48fb1',
+    cardTitleColor: '#ad1457',
+    cardContentColor: '#c2185b',
+    cardBackgroundType: 'solid',
+    cardGradientColor1: '#fce4ec',
+    cardGradientColor2: '#f8bbd0',
+    cardGradientDirection: 'to bottom',
+    style: {
+      shadow: '0 2px 4px rgba(0,0,0,0.1)',
+      borderRadius: '12px'
+    }
+  },
+  BRIGHT_FUTURE: {
+    titleColor: '#0d47a1',
+    descriptionColor: '#1565c0',
+    cardType: 'gradient',
+    backgroundColor: '#e3f2fd',
+    borderColor: '#bbdefb',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#90caf9',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#e3f2fd',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#1565c0',
+    cardGradientColor2: '#1976d2',
+    cardGradientDirection: '45deg',
+    style: {
+      shadow: '0 4px 6px rgba(0,0,0,0.1)',
+      borderRadius: '12px',
+      padding: '16px'
+    }
+  },
+  LAVENDER_MIST: {
+    titleColor: '#4527a0',
+    descriptionColor: '#512da8',
+    cardType: 'elevated',
+    backgroundColor: '#ede7f6',
+    borderColor: '#d1c4e9',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#b39ddb',
+    cardTitleColor: '#4527a0',
+    cardContentColor: '#512da8',
+    cardBackgroundType: 'solid',
+    cardGradientColor1: '#ede7f6',
+    cardGradientColor2: '#d1c4e9',
+    cardGradientDirection: 'to bottom',
+    style: {
+      shadow: '0 2px 4px rgba(0,0,0,0.1)',
+      borderRadius: '8px'
+    }
+  },
+  MIDNIGHT_SKY: {
+    titleColor: '#e1f5fe',
+    descriptionColor: '#b3e5fc',
+    cardType: 'gradient',
+    backgroundColor: '#0d47a1',
+    borderColor: '#1565c0',
+    cardBackgroundColor: '#1a237e',
+    cardBorderColor: '#283593',
+    cardTitleColor: '#e1f5fe',
+    cardContentColor: '#b3e5fc',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#1a237e',
+    cardGradientColor2: '#283593',
+    cardGradientDirection: '135deg',
+    style: {
+      shadow: '0 4px 8px rgba(0,0,0,0.3)',
+      borderRadius: '12px',
+      padding: '16px'
+    }
+  },
+  CORAL_REEF: {
+    titleColor: '#bf360c',
+    descriptionColor: '#d84315',
+    cardType: 'gradient',
+    backgroundColor: '#fff3e0',
+    borderColor: '#ffe0b2',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#ffcc80',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#fff3e0',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#ff7043',
+    cardGradientColor2: '#ff8a65',
+    cardGradientDirection: 'to right',
+    style: {
+      shadow: '0 4px 6px rgba(0,0,0,0.1)',
+      borderRadius: '12px',
+      padding: '16px'
+    }
+  },
+  EMERALD_DREAM: {
     titleColor: '#004d40',
     descriptionColor: '#00695c',
-    cardType: CARD_TYPES.GRADIENT,
+    cardType: 'gradient',
     backgroundColor: '#e0f2f1',
     borderColor: '#b2dfdb',
     cardBackgroundColor: '#ffffff',
@@ -454,113 +442,155 @@ const STYLE_PRESETS = {
     cardTitleColor: '#ffffff',
     cardContentColor: '#e0f2f1',
     cardBackgroundType: 'gradient',
-    cardGradientColor1: '#00897b',
+    cardGradientColor1: '#00695c',
     cardGradientColor2: '#00796b',
+    cardGradientDirection: '45deg',
+    style: {
+      shadow: '0 4px 6px rgba(0,0,0,0.1)',
+      borderRadius: '12px',
+      padding: '16px'
+    }
+  },
+  DARK_ELEGANCE: {
+    titleColor: '#f5f5f5',
+    descriptionColor: '#e0e0e0',
+    cardType: 'elevated',
+    backgroundColor: '#212121',
+    borderColor: '#424242',
+    cardBackgroundColor: '#333333',
+    cardBorderColor: '#616161',
+    cardTitleColor: '#f5f5f5',
+    cardContentColor: '#e0e0e0',
+    cardBackgroundType: 'solid',
+    cardGradientColor1: '#333333',
+    cardGradientColor2: '#424242',
+    cardGradientDirection: 'to bottom',
+    style: {
+      shadow: '0 4px 8px rgba(0,0,0,0.3)',
+      borderRadius: '8px'
+    }
+  },
+  GOLDEN_LUXURY: {
+    titleColor: '#3e2723',
+    descriptionColor: '#4e342e',
+    cardType: 'gradient',
+    backgroundColor: '#fef9e7',
+    borderColor: '#f9e9ca',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#f5d7a1',
+    cardTitleColor: '#3e2723',
+    cardContentColor: '#4e342e',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#ffd700',
+    cardGradientColor2: '#ffecb3',
     cardGradientDirection: '135deg',
     style: {
-      shadow: '0 4px 8px rgba(0, 77, 64, 0.15)',
+      shadow: '0 4px 8px rgba(218,165,32,0.2)',
+      borderRadius: '12px',
+      padding: '16px'
+    }
+  },
+  CHERRY_BLOSSOM: {
+    titleColor: '#ad1457',
+    descriptionColor: '#c2185b',
+    cardType: 'elevated',
+    backgroundColor: '#fce4ec',
+    borderColor: '#f8bbd0',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#f48fb1',
+    cardTitleColor: '#ad1457',
+    cardContentColor: '#c2185b',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#fce4ec',
+    cardGradientColor2: '#f8bbd0',
+    cardGradientDirection: 'to right',
+    style: {
+      shadow: '0 4px 6px rgba(0,0,0,0.1)',
       borderRadius: '12px'
     }
   },
-  AMETHYST: {
-    titleColor: '#4a148c',
-    descriptionColor: '#6a1b9a',
-    cardType: CARD_TYPES.ELEVATED,
-    backgroundColor: '#f3e5f5',
-    borderColor: '#e1bee7',
-    cardBackgroundColor: '#ffffff',
-    cardBorderColor: '#ce93d8',
-    cardTitleColor: '#4a148c',
-    cardContentColor: '#6a1b9a',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#9c27b0',
-    cardGradientColor2: '#8e24aa',
-    cardGradientDirection: '120deg',
-    style: {
-      shadow: '0 4px 8px rgba(74, 20, 140, 0.12)',
-      borderRadius: '10px'
-    }
-  },
-  COPPER: {
-    titleColor: '#bf360c',
-    descriptionColor: '#d84315',
-    cardType: CARD_TYPES.GRADIENT,
-    backgroundColor: '#fbe9e7',
-    borderColor: '#ffccbc',
-    cardBackgroundColor: '#ffffff',
-    cardBorderColor: '#ffab91',
-    cardTitleColor: '#ffffff',
-    cardContentColor: '#fbe9e7',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#e64a19',
-    cardGradientColor2: '#f4511e',
-    cardGradientDirection: '150deg',
-    style: {
-      shadow: '0 4px 8px rgba(191, 54, 12, 0.15)',
-      borderRadius: '14px'
-    }
-  },
-  SILVER: {
-    titleColor: '#455a64',
-    descriptionColor: '#546e7a',
-    cardType: CARD_TYPES.ELEVATED,
+  NORDIC_FROST: {
+    titleColor: '#0d47a1',
+    descriptionColor: '#1565c0',
+    cardType: 'elevated',
     backgroundColor: '#eceff1',
     borderColor: '#cfd8dc',
     cardBackgroundColor: '#ffffff',
     cardBorderColor: '#b0bec5',
-    cardTitleColor: '#455a64',
-    cardContentColor: '#546e7a',
-    cardBackgroundType: 'gradient',
+    cardTitleColor: '#0d47a1',
+    cardContentColor: '#1565c0',
+    cardBackgroundType: 'solid',
     cardGradientColor1: '#eceff1',
     cardGradientColor2: '#cfd8dc',
-    cardGradientDirection: '165deg',
+    cardGradientDirection: 'to bottom',
     style: {
-      shadow: '0 4px 8px rgba(69, 90, 100, 0.12)',
+      shadow: '0 2px 4px rgba(0,0,0,0.1)',
       borderRadius: '8px'
     }
   },
-  MARINE: {
-    titleColor: '#006064',
-    descriptionColor: '#00838f',
-    cardType: CARD_TYPES.GRADIENT,
-    backgroundColor: '#e0f7fa',
-    borderColor: '#b2ebf2',
-    cardBackgroundColor: '#ffffff',
-    cardBorderColor: '#80deea',
+  NEON_LIFE: {
+    titleColor: '#f50057',
+    descriptionColor: '#ff4081',
+    cardType: 'gradient',
+    backgroundColor: '#1a1a2e',
+    borderColor: '#282846',
+    cardBackgroundColor: '#1a1a2e',
+    cardBorderColor: '#282846',
     cardTitleColor: '#ffffff',
-    cardContentColor: '#e0f7fa',
+    cardContentColor: '#e0e0e0',
     cardBackgroundType: 'gradient',
-    cardGradientColor1: '#00acc1',
-    cardGradientColor2: '#0097a7',
-    cardGradientDirection: '140deg',
+    cardGradientColor1: '#282846',
+    cardGradientColor2: '#16213e',
+    cardGradientDirection: '135deg',
     style: {
-      shadow: '0 4px 8px rgba(0, 96, 100, 0.15)',
-      borderRadius: '16px'
+      shadow: '0 4px 8px rgba(245,0,87,0.3)',
+      borderRadius: '12px',
+      padding: '16px'
     }
   },
-  GOLDEN: {
-    titleColor: '#f57f17',
-    descriptionColor: '#ffa000',
-    cardType: CARD_TYPES.ELEVATED,
-    backgroundColor: '#fff8e1',
-    borderColor: '#ffecb3',
+  EARTH_TONES: {
+    titleColor: '#33691e',
+    descriptionColor: '#558b2f',
+    cardType: 'elevated',
+    backgroundColor: '#f1f8e9',
+    borderColor: '#dcedc8',
     cardBackgroundColor: '#ffffff',
-    cardBorderColor: '#ffd54f',
-    cardTitleColor: '#f57f17',
-    cardContentColor: '#ffa000',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#ffd54f',
-    cardGradientColor2: '#ffb300',
-    cardGradientDirection: '165deg',
+    cardBorderColor: '#c5e1a5',
+    cardTitleColor: '#33691e',
+    cardContentColor: '#558b2f',
+    cardBackgroundType: 'solid',
+    cardGradientColor1: '#f1f8e9',
+    cardGradientColor2: '#dcedc8',
+    cardGradientDirection: 'to bottom',
     style: {
-      shadow: '0 4px 8px rgba(245, 127, 23, 0.12)',
-      borderRadius: '12px'
+      shadow: '0 2px 4px rgba(0,0,0,0.1)',
+      borderRadius: '8px'
     }
   },
-  RUBY: {
-    titleColor: '#c62828',
-    descriptionColor: '#d32f2f',
-    cardType: CARD_TYPES.GRADIENT,
+  AZURE_DREAMS: {
+    titleColor: '#01579b',
+    descriptionColor: '#0277bd',
+    cardType: 'gradient',
+    backgroundColor: '#e1f5fe',
+    borderColor: '#b3e5fc',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#81d4fa',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#e1f5fe',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#039be5',
+    cardGradientColor2: '#29b6f6',
+    cardGradientDirection: '135deg',
+    style: {
+      shadow: '0 4px 6px rgba(0,0,0,0.1)',
+      borderRadius: '12px',
+      padding: '16px'
+    }
+  },
+  SUNSET_VIBES: {
+    titleColor: '#b71c1c',
+    descriptionColor: '#c62828',
+    cardType: 'gradient',
     backgroundColor: '#ffebee',
     borderColor: '#ffcdd2',
     cardBackgroundColor: '#ffffff',
@@ -568,554 +598,34 @@ const STYLE_PRESETS = {
     cardTitleColor: '#ffffff',
     cardContentColor: '#ffebee',
     cardBackgroundType: 'gradient',
-    cardGradientColor1: '#d32f2f',
-    cardGradientColor2: '#c62828',
-    cardGradientDirection: '45deg',
+    cardGradientColor1: '#ff8a80',
+    cardGradientColor2: '#ff5252',
+    cardGradientDirection: 'to right',
     style: {
       shadow: '0 4px 6px rgba(0,0,0,0.1)',
-      borderRadius: '12px'
+      borderRadius: '12px',
+      padding: '16px'
     }
   },
-  SAPPHIRE: {
-    titleColor: '#1565c0',
-    descriptionColor: '#1976d2',
-    cardType: CARD_TYPES.ELEVATED,
-    backgroundColor: '#e3f2fd',
-    borderColor: '#bbdefb',
-    cardBackgroundColor: '#ffffff',
-    cardTitleColor: '#1565c0',
-    cardContentColor: '#1976d2',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#64b5f6',
-    cardGradientColor2: '#1976d2',
-    cardGradientDirection: '145deg',
-    style: { shadow: '0 4px 8px rgba(21, 101, 192, 0.12)', borderRadius: '16px' }
-  },
-  BRONZE: {
-    titleColor: '#795548',
-    descriptionColor: '#8d6e63',
-    cardType: CARD_TYPES.GRADIENT,
-    backgroundColor: '#efebe9',
-    borderColor: '#d7ccc8',
-    cardBackgroundColor: '#ffffff',
-    cardTitleColor: '#ffffff',
-    cardContentColor: '#ffffff',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#8d6e63',
-    cardGradientColor2: '#5d4037',
-    cardGradientDirection: '155deg',
-    style: { shadow: '0 4px 8px rgba(121, 85, 72, 0.15)', borderRadius: '12px' }
-  },
-  TURQUOISE: {
-    titleColor: '#00838f',
-    descriptionColor: '#0097a7',
-    cardType: CARD_TYPES.ELEVATED,
-    backgroundColor: '#e0f7fa',
-    borderColor: '#b2ebf2',
-    cardBackgroundColor: '#ffffff',
-    cardTitleColor: '#00838f',
-    cardContentColor: '#0097a7',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#4dd0e1',
-    cardGradientColor2: '#00acc1',
-    cardGradientDirection: '165deg',
-    style: { shadow: '0 4px 8px rgba(0, 131, 143, 0.12)', borderRadius: '14px' }
-  },
-  GRAPHITE: {
-    titleColor: '#263238',
-    descriptionColor: '#37474f',
-    cardType: CARD_TYPES.ELEVATED,
-    backgroundColor: '#eceff1',
-    borderColor: '#cfd8dc',
-    cardBackgroundColor: '#ffffff',
-    cardBorderColor: '#b0bec5',
-    cardTitleColor: '#263238',
-    cardContentColor: '#37474f',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#eceff1',
-    cardGradientColor2: '#cfd8dc',
-    cardGradientDirection: '135deg',
-    style: {
-      shadow: '0 4px 8px rgba(38, 50, 56, 0.12)',
-      borderRadius: '10px'
-    }
-  },
-  ROSE_GOLD: {
-    titleColor: '#c2185b',
-    descriptionColor: '#d81b60',
-    cardType: CARD_TYPES.GRADIENT,
-    backgroundColor: '#fce4ec',
-    borderColor: '#f8bbd0',
-    cardBackgroundColor: '#ffffff',
-    cardBorderColor: '#f48fb1',
-    cardTitleColor: '#ffffff',
-    cardContentColor: '#fce4ec',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#ec407a',
-    cardGradientColor2: '#d81b60',
-    cardGradientDirection: '150deg',
-    style: {
-      shadow: '0 4px 8px rgba(194, 24, 91, 0.15)',
-      borderRadius: '14px'
-    }
-  },
-  JADE: {
-    titleColor: '#00695c',
-    descriptionColor: '#00796b',
-    cardType: CARD_TYPES.ELEVATED,
-    backgroundColor: '#e0f2f1',
-    borderColor: '#b2dfdb',
-    cardBackgroundColor: '#ffffff',
-    cardBorderColor: '#80cbc4',
-    cardTitleColor: '#00695c',
-    cardContentColor: '#00796b',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#26a69a',
-    cardGradientColor2: '#00897b',
-    cardGradientDirection: '120deg',
-    style: {
-      shadow: '0 4px 8px rgba(0, 105, 92, 0.12)',
-      borderRadius: '12px'
-    }
-  },
-  PLUM: {
-    titleColor: '#4a148c',
-    descriptionColor: '#6a1b9a',
-    cardType: CARD_TYPES.GRADIENT,
-    backgroundColor: '#f3e5f5',
-    borderColor: '#e1bee7',
-    cardBackgroundColor: '#ffffff',
-    cardBorderColor: '#ce93d8',
-    cardTitleColor: '#ffffff',
-    cardContentColor: '#f3e5f5',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#8e24aa',
-    cardGradientColor2: '#6a1b9a',
-    cardGradientDirection: '140deg',
-    style: {
-      shadow: '0 4px 8px rgba(74, 20, 140, 0.15)',
-      borderRadius: '16px'
-    }
-  },
-  DEEP_OCEAN: {
-    titleColor: '#01579b',
-    descriptionColor: '#0277bd',
-    cardType: CARD_TYPES.GRADIENT,
-    backgroundColor: '#e1f5fe',
-    borderColor: '#b3e5fc',
-    cardBackgroundColor: '#ffffff',
-    cardBorderColor: '#81d4fa',
-    cardTitleColor: '#ffffff',
-    cardContentColor: '#e1f5fe',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#0288d1',
-    cardGradientColor2: '#01579b',
-    cardGradientDirection: '130deg',
-    style: {
-      shadow: '0 4px 8px rgba(1, 87, 155, 0.15)',
-      borderRadius: '12px'
-    }
-  },
-  CRIMSON: {
-    titleColor: '#b71c1c',
-    descriptionColor: '#c62828',
-    cardType: CARD_TYPES.ELEVATED,
-    backgroundColor: '#ffebee',
-    borderColor: '#ffcdd2',
-    cardBackgroundColor: '#ffffff',
-    cardBorderColor: '#ef9a9a',
-    cardTitleColor: '#b71c1c',
-    cardContentColor: '#c62828',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#ffebee',
-    cardGradientColor2: '#ffcdd2',
-    cardGradientDirection: '120deg',
-    style: {
-      shadow: '0 4px 8px rgba(183, 28, 28, 0.12)',
-      borderRadius: '10px'
-    }
-  },
-  OLIVE: {
-    titleColor: '#33691e',
-    descriptionColor: '#558b2f',
-    cardType: CARD_TYPES.GRADIENT,
-    backgroundColor: '#f1f8e9',
-    borderColor: '#dcedc8',
-    cardBackgroundColor: '#ffffff',
-    cardBorderColor: '#c5e1a5',
-    cardTitleColor: '#ffffff',
-    cardContentColor: '#f1f8e9',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#7cb342',
-    cardGradientColor2: '#558b2f',
-    cardGradientDirection: '145deg',
-    style: {
-      shadow: '0 4px 8px rgba(51, 105, 30, 0.12)',
-      borderRadius: '14px'
-    }
-  },
-  SLATE: {
-    titleColor: '#263238',
-    descriptionColor: '#37474f',
-    cardType: CARD_TYPES.ELEVATED,
-    backgroundColor: '#eceff1',
-    borderColor: '#cfd8dc',
-    cardBackgroundColor: '#ffffff',
-    cardBorderColor: '#b0bec5',
-    cardTitleColor: '#263238',
-    cardContentColor: '#37474f',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#eceff1',
-    cardGradientColor2: '#cfd8dc',
-    cardGradientDirection: '135deg',
-    style: {
-      shadow: '0 4px 8px rgba(38, 50, 56, 0.12)',
-      borderRadius: '12px'
-    }
-  },
-  BURGUNDY: {
-    titleColor: '#880e4f',
-    descriptionColor: '#ad1457',
-    cardType: CARD_TYPES.GRADIENT,
-    backgroundColor: '#fce4ec',
-    borderColor: '#f8bbd0',
-    cardBackgroundColor: '#ffffff',
-    cardBorderColor: '#f48fb1',
-    cardTitleColor: '#ffffff',
-    cardContentColor: '#fce4ec',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#c2185b',
-    cardGradientColor2: '#880e4f',
-    cardGradientDirection: '150deg',
-    style: {
-      shadow: '0 4px 8px rgba(136, 14, 79, 0.15)',
-      borderRadius: '14px'
-    }
-  },
-  TEAL: {
-    titleColor: '#004d40',
-    descriptionColor: '#00695c',
-    cardType: CARD_TYPES.ELEVATED,
-    backgroundColor: '#e0f2f1',
-    borderColor: '#b2dfdb',
-    cardBackgroundColor: '#ffffff',
-    cardBorderColor: '#80cbc4',
-    cardTitleColor: '#004d40',
-    cardContentColor: '#00695c',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#e0f2f1',
-    cardGradientColor2: '#b2dfdb',
-    cardGradientDirection: '140deg',
-    style: {
-      shadow: '0 4px 8px rgba(0, 77, 64, 0.12)',
-      borderRadius: '12px'
-    }
-  },
-  JADE: {
-    titleColor: '#004d40',
-    descriptionColor: '#00695c',
+  LIME_FRESH: {
+    titleColor: '#1b5e20',
+    descriptionColor: '#2e7d32',
     cardType: 'elevated',
-    backgroundColor: '#e0f2f1',
-    borderColor: '#80cbc4',
+    backgroundColor: '#f9fbe7',
+    borderColor: '#f0f4c3',
     cardBackgroundColor: '#ffffff',
-    cardBorderColor: '#4db6ac',
-    cardTitleColor: '#004d40',
-    cardContentColor: '#00695c',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#ffffff',
-    cardGradientColor2: '#b2dfdb',
-    cardGradientDirection: '120deg',
+    cardBorderColor: '#e6ee9c',
+    cardTitleColor: '#1b5e20',
+    cardContentColor: '#2e7d32',
+    cardBackgroundType: 'solid',
+    cardGradientColor1: '#f9fbe7',
+    cardGradientColor2: '#f0f4c3',
+    cardGradientDirection: 'to bottom',
     style: {
-      shadow: '0 4px 8px rgba(0, 105, 92, 0.12)',
-      borderRadius: '12px'
+      shadow: '0 2px 4px rgba(0,0,0,0.1)',
+      borderRadius: '8px'
     }
-  },
-  TURQUOISE: {
-    titleColor: '#004d40',
-    descriptionColor: '#00695c',
-    cardType: 'gradient',
-    backgroundColor: '#e0f2f1',
-    borderColor: '#80cbc4',
-    cardBackgroundColor: '#ffffff',
-    cardBorderColor: '#4db6ac',
-    cardTitleColor: '#ffffff',
-    cardContentColor: '#e0f2f1',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#00897b',
-    cardGradientColor2: '#00695c',
-    cardGradientDirection: '135deg',
-    style: {
-      shadow: '0 4px 8px rgba(0, 137, 123, 0.15)',
-      borderRadius: '14px'
-    }
-  },
-  SAPPHIRE: {
-    titleColor: '#01579b',
-    descriptionColor: '#0277bd',
-    cardType: 'gradient',
-    backgroundColor: '#e1f5fe',
-    borderColor: '#81d4fa',
-    cardBackgroundColor: '#ffffff',
-    cardBorderColor: '#4fc3f7',
-    cardTitleColor: '#ffffff',
-    cardContentColor: '#e1f5fe',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#0288d1',
-    cardGradientColor2: '#0277bd',
-    cardGradientDirection: '135deg',
-    style: {
-      shadow: '0 4px 8px rgba(2, 119, 189, 0.15)',
-      borderRadius: '14px'
-    }
-  },
-  GOLDEN: {
-    titleColor: '#663c00',
-    descriptionColor: '#804c00',
-    cardType: 'gradient',
-    backgroundColor: '#fff8e1',
-    borderColor: '#ffd54f',
-    cardBackgroundColor: '#ffffff',
-    cardBorderColor: '#ffca28',
-    cardTitleColor: '#ffffff',
-    cardContentColor: '#fff8e1',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#ffa000',
-    cardGradientColor2: '#ff8f00',
-    cardGradientDirection: '135deg',
-    style: {
-      shadow: '0 4px 8px rgba(255, 160, 0, 0.15)',
-      borderRadius: '14px'
-    }
-  },
-  NEON_AQUA: {
-    titleColor: '#00ffff',
-    descriptionColor: '#40ffff',
-    cardType: 'gradient',
-    backgroundColor: '#001a1a',
-    borderColor: '#00ffff',
-    cardBackgroundColor: '#002626',
-    cardBorderColor: '#00ffff',
-    cardTitleColor: '#ffffff',
-    cardContentColor: '#b3ffff',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#003333',
-    cardGradientColor2: '#006666',
-    cardGradientDirection: '135deg',
-    style: {
-      shadow: '0 0 15px rgba(0, 255, 255, 0.5)',
-      borderRadius: '14px'
-    }
-  },
-  NEON_MAGENTA: {
-    titleColor: '#ff00ff',
-    descriptionColor: '#ff40ff',
-    cardType: 'gradient',
-    backgroundColor: '#1a001a',
-    borderColor: '#ff00ff',
-    cardBackgroundColor: '#260026',
-    cardBorderColor: '#ff00ff',
-    cardTitleColor: '#ffffff',
-    cardContentColor: '#ffb3ff',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#330033',
-    cardGradientColor2: '#660066',
-    cardGradientDirection: '135deg',
-    style: {
-      shadow: '0 0 15px rgba(255, 0, 255, 0.5)',
-      borderRadius: '14px'
-    }
-  },
-  NEON_GOLD: {
-    titleColor: '#ffd700',
-    descriptionColor: '#ffeb3b',
-    cardType: 'gradient',
-    backgroundColor: '#1a1500',
-    borderColor: '#ffd700',
-    cardBackgroundColor: '#262100',
-    cardBorderColor: '#ffd700',
-    cardTitleColor: '#ffffff',
-    cardContentColor: '#fff9c4',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#332b00',
-    cardGradientColor2: '#665600',
-    cardGradientDirection: '135deg',
-    style: {
-      shadow: '0 0 15px rgba(255, 215, 0, 0.5)',
-      borderRadius: '14px'
-    }
-  },
-  NEON_ICE: {
-    titleColor: '#00ffff',
-    descriptionColor: '#80ffff',
-    cardType: 'gradient',
-    backgroundColor: '#000033',
-    borderColor: '#00ffff',
-    cardBackgroundColor: '#000040',
-    cardBorderColor: '#00ffff',
-    cardTitleColor: '#ffffff',
-    cardContentColor: '#e6ffff',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#000066',
-    cardGradientColor2: '#0000cc',
-    cardGradientDirection: '45deg',
-    style: {
-      shadow: '0 0 20px rgba(0, 255, 255, 0.6)',
-      borderRadius: '14px'
-    }
-  },
-  NEON_FIRE: {
-    titleColor: '#ff4d00',
-    descriptionColor: '#ff7043',
-    cardType: 'gradient',
-    backgroundColor: '#1a0500',
-    borderColor: '#ff4d00',
-    cardBackgroundColor: '#260800',
-    cardBorderColor: '#ff4d00',
-    cardTitleColor: '#ffffff',
-    cardContentColor: '#ffccbc',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#330a00',
-    cardGradientColor2: '#661400',
-    cardGradientDirection: '-45deg',
-    style: {
-      shadow: '0 0 20px rgba(255, 77, 0, 0.6)',
-      borderRadius: '14px'
-    }
-  },
-  NEON_TOXIC: {
-    titleColor: '#39ff14',
-    descriptionColor: '#7fff00',
-    cardType: 'gradient',
-    backgroundColor: '#0a1f00',
-    borderColor: '#39ff14',
-    cardBackgroundColor: '#0d2600',
-    cardBorderColor: '#39ff14',
-    cardTitleColor: '#ffffff',
-    cardContentColor: '#d4ffcc',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#133300',
-    cardGradientColor2: '#1f4d00',
-    cardGradientDirection: '165deg',
-    style: {
-      shadow: '0 0 20px rgba(57, 255, 20, 0.6)',
-      borderRadius: '14px'
-    }
-  },
-  NEON_SUNSET: {
-    titleColor: '#ff6b6b',
-    descriptionColor: '#ffd93d',
-    cardType: 'gradient',
-    backgroundColor: '#1a0033',
-    borderColor: '#ff6b6b',
-    cardBackgroundColor: '#260040',
-    cardBorderColor: '#ff6b6b',
-    cardTitleColor: '#ffffff',
-    cardContentColor: '#ffe8e8',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#330066',
-    cardGradientColor2: '#cc0066',
-    cardGradientDirection: '120deg',
-    style: {
-      shadow: '0 0 20px rgba(255, 107, 107, 0.6)',
-      borderRadius: '14px'
-    }
-  },
-  NEON_GALAXY: {
-    titleColor: '#9d00ff',
-    descriptionColor: '#00ffff',
-    cardType: 'gradient',
-    backgroundColor: '#000033',
-    borderColor: '#9d00ff',
-    cardBackgroundColor: '#000040',
-    cardBorderColor: '#9d00ff',
-    cardTitleColor: '#ffffff',
-    cardContentColor: '#e6ccff',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#1a0033',
-    cardGradientColor2: '#4d0099',
-    cardGradientDirection: '150deg',
-    style: {
-      shadow: '0 0 25px rgba(157, 0, 255, 0.6)',
-      borderRadius: '14px'
-    }
-  },
-  NEON_OCEAN: {
-    titleColor: '#00fff5',
-    descriptionColor: '#00ccff',
-    cardType: 'gradient',
-    backgroundColor: '#001433',
-    borderColor: '#00fff5',
-    cardBackgroundColor: '#001940',
-    cardBorderColor: '#00fff5',
-    cardTitleColor: '#ffffff',
-    cardContentColor: '#e6fffd',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#002966',
-    cardGradientColor2: '#005c99',
-    cardGradientDirection: '130deg',
-    style: {
-      shadow: '0 0 22px rgba(0, 255, 245, 0.65)',
-      borderRadius: '14px'
-    }
-  },
-  NEON_CYBER: {
-    titleColor: '#ff2a6d',
-    descriptionColor: '#05ffa1',
-    cardType: 'gradient',
-    backgroundColor: '#1a1a2e',
-    borderColor: '#ff2a6d',
-    cardBackgroundColor: '#202040',
-    cardBorderColor: '#ff2a6d',
-    cardTitleColor: '#ffffff',
-    cardContentColor: '#ffcce0',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#2d2d52',
-    cardGradientColor2: '#3d3d7a',
-    cardGradientDirection: '145deg',
-    style: {
-      shadow: '0 0 25px rgba(255, 42, 109, 0.65)',
-      borderRadius: '14px'
-    }
-  },
-  NEON_AURORA: {
-    titleColor: '#7df9ff',
-    descriptionColor: '#9d72ff',
-    cardType: 'gradient',
-    backgroundColor: '#001433',
-    borderColor: '#7df9ff',
-    cardBackgroundColor: '#001940',
-    cardBorderColor: '#7df9ff',
-    cardTitleColor: '#ffffff',
-    cardContentColor: '#e6faff',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#002966',
-    cardGradientColor2: '#4d0099',
-    cardGradientDirection: '165deg',
-    style: {
-      shadow: '0 0 20px rgba(125, 249, 255, 0.6)',
-      borderRadius: '14px'
-    }
-  },
-  NEON_PLASMA: {
-    titleColor: '#fb33db',
-    descriptionColor: '#7b2ff7',
-    cardType: 'gradient',
-    backgroundColor: '#10002b',
-    borderColor: '#fb33db',
-    cardBackgroundColor: '#1a0044',
-    cardBorderColor: '#fb33db',
-    cardTitleColor: '#ffffff',
-    cardContentColor: '#ffd5f6',
-    cardBackgroundType: 'gradient',
-    cardGradientColor1: '#240052',
-    cardGradientColor2: '#3c0087',
-    cardGradientDirection: '155deg',
-    style: {
-      shadow: '0 0 23px rgba(251, 51, 219, 0.65)',
-      borderRadius: '14px'
-    }
-  },
-  // ... еще 21 стиль (добавлю далее, если нужно) ...
+  }
 };
 
 const EditorPanel = ({
@@ -1845,8 +1355,8 @@ const EditorPanel = ({
       if (section.cardType === 'none') {
         // Собираем текст из карточек
         const cardsText = (section.cards || []).map(card => `
-          ${card.title ? `<br><strong style=\"color:${card.titleColor || '#1976d2'}\">${card.title}</strong>` : ''}
-          ${card.content ? `<br>${card.content}` : ''}
+          ${card.title ? `<br><strong style=\"color:${card.titleColor || section.titleColor || '#1976d2'}\">${card.title}</strong>` : ''}
+          ${card.content ? `<br><span style=\"color:${card.contentColor || section.contentColor || '#333333'}\">${card.content}</span>` : ''}
         `).join('');
         return `
           <section id="${section.id}" class="section" style="
@@ -1868,7 +1378,10 @@ const EditorPanel = ({
                 padding: 2rem;
                 position: relative;
                 border-radius: 16px;
-                background: linear-gradient(145deg, #ffffff, #f5f5f5);
+                background: ${section.backgroundColor ? section.backgroundColor : 
+                  (section.gradientStart && section.gradientEnd) ? 
+                  `linear-gradient(145deg, ${section.gradientStart}, ${section.gradientEnd})` : 
+                  'linear-gradient(145deg, #ffffff, #f5f5f5)'};
                 box-shadow: 0 4px 20px rgba(0,0,0,0.1);
               ">
                 <style>
@@ -1997,7 +1510,45 @@ const EditorPanel = ({
               ` : ''}
             `}
             <div class="cards-container${cardsClass ? ' ' + cardsClass : ''}">
-              ${(section.cards || []).map(card => `
+              ${section.cardType === 'none' || (section.cards || []).length === 0 ? `
+                <div class="no-cards-section" style="
+                  padding: 2rem;
+                  border-radius: 16px;
+                  background: ${section.backgroundColor ? section.backgroundColor : 
+                    (section.gradientStart && section.gradientEnd) ? 
+                    `linear-gradient(145deg, ${section.gradientStart}, ${section.gradientEnd})` : 
+                    'linear-gradient(145deg, #ffffff, #f5f5f5)'};
+                  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+                  position: relative;
+                  margin-top: 2rem;
+                ">
+                  <div class="section-content" style="position: relative; text-align: left;">
+                    ${section.imagePath ? `
+                      <div class="section-float-image" style="
+                        float: right;
+                        margin: 0 0 1rem 1.5rem;
+                        max-width: 300px;
+                        width: 100%;
+                      ">
+                        <img 
+                          src="assets/images/${section.imagePath.split('/').pop()}" 
+                          alt="${section.title || 'Section image'}"
+                          style="
+                            width: 100%;
+                            height: auto;
+                            border-radius: 12px;
+                            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                          "
+                        />
+                      </div>
+                    ` : ''}
+                    ${(section.cards || []).map(card => `
+                      ${card.title ? `<h3 style="color: ${card.titleColor || section.titleColor || '#1976d2'}; margin-top: 1.5rem; margin-bottom: 0.5rem;">${card.title}</h3>` : ''}
+                      ${card.content ? `<p style="color: ${card.contentColor || section.contentColor || '#333333'}; line-height: 1.6;">${card.content}</p>` : ''}
+                    `).join('')}
+                  </div>
+                </div>
+              ` : (section.cards || []).map(card => `
                 <div class="card ${section.cardType}" data-card-id="${card.id}" style="
                   ${card.backgroundType === 'solid' ? `background-color: ${card.backgroundColor || '#ffffff'};` : ''}
                   ${card.backgroundType === 'gradient' ? `background: linear-gradient(${card.gradientDirection || 'to right'}, ${card.gradientColor1 || '#ffffff'}, ${card.gradientColor2 || '#f5f5f5'});` : ''}

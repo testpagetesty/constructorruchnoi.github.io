@@ -400,5 +400,295 @@ export const headerPresets = {
     siteGradientColor1: '#0a1a00',
     siteGradientColor2: '#1a3300',
     siteGradientDirection: '315deg'
+  },
+  PURE_CRIMSON: {
+    name: 'Чистый малиновый',
+    titleColor: '#ffffff',
+    backgroundColor: '#b71c1c',
+    linksColor: '#ffcdd2',
+    siteBackgroundType: 'gradient',
+    siteGradientColor1: '#b71c1c',
+    siteGradientColor2: '#c62828',
+    siteGradientDirection: 'to right'
+  },
+  FRESH_LIME: {
+    name: 'Свежий лайм',
+    titleColor: '#1b5e20',
+    backgroundColor: '#f1f8e9',
+    linksColor: '#33691e',
+    siteBackgroundType: 'gradient',
+    siteGradientColor1: '#dcedc8',
+    siteGradientColor2: '#f1f8e9',
+    siteGradientDirection: 'to right'
+  },
+  DEEP_PURPLE: {
+    name: 'Глубокий пурпур',
+    titleColor: '#e1bee7',
+    backgroundColor: '#4a148c',
+    linksColor: '#ce93d8',
+    siteBackgroundType: 'gradient',
+    siteGradientColor1: '#4a148c',
+    siteGradientColor2: '#6a1b9a',
+    siteGradientDirection: 'to right'
+  },
+  GOLDEN_SUNSET: {
+    name: 'Золотой закат',
+    titleColor: '#3e2723',
+    backgroundColor: '#ffd54f',
+    linksColor: '#4e342e',
+    siteBackgroundType: 'gradient',
+    siteGradientColor1: '#ffd54f',
+    siteGradientColor2: '#ffecb3',
+    siteGradientDirection: 'to right'
+  },
+  NAVY_STEEL: {
+    name: 'Морская сталь',
+    titleColor: '#eceff1',
+    backgroundColor: '#263238',
+    linksColor: '#cfd8dc',
+    siteBackgroundType: 'gradient',
+    siteGradientColor1: '#263238',
+    siteGradientColor2: '#37474f',
+    siteGradientDirection: 'to right'
+  },
+  LAVENDER_FIELDS: {
+    name: 'Лавандовые поля',
+    titleColor: '#4527a0',
+    backgroundColor: '#e8eaf6',
+    linksColor: '#5e35b1',
+    siteBackgroundType: 'gradient',
+    siteGradientColor1: '#d1c4e9',
+    siteGradientColor2: '#e8eaf6',
+    siteGradientDirection: 'to right'
+  },
+  CITRUS_SPLASH: {
+    name: 'Цитрусовый всплеск',
+    titleColor: '#e65100',
+    backgroundColor: '#fff8e1',
+    linksColor: '#ef6c00',
+    siteBackgroundType: 'gradient',
+    siteGradientColor1: '#ffe0b2',
+    siteGradientColor2: '#fff8e1',
+    siteGradientDirection: 'to right'
+  },
+  TEAL_ELEGANCE: {
+    name: 'Бирюзовая элегантность',
+    titleColor: '#ffffff',
+    backgroundColor: '#00796b',
+    linksColor: '#b2dfdb',
+    siteBackgroundType: 'gradient',
+    siteGradientColor1: '#00796b',
+    siteGradientColor2: '#00897b',
+    siteGradientDirection: 'to right'
+  },
+  CHERRY_BLOSSOM: {
+    name: 'Цветение сакуры',
+    titleColor: '#880e4f',
+    backgroundColor: '#fce4ec',
+    linksColor: '#ad1457',
+    siteBackgroundType: 'gradient',
+    siteGradientColor1: '#f8bbd0',
+    siteGradientColor2: '#fce4ec',
+    siteGradientDirection: 'to right'
+  },
+  SLATE_MODERN: {
+    name: 'Современный серый',
+    titleColor: '#ffffff',
+    backgroundColor: '#455a64',
+    linksColor: '#cfd8dc',
+    siteBackgroundType: 'gradient',
+    siteGradientColor1: '#455a64',
+    siteGradientColor2: '#607d8b',
+    siteGradientDirection: 'to right'
+  },
+  AMBER_GLOW: {
+    name: 'Янтарное свечение',
+    titleColor: '#3e2723',
+    backgroundColor: '#ffecb3',
+    linksColor: '#4e342e',
+    siteBackgroundType: 'gradient',
+    siteGradientColor1: '#ffe082',
+    siteGradientColor2: '#ffecb3',
+    siteGradientDirection: 'to right'
+  },
+  ROYAL_INDIGO: {
+    name: 'Королевский индиго',
+    titleColor: '#e8eaf6',
+    backgroundColor: '#303f9f',
+    linksColor: '#c5cae9',
+    siteBackgroundType: 'gradient',
+    siteGradientColor1: '#303f9f',
+    siteGradientColor2: '#3949ab',
+    siteGradientDirection: 'to right'
+  },
+  TURQUOISE_FRESH: {
+    name: 'Свежая бирюза',
+    titleColor: '#004d40',
+    backgroundColor: '#e0f2f1',
+    linksColor: '#00695c',
+    siteBackgroundType: 'gradient',
+    siteGradientColor1: '#b2dfdb',
+    siteGradientColor2: '#e0f2f1',
+    siteGradientDirection: 'to right'
+  },
+  CORAL_REEF: {
+    name: 'Коралловый риф',
+    titleColor: '#ffffff',
+    backgroundColor: '#e57373',
+    linksColor: '#ffebee',
+    siteBackgroundType: 'gradient',
+    siteGradientColor1: '#e57373',
+    siteGradientColor2: '#ef9a9a',
+    siteGradientDirection: 'to right'
+  },
+  EMERALD_FOREST: {
+    name: 'Изумрудный лес',
+    titleColor: '#ffffff',
+    backgroundColor: '#2e7d32',
+    linksColor: '#c8e6c9',
+    siteBackgroundType: 'gradient',
+    siteGradientColor1: '#2e7d32',
+    siteGradientColor2: '#388e3c',
+    siteGradientDirection: 'to right'
+  },
+  SAPPHIRE_NIGHT: {
+    name: 'Сапфировая ночь',
+    titleColor: '#e3f2fd',
+    backgroundColor: '#0d47a1',
+    linksColor: '#bbdefb',
+    siteBackgroundType: 'gradient',
+    siteGradientColor1: '#0d47a1',
+    siteGradientColor2: '#1565c0',
+    siteGradientDirection: 'to right'
+  },
+  LEMON_BURST: {
+    name: 'Лимонный взрыв',
+    titleColor: '#1b5e20',
+    backgroundColor: '#ffeb3b',
+    linksColor: '#33691e',
+    siteBackgroundType: 'gradient',
+    siteGradientColor1: '#ffeb3b',
+    siteGradientColor2: '#fff59d',
+    siteGradientDirection: 'to right'
+  },
+  WINE_BERRY: {
+    name: 'Винная ягода',
+    titleColor: '#ffcdd2',
+    backgroundColor: '#5d4037',
+    linksColor: '#efebe9',
+    siteBackgroundType: 'gradient',
+    siteGradientColor1: '#5d4037',
+    siteGradientColor2: '#6d4c41',
+    siteGradientDirection: 'to right'
+  },
+  MIDNIGHT_BLUE: {
+    name: 'Полуночный синий',
+    titleColor: '#e1f5fe',
+    backgroundColor: '#0d47a1',
+    linksColor: '#b3e5fc',
+    siteBackgroundType: 'gradient',
+    siteGradientColor1: '#0d47a1',
+    siteGradientColor2: '#1565c0',
+    siteGradientDirection: 'to right'
+  },
+  MINT_FRESH: {
+    name: 'Свежая мята',
+    titleColor: '#004d40',
+    backgroundColor: '#e0f2f1',
+    linksColor: '#00695c',
+    siteBackgroundType: 'gradient',
+    siteGradientColor1: '#b2dfdb',
+    siteGradientColor2: '#e0f2f1',
+    siteGradientDirection: 'to right'
+  },
+  DEEP_OCEAN: {
+    name: 'Глубокий океан',
+    titleColor: '#b3e5fc',
+    backgroundColor: '#01579b',
+    linksColor: '#e1f5fe',
+    siteBackgroundType: 'gradient',
+    siteGradientColor1: '#01579b',
+    siteGradientColor2: '#0277bd',
+    siteGradientDirection: '45deg'
+  },
+  RICH_BURGUNDY: {
+    name: 'Насыщенный бордовый',
+    titleColor: '#ffebee',
+    backgroundColor: '#880e4f',
+    linksColor: '#f8bbd0',
+    siteBackgroundType: 'gradient',
+    siteGradientColor1: '#880e4f',
+    siteGradientColor2: '#ad1457',
+    siteGradientDirection: 'to right'
+  },
+  SUNRISE_GOLD: {
+    name: 'Золото рассвета',
+    titleColor: '#4e342e',
+    backgroundColor: '#fff176',
+    linksColor: '#3e2723',
+    siteBackgroundType: 'gradient',
+    siteGradientColor1: '#fff176',
+    siteGradientColor2: '#fff59d',
+    siteGradientDirection: 'to right'
+  },
+  VIVID_VIOLET: {
+    name: 'Яркий фиолетовый',
+    titleColor: '#ede7f6',
+    backgroundColor: '#6a1b9a',
+    linksColor: '#d1c4e9',
+    siteBackgroundType: 'gradient',
+    siteGradientColor1: '#6a1b9a',
+    siteGradientColor2: '#8e24aa',
+    siteGradientDirection: 'to right'
+  },
+  DARK_CHOCOLATE: {
+    name: 'Темный шоколад',
+    titleColor: '#d7ccc8',
+    backgroundColor: '#3e2723',
+    linksColor: '#efebe9',
+    siteBackgroundType: 'gradient',
+    siteGradientColor1: '#3e2723',
+    siteGradientColor2: '#4e342e',
+    siteGradientDirection: 'to right'
+  },
+  ARCTIC_BLUE: {
+    name: 'Арктический синий',
+    titleColor: '#002f6c',
+    backgroundColor: '#e3f2fd',
+    linksColor: '#01579b',
+    siteBackgroundType: 'gradient',
+    siteGradientColor1: '#e3f2fd',
+    siteGradientColor2: '#bbdefb',
+    siteGradientDirection: 'to right'
+  },
+  RIPE_TOMATO: {
+    name: 'Спелый томат',
+    titleColor: '#ffffff',
+    backgroundColor: '#d50000',
+    linksColor: '#ffebee',
+    siteBackgroundType: 'gradient',
+    siteGradientColor1: '#d50000',
+    siteGradientColor2: '#e53935',
+    siteGradientDirection: 'to right'
+  },
+  OLIVE_GARDEN: {
+    name: 'Оливковый сад',
+    titleColor: '#f1f8e9',
+    backgroundColor: '#558b2f',
+    linksColor: '#dcedc8',
+    siteBackgroundType: 'gradient',
+    siteGradientColor1: '#558b2f',
+    siteGradientColor2: '#689f38',
+    siteGradientDirection: 'to right'
+  },
+  BLACK_PEARL: {
+    name: 'Черная жемчужина',
+    titleColor: '#cfd8dc',
+    backgroundColor: '#102027',
+    linksColor: '#eceff1',
+    siteBackgroundType: 'gradient',
+    siteGradientColor1: '#102027',
+    siteGradientColor2: '#263238',
+    siteGradientDirection: '135deg'
   }
 }; 

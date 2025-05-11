@@ -331,7 +331,12 @@ const PagePreview = ({
           gap: 4,
           p: 4,
           borderRadius: '16px',
-          background: 'linear-gradient(145deg, #ffffff, #f5f5f5)',
+          background: isNoCards ? 
+            (section.backgroundColor ? section.backgroundColor : 
+              (section.gradientStart && section.gradientEnd) ? 
+              `linear-gradient(145deg, ${section.gradientStart}, ${section.gradientEnd})` : 
+              'linear-gradient(145deg, #ffffff, #f5f5f5)') : 
+            'linear-gradient(145deg, #ffffff, #f5f5f5)',
           boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
             position: 'relative',
           '&::before': {
@@ -427,10 +432,10 @@ const PagePreview = ({
                         {section.cards.map((card, idx) => (
                           <span key={card.id}>
                             {card.title && (
-                              <><br /><strong style={{color: card.titleColor || '#1976d2'}}>{card.title}</strong></>
+                              <><br /><strong style={{color: card.titleColor || section.titleColor || '#1976d2'}}>{card.title}</strong></>
                             )}
                             {card.content && (
-                              <><br />{card.content}</>
+                              <><br /><span style={{color: card.contentColor || section.contentColor || '#333333'}}>{card.content}</span></>
                             )}
                             {idx !== section.cards.length - 1 && <br />}
                           </span>
@@ -768,7 +773,10 @@ const PagePreview = ({
               mt: 4,
               p: 4,
               borderRadius: '16px',
-              background: 'linear-gradient(145deg, #ffffff, #f5f5f5)',
+              background: section.backgroundColor ? section.backgroundColor : 
+                (section.gradientStart && section.gradientEnd) ? 
+                `linear-gradient(145deg, ${section.gradientStart}, ${section.gradientEnd})` : 
+                'linear-gradient(145deg, #ffffff, #f5f5f5)',
               boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
               position: 'relative',
               '&::before': {
@@ -882,7 +890,7 @@ const PagePreview = ({
                         <Typography 
                           variant="h6" 
                           sx={{ 
-                            color: card.titleColor || '#1976d2',
+                            color: card.titleColor || section.titleColor || '#1976d2',
                             mb: 1,
                             fontWeight: 600
                           }}
@@ -897,7 +905,7 @@ const PagePreview = ({
                             fontSize: { xs: '1rem', sm: '1.1rem' },
                             lineHeight: 1.6,
                             textAlign: 'left',
-                            color: card.contentColor || '#666666'
+                            color: card.contentColor || section.contentColor || '#666666'
                           }}
                         >
                           {card.content}

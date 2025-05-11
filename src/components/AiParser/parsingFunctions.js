@@ -77,6 +77,29 @@ const generateRandomPhone = (originalPhone) => {
   return result;
 };
 
+// Функция для удаления инструкций из текста секции
+const cleanSectionContent = (content) => {
+  // Удаляем строки, которые похожи на инструкции
+  return content
+    .split('\n')
+    .filter(line => {
+      const trimmedLine = line.trim();
+      // Фильтруем инструктивные строки и пустые строки
+      return trimmedLine && 
+        !trimmedLine.match(/^\d+\./) && // Строки вида "1.", "2."
+        !trimmedLine.match(/^\[\d+-\d+/) && // Строки вида "[4-6"
+        !trimmedLine.match(/^\[[^\]]+\]/) && // Строки в квадратных скобках
+        !trimmedLine.match(/^\(/) && // Строки в круглых скобках
+        !trimmedLine.match(/^ID секции:/i) && // "ID секции:"
+        trimmedLine !== 'О нас' && // Заголовки навигации
+        trimmedLine !== 'Услуги' &&
+        trimmedLine !== 'Преимущества' &&
+        trimmedLine !== 'Отзывы' &&
+        trimmedLine !== 'Вопросы и ответы';
+    })
+    .join('\n');
+};
+
 // Функции парсинга для разных типов контента
 export const parseServices = (content) => {
   try {
@@ -212,26 +235,25 @@ export const parseServices = (content) => {
 
 export const parseHero = (content) => {
   try {
-    const lines = content.split('\n').filter(line => line.trim());
+    // Очищаем текст от инструкций
+    const cleanedContent = cleanSectionContent(content);
+    
+    const lines = cleanedContent.split('\n').filter(line => line.trim());
+    
     const heroData = {
       siteName: '',
       title: '',
       description: ''
     };
     
-    // Проверяем, содержит ли текст структуру примера
-    const exampleIndex = lines.findIndex(line => line.includes('Пример структуры:'));
+    // Берем первые три непустые строки после фильтрации
+    if (lines.length >= 1) heroData.siteName = lines[0].trim();
+    if (lines.length >= 2) heroData.title = lines[1].trim();
+    if (lines.length >= 3) heroData.description = lines[2].trim();
     
-    if (exampleIndex !== -1) {
-      // Если есть пример структуры, берем данные из него
-      if (lines.length > exampleIndex + 1) heroData.siteName = lines[exampleIndex + 1].trim();
-      if (lines.length > exampleIndex + 3) heroData.title = lines[exampleIndex + 3].trim();
-      if (lines.length > exampleIndex + 5) heroData.description = lines[exampleIndex + 5].trim();
-    } else {
-      // Если нет примера структуры, берем первые три непустые строки
-      if (lines.length >= 1) heroData.siteName = lines[0].trim();
-      if (lines.length >= 2) heroData.title = lines[1].trim();
-      if (lines.length >= 3) heroData.description = lines[2].trim();
+    // Проверяем, что данные не пусты
+    if (!heroData.siteName || !heroData.title || !heroData.description) {
+      console.warn('parseHero: Incomplete hero data', heroData);
     }
     
     return heroData;
@@ -708,8 +730,10 @@ export const parseFaq = (content) => {
 
 export const parseNews = (content) => {
   try {
+    console.log('Начинаем парсинг новостей, содержимое:', content.substring(0, 100) + '...');
+    
     const lines = content.split('\n');
-    let sectionId = 'news'; // Default value
+    let sectionId = 'новости'; // Значение по умолчанию
     let sectionTitle = '';
     let sectionDescription = '';
     const cards = [];
@@ -740,6 +764,8 @@ export const parseNews = (content) => {
             .replace(/[^a-zа-яё0-9]/g, '_')
             .replace(/_+/g, '_')
             .replace(/^_|_$/g, '');
+          
+          console.log('Найден ID секции новостей:', sectionId);
         }
         isHeaderSection = true;
         continue;
@@ -765,7 +791,7 @@ export const parseNews = (content) => {
             cards.push(currentCard);
           }
           currentCard = {
-            id: `news_${cards.length + 1}`,
+            id: `${sectionId}_${cards.length + 1}`,
             title: line,
             content: ''
           };
@@ -786,6 +812,8 @@ export const parseNews = (content) => {
       content: cleanEmailsInText(card.content),
       title: cleanEmailsInText(card.title)
     }));
+
+    console.log('Результат парсинга новостей:', { id: sectionId, title: sectionTitle, cards: cleanedCards });
 
     // Create section data structure
     return {
@@ -929,8 +957,12 @@ export const parseLegalDocuments = (content, contactData = {}) => {
     // Нормализуем переносы строк
     const normalizedContent = content.replace(/\r\n/g, '\n');
 
-    // Регулярное выражение для поиска заголовков в скобках и последующего текста
-    const documentPattern = /\(([^)]+)\)([\s\S]*?)(?=\([^)]+\)|$)/g;
+    // Регулярное выражение для поиска заголовков в скобках в начале строки и последующего текста
+    // (?:^|\n) - начало строки или новая строка
+    // \s* - возможные пробелы в начале строки
+    // \(([^)]+)\) - заголовок в скобках
+    // [\s\S]*? - любой текст до следующего заголовка или конца текста
+    const documentPattern = /(?:^|\n)\s*\(([^)]+)\)([\s\S]*?)(?=(?:^|\n)\s*\([^)]+\)|$)/g;
     
     // Массив типов документов в порядке их следования
     const documentTypes = ['privacyPolicy', 'termsOfService', 'cookiePolicy'];
@@ -940,6 +972,8 @@ export const parseLegalDocuments = (content, contactData = {}) => {
     while ((match = documentPattern.exec(normalizedContent)) !== null) {
       const title = match[1].trim();
       let documentContent = match[2].trim();
+
+      console.log(`Найден документ: ${title}`);
 
       // Определяем тип документа по порядку следования
       const documentType = documentTypes[documentIndex];
@@ -1001,5 +1035,211 @@ export const autoDetectSectionType = (content) => {
   }
   
   return 'AUTO';
+};
+
+export const parseFullSite = (content, headerData = {}) => {
+  try {
+    // Очищаем начальный текст от инструкций
+    let cleanedContent = content;
+    // Удаляем всё от начала до первого === РАЗДЕЛ: если это нужно
+    const firstSectionIndex = content.indexOf('=== РАЗДЕЛ:');
+    if (firstSectionIndex > 0) {
+      cleanedContent = content.substring(firstSectionIndex);
+    }
+    
+    const sections = {};
+    const sectionRegex = /=== РАЗДЕЛ: ([^=]+) ===([\s\S]*?)=== КОНЕЦ РАЗДЕЛА ===/g;
+    let match;
+
+    console.log('Начинаем парсинг полного сайта, количество символов:', cleanedContent.length);
+
+    // Ищем все разделы в контенте
+    const allSections = [];
+    while ((match = sectionRegex.exec(cleanedContent)) !== null) {
+      const sectionName = match[1].trim();
+      const sectionContent = match[2].trim();
+      allSections.push({ name: sectionName, content: sectionContent });
+    }
+    
+    console.log('Найдены разделы:', allSections.map(s => s.name));
+
+    // Обрабатываем каждый раздел
+    for (const section of allSections) {
+      const sectionName = section.name;
+      const sectionContent = section.content;
+      
+      console.log(`Обрабатываем раздел: ${sectionName}, длина контента: ${sectionContent.length}`);
+
+      switch (sectionName) {
+        case 'HERO':
+          sections.hero = parseHero(sectionContent);
+          console.log('Результат парсинга Hero:', sections.hero);
+          break;
+        case 'УСЛУГИ':
+          sections.services = parseServices(sectionContent);
+          break;
+        case 'О НАС':
+          sections.about = parseAboutSection(sectionContent);
+          break;
+        case 'ПРЕИМУЩЕСТВА':
+          sections.features = parseAdvantagesSection(sectionContent);
+          break;
+        case 'ОТЗЫВЫ':
+          sections.testimonials = parseTestimonials(sectionContent);
+          break;
+        case 'ВОПРОСЫ':
+          sections.faq = parseFaq(sectionContent);
+          break;
+        case 'НОВОСТИ':
+          sections.news = parseNews(sectionContent);
+          console.log('Результат парсинга новостей в полном сайте:', sections.news);
+          break;
+        case 'КОНТАКТЫ':
+          sections.contacts = parseContactsFull(sectionContent, headerData);
+          break;
+        default:
+          console.log(`Неизвестный раздел: ${sectionName}`);
+      }
+    }
+
+    return sections;
+  } catch (error) {
+    console.error('Error parsing full site content:', error);
+    return null;
+  }
+};
+
+// Специальная функция для обработки контактов в полном формате сайта
+export const parseContactsFull = (content, headerData = {}) => {
+  try {
+    // Очищаем текст от инструкций
+    const cleanedContent = cleanSectionContent(content);
+    
+    const lines = cleanedContent.split('\n').map(line => line.trim()).filter(line => line);
+    
+    const contactData = {
+      title: '',
+      description: '',
+      companyName: headerData?.siteName || '', // Используем название сайта из headerData
+      address: '',
+      phone: '',
+      email: ''
+    };
+    
+    // Обрабатываем каждую строку в секции контактов
+    let currentIndex = 0;
+    
+    // Заголовок берем из первой строки секции
+    if (lines.length >= 1) {
+      contactData.title = lines[currentIndex];
+      currentIndex++;
+    }
+    
+    // Проходим по остальным строкам и распределяем их по соответствующим полям
+    if (lines.length > currentIndex) {
+      // Используем название сайта из headerData, если оно есть, иначе берем из контента
+      if (!contactData.companyName) {
+        contactData.companyName = lines[currentIndex];
+      }
+      currentIndex++;
+    }
+    
+    if (lines.length > currentIndex) {
+      contactData.address = lines[currentIndex];
+      currentIndex++;
+    }
+    
+    if (lines.length > currentIndex) {
+      // Получаем исходный телефон
+      let originalPhone = lines[currentIndex];
+      
+      // Ищем телефон в формате "Телефон: номер"
+      const phoneRegex = /телефон:?\s*([+\d\s()-]+)/i;
+      const phoneMatch = originalPhone.match(phoneRegex);
+      if (phoneMatch) {
+        originalPhone = phoneMatch[1].trim();
+      }
+      
+      // Всегда генерируем случайный телефонный номер с сохранением формата
+      contactData.phone = generateRandomPhone(originalPhone);
+      currentIndex++;
+    }
+    
+    if (lines.length > currentIndex) {
+      // Получаем строку с email
+      let emailLine = lines[currentIndex];
+      
+      // Всегда генерируем стандартный email на основе названия сайта
+      if (headerData?.siteName) {
+        // Создаем email из названия сайта
+        const domainName = headerData.siteName
+          .toLowerCase()
+          .replace(/[^a-zа-яё0-9]/g, '-') // Заменяем все специальные символы на дефисы
+          .replace(/-+/g, '-') // Убираем множественные дефисы
+          .replace(/^-|-$/g, '') // Убираем дефисы в начале и конце
+          .replace(/[а-яё]/g, char => { // Транслитерация русских букв
+            const translit = {
+              'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'e',
+              'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm',
+              'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
+              'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch',
+              'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
+            };
+            return translit[char] || char;
+          });
+        
+        // Выбираем случайный префикс для email из списка возможных вариантов
+        const emailPrefixes = [
+          'info', 'contact', 'office', 'hello', 'support', 'mail', 'team', 'admin',
+          'service', 'sales', 'clients', 'help', 'legal', 'company', 'director',
+          'manager', 'secretary', 'consulting', 'general', 'reception', 'inquiry', 
+          'hr', 'jobs', 'career', 'business', 'partners', 'marketing', 'press'
+        ];
+        const randomPrefix = emailPrefixes[Math.floor(Math.random() * emailPrefixes.length)];
+        
+        // Всегда используем .com в конце
+        contactData.email = `${randomPrefix}@${domainName}.com`;
+      } else {
+        // Если название сайта не определено, используем название компании для генерации email
+        const companyName = contactData.companyName || '';
+        
+        // Создаем домен из названия компании, если оно есть
+        if (companyName && companyName.length > 0) {
+          const domainName = companyName
+            .toLowerCase()
+            .replace(/[^a-zа-яё0-9]/g, '-')
+            .replace(/-+/g, '-')
+            .replace(/^-|-$/g, '')
+            .replace(/[а-яё]/g, char => {
+              const translit = {
+                'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'e',
+                'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm',
+                'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
+                'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch',
+                'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
+              };
+              return translit[char] || char;
+            });
+          
+          // Выбираем случайный префикс для email
+          const emailPrefixes = [
+            'info', 'contact', 'office', 'hello', 'support', 'mail', 'team'
+          ];
+          const randomPrefix = emailPrefixes[Math.floor(Math.random() * emailPrefixes.length)];
+          
+          contactData.email = `${randomPrefix}@${domainName}.com`;
+        } else {
+          // Если нет ни названия сайта, ни названия компании, используем стандартный адрес
+          contactData.email = 'info@example.com';
+        }
+      }
+    }
+    
+    console.log('Результат парсинга контактов:', contactData);
+    return contactData;
+  } catch (error) {
+    console.error('Error parsing contacts from full site structure:', error);
+    return null;
+  }
 }; 
 
