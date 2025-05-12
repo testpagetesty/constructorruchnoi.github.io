@@ -29,7 +29,8 @@ import {
   FormControlLabel,
   Checkbox,
   Grid,
-  Slider
+  Slider,
+  Switch
 } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -745,6 +746,9 @@ const AiParser = ({
   
   // Добавляем состояние для управления стилями сайта
   const [showStyleManager, setShowStyleManager] = useState(false);
+  
+  // Добавляем состояние для переключателя стилей
+  const [singleStyleMode, setSingleStyleMode] = useState(true);
   
   // Функция для генерации промпта полного сайта с учетом настроек
   const generateFullSitePrompt = (settings) => {
@@ -1807,19 +1811,105 @@ Email: example@example.com
     }
   };
 
-  // Добавляем функцию для выбора случайного стиля
+  // Модифицируем функцию для применения случайного стиля
   const applyRandomStyle = () => {
     // Получаем все доступные стили из STYLE_PRESETS
     const styleNames = Object.keys(STYLE_PRESETS);
     
-    // Выбираем случайный стиль
-    const randomStyleName = styleNames[Math.floor(Math.random() * styleNames.length)];
-    const randomStylePreset = STYLE_PRESETS[randomStyleName];
-    
-    console.log(`Применяем случайный стиль: ${randomStyleName}`);
-    
-    // Применяем выбранный стиль ко всему сайту
-    handleApplyWholeWebsiteStyle(randomStyleName, randomStylePreset);
+    if (singleStyleMode) {
+      // Применяем один и тот же стиль ко всем разделам
+      const randomStyleName = styleNames[Math.floor(Math.random() * styleNames.length)];
+      const randomStylePreset = STYLE_PRESETS[randomStyleName];
+      
+      console.log(`Применяем один случайный стиль ко всем разделам: ${randomStyleName}`);
+      handleApplyWholeWebsiteStyle(randomStyleName, randomStylePreset);
+    } else {
+      // Применяем разные случайные стили к каждому разделу
+      console.log('Применяем разные случайные стили к каждому разделу');
+      
+      // Применяем случайный стиль к шапке
+      const headerStyleName = styleNames[Math.floor(Math.random() * styleNames.length)];
+      const headerStylePreset = STYLE_PRESETS[headerStyleName];
+      
+      if (onHeaderChange && headerData) {
+        onHeaderChange({
+          ...headerData,
+          titleColor: headerStylePreset.titleColor,
+          backgroundColor: headerStylePreset.backgroundColor,
+          borderColor: headerStylePreset.borderColor,
+        });
+      }
+      
+      // Применяем случайные стили к каждой секции
+      if (onSectionsChange && sectionsData) {
+        const updatedSections = {};
+        
+        Object.keys(sectionsData).forEach(sectionId => {
+          const section = sectionsData[sectionId];
+          const sectionStyleName = styleNames[Math.floor(Math.random() * styleNames.length)];
+          const sectionStylePreset = STYLE_PRESETS[sectionStyleName];
+          
+          updatedSections[sectionId] = {
+            ...section,
+            titleColor: sectionStylePreset.titleColor,
+            descriptionColor: sectionStylePreset.descriptionColor,
+            backgroundColor: sectionStylePreset.backgroundColor,
+            borderColor: sectionStylePreset.borderColor,
+            cardType: sectionStylePreset.cardType || section.cardType,
+            
+            cards: (section.cards || []).map(card => ({
+              ...card,
+              titleColor: sectionStylePreset.cardTitleColor,
+              contentColor: sectionStylePreset.cardContentColor,
+              backgroundColor: sectionStylePreset.cardBackgroundColor,
+              borderColor: sectionStylePreset.cardBorderColor,
+              backgroundType: sectionStylePreset.cardBackgroundType,
+              gradientColor1: sectionStylePreset.cardGradientColor1,
+              gradientColor2: sectionStylePreset.cardGradientColor2,
+              gradientDirection: sectionStylePreset.cardGradientDirection,
+              style: {
+                ...card.style,
+                shadow: sectionStylePreset.style?.shadow || '0 2px 4px rgba(0,0,0,0.1)',
+                borderRadius: sectionStylePreset.style?.borderRadius || '8px'
+              }
+            }))
+          };
+        });
+        
+        onSectionsChange(updatedSections);
+      }
+      
+      // Применяем случайный стиль к hero
+      const heroStyleName = styleNames[Math.floor(Math.random() * styleNames.length)];
+      const heroStylePreset = STYLE_PRESETS[heroStyleName];
+      
+      if (onHeroChange && heroData) {
+        onHeroChange({
+          ...heroData,
+          titleColor: heroStylePreset.titleColor,
+          descriptionColor: heroStylePreset.descriptionColor,
+          backgroundColor: heroStylePreset.backgroundColor,
+          borderColor: heroStylePreset.borderColor,
+        });
+      }
+      
+      // Применяем случайный стиль к контактам
+      const contactStyleName = styleNames[Math.floor(Math.random() * styleNames.length)];
+      const contactStylePreset = STYLE_PRESETS[contactStyleName];
+      
+      if (onContactChange && contactData) {
+        onContactChange({
+          ...contactData,
+          titleColor: contactStylePreset.titleColor,
+          descriptionColor: contactStylePreset.descriptionColor,
+          buttonColor: contactStylePreset.titleColor,
+          buttonTextColor: contactStylePreset.cardBackgroundColor,
+          formBorderColor: contactStylePreset.borderColor,
+          infoTitleColor: contactStylePreset.titleColor,
+          infoTextColor: contactStylePreset.descriptionColor
+        });
+      }
+    }
   };
 
   // Функция для исправления карточек с перепутанными полями title и content
@@ -1952,6 +2042,31 @@ Email: example@example.com
                   <ShuffleIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
+              
+              <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
+                <Typography variant="caption" sx={{ mr: 0.5, fontSize: '0.7rem', color: singleStyleMode ? '#bdbdbd' : '#4caf50' }}>
+                  ALL
+                </Typography>
+                <Switch
+                  checked={singleStyleMode}
+                  onChange={(e) => setSingleStyleMode(e.target.checked)}
+                  size="small"
+                  sx={{
+                    '& .MuiSwitch-switchBase.Mui-checked': {
+                      color: '#4caf50',
+                      '&:hover': {
+                        backgroundColor: 'rgba(76, 175, 80, 0.08)'
+                      }
+                    },
+                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                      backgroundColor: '#4caf50'
+                    }
+                  }}
+                />
+                <Typography variant="caption" sx={{ ml: 0.5, fontSize: '0.7rem', color: singleStyleMode ? '#4caf50' : '#bdbdbd' }}>
+                  1
+                </Typography>
+              </Box>
             </Box>
           </Box>
 
