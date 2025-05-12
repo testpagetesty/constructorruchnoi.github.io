@@ -8,7 +8,7 @@
   max-width: 280px;
   border-radius: 12px;
   overflow: hidden;
-  height: auto;
+  height: 100%;
   margin: 1rem;
 }
 
@@ -26,7 +26,7 @@
   font-size: 1.1rem;
   font-weight: 500;
   margin: 0;
-  text-align: center;
+  text-align: left;
 }
 
 .card:hover .card-header h3 {
@@ -38,7 +38,8 @@
   transition: all 0.3s ease-in-out;
   font-size: 1rem;
   line-height: 1.6;
-  text-align: justify;
+  text-align: left;
+  flex-grow: 1;
 }
 
 .card:hover .card-content {

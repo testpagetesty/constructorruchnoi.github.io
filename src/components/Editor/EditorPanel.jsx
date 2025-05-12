@@ -1557,18 +1557,20 @@ const EditorPanel = ({
                   border-radius: ${card.style?.borderRadius || '12px'};
                   position: relative;
                   z-index: 2;
+                  display: flex;
+                  flex-direction: column;
+                  height: 100%;
+                  padding: 1.5rem;
                 ">
                   ${card.showTitle ? `
                     <div class="card-header">
-                      <h3 style="color: ${card.titleColor || '#333333'}">
+                      <h3 style="color: ${card.titleColor || '#333333'}; text-align: left; font-weight: 500; font-size: 1.1rem; margin-bottom: 1rem; margin-top: 0;">
                         ${card.title.trim()}
                       </h3>
                     </div>
                   ` : ''}
-                  <div class="card-content" style="color: ${card.contentColor || '#666666'}">
-                    <div class="content-wrapper">
-                      ${card.content.trim()}
-                    </div>
+                  <div class="card-content" style="color: ${card.contentColor || '#666666'}; font-size: 1rem; line-height: 1.6; text-align: left; flex-grow: 1;">
+                    ${card.content.trim()}
                   </div>
                 </div>
               `).join('')}
@@ -2567,39 +2569,39 @@ const EditorPanel = ({
     }
 
     .cards-container {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      align-items: stretch;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
       gap: 2rem;
       padding: 1rem;
       position: relative;
       z-index: 2;
       pointer-events: auto;
     }
-    .card {
-      flex: 1 1 0;
-      min-width: 180px;
-      max-width: 260px;
-      margin: 0;
-      box-sizing: border-box;
-      display: flex;
-      flex-direction: column;
-      border-radius: 4px;
-    }
+
     @media (max-width: 1024px) {
-      .card {
-        min-width: 220px;
+      .cards-container {
+        grid-template-columns: repeat(2, 1fr);
       }
     }
+
     @media (max-width: 768px) {
       .cards-container {
-        flex-direction: column;
-        align-items: center;
+        grid-template-columns: 1fr;
       }
-      .card {
-        min-width: 100%;
-      }
+    }
+
+    .card {
+      transition: all 0.3s ease-in-out;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      background-color: #ffffff;
+      width: 100%;
+      max-width: 280px;
+      border-radius: 12px;
+      overflow: hidden;
+      height: 100%;
+      margin: 1rem;
     }
 
     .card:hover {
@@ -2616,9 +2618,9 @@ const EditorPanel = ({
       font-size: 1.1rem;
       font-weight: 500;
       margin: 0;
-      text-align: center;
-      margin-top: 10px;
-      margin-bottom: 1.2rem;
+      text-align: left;
+      margin-top: 0;
+      margin-bottom: 1rem;
     }
 
     .card:hover .card-header h3 {
@@ -2628,12 +2630,12 @@ const EditorPanel = ({
 
     .card-content {
       transition: all 0.3s ease-in-out;
-      font-size: 0.98rem;
+      font-size: 1rem;
       line-height: 1.6;
       text-align: left;
       word-break: break-word;
       hyphens: auto;
-      padding: 16px 18px 16px 18px;
+      flex-grow: 1;
     }
 
     .content-wrapper {
@@ -2703,12 +2705,14 @@ const EditorPanel = ({
     .card.gradient .card-content,
     .card.gradient .content-wrapper {
       color: white !important;
+      text-align: left;
     }
 
     .card.gradient:hover .card-header h3,
     .card.gradient:hover .card-content,
     .card.gradient:hover .content-wrapper {
       color: white !important;
+      text-align: left;
     }
 
     /* Анимации */
@@ -2742,7 +2746,7 @@ const EditorPanel = ({
     /* Контейнер для карточек */
     .cards-container {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
       gap: 2rem;
       padding: 1rem;
       position: relative;
@@ -2752,7 +2756,7 @@ const EditorPanel = ({
 
     @media (max-width: 1024px) {
       .cards-container {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
       }
     }
 
