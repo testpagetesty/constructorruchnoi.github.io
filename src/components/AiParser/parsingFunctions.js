@@ -90,7 +90,7 @@ const cleanSectionContent = (content) => {
         !trimmedLine.match(/^\[\d+-\d+/) && // Строки вида "[4-6"
         !trimmedLine.match(/^\[[^\]]+\]/) && // Строки в квадратных скобках
         !trimmedLine.match(/^\(/) && // Строки в круглых скобках
-        !trimmedLine.match(/^ID секции:/i) && // "ID секции:"
+        !trimmedLine.match(/^ID[:\s]/i) && // "ID:" или "ID " с любой локализацией 
         trimmedLine !== 'О нас' && // Заголовки навигации
         trimmedLine !== 'Услуги' &&
         trimmedLine !== 'Преимущества' &&
@@ -146,9 +146,9 @@ export const parseServices = (content) => {
         continue;
       }
 
-      // Parse section ID from "ID секции: ..."
-      if (line.toLowerCase().startsWith('id секции:')) {
-        const customId = line.split(':')[1].trim();
+      // Parse section ID from line starting with "ID:"
+      if (line.toLowerCase().match(/^id[:\s]/i)) {
+        const customId = line.split(/[:]/)[1].trim();
         if (customId) {
           // Удаляем все пробелы и специальные символы из ID
           sectionId = customId.toLowerCase()
@@ -309,9 +309,9 @@ export const parseAdvantagesSection = (content) => {
         continue;
       }
 
-      // Parse section ID from "ID секции: ..."
-      if (line.toLowerCase().startsWith('id секции:')) {
-        const customId = line.split(':')[1].trim();
+      // Parse section ID from line starting with "ID:"
+      if (line.toLowerCase().match(/^id[:\s]/i)) {
+        const customId = line.split(/[:]/)[1].trim();
         if (customId) {
           // Remove all spaces and special characters from ID
           sectionId = customId.toLowerCase()
@@ -427,11 +427,10 @@ export const parseAboutSection = (content) => {
       }
       emptyLineCount = 0;
 
-      // Parse section ID from "ID секции: ..."
-      if (line.toLowerCase().startsWith('id секции:')) {
-        const customId = line.split(':')[1].trim();
+      // Parse section ID from line starting with "ID:"
+      if (line.toLowerCase().match(/^id[:\s]/i)) {
+        const customId = line.split(/[:]/)[1].trim();
         if (customId) {
-          // Удаляем все пробелы и специальные символы из ID
           sectionId = customId.toLowerCase()
             .replace(/[^a-zа-яё0-9]/g, '_')
             .replace(/_+/g, '_')
@@ -544,11 +543,10 @@ export const parseTestimonials = (content) => {
       }
       emptyLineCount = 0;
 
-      // Parse section ID from "ID секции: ..."
-      if (line.toLowerCase().startsWith('id секции:')) {
-        const customId = line.split(':')[1].trim();
+      // Parse section ID from line starting with "ID:"
+      if (line.toLowerCase().match(/^id[:\s]/i)) {
+        const customId = line.split(/[:]/)[1].trim();
         if (customId) {
-          // Удаляем все пробелы и специальные символы из ID
           sectionId = customId.toLowerCase()
             .replace(/[^a-zа-яё0-9]/g, '_')
             .replace(/_+/g, '_')
@@ -663,11 +661,10 @@ export const parseFaq = (content) => {
       }
       emptyLineCount = 0;
 
-      // Parse section ID from "ID секции: ..."
-      if (line.toLowerCase().startsWith('id секции:')) {
-        const customId = line.split(':')[1].trim();
+      // Parse section ID from line starting with "ID:"
+      if (line.toLowerCase().match(/^id[:\s]/i)) {
+        const customId = line.split(/[:]/)[1].trim();
         if (customId) {
-          // Remove all spaces and special characters from ID
           sectionId = customId.toLowerCase()
             .replace(/[^a-zа-яё0-9]/g, '_')
             .replace(/_+/g, '_')
@@ -782,11 +779,10 @@ export const parseNews = (content) => {
       }
       emptyLineCount = 0;
 
-      // Parse section ID from "ID секции: ..."
-      if (line.toLowerCase().startsWith('id секции:')) {
-        const customId = line.split(':')[1].trim();
+      // Parse section ID from line starting with "ID:"
+      if (line.toLowerCase().match(/^id[:\s]/i)) {
+        const customId = line.split(/[:]/)[1].trim();
         if (customId) {
-          // Remove all spaces and special characters from ID
           sectionId = customId.toLowerCase()
             .replace(/[^a-zа-яё0-9]/g, '_')
             .replace(/_+/g, '_')
