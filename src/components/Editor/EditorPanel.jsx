@@ -630,7 +630,7 @@ const STYLE_PRESETS = {
 
 const EditorPanel = ({
   headerData = {
-    siteName: 'Мой сайт',
+    siteName: 'My Site',
     titleColor: '#000000',
     backgroundColor: '#ffffff',
     linksColor: '#000000',
@@ -640,7 +640,7 @@ const EditorPanel = ({
     siteGradientColor2: '#f5f5f5',
     siteGradientDirection: 'to right',
     menuItems: [],
-    language: 'ru'
+    language: 'en'
   },
   onHeaderChange,
   sectionsData,
@@ -1194,7 +1194,7 @@ const EditorPanel = ({
 
   const generateHTML = (data) => {
     return `<!DOCTYPE html>
-<html lang="${data.headerData.language || 'ru'}">
+<html lang="${data.headerData.language || 'en'}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1203,7 +1203,7 @@ const EditorPanel = ({
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <link rel="stylesheet" href="assets/css/styles.css">
-  <meta name="description" content="${data.headerData.description || 'Наш сайт предлагает лучшие решения'}">
+  <meta name="description" content="${data.headerData.description || 'Our site offers the best solutions'}">
 </head>
 <body>
   ${data.headerData.siteBackgroundType === 'image' ? `
@@ -1256,8 +1256,8 @@ const EditorPanel = ({
   <header>
     <nav style="background-color: ${data.headerData.backgroundColor || '#ffffff'}; --menu-bg-color: ${data.headerData.backgroundColor || '#fff'}; --menu-link-color: ${data.headerData.linksColor || '#1976d2'};">
       <div class="nav-container">
-        <div class="logo" style="color: ${data.headerData.titleColor || '#000000'}">${data.headerData.siteName || 'Мой сайт'}</div>
-        <button class="menu-toggle" aria-label="Меню">
+        <div class="logo" style="color: ${data.headerData.titleColor || '#000000'}">${data.headerData.siteName || 'My Site'}</div>
+        <button class="menu-toggle" aria-label="Menu">
           <span></span>
           <span></span>
           <span></span>
@@ -1279,7 +1279,7 @@ const EditorPanel = ({
               font-size: ${data.headerData.styles?.menuItemFontSize || '16px'};
               font-weight: ${data.headerData.styles?.menuItemFontWeight || '500'};
               transition: ${data.headerData.styles?.menuItemTransition || '0.3s'};
-            ">${data.contactData.title || 'Свяжитесь с нами'}</a>
+            ">${data.contactData.title || 'Contact Us'}</a>
           </li>
         </ul>
       </div>
@@ -1316,7 +1316,7 @@ const EditorPanel = ({
             border-radius: 4px;
             transition: all 0.3s ease;
             font-weight: 500;
-          ">${data.contactData.title || 'Свяжитесь с нами'}</a>
+          ">${data.contactData.title || 'Contact Us'}</a>
         </div>
       </div>
     </section>
@@ -1530,7 +1530,7 @@ const EditorPanel = ({
             position: relative;
             display: inline-block;
           ">
-            ${contactData.title || 'Контакты'}
+            ${contactData.title || 'Contact Us'}
             <span style="
               content: '';
               position: absolute;
@@ -1549,7 +1549,7 @@ const EditorPanel = ({
             margin: 0 auto;
             line-height: 1.6;
           ">
-            ${contactData.description || 'Оставьте свои контактные данные, и мы свяжемся с вами в ближайшее время'}
+            ${contactData.description || 'Please leave your contact details and we will get back to you as soon as possible'}
           </p>
         </div>
         <div class="contact-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
@@ -1698,7 +1698,7 @@ const EditorPanel = ({
                 font-size: 1.5rem;
                 margin-bottom: 1.5rem;
                 text-align: center;
-              ">${contactData.companyName || 'Наша компания'}</h3>
+              ">${contactData.companyName || 'Our Company'}</h3>
               <div class="contact-details">
                 ${contactData.address ? `
                   <p style="color: ${contactData.infoTextColor || '#333'}; margin-bottom: 1rem;">
@@ -1825,7 +1825,7 @@ const EditorPanel = ({
               text-decoration: none;
               transition: color 0.3s;
               padding: 0.25rem 0;
-            ">${data.contactData.title || 'Свяжитесь с нами'}</a>
+            ">${data.contactData.title || 'Contact Us'}</a>
           </div>
         </div>
 
@@ -2869,7 +2869,7 @@ const EditorPanel = ({
   const generateJS = () => {
     return `
       document.addEventListener('DOMContentLoaded', function() {
-        // Меню-бургер
+        // Mobile menu toggle
         const menuToggle = document.querySelector('.menu-toggle');
         const navMenu = document.querySelector('.nav-menu');
         
@@ -2879,7 +2879,7 @@ const EditorPanel = ({
             navMenu.classList.toggle('active');
           });
 
-          // Закрываем меню при клике на ссылку
+          // Close menu when clicking a link
           const navLinks = navMenu.querySelectorAll('a');
           navLinks.forEach(link => {
             link.addEventListener('click', () => {
@@ -2888,7 +2888,7 @@ const EditorPanel = ({
             });
           });
 
-          // Закрываем меню при клике вне меню
+          // Close menu when clicking outside
           document.addEventListener('click', (e) => {
             if (!menuToggle.contains(e.target) && !navMenu.contains(e.target)) {
               menuToggle.classList.remove('active');
@@ -2897,7 +2897,7 @@ const EditorPanel = ({
           });
         }
 
-        // Плавная прокрутка к якорям
+        // Smooth scroll to anchors
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
           anchor.addEventListener('click', function (e) {
             e.preventDefault();
@@ -2911,20 +2911,20 @@ const EditorPanel = ({
           });
         });
 
-        // Обработчик отправки формы
+        // Form submission handler
         window.handleSubmit = function(event) {
           event.preventDefault();
           const form = document.getElementById('contactForm');
           const formData = new FormData(form);
           
-          // Здесь можно добавить отправку данных на сервер
-          // Например, через fetch или XMLHttpRequest
+          // Add server data sending here
+          // For example, using fetch or XMLHttpRequest
           
-          // Открываем страницу merci.html в новой вкладке
+          // Open merci.html in new tab
           window.open('merci.html', '_blank');
         };
 
-        // Анимация появления карточек и изображений при скролле
+        // Cards and images scroll animation
         const animatedEls = document.querySelectorAll('.card, .section-image img, .about-image img');
         const observer = new IntersectionObserver((entries) => {
           entries.forEach(entry => {
@@ -2969,9 +2969,9 @@ const EditorPanel = ({
       const siteData = {
         headerData: {
           ...headerData,
-          siteName: headerData.siteName || 'Мой сайт',
-          title: headerData.title || headerData.siteName || 'Мой сайт',
-          description: headerData.description || 'Наш сайт предлагает лучшие решения',
+          siteName: headerData.siteName || 'My Site',
+          title: headerData.title || headerData.siteName || 'My Site',
+          description: headerData.description || 'Our site offers the best solutions',
           menuItems: headerData.menuItems || [],
           siteBackgroundImage: headerData.siteBackgroundType === 'image' ? 'assets/images/fon.jpg' : '',
           language: headerData.language || 'ru'
@@ -2986,15 +2986,15 @@ const EditorPanel = ({
         sectionsData: sectionsArray,
         contactData: {
           ...contactData,
-          title: contactData.title || 'Контакты',
+          title: contactData.title || 'Contact',
           description: contactData.description || ''
         },
         footerData: {
           ...footerData,
-          title: footerData.title || 'О нас',
+          title: footerData.title || 'About Us',
           description: footerData.description || '',
           contacts: footerData.contacts || '',
-          copyright: footerData.copyright || '© 2024 Все права защищены',
+          copyright: footerData.copyright || '© 2024 All rights reserved',
           backgroundColor: footerData.backgroundColor || '#333',
           textColor: footerData.textColor || '#fff'
         },
@@ -3805,12 +3805,12 @@ const EditorPanel = ({
     const siteData = {
       headerData: {
         ...data.headerData,
-        siteName: data.headerData.siteName || 'Мой сайт',
-        title: data.headerData.siteName || 'Мой сайт',
-        description: data.headerData.description || 'Наш сайт предлагает лучшие решения',
+        siteName: data.headerData.siteName || 'My Site',
+        title: data.headerData.siteName || 'My Site',
+        description: data.headerData.description || 'Our site offers the best solutions',
         menuItems: data.headerData.menuItems || [],
         siteBackgroundImage: data.headerData.siteBackgroundType === 'image' ? 'assets/images/fon.jpg' : '',
-        language: data.headerData.language || 'ru'
+        language: data.headerData.language || 'en'
       },
       heroData: data.heroData,
       sectionsData: data.sectionsData,
@@ -3949,7 +3949,7 @@ EOL;
 }
 ?>
 <!DOCTYPE html>
-<html lang="${data.headerData.language || 'ru'}">
+<html lang="${data.headerData.language || 'en'}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -3958,7 +3958,7 @@ EOL;
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <link rel="stylesheet" href="assets/css/styles.css">
-  <meta name="description" content="${data.headerData.description || 'Наш сайт предлагает лучшие решения'}">
+  <meta name="description" content="${data.headerData.description || 'Our site offers the best solutions'}">
   <?php if(!empty($fbPixelId)): ?>
   <script>
      !function (f, b, e, v, n, t, s) {
@@ -4139,7 +4139,7 @@ ${mainHtml}
     
     return `
 <!DOCTYPE html>
-<html lang="${siteData.headerData.language || 'ru'}">
+<html lang="${siteData.headerData.language || 'en'}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">

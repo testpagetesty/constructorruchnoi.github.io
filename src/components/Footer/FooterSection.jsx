@@ -44,28 +44,27 @@ const FooterSection = ({
   footerData = {},
   contactData = {},
   legalDocuments = {},
-  companyName = 'Название компании',
-  phone = '+7 (XXX) XXX-XX-XX',
+  companyName = 'Company Name',
+  phone = '+1 234 567 8900',
   email = 'info@example.com',
-  address = 'г. Москва, ул. Примерная, д. 1',
+  address = '123 Example St, City, Country',
   showSocialLinks = false,
   socialLinks = {
-    facebook: '#',
-    twitter: '#',
-    instagram: '#',
-    linkedin: '#'
+    facebook: 'https://facebook.com',
+    twitter: 'https://twitter.com',
+    instagram: 'https://instagram.com'
   },
   copyrightYear = new Date().getFullYear(),
-  copyrightText = 'Все права защищены',
+  copyrightText = 'All rights reserved',
   menuItems = [],
   onMenuClick,
   headerData
 }) => {
   const theme = useTheme();
 
-  // Цвета: сначала из футера, если не задан — из шапки, если и там нет — дефолт
-  const backgroundColor = footerData.backgroundColor || headerData?.backgroundColor || '#f5f5f5';
-  const textColor = footerData.textColor || headerData?.titleColor || '#333333';
+  // Colors: first from footer, if not set - from header, if not set - default
+  const backgroundColor = footerData.backgroundColor || headerData?.backgroundColor || '#333333';
+  const textColor = footerData.textColor || headerData?.titleColor || '#ffffff';
   const linksColor = footerData.linksColor || headerData?.linksColor || '#1976d2';
 
   const handleLinkClick = (e, sectionId) => {

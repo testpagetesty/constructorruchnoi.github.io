@@ -152,7 +152,7 @@ export const parseServices = (content) => {
         if (customId) {
           // Удаляем все пробелы и специальные символы из ID
           sectionId = customId.toLowerCase()
-            .replace(/[^a-zа-яё0-9]/g, '_') // Заменяем все специальные символы на _
+            .replace(/[^a-zа-яё0-9\u0600-\u06FF]/g, '_') // Заменяем все специальные символы на _
             .replace(/_+/g, '_') // Заменяем множественные _ на один
             .replace(/^_|_$/g, ''); // Удаляем _ в начале и конце
         }
@@ -175,7 +175,7 @@ export const parseServices = (content) => {
 
       // Обработка карточек услуг
       if (sectionDescription && !isHeaderSection) {
-        if (line.length < 100 && (!currentCard || (currentCard && currentCard.content))) {
+        if ((line.length < 100 || line.includes(':')) && (!currentCard || (currentCard && currentCard.content))) {
           if (currentCard && currentCard.content) {
             cards.push(currentCard);
           }
@@ -274,7 +274,6 @@ export const parseAdvantagesSection = (content) => {
     let currentCard = null;
     let isHeaderSection = true;
     let emptyLineCount = 0;
-    let isProcessingContacts = false;
     
     for (let i = 0; i < lines.length; i++) {
       const line = cleanEmailsInText(lines[i].trim());
@@ -282,7 +281,7 @@ export const parseAdvantagesSection = (content) => {
       // Handle empty lines
       if (!line) {
         emptyLineCount++;
-        if ((emptyLineCount >= 2 || i === lines.length - 1) && currentCard && currentCard.content) {
+        if (emptyLineCount >= 2 && currentCard && currentCard.content) {
           cards.push(currentCard);
           currentCard = null;
         }
@@ -290,32 +289,12 @@ export const parseAdvantagesSection = (content) => {
       }
       emptyLineCount = 0;
 
-      // Проверяем, не начинается ли секция контактной информации
-      if (line.toLowerCase().includes('контактная информация')) {
-        isProcessingContacts = true;
-        if (currentCard && currentCard.content) {
-          cards.push(currentCard);
-          currentCard = null;
-        }
-        continue;
-      }
-
-      // Пропускаем обработку контактной информации
-      if (isProcessingContacts || 
-          line.toLowerCase().includes('телефон:') || 
-          line.toLowerCase().includes('email:') || 
-          line.toLowerCase().includes('адрес:') ||
-          line.toLowerCase().includes('мы готовы')) {
-        continue;
-      }
-
       // Parse section ID from line starting with "ID:"
       if (line.toLowerCase().match(/^id[:\s]/i)) {
         const customId = line.split(/[:]/)[1].trim();
         if (customId) {
-          // Remove all spaces and special characters from ID
           sectionId = customId.toLowerCase()
-            .replace(/[^a-zа-яё0-9]/g, '_')
+            .replace(/[^a-zа-яё0-9\u0600-\u06FF]/g, '_')
             .replace(/_+/g, '_')
             .replace(/^_|_$/g, '');
         }
@@ -331,27 +310,28 @@ export const parseAdvantagesSection = (content) => {
         }
         if (!sectionDescription && sectionTitle) {
           sectionDescription = line;
-          continue;
-        }
-        if (!menuText && sectionDescription) {
-          menuText = line;
           isHeaderSection = false;
           continue;
         }
+        continue;
       }
 
-      // Process advantages cards - используем тот же подход, что и в parseServices
-      if (sectionDescription && !isHeaderSection) {
-        if (line.length < 100 && (!currentCard || (currentCard && currentCard.content))) {
+      // Process advantages cards
+      if (!isHeaderSection) {
+        // Если строка короткая (заголовок) или это первая карточка
+        if (line.length < 100 || !currentCard) {
+          // Сохраняем предыдущую карточку, если она есть
           if (currentCard && currentCard.content) {
             cards.push(currentCard);
           }
+          // Создаем новую карточку
           currentCard = {
             id: `advantage_${cards.length + 1}`,
             title: line,
             content: ''
           };
         } else if (currentCard) {
+          // Добавляем контент к текущей карточке
           currentCard.content += (currentCard.content ? '\n' : '') + line;
         }
       }
@@ -432,7 +412,7 @@ export const parseAboutSection = (content) => {
         const customId = line.split(/[:]/)[1].trim();
         if (customId) {
           sectionId = customId.toLowerCase()
-            .replace(/[^a-zа-яё0-9]/g, '_')
+            .replace(/[^a-zа-яё0-9\u0600-\u06FF]/g, '_')
             .replace(/_+/g, '_')
             .replace(/^_|_$/g, '');
         }
@@ -455,7 +435,7 @@ export const parseAboutSection = (content) => {
 
       // Обработка карточек "О нас" - используем тот же подход, что и в parseServices
       if (sectionDescription && !isHeaderSection) {
-        if (line.length < 100 && (!currentCard || (currentCard && currentCard.content))) {
+        if ((line.length < 100 || line.includes(':')) && (!currentCard || (currentCard && currentCard.content))) {
           if (currentCard && currentCard.content) {
             cards.push(currentCard);
           }
@@ -548,7 +528,7 @@ export const parseTestimonials = (content) => {
         const customId = line.split(/[:]/)[1].trim();
         if (customId) {
           sectionId = customId.toLowerCase()
-            .replace(/[^a-zа-яё0-9]/g, '_')
+            .replace(/[^a-zа-яё0-9\u0600-\u06FF]/g, '_')
             .replace(/_+/g, '_')
             .replace(/^_|_$/g, '');
         }
@@ -666,7 +646,7 @@ export const parseFaq = (content) => {
         const customId = line.split(/[:]/)[1].trim();
         if (customId) {
           sectionId = customId.toLowerCase()
-            .replace(/[^a-zа-яё0-9]/g, '_')
+            .replace(/[^a-zа-яё0-9\u0600-\u06FF]/g, '_')
             .replace(/_+/g, '_')
             .replace(/^_|_$/g, '');
         }
@@ -689,7 +669,7 @@ export const parseFaq = (content) => {
 
       // Process FAQ cards
       if (sectionDescription && !isHeaderSection) {
-        if (line.endsWith('?') && (!currentCard || (currentCard && currentCard.content))) {
+        if ((line.endsWith('?') || line.endsWith('؟') || line.length < 100) && (!currentCard || (currentCard && currentCard.content))) {
           if (currentCard && currentCard.content) {
             cards.push(currentCard);
           }
@@ -784,7 +764,7 @@ export const parseNews = (content) => {
         const customId = line.split(/[:]/)[1].trim();
         if (customId) {
           sectionId = customId.toLowerCase()
-            .replace(/[^a-zа-яё0-9]/g, '_')
+            .replace(/[^a-zа-яё0-9\u0600-\u06FF]/g, '_')
             .replace(/_+/g, '_')
             .replace(/^_|_$/g, '');
           
@@ -809,7 +789,7 @@ export const parseNews = (content) => {
 
       // Process news cards
       if (sectionDescription && !isHeaderSection) {
-        if (line.length < 100 && (!currentCard || (currentCard && currentCard.content))) {
+        if ((line.length < 100 || line.includes(':')) && (!currentCard || (currentCard && currentCard.content))) {
           if (currentCard && currentCard.content) {
             cards.push(currentCard);
           }
@@ -921,7 +901,7 @@ export const parseContacts = (content, headerData = {}) => {
           if (headerData?.siteName) {
             const domainName = headerData.siteName
               .toLowerCase()
-              .replace(/[^a-zа-яё0-9]/g, '-')
+              .replace(/[^a-zа-яё0-9\u0600-\u06FF]/g, '-')
               .replace(/-+/g, '-')
               .replace(/^-|-$/g, '')
               .replace(/[а-яё]/g, char => {
@@ -1196,7 +1176,7 @@ export const parseContactsFull = (content, headerData = {}) => {
           if (headerData?.siteName) {
             const domainName = headerData.siteName
               .toLowerCase()
-              .replace(/[^a-zа-яё0-9]/g, '-')
+              .replace(/[^a-zа-яё0-9\u0600-\u06FF]/g, '-')
               .replace(/-+/g, '-')
               .replace(/^-|-$/g, '')
               .replace(/[а-яё]/g, char => {

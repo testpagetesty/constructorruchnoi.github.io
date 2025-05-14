@@ -1,18 +1,36 @@
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { exportCookieConsentData } from './cookieConsentExporter';
+import { cleanHTML, cleanCSS, cleanJavaScript } from './codeCleanup';
+
+// Function to remove all comments from code
+const removeComments = (code) => {
+  if (!code) return code;
+  return code
+    // Remove single-line comments
+    .replace(/\/\/.*/g, '')
+    // Remove multi-line comments
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    // Remove HTML comments
+    .replace(/<!--[\s\S]*?-->/g, '')
+    // Remove empty lines
+    .replace(/^\s*[\r\n]/gm, '')
+    // Normalize whitespace
+    .replace(/\s+/g, ' ')
+    .trim();
+};
 
 export const exportSite = async (siteData) => {
   const zip = new JSZip();
   
-  // Add site files
-  zip.file('index.html', generateIndexHtml(siteData));
-  zip.file('styles.css', generateStyles());
-  zip.file('app.js', generateAppJs(siteData));
+  // Add site files with cleaned code
+  zip.file('index.html', cleanHTML(generateIndexHtml(siteData)));
+  zip.file('styles.css', cleanCSS(generateStyles()));
+  zip.file('app.js', cleanJavaScript(generateAppJs(siteData)));
   
   // Add merci.html to root
   const merciHtml = await fetch('/merci.html').then(res => res.text());
-  zip.file('merci.html', merciHtml);
+  zip.file('merci.html', cleanHTML(merciHtml));
   
   // Add cookie consent data
   const cookieData = exportCookieConsentData();
@@ -21,9 +39,9 @@ export const exportSite = async (siteData) => {
   }
   
   // Add other necessary files
-  zip.file('privacy-policy.html', generatePrivacyPolicy(siteData));
-  zip.file('cookie-policy.html', generateCookiePolicy(siteData));
-  zip.file('terms-of-service.html', generateTermsOfService(siteData));
+  zip.file('privacy-policy.html', cleanHTML(generatePrivacyPolicy(siteData)));
+  zip.file('cookie-policy.html', cleanHTML(generateCookiePolicy(siteData)));
+  zip.file('terms-of-service.html', cleanHTML(generateTermsOfService(siteData)));
   
   // Generate and download zip
   const content = await zip.generateAsync({ type: 'blob' });
@@ -49,23 +67,87 @@ const generateIndexHtml = (siteData) => {
 };
 
 const generateStyles = () => {
-  // Generate CSS from MUI theme
   return `
-    /* Add your styles here */
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
   `;
 };
 
 const generateAppJs = (siteData) => {
-  return `
-    import React from 'react';
-    import ReactDOM from 'react-dom';
-    import SiteTemplate from './templates/SiteTemplate';
-    
-    ReactDOM.render(
-      <SiteTemplate siteData=${JSON.stringify(siteData)} />,
-      document.getElementById('root')
-    );
-  `;
+  return cleanJavaScript(`
+    document.addEventListener('DOMContentLoaded', function() {
+      const root = document.getElementById('root');
+      if (root) {
+        root.innerHTML = \`${generateSiteContent(siteData)}\`;
+        initializeScripts();
+      }
+    });
+
+    function initializeScripts() {
+      // Initialize menu toggle
+      const menuToggle = document.querySelector('.menu-toggle');
+      const navMenu = document.querySelector('.nav-menu');
+      if (menuToggle && navMenu) {
+        menuToggle.addEventListener('click', function() {
+          menuToggle.classList.toggle('active');
+          navMenu.classList.toggle('active');
+        });
+      }
+
+      // Initialize smooth scroll
+      document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+          e.preventDefault();
+          const target = document.querySelector(this.getAttribute('href'));
+          if (target) {
+            target.scrollIntoView({
+              behavior: 'smooth'
+            });
+          }
+        });
+      });
+    }
+  `);
+};
+
+const generateSiteContent = (siteData) => {
+  // Generate site content HTML
+  return cleanHTML(`
+    <div class="site-container">
+      ${generateHeader(siteData)}
+      ${generateMainContent(siteData)}
+      ${generateFooter(siteData)}
+    </div>
+  `);
+};
+
+const generateHeader = (siteData) => {
+  return cleanHTML(`
+    <header>
+      <nav>
+        ${generateNavigation(siteData)}
+      </nav>
+    </header>
+  `);
+};
+
+const generateMainContent = (siteData) => {
+  return cleanHTML(`
+    <main>
+      ${generateSections(siteData)}
+    </main>
+  `);
+};
+
+const generateFooter = (siteData) => {
+  return cleanHTML(`
+    <footer>
+      ${generateFooterContent(siteData)}
+    </footer>
+  `);
 };
 
 const generatePrivacyPolicy = (siteData) => {
