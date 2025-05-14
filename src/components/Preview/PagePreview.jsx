@@ -596,7 +596,7 @@ const PagePreview = ({
           position: 'relative',
           overflow: 'hidden',
           borderRadius: '20px',
-          '&::before': showBorders ? {
+          '&::before': (showBorders && section.showBackground !== false) ? {
             content: '""',
             position: 'absolute',
             top: 0,
@@ -613,7 +613,7 @@ const PagePreview = ({
             transition: 'all 0.3s ease-in-out',
             animation: 'borderPulse 3s infinite, glowPulse 3s infinite',
           } : {},
-          '&:hover::before': showBorders ? {
+          '&:hover::before': (showBorders && section.showBackground !== false) ? {
             border: '5px solid transparent',
             boxShadow: `0 0 25px 15px ${borderColors.start}`,
             animation: 'none',
@@ -773,13 +773,15 @@ const PagePreview = ({
               mt: 4,
               p: 4,
               borderRadius: '16px',
-              background: section.backgroundColor ? section.backgroundColor : 
+              background: section.showBackground !== false ? 
+                (section.backgroundColor ? section.backgroundColor : 
                 (section.gradientStart && section.gradientEnd) ? 
                 `linear-gradient(145deg, ${section.gradientStart}, ${section.gradientEnd})` : 
-                'linear-gradient(145deg, #ffffff, #f5f5f5)',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                'linear-gradient(145deg, #ffffff, #f5f5f5)') : 
+                'transparent',
+              boxShadow: section.showBackground !== false ? '0 4px 20px rgba(0,0,0,0.1)' : 'none',
               position: 'relative',
-              '&::before': {
+              '&::before': section.showBackground !== false ? {
                 content: '""',
                 position: 'absolute',
                 top: 0,
@@ -794,12 +796,13 @@ const PagePreview = ({
                 WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
                 WebkitMaskComposite: 'xor',
                 zIndex: 0
-              }
+              } : {}
             }}>
               <Box sx={{ 
                 position: 'relative',
                 textAlign: 'left',
-                overflow: 'hidden'
+                overflow: 'hidden',
+                backgroundColor: section.showBackground !== false ? 'transparent' : 'transparent'
               }}>
                 <Typography 
                   variant="h3" 
@@ -808,19 +811,20 @@ const PagePreview = ({
                     fontSize: { xs: '1.75rem', sm: '2rem', md: '2.5rem' },
                     fontWeight: 700,
                     mb: 2,
-                    textAlign: 'left',
+                    textAlign: section.imagePath ? 'left' : 'center',
                     color: section.titleColor || '#000000',
                     position: 'relative',
-                    '&::after': {
+                    '&::after': section.showBackground !== false ? {
                       content: '""',
                       position: 'absolute',
                       bottom: '-8px',
-                      left: 0,
+                      left: section.imagePath ? 0 : '50%',
+                      transform: section.imagePath ? 'none' : 'translateX(-50%)',
                       width: '60px',
                       height: '4px',
                       background: 'linear-gradient(to right, #1976d2, #42a5f5)',
                       borderRadius: '2px'
-                    }
+                    } : {}
                   }}
                 >
                   {section.title}
@@ -832,7 +836,7 @@ const PagePreview = ({
                     maxWidth: '300px',
                     width: '100%',
                     position: 'relative',
-                    '&::after': {
+                    '&::after': section.showBackground !== false ? {
                       content: '""',
                       position: 'absolute',
                       top: '-8px',
@@ -843,7 +847,7 @@ const PagePreview = ({
                       borderRadius: '16px',
                       zIndex: -1,
                       opacity: 0.3
-                    }
+                    } : {}
                   }}>
                     {sectionImgUrl && (
                       <img 
@@ -869,14 +873,14 @@ const PagePreview = ({
                     )}
                   </Box>
                 )}
-                <Box sx={{ pl: 2 }}>
+                <Box sx={{ pl: section.imagePath ? 2 : 0 }}>
                   {section.description && (
                     <Typography 
                       variant="body1" 
                       sx={{ 
                         fontSize: { xs: '1rem', sm: '1.1rem' },
                         lineHeight: 1.6,
-                        textAlign: 'left',
+                        textAlign: section.imagePath ? 'left' : 'center',
                         color: section.descriptionColor || '#666666',
                         mb: 2
                       }}
@@ -904,7 +908,7 @@ const PagePreview = ({
                           sx={{ 
                             fontSize: { xs: '1rem', sm: '1.1rem' },
                             lineHeight: 1.6,
-                            textAlign: 'left',
+                            textAlign: section.imagePath ? 'left' : 'center',
                             color: card.contentColor || section.contentColor || '#666666'
                           }}
                         >

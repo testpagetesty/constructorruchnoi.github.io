@@ -1290,7 +1290,7 @@ const EditorPanel = ({
     <section id="hero" class="hero" style="
       ${data.heroData.backgroundType === 'solid' ? `background-color: ${data.heroData.backgroundColor || '#ffffff'};` : ''}
       ${data.heroData.backgroundType === 'gradient' ? `background: linear-gradient(${data.heroData.gradientDirection || 'to right'}, ${data.heroData.gradientColor1 || '#ffffff'}, ${data.heroData.gradientColor2 || '#f5f5f5'});` : ''}
-      ${data.heroData.backgroundType === 'image' ? `background-image: url('assets/images/hero.jpg'); background-size: cover; background-position: center;` : ''}
+      ${data.heroData.backgroundType === 'image' ? `background-image: url('${data.heroData.backgroundImage.replace('/images/hero/', 'assets/images/')}'); background-size: cover; background-position: center;` : ''}
     ">
       ${data.heroData.enableOverlay ? `
         <div class="hero-overlay" style="
@@ -1366,41 +1366,72 @@ const EditorPanel = ({
             border-top: 1px solid rgba(0,0,0,0.1);
             color: ${section.contentColor || '#455a64'};
           ">
-            <div class="section-container" style="
-              max-width: 1200px;
-              margin: 0 auto;
-              padding: 0 1rem;
-            ">
-              <div class="about-section no-card-section" style="
-                display: flex;
-                flex-direction: row-reverse;
-                align-items: flex-start;
-                gap: 2rem;
-                padding: 2rem;
+            <div class="container">
+              <div class="section-content" style="
                 position: relative;
-                border-radius: 16px;
-                background: ${section.backgroundColor ? section.backgroundColor : 
-                  (section.gradientStart && section.gradientEnd) ? 
-                  `linear-gradient(145deg, ${section.gradientStart}, ${section.gradientEnd})` : 
-                  'linear-gradient(145deg, #ffffff, #f5f5f5)'};
-                box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 0 1rem;
+                ${section.showBackground !== false ? '' : 'background: transparent;'}
               ">
-                <div class="about-content" style="flex:2; position:relative; text-align:left; padding-left:0;">
+                ${section.title ? `
                   <h2 style="
-                    color: ${section.titleColor || '#1a237e'}; 
-                    text-align:left; 
-                    margin-bottom:0.7rem;
+                    color: ${section.titleColor || '#1a237e'};
                     font-size: 2rem;
-                    font-weight: 600;
-                  ">${section.title || ''}</h2>
-                  ${section.description ? `<p style="
-                    color: ${section.descriptionColor || '#455a64'}; 
-                    text-align:left; 
-                    margin-bottom:0.7rem;
-                    font-size: 1.1rem;
-                    line-height: 1.6;
-                  ">${section.description}</p>` : ''}
-                  ${cardsText ? `<div style="margin-top:0.5rem;">${cardsText}</div>` : ''}
+                    font-weight: 700;
+                    margin-bottom: 1.5rem;
+                    text-align: center;
+                    position: relative;
+                  ">${section.title}</h2>
+                ` : ''}
+                
+                <div style="
+                  display: ${section.imagePath ? 'flex' : 'block'};
+                  flex-wrap: wrap;
+                  align-items: flex-start;
+                  justify-content: space-between;
+                  ${section.showBackground !== false ? '' : 'background: transparent;'}
+                ">
+                  <div style="
+                    flex: ${section.imagePath ? '1 1 60%' : '1 1 100%'};
+                    padding-right: ${section.imagePath ? '2rem' : '0'};
+                    text-align: ${section.imagePath ? 'left' : 'center'};
+                    ${section.showBackground !== false ? '' : 'background: transparent;'}
+                  ">
+                    ${section.description ? `
+                      <p style="
+                        color: ${section.descriptionColor || '#455a64'};
+                        font-size: 1.1rem;
+                        line-height: 1.6;
+                        margin-bottom: 1rem;
+                      ">${section.description}</p>
+                    ` : ''}
+                    
+                    ${cardsText ? `
+                      <div style="margin-top: 1rem; ${section.showBackground !== false ? '' : 'background: transparent;'}">
+                        ${cardsText}
+                      </div>
+                    ` : ''}
+                  </div>
+                  
+                  ${section.imagePath ? `
+                    <div style="
+                      flex: 1 1 35%;
+                      margin-bottom: 1rem;
+                      ${section.showBackground !== false ? '' : 'background: transparent;'}
+                    ">
+                      <img src="${section.imagePath.replace('/images/sections/', 'assets/images/')}" 
+                        alt="${section.title || 'Section image'}" 
+                        style="
+                          width: 100%;
+                          height: auto;
+                          border-radius: 12px;
+                          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                          display: block;
+                        "
+                      >
+                    </div>
+                  ` : ''}
                 </div>
               </div>
             </div>
@@ -1437,6 +1468,22 @@ const EditorPanel = ({
                   font-size: 1.1rem;
                   line-height: 1.6;
                 ">${section.description}</p>
+              ` : ''}
+              ${section.imagePath ? `
+                <div class="section-image" style="
+                  width: 100%;
+                  margin: 2rem auto;
+                  text-align: center;
+                  max-width: 800px;
+                ">
+                  <img src="${section.imagePath.replace('/images/sections/', 'assets/images/')}" alt="${section.title || 'Section image'}" style="
+                    width: 100%;
+                    height: auto;
+                    border-radius: 12px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    transition: transform 0.3s ease;
+                  ">
+                </div>
               ` : ''}
             </div>
             <div class="cards-container${cardsClass ? ' ' + cardsClass : ''}">

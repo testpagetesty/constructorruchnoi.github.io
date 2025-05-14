@@ -82,6 +82,21 @@ const SiteStyleManager = ({
     return keys[Math.floor(Math.random() * keys.length)];
   };
   
+  // Функция для проверки корректности цветовых значений
+  const isValidColor = (color) => {
+    // Проверяем, является ли значение допустимым цветом в формате HEX
+    const hexColorRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+    return typeof color === 'string' && hexColorRegex.test(color);
+  };
+  
+  const isValidFormVariant = (variant) => {
+    return ['outlined', 'filled', 'standard'].includes(variant);
+  };
+
+  const isValidInfoVariant = (variant) => {
+    return ['elevation', 'outlined', 'plain'].includes(variant);
+  };
+  
   // Функция-обертка для обработки применения стилей
   const handleApplyStyle = (styleName, stylePreset, contactPreset, headerPreset) => {
     console.log('Применение стиля:', styleName, useSameStyle ? 'один стиль' : 'разные стили');
@@ -123,6 +138,64 @@ const SiteStyleManager = ({
       
       // Применяем стиль для контактов
       if (typeof onContactChange === 'function' && contactData && contactPreset) {
+        // Проверяем наличие всех необходимых свойств
+        const requiredProps = [
+          'titleColor',
+          'descriptionColor',
+          'companyInfoColor',
+          'formVariant',
+          'infoVariant',
+          'formBackgroundColor',
+          'infoBackgroundColor',
+          'formBorderColor',
+          'infoBorderColor',
+          'labelColor',
+          'inputBackgroundColor',
+          'inputTextColor',
+          'buttonColor',
+          'buttonTextColor',
+          'iconColor',
+          'infoTitleColor',
+          'infoTextColor'
+        ];
+
+        const defaultValues = {
+          titleColor: '#1976d2',
+          descriptionColor: '#666666',
+          companyInfoColor: '#333333',
+          formVariant: 'outlined',
+          infoVariant: 'elevation',
+          formBackgroundColor: '#ffffff',
+          infoBackgroundColor: '#ffffff',
+          formBorderColor: '#1976d2',
+          infoBorderColor: '#e0e0e0',
+          labelColor: '#333333',
+          inputBackgroundColor: '#f5f9ff',
+          inputTextColor: '#1a1a1a',
+          buttonColor: '#1976d2',
+          buttonTextColor: '#ffffff',
+          iconColor: '#1976d2',
+          infoTitleColor: '#1976d2',
+          infoTextColor: '#666666'
+        };
+
+        // Проверяем наличие и корректность всех свойств
+        requiredProps.forEach(prop => {
+          if (!contactPreset.hasOwnProperty(prop)) {
+            console.warn(`Свойство ${prop} отсутствует, используем значение по умолчанию`);
+            contactPreset[prop] = defaultValues[prop];
+          } else if (prop.toLowerCase().includes('color') && !isValidColor(contactPreset[prop])) {
+            console.warn(`Свойство ${prop} содержит некорректный цвет, используем значение по умолчанию`);
+            contactPreset[prop] = defaultValues[prop];
+          } else if (prop === 'formVariant' && !isValidFormVariant(contactPreset[prop])) {
+            console.warn(`Некорректный вариант формы: ${contactPreset[prop]}, используем значение по умолчанию`);
+            contactPreset[prop] = defaultValues[prop];
+          } else if (prop === 'infoVariant' && !isValidInfoVariant(contactPreset[prop])) {
+            console.warn(`Некорректный вариант информационного блока: ${contactPreset[prop]}, используем значение по умолчанию`);
+            contactPreset[prop] = defaultValues[prop];
+          }
+        });
+
         onContactChange({
           ...contactData,
           titleColor: contactPreset.titleColor,

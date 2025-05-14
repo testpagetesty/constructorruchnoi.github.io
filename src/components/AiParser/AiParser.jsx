@@ -1783,6 +1783,7 @@ ID: отзывы (укажите ID на вашем языке)
           titleColor: stylePreset.titleColor,
           backgroundColor: stylePreset.backgroundColor,
           borderColor: stylePreset.borderColor,
+          linksColor: stylePreset.descriptionColor,
           // Добавляем свойства фона сайта
           siteBackgroundType: stylePreset.siteBackgroundType || 'solid',
           ...((!stylePreset.siteBackgroundType || stylePreset.siteBackgroundType === 'solid') && {
@@ -1829,14 +1830,14 @@ ID: отзывы (укажите ID на вашем языке)
           // Обновляем свойства карточек внутри секции
           cards: (section.cards || []).map(card => ({
             ...card,
-            titleColor: stylePreset.cardTitleColor,
-            contentColor: stylePreset.cardContentColor,
-            backgroundColor: stylePreset.cardBackgroundColor,
-            borderColor: stylePreset.cardBorderColor,
-            backgroundType: stylePreset.cardBackgroundType,
+            titleColor: stylePreset.cardTitleColor || stylePreset.titleColor,
+            contentColor: stylePreset.cardContentColor || stylePreset.descriptionColor,
+            backgroundColor: stylePreset.cardBackgroundColor || '#ffffff',
+            borderColor: stylePreset.cardBorderColor || stylePreset.borderColor,
+            backgroundType: stylePreset.cardBackgroundType || 'solid',
             gradientColor1: stylePreset.cardGradientColor1,
             gradientColor2: stylePreset.cardGradientColor2,
-            gradientDirection: stylePreset.cardGradientDirection,
+            gradientDirection: stylePreset.cardGradientDirection || 'to bottom',
             style: {
               ...card.style,
               shadow: stylePreset.style?.shadow || '0 2px 4px rgba(0,0,0,0.1)',
@@ -1850,7 +1851,7 @@ ID: отзывы (укажите ID на вашем языке)
       onSectionsChange(updatedSections);
     }
 
-    // Применяем соответствующий стиль к контактной форме из contactPresets
+    // Применяем соответствующий стиль к контактной форме
     if (onContactChange && contactData) {
       // Пытаемся найти подходящий стиль контактов
       let matchingContactStyle = null;
@@ -1872,68 +1873,51 @@ ID: отзывы (укажите ID на вашем языке)
           // Берем первый подходящий стиль
           matchingContactStyle = matchingStyles[0][1];
         } else {
-          // Или ищем стиль, который близок по цветовой гамме
-          const styleFirstWord = styleName.split('_')[0].toLowerCase();
-          const matchByName = Object.entries(contactPresets).find(([key, preset]) => 
-            key.toLowerCase().includes(styleFirstWord) || 
-            (preset.name && preset.name.toLowerCase().includes(styleFirstWord))
-          );
-          
-          if (matchByName) {
-            matchingContactStyle = matchByName[1];
-          }
+          // Создаем новый стиль на основе основного стиля
+          matchingContactStyle = {
+            titleColor: stylePreset.titleColor,
+            descriptionColor: stylePreset.descriptionColor,
+            companyInfoColor: stylePreset.titleColor,
+            formVariant: 'outlined',
+            infoVariant: 'elevation',
+            formBackgroundColor: stylePreset.backgroundColor || '#ffffff',
+            infoBackgroundColor: stylePreset.cardBackgroundColor || '#f5f5f5',
+            formBorderColor: stylePreset.borderColor,
+            infoBorderColor: stylePreset.borderColor,
+            labelColor: stylePreset.titleColor,
+            inputBackgroundColor: stylePreset.cardBackgroundColor || '#ffffff',
+            inputTextColor: stylePreset.cardContentColor || '#333333',
+            buttonColor: stylePreset.titleColor,
+            buttonTextColor: '#ffffff',
+            iconColor: stylePreset.titleColor,
+            infoTitleColor: stylePreset.titleColor,
+            infoTextColor: stylePreset.descriptionColor
+          };
         }
       }
       
-      // Если нашли подходящий стиль, применяем его
-      if (matchingContactStyle) {
-        console.log('Применяем соответствующий стиль контактов:', matchingContactStyle.name || 'без имени');
-        
-        onContactChange({
-          ...contactData,
-          titleColor: matchingContactStyle.titleColor,
-          descriptionColor: matchingContactStyle.descriptionColor,
-          companyInfoColor: matchingContactStyle.companyInfoColor,
-          formVariant: matchingContactStyle.formVariant,
-          infoVariant: matchingContactStyle.infoVariant,
-          formBackgroundColor: matchingContactStyle.formBackgroundColor,
-          infoBackgroundColor: matchingContactStyle.infoBackgroundColor,
-          formBorderColor: matchingContactStyle.formBorderColor,
-          infoBorderColor: matchingContactStyle.infoBorderColor,
-          labelColor: matchingContactStyle.labelColor,
-          inputBackgroundColor: matchingContactStyle.inputBackgroundColor,
-          inputTextColor: matchingContactStyle.inputTextColor,
-          buttonColor: matchingContactStyle.buttonColor,
-          buttonTextColor: matchingContactStyle.buttonTextColor,
-          iconColor: matchingContactStyle.iconColor,
-          infoTitleColor: matchingContactStyle.infoTitleColor,
-          infoTextColor: matchingContactStyle.infoTextColor
-        });
-      } else {
-        // Если не нашли, используем базовые цвета из выбранного стиля
-        console.log('Используем базовые цвета для контактов из выбранного стиля сайта');
-        
-        onContactChange({
-          ...contactData,
-          titleColor: stylePreset.titleColor,
-          descriptionColor: stylePreset.descriptionColor,
-          buttonColor: stylePreset.titleColor,
-          buttonTextColor: stylePreset.cardBackgroundColor,
-          formBorderColor: stylePreset.borderColor,
-          infoTitleColor: stylePreset.titleColor,
-          infoTextColor: stylePreset.descriptionColor
-        });
-      }
-    }
-
-    // Применяем стиль к герою
-    if (onHeroChange && heroData) {
-      onHeroChange({
-        ...heroData,
-        titleColor: stylePreset.titleColor,
-        descriptionColor: stylePreset.descriptionColor,
-        backgroundColor: stylePreset.backgroundColor,
-        borderColor: stylePreset.borderColor,
+      // Применяем найденный или созданный стиль
+      console.log('Применяем стиль к разделу контактов:', matchingContactStyle.name || 'базовый стиль');
+      
+      onContactChange({
+        ...contactData,
+        titleColor: matchingContactStyle.titleColor,
+        descriptionColor: matchingContactStyle.descriptionColor,
+        companyInfoColor: matchingContactStyle.companyInfoColor,
+        formVariant: matchingContactStyle.formVariant,
+        infoVariant: matchingContactStyle.infoVariant,
+        formBackgroundColor: matchingContactStyle.formBackgroundColor,
+        infoBackgroundColor: matchingContactStyle.infoBackgroundColor,
+        formBorderColor: matchingContactStyle.formBorderColor,
+        infoBorderColor: matchingContactStyle.infoBorderColor,
+        labelColor: matchingContactStyle.labelColor,
+        inputBackgroundColor: matchingContactStyle.inputBackgroundColor,
+        inputTextColor: matchingContactStyle.inputTextColor,
+        buttonColor: matchingContactStyle.buttonColor,
+        buttonTextColor: matchingContactStyle.buttonTextColor,
+        iconColor: matchingContactStyle.iconColor,
+        infoTitleColor: matchingContactStyle.infoTitleColor,
+        infoTextColor: matchingContactStyle.infoTextColor
       });
     }
   };

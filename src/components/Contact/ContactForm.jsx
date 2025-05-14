@@ -9,83 +9,36 @@ import {
   MenuItem,
   styled
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 
-const StyledTextField = styled(TextField)(({ theme, customStyles }) => ({
+const StyledTextField = styled(TextField)(({ theme }) => ({
   '& .MuiOutlinedInput-root': {
-    backgroundColor: customStyles?.inputBackgroundColor || '#f5f9ff',
-    color: customStyles?.inputTextColor || '#1a1a1a',
-    borderRadius: '8px',
-    transition: 'all 0.3s ease',
-    ...(customStyles?.inputTextColor?.includes('#ff') || customStyles?.inputTextColor?.includes('#00ff') ? {
-      boxShadow: `0 0 5px ${customStyles.inputTextColor}33, 
-                  0 0 10px ${customStyles.inputTextColor}33, 
-                  0 0 15px ${customStyles.inputTextColor}33`,
-      '&:hover': {
-        boxShadow: `0 0 5px ${customStyles.inputTextColor}66, 
-                    0 0 10px ${customStyles.inputTextColor}66, 
-                    0 0 15px ${customStyles.inputTextColor}66`,
-        backgroundColor: customStyles.inputBackgroundColor
-      },
-      '&.Mui-focused': {
-        boxShadow: `0 0 5px ${customStyles.inputTextColor}, 
-                    0 0 10px ${customStyles.inputTextColor}, 
-                    0 0 15px ${customStyles.inputTextColor}`,
-        backgroundColor: customStyles.inputBackgroundColor
-      }
-    } : {
-      '&:hover': {
-        backgroundColor: customStyles?.inputBackgroundColor 
-          ? `${customStyles.inputBackgroundColor}dd`
-          : '#f0f0f0',
-      },
-      '&.Mui-focused': {
-        backgroundColor: customStyles?.inputBackgroundColor || '#ffffff',
-        boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
-      }
-    }),
+    backgroundColor: '#ffffff',
     '& fieldset': {
-      borderColor: customStyles?.formBorderColor || '#e0e0e0',
-      transition: 'all 0.3s ease',
-      ...(customStyles?.inputTextColor?.includes('#ff') || customStyles?.inputTextColor?.includes('#00ff') ? {
-        borderWidth: '2px'
-      } : {})
+      borderColor: '#1976d2',
     },
     '&:hover fieldset': {
-      borderColor: customStyles?.formBorderColor || '#1565c0',
+      borderColor: '#1976d2',
     },
     '&.Mui-focused fieldset': {
-      borderColor: customStyles?.formBorderColor || '#1565c0',
-      borderWidth: '2px',
+      borderColor: '#1976d2',
     },
+    '& input': {
+      color: '#333333',
+    },
+    '& textarea': {
+      color: '#333333',
+    }
   },
   '& .MuiInputLabel-root': {
-    color: customStyles?.labelColor || '#666666',
+    color: '#333333',
     '&.Mui-focused': {
-      color: customStyles?.labelColor || '#1565c0',
-    },
-    ...(customStyles?.inputTextColor?.includes('#ff') || customStyles?.inputTextColor?.includes('#00ff') ? {
-      textShadow: `0 0 5px ${customStyles.labelColor}66`
-    } : {})
-  },
-  '& .MuiInputBase-input': {
-    fontSize: '16px',
-    padding: '12px 16px',
-    '&::placeholder': {
-      color: customStyles?.inputTextColor 
-        ? `${customStyles.inputTextColor}99`
-        : '#666666',
-    },
+      color: '#333333',
+    }
   },
   '& .MuiFormHelperText-root': {
-    color: customStyles?.labelColor 
-      ? `${customStyles.labelColor}cc`
-      : '#666666',
-    marginLeft: '4px',
-    fontSize: '0.875rem',
-    ...(customStyles?.inputTextColor?.includes('#ff') || customStyles?.inputTextColor?.includes('#00ff') ? {
-      textShadow: `0 0 5px ${customStyles.labelColor}66`
-    } : {})
-  },
+    color: '#333333',
+  }
 }));
 
 const StyledSelect = styled(Select)(({ theme, customStyles }) => ({
@@ -136,40 +89,28 @@ const StyledSelect = styled(Select)(({ theme, customStyles }) => ({
   }
 }));
 
-const StyledButton = styled(Button)(({ theme, customStyles }) => ({
-  backgroundColor: customStyles?.buttonColor || '#1565c0',
-  color: customStyles?.buttonTextColor || '#ffffff',
-  borderRadius: '8px',
-  padding: '12px 24px',
-  fontSize: '16px',
-  fontWeight: 600,
-  textTransform: 'none',
-  transition: 'all 0.3s ease',
-  ...(customStyles?.buttonColor?.includes('#ff') || customStyles?.buttonColor?.includes('#00ff') ? {
-    boxShadow: `0 0 5px ${customStyles.buttonColor}66,
-                0 0 10px ${customStyles.buttonColor}66,
-                0 0 15px ${customStyles.buttonColor}66`,
-    '&:hover': {
-      backgroundColor: customStyles.buttonColor,
-      boxShadow: `0 0 5px ${customStyles.buttonColor},
-                  0 0 10px ${customStyles.buttonColor},
-                  0 0 15px ${customStyles.buttonColor},
-                  0 0 20px ${customStyles.buttonColor}66`,
-      transform: 'translateY(-2px)'
-    }
-  } : {
-    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-    '&:hover': {
-      backgroundColor: customStyles?.buttonColor 
-        ? `${customStyles.buttonColor}dd`
-        : '#1976d2',
-      transform: 'translateY(-2px)',
-      boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
-    }
-  })
+const StyledButton = styled(Button)(({ theme }) => ({
+  backgroundColor: '#1976d2',
+  color: '#ffffff',
+  '&:hover': {
+    backgroundColor: alpha('#1976d2', 0.9),
+  },
+  '&.Mui-disabled': {
+    backgroundColor: alpha('#1976d2', 0.5),
+    color: '#ffffff',
+  }
 }));
 
-const ContactForm = ({ customStyles }) => {
+const ContactForm = ({ customStyles = {} }) => {
+  const {
+    inputBackgroundColor = '#ffffff',
+    inputTextColor = '#333333',
+    formBorderColor = '#1976d2',
+    labelColor = '#333333',
+    buttonColor = '#1976d2',
+    buttonTextColor = '#ffffff'
+  } = customStyles;
+
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',

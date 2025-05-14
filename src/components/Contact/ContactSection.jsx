@@ -29,11 +29,14 @@ const MapContainer = styled(Box)(({ theme }) => ({
   zIndex: 1
 }));
 
-const StyledPaper = styled(Paper)(({ theme }) => ({
+const StyledPaper = styled(Paper)(({ theme, customStyles }) => ({
   padding: theme.spacing(3),
   transition: 'all 0.3s ease-in-out',
   position: 'relative',
   zIndex: 1,
+  backgroundColor: customStyles?.backgroundColor || '#ffffff',
+  border: customStyles?.borderColor ? `1px solid ${customStyles.borderColor}` : 'none',
+  boxShadow: customStyles?.variant === 'elevation' ? theme.shadows[4] : 'none',
   '&:hover': {
     transform: 'translateY(-5px)',
     boxShadow: theme.shadows[8],
@@ -56,6 +59,14 @@ const ContactSection = React.forwardRef(({
   infoBackgroundColor = '#ffffff',
   formBorderColor = '#1976d2',
   infoBorderColor = '#1976d2',
+  labelColor = '#333333',
+  inputBackgroundColor = '#f5f9ff',
+  inputTextColor = '#1a1a1a',
+  buttonColor = '#1976d2',
+  buttonTextColor = '#ffffff',
+  iconColor = '#1976d2',
+  infoTitleColor = '#1976d2',
+  infoTextColor = '#424242',
   titleFont = 'default',
   textFont = 'default',
   formBorderWidth,
@@ -80,6 +91,14 @@ const ContactSection = React.forwardRef(({
     infoBackgroundColor: dataInfoBackgroundColor = infoBackgroundColor,
     formBorderColor: dataFormBorderColor = formBorderColor,
     infoBorderColor: dataInfoBorderColor = infoBorderColor,
+    labelColor: dataLabelColor = labelColor,
+    inputBackgroundColor: dataInputBackgroundColor = inputBackgroundColor,
+    inputTextColor: dataInputTextColor = inputTextColor,
+    buttonColor: dataButtonColor = buttonColor,
+    buttonTextColor: dataButtonTextColor = buttonTextColor,
+    iconColor: dataIconColor = iconColor,
+    infoTitleColor: dataInfoTitleColor = infoTitleColor,
+    infoTextColor: dataInfoTextColor = infoTextColor,
     titleFont: dataTitleFont = titleFont,
     textFont: dataTextFont = textFont
   } = contactData;
@@ -112,53 +131,47 @@ const ContactSection = React.forwardRef(({
       }}
     >
       <Container maxWidth="lg">
-        <Typography
-          variant="h3"
-          component="h2"
-          align="center"
-          gutterBottom
-          sx={{
-            mb: 2,
-            fontWeight: 700,
-            color: dataTitleColor || '#1565c0',
-            textShadow: '0 1px 2px rgba(0,0,0,0.1)',
-            ...getFontStyle(dataTitleFont)
-          }}
-        >
-          {dataTitle}
-        </Typography>
-        
-        <Typography
-          variant="h6"
-          align="center"
-          sx={{
-            mb: 6,
-            color: dataDescriptionColor || '#424242',
-            fontWeight: 500,
-            ...getFontStyle(dataTextFont)
-          }}
-        >
-          {dataDescription}
-        </Typography>
+        <Box sx={{ textAlign: 'center', mb: 6 }}>
+          <Typography
+            variant="h2"
+            component="h2"
+            sx={{
+              color: dataTitleColor,
+              mb: 2,
+              ...getFontStyle(dataTitleFont)
+            }}
+          >
+            {dataTitle}
+          </Typography>
+          <Typography
+            variant="h6"
+            sx={{
+              color: dataDescriptionColor,
+              mb: 4,
+              ...getFontStyle(dataTextFont)
+            }}
+          >
+            {dataDescription}
+          </Typography>
+        </Box>
 
         <Grid container spacing={4}>
           <Grid item xs={12} md={6}>
             <StyledPaper
-              variant={dataFormVariant}
-              sx={{
+              customStyles={{
                 backgroundColor: dataFormBackgroundColor,
                 borderColor: dataFormBorderColor,
-                borderWidth: formBorderWidth
+                variant: dataFormVariant
               }}
             >
               <ContactForm 
                 customStyles={{
-                  inputBackgroundColor: contactData.inputBackgroundColor,
-                  inputTextColor: contactData.inputTextColor,
-                  formBorderColor: contactData.formBorderColor,
-                  labelColor: contactData.labelColor,
-                  buttonColor: contactData.buttonColor,
-                  buttonTextColor: contactData.buttonTextColor
+                  inputBackgroundColor: dataInputBackgroundColor,
+                  inputTextColor: dataInputTextColor,
+                  formBorderColor: dataFormBorderColor,
+                  labelColor: dataLabelColor,
+                  buttonColor: dataButtonColor,
+                  buttonTextColor: dataButtonTextColor
                 }}
               />
             </StyledPaper>
@@ -166,44 +179,66 @@ const ContactSection = React.forwardRef(({
 
           <Grid item xs={12} md={6}>
             <StyledPaper
-              variant={dataInfoVariant}
-              sx={{
+              customStyles={{
                 backgroundColor: dataInfoBackgroundColor,
                 borderColor: dataInfoBorderColor,
-                borderWidth: infoBorderWidth
+                variant: dataInfoVariant
               }}
             >
-              <Typography 
-                variant="h5" 
-                gutterBottom 
-                sx={{ 
+              <Typography
+                variant="h5"
+                component="h3"
+                sx={{
+                  color: dataInfoTitleColor,
                   mb: 3,
-                  color: dataCompanyInfoColor,
                   ...getFontStyle(dataTitleFont)
                 }}
               >
                 {dataCompanyName}
               </Typography>
-              
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <LocationOnIcon sx={{ mr: 2, color: dataCompanyInfoColor }} />
-                <Typography sx={{ color: dataCompanyInfoColor, ...getFontStyle(dataTextFont) }}>{dataAddress}</Typography>
-              </Box>
-              
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <PhoneIcon sx={{ mr: 2, color: dataCompanyInfoColor }} />
-                <Typography sx={{ color: dataCompanyInfoColor, ...getFontStyle(dataTextFont) }}>{dataPhone}</Typography>
-              </Box>
-              
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <EmailIcon sx={{ mr: 2, color: dataCompanyInfoColor }} />
-                <Typography sx={{ color: dataCompanyInfoColor, ...getFontStyle(dataTextFont) }}>{dataEmail}</Typography>
-              </Box>
 
-              <MapContainer>
-                <MapIframe address={dataAddress} />
-              </MapContainer>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <LocationOnIcon sx={{ color: dataIconColor }} />
+                  <Typography
+                    sx={{
+                      color: dataInfoTextColor,
+                      ...getFontStyle(dataTextFont)
+                    }}
+                  >
+                    {dataAddress}
+                  </Typography>
+                </Box>
+
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <PhoneIcon sx={{ color: dataIconColor }} />
+                  <Typography
+                    sx={{
+                      color: dataInfoTextColor,
+                      ...getFontStyle(dataTextFont)
+                    }}
+                  >
+                    {dataPhone}
+                  </Typography>
+                </Box>
+
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <EmailIcon sx={{ color: dataIconColor }} />
+                  <Typography
+                    sx={{
+                      color: dataInfoTextColor,
+                      ...getFontStyle(dataTextFont)
+                    }}
+                  >
+                    {dataEmail}
+                  </Typography>
+                </Box>
+              </Box>
             </StyledPaper>
+
+            <MapContainer>
+              <MapIframe address={dataAddress} />
+            </MapContainer>
           </Grid>
         </Grid>
       </Container>
