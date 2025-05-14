@@ -87,6 +87,31 @@ const HeaderEditor = ({
     };
   }, [headerData.language]);
 
+  // Добавляем эффект для синхронизации выбранного пресета с текущими стилями
+  useEffect(() => {
+    if (headerData) {
+      // Ищем пресет, который соответствует текущим стилям
+      const matchingPreset = Object.entries(headerPresets).find(([_, preset]) => {
+        return preset.titleColor === headerData.titleColor &&
+               preset.backgroundColor === headerData.backgroundColor &&
+               preset.linksColor === headerData.linksColor &&
+               preset.siteBackgroundType === headerData.siteBackgroundType &&
+               ((preset.siteBackgroundType === 'solid' && 
+                 preset.siteBackgroundColor === headerData.siteBackgroundColor) ||
+                (preset.siteBackgroundType === 'gradient' &&
+                 preset.siteGradientColor1 === headerData.siteGradientColor1 &&
+                 preset.siteGradientColor2 === headerData.siteGradientColor2 &&
+                 preset.siteGradientDirection === headerData.siteGradientDirection));
+      });
+
+      if (matchingPreset) {
+        setSelectedPreset(matchingPreset[0]);
+      } else {
+        setSelectedPreset('');
+      }
+    }
+  }, [headerData]);
+
   const handleConfigLoaded = (config) => {
     if (config.header) {
       onHeaderChange(config.header);
@@ -274,6 +299,11 @@ const HeaderEditor = ({
   };
 
   const handlePresetChange = (presetKey) => {
+    if (!presetKey) {
+      setSelectedPreset('');
+      return;
+    }
+
     setSelectedPreset(presetKey);
     const preset = headerPresets[presetKey];
     onHeaderChange({

@@ -1353,10 +1353,10 @@ const EditorPanel = ({
       if (cardsCount === 2) cardsClass = 'cards-2';
       if (cardsCount === 3) cardsClass = 'cards-3';
       if (section.cardType === 'none') {
-        // Собираем текст из карточек
+        // Собираем текст из карточек с гарантированными цветами
         const cardsText = (section.cards || []).map(card => `
-          ${card.title ? `<br><strong style=\"color:${card.titleColor || section.titleColor || '#1976d2'}\">${card.title}</strong>` : ''}
-          ${card.content ? `<br><span style=\"color:${card.contentColor || section.contentColor || '#333333'}\">${card.content}</span>` : ''}
+          ${card.title ? `<br><strong style="color:${card.titleColor || section.titleColor || '#1a237e'}">${card.title}</strong>` : ''}
+          ${card.content ? `<br><span style="color:${card.contentColor || section.contentColor || '#455a64'}">${card.content}</span>` : ''}
         `).join('');
         return `
           <section id="${section.id}" class="section" style="
@@ -1364,6 +1364,7 @@ const EditorPanel = ({
             position: relative;
             background: ${section.showBackground !== false ? (section.backgroundColor || '#ffffff') : 'transparent'};
             border-top: 1px solid rgba(0,0,0,0.1);
+            color: ${section.contentColor || '#455a64'};
           ">
             <div class="section-container" style="
               max-width: 1200px;
@@ -1384,52 +1385,22 @@ const EditorPanel = ({
                   'linear-gradient(145deg, #ffffff, #f5f5f5)'};
                 box-shadow: 0 4px 20px rgba(0,0,0,0.1);
               ">
-                <style>
-                  @media (max-width: 1024px) {
-                    #${section.id} .about-section {
-                      flex-direction: column !important;
-                      align-items: center !important;
-                    }
-                    #${section.id} .about-image {
-                      min-width: 100% !important;
-                      max-width: 500px !important;
-                      margin: 0 auto 2rem auto !important;
-                      order: -1 !important;
-                    }
-                    #${section.id} .about-content {
-                      width: 100% !important;
-                      text-align: center !important;
-                    }
-                    #${section.id} .about-content h2,
-                    #${section.id} .about-content p,
-                    #${section.id} .about-content div {
-                      text-align: center !important;
-                    }
-                    #${section.id} .about-content div br {
-                      display: none !important;
-                    }
-                    #${section.id} .about-content div strong {
-                      display: block !important;
-                      margin-top: 1rem !important;
-                      margin-bottom: 0.5rem !important;
-                    }
-                  }
-                </style>
-                ${section.imagePath || section.id === 'about' ? `
-                  <div class="about-image" style="flex:1; min-width:220px; max-width:400px;">
-                    <img 
-                      src="assets/images/${section.id === 'about' ? 'about.jpg' : section.imagePath.split('/').pop()}" 
-                      alt="About us" 
-                      loading="lazy" 
-                      class="about-image-float"
-                      style="width:100%; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); margin-bottom: 16px;"
-                    />
-                  </div>
-                ` : ''}
                 <div class="about-content" style="flex:2; position:relative; text-align:left; padding-left:0;">
-                  <h2 style="color: ${section.titleColor || '#000000'}; text-align:left; margin-bottom:0.7rem;">${section.title || ''}</h2>
-                  ${section.description ? `<p style=\"color: ${section.descriptionColor || '#666666'}; text-align:left; margin-bottom:0.7rem;\">${section.description}</p>` : ''}
-                  ${cardsText ? `<div style=\"margin-top:0.5rem;\">${cardsText}</div>` : ''}
+                  <h2 style="
+                    color: ${section.titleColor || '#1a237e'}; 
+                    text-align:left; 
+                    margin-bottom:0.7rem;
+                    font-size: 2rem;
+                    font-weight: 600;
+                  ">${section.title || ''}</h2>
+                  ${section.description ? `<p style="
+                    color: ${section.descriptionColor || '#455a64'}; 
+                    text-align:left; 
+                    margin-bottom:0.7rem;
+                    font-size: 1.1rem;
+                    line-height: 1.6;
+                  ">${section.description}</p>` : ''}
+                  ${cardsText ? `<div style="margin-top:0.5rem;">${cardsText}</div>` : ''}
                 </div>
               </div>
             </div>
@@ -1443,112 +1414,33 @@ const EditorPanel = ({
             --border-start-color: ${borderColors.start};
             --border-end-color: ${borderColors.end};
             --section-background-color: ${section.backgroundColor || 'transparent'};
-            <?php if ($section['id'] !== 'about' && isset($section['backgroundImage']) && $section['backgroundImage']): ?>
-              background-image: url('<?php echo $section['backgroundImage']; ?>');
-              background-size: cover;
-              background-position: center;
-            <?php endif; ?>
             position: relative;
             overflow: hidden;
             border-radius: 20px;
+            color: ${section.contentColor || '#455a64'};
           "
         >
-        
-          <?php if (isset($section['enableOverlay']) && $section['enableOverlay'] && isset($section['showBackground']) && $section['showBackground'] !== false): ?>
-            <div class="section-overlay" style="
-              position: absolute;
-              top: 0;
-              left: 0;
-              right: 0;
-              bottom: 0;
-              background-color: rgba(0, 0, 0, <?php echo isset($section['overlayOpacity']) ? $section['overlayOpacity'] : '0.5'; ?>);
-              z-index: 1;
-              border-radius: 20px;
-            "></div>
-          <?php endif; ?>
-
-          <?php if (isset($section['backgroundImage']) && $section['backgroundImage'] && isset($section['enableBlur']) && $section['enableBlur'] && isset($section['showBackground']) && $section['showBackground'] !== false): ?>
-            <div class="section-background-blur" style="
-              position: absolute;
-              top: -5%;
-              left: -5%;
-              right: -5%;
-              bottom: -5%;
-              background-image: url('<?php echo $section['backgroundImage']; ?>');
-              background-size: cover;
-              background-position: center;
-              filter: blur(<?php echo isset($section['blurAmount']) ? $section['blurAmount'] : '5'; ?>px);
-              z-index: 0;
-              animation: zoomIn 20s ease-in-out infinite alternate;
-              border-radius: 20px;
-            "></div>
-          <?php endif; ?>
           <div class="section-container" style="position: relative; z-index: 2;">
-            ${section.id === 'about' ? `
-              <div class="about-section">
-                <div class="about-image">
-                  <img src="assets/images/about.jpg" alt="About us" loading="lazy">
-                </div>
-                <div class="about-content">
-                  <h2 style="color: ${section.titleColor || '#000000'}">${section.title || ''}</h2>
-                  ${section.description ? `
-                    <p style="color: ${section.descriptionColor || '#666666'}">${section.description}</p>
-                  ` : ''}
-                </div>
-              </div>
-            ` : `
-              <div class="section-header">
-                <h2 style="color: ${section.titleColor || '#000000'}">${section.title || ''}</h2>
-                ${section.description ? `
-                  <p style="color: ${section.descriptionColor || '#666666'}">${section.description}</p>
-                ` : ''}
-              </div>
-              ${section.imagePath ? `
-                <div class="section-image">
-                  <img src="assets/images/${section.imagePath.split('/').pop()}" alt="${section.title || 'Section image'}" loading="lazy">
-                </div>
+            <div class="section-header">
+              <h2 style="
+                color: ${section.titleColor || '#1a237e'}; 
+                text-align: center; 
+                margin-bottom: 1rem;
+                font-size: 2rem;
+                font-weight: 600;
+              ">${section.title || ''}</h2>
+              ${section.description ? `
+                <p style="
+                  color: ${section.descriptionColor || '#455a64'}; 
+                  text-align: center; 
+                  margin-bottom: 1rem;
+                  font-size: 1.1rem;
+                  line-height: 1.6;
+                ">${section.description}</p>
               ` : ''}
-            `}
+            </div>
             <div class="cards-container${cardsClass ? ' ' + cardsClass : ''}">
-              ${section.cardType === 'none' || (section.cards || []).length === 0 ? `
-                <div class="no-cards-section" style="
-                  padding: 2rem;
-                  border-radius: 16px;
-                  background: ${section.backgroundColor ? section.backgroundColor : 
-                    (section.gradientStart && section.gradientEnd) ? 
-                    `linear-gradient(145deg, ${section.gradientStart}, ${section.gradientEnd})` : 
-                    'linear-gradient(145deg, #ffffff, #f5f5f5)'};
-                  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-                  position: relative;
-                  margin-top: 2rem;
-                ">
-                  <div class="section-content" style="position: relative; text-align: left;">
-                    ${section.imagePath ? `
-                      <div class="section-float-image" style="
-                        float: right;
-                        margin: 0 0 1rem 1.5rem;
-                        max-width: 300px;
-                        width: 100%;
-                      ">
-                        <img 
-                          src="assets/images/${section.imagePath.split('/').pop()}" 
-                          alt="${section.title || 'Section image'}"
-                          style="
-                            width: 100%;
-                            height: auto;
-                            border-radius: 12px;
-                            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                          "
-                        />
-                      </div>
-                    ` : ''}
-                    ${(section.cards || []).map(card => `
-                      ${card.title ? `<h3 style="color: ${card.titleColor || section.titleColor || '#1976d2'}; margin-top: 1.5rem; margin-bottom: 0.5rem;">${card.title}</h3>` : ''}
-                      ${card.content ? `<p style="color: ${card.contentColor || section.contentColor || '#333333'}; line-height: 1.6;">${card.content}</p>` : ''}
-                    `).join('')}
-                  </div>
-                </div>
-              ` : (section.cards || []).map(card => `
+              ${(section.cards || []).map(card => `
                 <div class="card ${section.cardType}" data-card-id="${card.id}" style="
                   ${card.backgroundType === 'solid' ? `background-color: ${card.backgroundColor || '#ffffff'};` : ''}
                   ${card.backgroundType === 'gradient' ? `background: linear-gradient(${card.gradientDirection || 'to right'}, ${card.gradientColor1 || '#ffffff'}, ${card.gradientColor2 || '#f5f5f5'});` : ''}
@@ -1562,16 +1454,17 @@ const EditorPanel = ({
                   height: 100%;
                   padding: 1.5rem;
                 ">
-                  ${card.showTitle ? `
-                    <div class="card-header">
-                      <h3 style="color: ${card.titleColor || '#333333'}; text-align: left; font-weight: 500; font-size: 1.1rem; margin-bottom: 1rem; margin-top: 0;">
-                        ${card.title.trim()}
-                      </h3>
-                    </div>
-                  ` : ''}
-                  <div class="card-content" style="color: ${card.contentColor || '#666666'}; font-size: 1rem; line-height: 1.6; text-align: left; flex-grow: 1;">
-                    ${card.content.trim()}
-                  </div>
+                  <h3 style="
+                    color: ${card.titleColor || section.titleColor || '#1a237e'}; 
+                    margin-bottom: 0.7rem;
+                    font-size: 1.5rem;
+                    font-weight: 600;
+                  ">${card.title || ''}</h3>
+                  <p style="
+                    color: ${card.contentColor || section.contentColor || '#455a64'}; 
+                    font-size: 1rem;
+                    line-height: 1.6;
+                  ">${card.content || ''}</p>
                 </div>
               `).join('')}
             </div>

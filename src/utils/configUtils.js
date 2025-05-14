@@ -53,9 +53,9 @@ export const createSection = (id, title, cardType = CARD_TYPES.SIMPLE) => ({
   cardType,
   backgroundType: BACKGROUND_TYPES.SOLID,
   backgroundColor: '#ffffff',
-  titleColor: '#000000',
-  descriptionColor: '#666666',
-  contentColor: '#333333',
+  titleColor: '#1a237e',
+  descriptionColor: '#455a64',
+  contentColor: '#455a64',
   showBackground: true,
   cards: []
 });

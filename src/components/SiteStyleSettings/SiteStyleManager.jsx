@@ -83,143 +83,194 @@ const SiteStyleManager = ({
   };
   
   // Функция-обертка для обработки применения стилей
-  const handleApplyStyle = (styleName, stylePreset) => {
+  const handleApplyStyle = (styleName, stylePreset, contactPreset, headerPreset) => {
     console.log('Применение стиля:', styleName, useSameStyle ? 'один стиль' : 'разные стили');
     
     if (useSameStyle) {
       // Если выбран один стиль для всего сайта
-      onApplyToWholeWebsite(styleName, stylePreset);
+      onApplyToWholeWebsite(styleName, stylePreset, contactPreset, headerPreset);
       
-      // Дополнительно подбираем и применяем подходящий стиль для шапки
-      applyMatchingHeaderStyle(styleName, stylePreset);
+      // Применяем стиль для шапки
+      if (headerPreset) {
+        // Если передан конкретный стиль шапки, применяем его
+        onHeaderChange({
+          ...headerData,
+          titleColor: headerPreset.titleColor,
+          backgroundColor: headerPreset.backgroundColor,
+          linksColor: headerPreset.linksColor,
+          siteBackgroundType: headerPreset.siteBackgroundType,
+          ...(headerPreset.siteBackgroundType === 'solid' && {
+            siteBackgroundColor: headerPreset.siteBackgroundColor
+          }),
+          ...(headerPreset.siteBackgroundType === 'gradient' && {
+            siteGradientColor1: headerPreset.siteGradientColor1,
+            siteGradientColor2: headerPreset.siteGradientColor2,
+            siteGradientDirection: headerPreset.siteGradientDirection
+          })
+        });
+        
+        // Обновляем выбранный стиль в UI
+        const headerStyleKey = Object.keys(headerPresets).find(key => headerPresets[key] === headerPreset);
+        if (headerStyleKey) {
+          setSelectedHeaderStyle(headerStyleKey);
+          setHeaderStyleApplied(true);
+          setTimeout(() => setHeaderStyleApplied(false), 3000);
+        }
+      } else {
+        // Если стиль шапки не передан, подбираем подходящий
+        applyMatchingHeaderStyle(styleName, stylePreset);
+      }
+      
+      // Применяем стиль для контактов
+      if (typeof onContactChange === 'function' && contactData && contactPreset) {
+        onContactChange({
+          ...contactData,
+          titleColor: contactPreset.titleColor,
+          descriptionColor: contactPreset.descriptionColor,
+          companyInfoColor: contactPreset.companyInfoColor,
+          formVariant: contactPreset.formVariant,
+          infoVariant: contactPreset.infoVariant,
+          formBackgroundColor: contactPreset.formBackgroundColor,
+          infoBackgroundColor: contactPreset.infoBackgroundColor,
+          formBorderColor: contactPreset.formBorderColor,
+          infoBorderColor: contactPreset.infoBorderColor,
+          labelColor: contactPreset.labelColor,
+          inputBackgroundColor: contactPreset.inputBackgroundColor,
+          inputTextColor: contactPreset.inputTextColor,
+          buttonColor: contactPreset.buttonColor,
+          buttonTextColor: contactPreset.buttonTextColor,
+          iconColor: contactPreset.iconColor,
+          infoTitleColor: contactPreset.infoTitleColor,
+          infoTextColor: contactPreset.infoTextColor
+        });
+      }
     } else {
       // Если выбраны разные стили для разделов
-      applyRandomStylesToSections(styleName, stylePreset);
+      if (headerPreset) {
+        // Применяем случайный стиль шапки
+        onHeaderChange({
+          ...headerData,
+          titleColor: headerPreset.titleColor,
+          backgroundColor: headerPreset.backgroundColor,
+          linksColor: headerPreset.linksColor,
+          siteBackgroundType: headerPreset.siteBackgroundType,
+          ...(headerPreset.siteBackgroundType === 'solid' && {
+            siteBackgroundColor: headerPreset.siteBackgroundColor
+          }),
+          ...(headerPreset.siteBackgroundType === 'gradient' && {
+            siteGradientColor1: headerPreset.siteGradientColor1,
+            siteGradientColor2: headerPreset.siteGradientColor2,
+            siteGradientDirection: headerPreset.siteGradientDirection
+          })
+        });
+        
+        // Обновляем выбранный стиль в UI
+        const headerStyleKey = Object.keys(headerPresets).find(key => headerPresets[key] === headerPreset);
+        if (headerStyleKey) {
+          setSelectedHeaderStyle(headerStyleKey);
+          setHeaderStyleApplied(true);
+          setTimeout(() => setHeaderStyleApplied(false), 3000);
+        }
+      } else {
+        // Если стиль шапки не передан, выбираем случайный
+        applyRandomHeaderStyle();
+      }
       
-      // Также выбираем случайный стиль для шапки
-      applyRandomHeaderStyle();
+      // Применяем разные стили к разным секциям
+      applyRandomStylesToSections(styleName, stylePreset, contactPreset);
     }
   };
   
   // Функция для подбора и применения стиля шапки, соответствующего выбранному стилю сайта
-  const applyMatchingHeaderStyle = (sitStyleName, siteStylePreset) => {
-    console.log('Подбираем соответствующий стиль шапки');
-    
-    // Проверяем, что headerPresets доступны
-    if (!headerPresets || typeof headerPresets !== 'object') {
-      console.error('headerPresets не определены или не являются объектом');
-      return;
+  const applyMatchingHeaderStyle = (styleName, stylePreset) => {
+    // Получаем все доступные стили шапки
+    const headerStyleKeys = Object.keys(headerPresets);
+    if (headerStyleKeys.length === 0) return;
+
+    // Подбираем подходящий стиль шапки на основе основного стиля
+    let matchingHeaderStyle = null;
+    let matchingHeaderKey = null;
+
+    // Сначала пытаемся найти стиль с похожей цветовой схемой
+    for (const key of headerStyleKeys) {
+      const headerStyle = headerPresets[key];
+      if (
+        headerStyle.backgroundColor === stylePreset.backgroundColor ||
+        headerStyle.titleColor === stylePreset.titleColor ||
+        headerStyle.linksColor === stylePreset.linksColor
+      ) {
+        matchingHeaderStyle = headerStyle;
+        matchingHeaderKey = key;
+        break;
+      }
     }
-    
-    // Ищем стиль с таким же именем в headerPresets
-    let matchingHeaderStyle = headerPresets[sitStyleName];
-    
-    // Если не нашли точное совпадение по имени, ищем по цветовой гамме
+
+    // Если не нашли подходящий стиль, выбираем случайный
     if (!matchingHeaderStyle) {
-      // Ищем похожий стиль по основным цветам
-      const matchingStyles = Object.entries(headerPresets).filter(([key, preset]) => {
-        return (
-          preset.titleColor === siteStylePreset.titleColor ||
-          preset.backgroundColor === siteStylePreset.backgroundColor ||
-          (preset.linksColor && preset.linksColor === siteStylePreset.descriptionColor)
-        );
-      });
-      
-      if (matchingStyles.length > 0) {
-        // Берем первый подходящий стиль
-        matchingHeaderStyle = matchingStyles[0][1];
-        console.log(`Найден похожий стиль шапки: ${matchingStyles[0][0]}`);
-      } else {
-        // Ищем стиль с похожим названием
-        const styleFirstWord = sitStyleName.split('_')[0].toLowerCase();
-        const matchByName = Object.entries(headerPresets).find(([key]) => 
-          key.toLowerCase().includes(styleFirstWord)
-        );
-        
-        if (matchByName) {
-          matchingHeaderStyle = matchByName[1];
-          console.log(`Найден стиль шапки с похожим названием: ${matchByName[0]}`);
-        }
-      }
-    } else {
-      console.log(`Найден точно соответствующий стиль шапки: ${sitStyleName}`);
+      const randomIndex = Math.floor(Math.random() * headerStyleKeys.length);
+      matchingHeaderStyle = headerPresets[headerStyleKeys[randomIndex]];
+      matchingHeaderKey = headerStyleKeys[randomIndex];
     }
-    
-    // Если нашли подходящий стиль, применяем его
-    if (matchingHeaderStyle) {
-      onHeaderChange({
-        ...headerData,
-        titleColor: matchingHeaderStyle.titleColor,
-        backgroundColor: matchingHeaderStyle.backgroundColor,
-        linksColor: matchingHeaderStyle.linksColor,
-        siteBackgroundType: matchingHeaderStyle.siteBackgroundType,
-        ...(matchingHeaderStyle.siteBackgroundType === 'solid' && {
-          siteBackgroundColor: matchingHeaderStyle.siteBackgroundColor
-        }),
-        ...(matchingHeaderStyle.siteBackgroundType === 'gradient' && {
-          siteGradientColor1: matchingHeaderStyle.siteGradientColor1,
-          siteGradientColor2: matchingHeaderStyle.siteGradientColor2,
-          siteGradientDirection: matchingHeaderStyle.siteGradientDirection
-        })
-      });
-      
-      // Обновляем выбранный стиль в UI
-      const matchedStyleKey = Object.keys(headerPresets).find(key => headerPresets[key] === matchingHeaderStyle);
-      if (matchedStyleKey) {
-        setSelectedHeaderStyle(matchedStyleKey);
-      }
-    } else {
-      console.log('Не найден подходящий стиль шапки, используем стандартные цвета');
-      // Если не нашли подходящий стиль, используем цвета из стиля сайта
-      onHeaderChange({
-        ...headerData,
-        titleColor: siteStylePreset.titleColor,
-        backgroundColor: siteStylePreset.backgroundColor,
-        linksColor: siteStylePreset.descriptionColor || siteStylePreset.titleColor
-      });
-    }
+
+    // Применяем подобранный стиль к шапке
+    onHeaderChange({
+      ...headerData,
+      titleColor: matchingHeaderStyle.titleColor,
+      backgroundColor: matchingHeaderStyle.backgroundColor,
+      linksColor: matchingHeaderStyle.linksColor,
+      siteBackgroundType: matchingHeaderStyle.siteBackgroundType,
+      ...(matchingHeaderStyle.siteBackgroundType === 'solid' && {
+        siteBackgroundColor: matchingHeaderStyle.siteBackgroundColor
+      }),
+      ...(matchingHeaderStyle.siteBackgroundType === 'gradient' && {
+        siteGradientColor1: matchingHeaderStyle.siteGradientColor1,
+        siteGradientColor2: matchingHeaderStyle.siteGradientColor2,
+        siteGradientDirection: matchingHeaderStyle.siteGradientDirection
+      })
+    });
+
+    // Обновляем выбранный стиль в UI
+    setSelectedHeaderStyle(matchingHeaderKey);
+    setHeaderStyleApplied(true);
+    setTimeout(() => setHeaderStyleApplied(false), 3000);
   };
   
   // Функция для применения случайного стиля к шапке
   const applyRandomHeaderStyle = () => {
     // Получаем все доступные стили шапки
     const headerStyleKeys = Object.keys(headerPresets);
-    
-    if (headerStyleKeys.length === 0) {
-      console.error('Список стилей шапки пуст');
-      return;
-    }
-    
+    if (headerStyleKeys.length === 0) return;
+
     // Выбираем случайный стиль
     const randomIndex = Math.floor(Math.random() * headerStyleKeys.length);
-    const selectedStyle = headerStyleKeys[randomIndex];
-    const preset = headerPresets[selectedStyle];
-    
-    console.log('Применяем случайный стиль к шапке:', selectedStyle);
-    
-    // Применяем стиль
+    const randomStyleKey = headerStyleKeys[randomIndex];
+    const randomStyle = headerPresets[randomStyleKey];
+
+    // Применяем случайный стиль к шапке
     onHeaderChange({
       ...headerData,
-      titleColor: preset.titleColor,
-      backgroundColor: preset.backgroundColor,
-      linksColor: preset.linksColor,
-      siteBackgroundType: preset.siteBackgroundType,
-      ...(preset.siteBackgroundType === 'solid' && {
-        siteBackgroundColor: preset.siteBackgroundColor
+      titleColor: randomStyle.titleColor,
+      backgroundColor: randomStyle.backgroundColor,
+      linksColor: randomStyle.linksColor,
+      siteBackgroundType: randomStyle.siteBackgroundType,
+      ...(randomStyle.siteBackgroundType === 'solid' && {
+        siteBackgroundColor: randomStyle.siteBackgroundColor
       }),
-      ...(preset.siteBackgroundType === 'gradient' && {
-        siteGradientColor1: preset.siteGradientColor1,
-        siteGradientColor2: preset.siteGradientColor2,
-        siteGradientDirection: preset.siteGradientDirection
+      ...(randomStyle.siteBackgroundType === 'gradient' && {
+        siteGradientColor1: randomStyle.siteGradientColor1,
+        siteGradientColor2: randomStyle.siteGradientColor2,
+        siteGradientDirection: randomStyle.siteGradientDirection
       })
     });
-    
+
     // Обновляем выбранный стиль в UI
-    setSelectedHeaderStyle(selectedStyle);
+    setSelectedHeaderStyle(randomStyleKey);
+    setHeaderStyleApplied(true);
+    setTimeout(() => setHeaderStyleApplied(false), 3000);
   };
   
   // Функция для применения разных стилей к разным разделам
-  const applyRandomStylesToSections = (mainStyleName, mainStylePreset) => {
+  const applyRandomStylesToSections = (mainStyleName, mainStylePreset, contactPreset) => {
     // Проверяем, что STYLE_PRESETS существует
     if (!STYLE_PRESETS || typeof STYLE_PRESETS !== 'object') {
       console.error('STYLE_PRESETS не определен или не является объектом');
@@ -234,16 +285,6 @@ const SiteStyleManager = ({
     }
     
     console.log('Применяем разные стили для разных разделов. Доступные стили:', styleNames);
-    
-    // Применяем основной стиль к шапке
-    if (typeof onHeaderChange === 'function' && headerData) {
-      onHeaderChange({
-        ...headerData,
-        titleColor: mainStylePreset.titleColor,
-        backgroundColor: mainStylePreset.backgroundColor,
-        borderColor: mainStylePreset.borderColor,
-      });
-    }
     
     // Применяем стиль к герою
     if (typeof onHeroChange === 'function' && heroData) {
@@ -311,58 +352,51 @@ const SiteStyleManager = ({
       onSectionsChange(updatedSections);
     }
     
-    // Применяем случайный стиль из contactPresets к контактной форме
-    if (typeof onContactChange === 'function' && contactData) {
-      // Проверяем наличие contactPresets
-      if (contactPresets && typeof contactPresets === 'object' && Object.keys(contactPresets).length > 0) {
-        // Выбираем случайный стиль для контактов
-        const randomContactStyle = getRandomKey(contactPresets);
-        const randomContactPreset = contactPresets[randomContactStyle];
-        
-        console.log(`Применяем стиль ${randomContactStyle} к разделу контактов`);
-        
-        if (randomContactPreset) {
-          onContactChange({
-            ...contactData,
-            titleColor: randomContactPreset.titleColor,
-            descriptionColor: randomContactPreset.descriptionColor,
-            companyInfoColor: randomContactPreset.companyInfoColor,
-            formVariant: randomContactPreset.formVariant,
-            infoVariant: randomContactPreset.infoVariant,
-            formBackgroundColor: randomContactPreset.formBackgroundColor,
-            infoBackgroundColor: randomContactPreset.infoBackgroundColor,
-            formBorderColor: randomContactPreset.formBorderColor,
-            infoBorderColor: randomContactPreset.infoBorderColor,
-            labelColor: randomContactPreset.labelColor,
-            inputBackgroundColor: randomContactPreset.inputBackgroundColor,
-            inputTextColor: randomContactPreset.inputTextColor,
-            buttonColor: randomContactPreset.buttonColor,
-            buttonTextColor: randomContactPreset.buttonTextColor,
-            iconColor: randomContactPreset.iconColor,
-            infoTitleColor: randomContactPreset.infoTitleColor,
-            infoTextColor: randomContactPreset.infoTextColor
-          });
-        } else {
-          // Если не нашли случайный стиль, применяем основной стиль только к основным цветам
-          onContactChange({
-            ...contactData,
-            titleColor: mainStylePreset.titleColor,
-            descriptionColor: mainStylePreset.descriptionColor,
-            backgroundColor: mainStylePreset.backgroundColor,
-            borderColor: mainStylePreset.borderColor,
-          });
-        }
-      } else {
-        // Если нет contactPresets, используем стандартные стили
-        onContactChange({
-          ...contactData,
-          titleColor: mainStylePreset.titleColor,
-          descriptionColor: mainStylePreset.descriptionColor,
-          backgroundColor: mainStylePreset.backgroundColor,
-          borderColor: mainStylePreset.borderColor,
-        });
-      }
+    // Применяем переданный стиль к контактной форме
+    if (typeof onContactChange === 'function' && contactData && contactPreset) {
+      console.log('Применяем стиль к разделу контактов:', contactPreset.name);
+      
+      onContactChange({
+        ...contactData,
+        titleColor: contactPreset.titleColor,
+        descriptionColor: contactPreset.descriptionColor,
+        companyInfoColor: contactPreset.companyInfoColor,
+        formVariant: contactPreset.formVariant,
+        infoVariant: contactPreset.infoVariant,
+        formBackgroundColor: contactPreset.formBackgroundColor,
+        infoBackgroundColor: contactPreset.infoBackgroundColor,
+        formBorderColor: contactPreset.formBorderColor,
+        infoBorderColor: contactPreset.infoBorderColor,
+        labelColor: contactPreset.labelColor,
+        inputBackgroundColor: contactPreset.inputBackgroundColor,
+        inputTextColor: contactPreset.inputTextColor,
+        buttonColor: contactPreset.buttonColor,
+        buttonTextColor: contactPreset.buttonTextColor,
+        iconColor: contactPreset.iconColor,
+        infoTitleColor: contactPreset.infoTitleColor,
+        infoTextColor: contactPreset.infoTextColor
+      });
+    } else if (typeof onContactChange === 'function' && contactData) {
+      // Если не передан пресет для контактов, используем основной стиль
+      onContactChange({
+        ...contactData,
+        titleColor: mainStylePreset.titleColor,
+        descriptionColor: mainStylePreset.descriptionColor,
+        backgroundColor: mainStylePreset.backgroundColor,
+        borderColor: mainStylePreset.borderColor,
+      });
     }
+  };
+  
+  // Обработчик для обновления выбранного стиля шапки
+  const handleHeaderStyleSelect = (styleKey) => {
+    setSelectedHeaderStyle(styleKey);
+    setHeaderStyleApplied(true);
+    
+    // Автоматически скрываем уведомление через 3 секунды
+    setTimeout(() => {
+      setHeaderStyleApplied(false);
+    }, 3000);
   };
   
   return (
@@ -446,6 +480,7 @@ const SiteStyleManager = ({
           contactData={contactData}
           footerData={footerData}
           useSameStyle={useSameStyle}
+          onHeaderStyleSelect={handleHeaderStyleSelect}
         />
         
         <Divider sx={{ my: 3 }} />

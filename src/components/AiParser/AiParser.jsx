@@ -46,6 +46,7 @@ import SiteStyleManager from '../SiteStyleSettings/SiteStyleManager';
 import * as parsers from './parsingFunctions';
 import { STYLE_PRESETS } from '../../utils/editorStylePresets';
 import { contactPresets } from '../../utils/contactPresets';
+import { headerPresets } from '../../utils/headerPresets';
 
 // Функция для удаления Markdown форматирования
 const stripMarkdown = (text) => {
@@ -141,21 +142,29 @@ ID: отзывы (укажите ID на вашем языке)
 === КОНЕЦ РАЗДЕЛА ===
 
 === РАЗДЕЛ: КОНТАКТЫ ===
-Заголовок раздела (например, "Контакты")
-Название компании
-Адрес компании
-Телефон: +7 XXX XXX XX XX
-Email: example@example.com
-=== КОНЕЦ РАЗДЕЛА ===
+1. Первая строка - заголовок "Контакты" (используется язык основного контента)
+2. Вторая строка - пустая
+3. Третья строка - описание в скобках
+4. Четвертая строка - пустая
+5. Далее контактные данные в строгом порядке:
+   - Адрес (ОЧЕНЬ ВАЖНО: формат адреса должен строго соответствовать международным стандартам для выбранной страны)
+   - Пустая строка
+   - Телефон (используйте правильный формат номера для выбранной страны)
+   - Пустая строка
+   - Email
 
-Важные требования:
-1. Укажите "ID:" на необходимом языке (например, "ID: новости" для русского или "ID: news" для английского)
-2. После "ID:" укажите название раздела на том же языке, на котором вы создаете контент
-3. Весь контент должен быть на одном языке
-4. Каждый раздел должен быть отделен разделителями === РАЗДЕЛ: ИМЯ === и === КОНЕЦ РАЗДЕЛА ===
-5. Не использовать специальные символы и форматирование
-6. Каждый элемент должен начинаться с новой строки
-7. Между карточками/пунктами оставлять ОДНУ пустую строку`,
+КРИТИЧНО ВАЖНО О ФОРМАТЕ АДРЕСА:
+- Используйте ТОЛЬКО международный формат адреса, принятый в конкретной стране
+- Указывайте адрес в формате, который принимают Google Maps для данной страны
+- Адрес должен содержать: название улицы, номер дома, район (если применимо), город, индекс (почтовый код)
+- Обязательно укажите район города и почтовый индекс
+- Формат адреса и порядок элементов ДОЛЖЕН соответствовать стандартам выбранной страны
+- Не используйте сокращения (пр. ул., д., кв.) - пишите полностью (улица, дом, квартира)
+
+Примечание: 
+- Название компании будет автоматически синхронизировано с названием сайта из настроек шапки.
+- Email адрес будет автоматически сформирован как info@[название-сайта].com, где [название-сайта] - это транслитерированное название сайта из настроек шапки.
+=== КОНЕЦ РАЗДЕЛА ===\n\n`,
 
   HERO: `Создайте контент для сайта. Строго следуйте формату ниже.
 
@@ -388,7 +397,9 @@ ID: новости
 4. Четвертая строка - пустая
 5. Далее контактные данные в строгом порядке:
    - Адрес (ОЧЕНЬ ВАЖНО: формат адреса должен строго соответствовать международным стандартам для выбранной страны)
+   - Пустая строка
    - Телефон (используйте правильный формат номера для выбранной страны)
+   - Пустая строка
    - Email
 
 КРИТИЧНО ВАЖНО О ФОРМАТЕ АДРЕСА:
@@ -853,11 +864,28 @@ ID: отзывы (укажите ID на вашем языке)
 
     if (settings.includedSections.CONTACTS) {
       sectionsPrompt += `=== РАЗДЕЛ: КОНТАКТЫ ===
-Заголовок раздела (например, "Контакты")
-Название компании
-Адрес компании
-Телефон: +7 XXX XXX XX XX
-Email: example@example.com
+1. Первая строка - заголовок "Контакты" (используется язык основного контента)
+2. Вторая строка - пустая
+3. Третья строка - описание в скобках
+4. Четвертая строка - пустая
+5. Далее контактные данные в строгом порядке:
+   - Адрес (ОЧЕНЬ ВАЖНО: формат адреса должен строго соответствовать международным стандартам для выбранной страны)
+   - Пустая строка
+   - Телефон (используйте правильный формат номера для выбранной страны)
+   - Пустая строка
+   - Email
+
+КРИТИЧНО ВАЖНО О ФОРМАТЕ АДРЕСА:
+- Используйте ТОЛЬКО международный формат адреса, принятый в конкретной стране
+- Указывайте адрес в формате, который принимают Google Maps для данной страны
+- Адрес должен содержать: название улицы, номер дома, район (если применимо), город, индекс (почтовый код)
+- Обязательно укажите район города и почтовый индекс
+- Формат адреса и порядок элементов ДОЛЖЕН соответствовать стандартам выбранной страны
+- Не используйте сокращения (пр. ул., д., кв.) - пишите полностью (улица, дом, квартира)
+
+Примечание: 
+- Название компании будет автоматически синхронизировано с названием сайта из настроек шапки.
+- Email адрес будет автоматически сформирован как info@[название-сайта].com, где [название-сайта] - это транслитерированное название сайта из настроек шапки.
 === КОНЕЦ РАЗДЕЛА ===\n\n`;
     }
 
@@ -1714,27 +1742,71 @@ Email: example@example.com
   };
 
   // Обработчик для применения стиля ко всему сайту
-  const handleApplyWholeWebsiteStyle = (styleName, stylePreset) => {
+  const handleApplyWholeWebsiteStyle = (styleName, stylePreset, contactPreset, headerPreset) => {
     console.log(`Применяем стиль ${styleName} ко всему сайту`);
     
     // Применяем стиль к шапке сайта
     if (onHeaderChange && headerData) {
-      onHeaderChange({
-        ...headerData,
-        titleColor: stylePreset.titleColor,
-        backgroundColor: stylePreset.backgroundColor,
-        borderColor: stylePreset.borderColor,
-        // Добавляем свойства фона сайта
-        siteBackgroundType: stylePreset.siteBackgroundType || 'solid',
-        ...((!stylePreset.siteBackgroundType || stylePreset.siteBackgroundType === 'solid') && {
-          siteBackgroundColor: stylePreset.siteBackgroundColor || stylePreset.backgroundColor || '#ffffff'
-        }),
-        ...(stylePreset.siteBackgroundType === 'gradient' && {
-          siteGradientColor1: stylePreset.siteGradientColor1 || stylePreset.backgroundColor || '#ffffff',
-          siteGradientColor2: stylePreset.siteGradientColor2 || stylePreset.cardBackgroundColor || '#f5f5f5',
-          siteGradientDirection: stylePreset.siteGradientDirection || 'to bottom'
-        })
-      });
+      if (headerPreset) {
+        // Если передан headerPreset, применяем его
+        onHeaderChange({
+          ...headerData,
+          titleColor: headerPreset.titleColor,
+          backgroundColor: headerPreset.backgroundColor,
+          linksColor: headerPreset.linksColor,
+          siteBackgroundType: headerPreset.siteBackgroundType || 'solid',
+          ...((!headerPreset.siteBackgroundType || headerPreset.siteBackgroundType === 'solid') && {
+            siteBackgroundColor: headerPreset.siteBackgroundColor || headerPreset.backgroundColor || '#ffffff'
+          }),
+          ...(headerPreset.siteBackgroundType === 'gradient' && {
+            siteGradientColor1: headerPreset.siteGradientColor1 || headerPreset.backgroundColor || '#ffffff',
+            siteGradientColor2: headerPreset.siteGradientColor2 || headerPreset.cardBackgroundColor || '#f5f5f5',
+            siteGradientDirection: headerPreset.siteGradientDirection || 'to bottom'
+          })
+        });
+        
+        // Применяем цвета из headerPreset к hero секции
+        if (onHeroChange && heroData) {
+          onHeroChange({
+            ...heroData,
+            titleColor: headerPreset.titleColor,
+            subtitleColor: headerPreset.linksColor,
+            descriptionColor: headerPreset.linksColor,
+            backgroundColor: headerPreset.backgroundColor,
+            borderColor: stylePreset.borderColor,
+          });
+        }
+      } else {
+        // Иначе применяем стандартный стиль
+        onHeaderChange({
+          ...headerData,
+          titleColor: stylePreset.titleColor,
+          backgroundColor: stylePreset.backgroundColor,
+          borderColor: stylePreset.borderColor,
+          // Добавляем свойства фона сайта
+          siteBackgroundType: stylePreset.siteBackgroundType || 'solid',
+          ...((!stylePreset.siteBackgroundType || stylePreset.siteBackgroundType === 'solid') && {
+            siteBackgroundColor: stylePreset.siteBackgroundColor || stylePreset.backgroundColor || '#ffffff'
+          }),
+          ...(stylePreset.siteBackgroundType === 'gradient' && {
+            siteGradientColor1: stylePreset.siteGradientColor1 || stylePreset.backgroundColor || '#ffffff',
+            siteGradientColor2: stylePreset.siteGradientColor2 || stylePreset.cardBackgroundColor || '#f5f5f5',
+            siteGradientDirection: stylePreset.siteGradientDirection || 'to bottom'
+          })
+        });
+        
+        // Применяем стиль к герою, используя цвета из stylePreset
+        if (onHeroChange && heroData) {
+          onHeroChange({
+            ...heroData,
+            titleColor: stylePreset.titleColor,
+            subtitleColor: stylePreset.descriptionColor,
+            descriptionColor: stylePreset.descriptionColor,
+            backgroundColor: stylePreset.backgroundColor,
+            borderColor: stylePreset.borderColor,
+          });
+        }
+      }
     }
 
     // Применяем стиль к разделам
@@ -1870,39 +1942,63 @@ Email: example@example.com
   const applyRandomStyle = () => {
     // Получаем все доступные стили из STYLE_PRESETS
     const styleNames = Object.keys(STYLE_PRESETS);
+    // Получаем доступные стили шапки
+    const headerStyleKeys = Object.keys(headerPresets);
     
     if (singleStyleMode) {
       // Применяем один и тот же стиль ко всем разделам
       const randomStyleName = styleNames[Math.floor(Math.random() * styleNames.length)];
       const randomStylePreset = STYLE_PRESETS[randomStyleName];
       
+      // Выбираем случайный стиль шапки
+      const randomHeaderIndex = Math.floor(Math.random() * headerStyleKeys.length);
+      const selectedHeaderStyle = headerStyleKeys[randomHeaderIndex];
+      const headerPreset = headerPresets[selectedHeaderStyle];
+      
       console.log(`Применяем один случайный стиль ко всем разделам: ${randomStyleName}`);
-      handleApplyWholeWebsiteStyle(randomStyleName, randomStylePreset);
+      console.log(`И случайный стиль шапки: ${selectedHeaderStyle}`);
+      
+      // ВАЖНО: Применяем headerPreset даже в режиме единого стиля
+      handleApplyWholeWebsiteStyle(randomStyleName, randomStylePreset, null, headerPreset);
     } else {
       // Применяем разные случайные стили к каждому разделу
       console.log('Применяем разные случайные стили к каждому разделу');
       
-      // Применяем случайный стиль к шапке
-      const headerStyleName = styleNames[Math.floor(Math.random() * styleNames.length)];
-      const headerStylePreset = STYLE_PRESETS[headerStyleName];
+      // Выбираем случайный стиль шапки
+      const randomHeaderIndex = Math.floor(Math.random() * headerStyleKeys.length);
+      const selectedHeaderStyle = headerStyleKeys[randomHeaderIndex];
+      const headerPreset = headerPresets[selectedHeaderStyle];
       
+      // Применяем случайный стиль к шапке
       if (onHeaderChange && headerData) {
+        console.log(`Применяем случайный стиль шапки: ${selectedHeaderStyle}`);
         onHeaderChange({
           ...headerData,
-          titleColor: headerStylePreset.titleColor,
-          backgroundColor: headerStylePreset.backgroundColor,
-          borderColor: headerStylePreset.borderColor,
-          // Добавляем свойства фона сайта
-          siteBackgroundType: headerStylePreset.siteBackgroundType || 'solid',
-          ...((!headerStylePreset.siteBackgroundType || headerStylePreset.siteBackgroundType === 'solid') && {
-            siteBackgroundColor: headerStylePreset.siteBackgroundColor || headerStylePreset.backgroundColor || '#ffffff'
+          titleColor: headerPreset.titleColor,
+          backgroundColor: headerPreset.backgroundColor,
+          linksColor: headerPreset.linksColor,
+          siteBackgroundType: headerPreset.siteBackgroundType || 'solid',
+          ...((!headerPreset.siteBackgroundType || headerPreset.siteBackgroundType === 'solid') && {
+            siteBackgroundColor: headerPreset.siteBackgroundColor || headerPreset.backgroundColor || '#ffffff'
           }),
-          ...(headerStylePreset.siteBackgroundType === 'gradient' && {
-            siteGradientColor1: headerStylePreset.siteGradientColor1 || headerStylePreset.backgroundColor || '#ffffff',
-            siteGradientColor2: headerStylePreset.siteGradientColor2 || headerStylePreset.cardBackgroundColor || '#f5f5f5',
-            siteGradientDirection: headerStylePreset.siteGradientDirection || 'to bottom'
+          ...(headerPreset.siteBackgroundType === 'gradient' && {
+            siteGradientColor1: headerPreset.siteGradientColor1 || headerPreset.backgroundColor || '#ffffff',
+            siteGradientColor2: headerPreset.siteGradientColor2 || headerPreset.cardBackgroundColor || '#f5f5f5',
+            siteGradientDirection: headerPreset.siteGradientDirection || 'to bottom'
           })
         });
+        
+        // Применяем согласованные цвета к hero секции
+        if (onHeroChange && heroData) {
+          onHeroChange({
+            ...heroData,
+            titleColor: headerPreset.titleColor, // Используем цвет заголовка шапки
+            subtitleColor: headerPreset.linksColor, // Используем цвет ссылок шапки для подзаголовка
+            descriptionColor: headerPreset.linksColor, // Используем цвет ссылок шапки
+            backgroundColor: headerPreset.backgroundColor,
+            borderColor: headerPreset.borderColor || '#e0e0e0',
+          });
+        }
       }
       
       // Применяем случайные стили к каждой секции
@@ -1944,34 +2040,34 @@ Email: example@example.com
         onSectionsChange(updatedSections);
       }
       
-      // Применяем случайный стиль к hero
-      const heroStyleName = styleNames[Math.floor(Math.random() * styleNames.length)];
-      const heroStylePreset = STYLE_PRESETS[heroStyleName];
-      
-      if (onHeroChange && heroData) {
-        onHeroChange({
-          ...heroData,
-          titleColor: heroStylePreset.titleColor,
-          descriptionColor: heroStylePreset.descriptionColor,
-          backgroundColor: heroStylePreset.backgroundColor,
-          borderColor: heroStylePreset.borderColor,
-        });
-      }
-      
       // Применяем случайный стиль к контактам
       const contactStyleName = styleNames[Math.floor(Math.random() * styleNames.length)];
       const contactStylePreset = STYLE_PRESETS[contactStyleName];
       
       if (onContactChange && contactData) {
+        // Выбираем случайный стиль из contactPresets
+        const contactPresetKeys = Object.keys(contactPresets);
+        const randomContactPreset = contactPresets[contactPresetKeys[Math.floor(Math.random() * contactPresetKeys.length)]];
+        
         onContactChange({
           ...contactData,
-          titleColor: contactStylePreset.titleColor,
-          descriptionColor: contactStylePreset.descriptionColor,
-          buttonColor: contactStylePreset.titleColor,
-          buttonTextColor: contactStylePreset.cardBackgroundColor,
-          formBorderColor: contactStylePreset.borderColor,
-          infoTitleColor: contactStylePreset.titleColor,
-          infoTextColor: contactStylePreset.descriptionColor
+          titleColor: randomContactPreset.titleColor,
+          descriptionColor: randomContactPreset.descriptionColor,
+          companyInfoColor: randomContactPreset.companyInfoColor,
+          formVariant: randomContactPreset.formVariant,
+          infoVariant: randomContactPreset.infoVariant,
+          formBackgroundColor: randomContactPreset.formBackgroundColor,
+          infoBackgroundColor: randomContactPreset.infoBackgroundColor,
+          formBorderColor: randomContactPreset.formBorderColor,
+          infoBorderColor: randomContactPreset.infoBorderColor,
+          labelColor: randomContactPreset.labelColor,
+          inputBackgroundColor: randomContactPreset.inputBackgroundColor,
+          inputTextColor: randomContactPreset.inputTextColor,
+          buttonColor: randomContactPreset.buttonColor,
+          buttonTextColor: randomContactPreset.buttonTextColor,
+          iconColor: randomContactPreset.iconColor,
+          infoTitleColor: randomContactPreset.infoTitleColor,
+          infoTextColor: randomContactPreset.infoTextColor
         });
       }
     }
@@ -2109,7 +2205,19 @@ Email: example@example.com
               </Tooltip>
               
               <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
-                <Typography variant="caption" sx={{ mr: 0.5, fontSize: '0.7rem', color: singleStyleMode ? '#bdbdbd' : '#4caf50' }}>
+                <Typography 
+                  variant="caption" 
+                  sx={{ 
+                    mr: 0.5, 
+                    fontSize: '0.7rem', 
+                    color: singleStyleMode ? '#bdbdbd' : '#4caf50',
+                    cursor: 'pointer',
+                    '&:hover': {
+                      textDecoration: 'underline'
+                    }
+                  }}
+                  onClick={applyRandomStyle}
+                >
                   ALL
                 </Typography>
                 <Switch
@@ -2128,7 +2236,19 @@ Email: example@example.com
                     }
                   }}
                 />
-                <Typography variant="caption" sx={{ ml: 0.5, fontSize: '0.7rem', color: singleStyleMode ? '#4caf50' : '#bdbdbd' }}>
+                <Typography 
+                  variant="caption" 
+                  sx={{ 
+                    ml: 0.5, 
+                    fontSize: '0.7rem', 
+                    color: singleStyleMode ? '#4caf50' : '#bdbdbd',
+                    cursor: 'pointer',
+                    '&:hover': {
+                      textDecoration: 'underline'
+                    }
+                  }}
+                  onClick={applyRandomStyle}
+                >
                   1
                 </Typography>
               </Box>

@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Button, Typography, Paper, Snackbar, Alert, Grid, Chip, Tooltip, Divider, List, ListItem, ListItemButton, ListItemText, ListItemIcon } from '@mui/material';
+import { Box, Button, Typography, Paper, Snackbar, Alert, Grid, Chip, Tooltip, Divider, List, ListItem, ListItemButton, ListItemText, ListItemIcon, IconButton } from '@mui/material';
 import ShuffleIcon from '@mui/icons-material/Shuffle';
 import HistoryIcon from '@mui/icons-material/History';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import StyleIcon from '@mui/icons-material/Style';
 
-// Импортируем константу со стилями
+// Импортируем константы со стилями
 import { STYLE_PRESETS } from '../../utils/editorStylePresets';
+import { contactPresets } from '../../utils/contactPresets';
+import { headerPresets } from '../../utils/headerPresets';
 
 // Функция для определения контрастного цвета текста (черный или белый)
 const getContrastTextColor = (hexColor) => {
@@ -40,7 +42,8 @@ const RandomStyleSelector = ({
   heroData,
   contactData,
   footerData,
-  useSameStyle
+  useSameStyle,
+  onHeaderStyleSelect
 }) => {
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [lastAppliedStyle, setLastAppliedStyle] = useState('');
@@ -62,17 +65,36 @@ const RandomStyleSelector = ({
   const handleRandomStyleSelect = () => {
     // Получаем все доступные стили
     const styleKeys = Object.keys(STYLE_PRESETS);
+    const contactStyleKeys = Object.keys(contactPresets);
+    const headerStyleKeys = Object.keys(headerPresets);
     
     // Выбираем случайный стиль
     const randomIndex = Math.floor(Math.random() * styleKeys.length);
     const selectedStyle = styleKeys[randomIndex];
     const preset = STYLE_PRESETS[selectedStyle];
     
+    // Выбираем случайный стиль для контактов
+    const randomContactIndex = Math.floor(Math.random() * contactStyleKeys.length);
+    const selectedContactStyle = contactStyleKeys[randomContactIndex];
+    const contactPreset = contactPresets[selectedContactStyle];
+
+    // Выбираем случайный стиль для шапки
+    const randomHeaderIndex = Math.floor(Math.random() * headerStyleKeys.length);
+    const selectedHeaderStyle = headerStyleKeys[randomHeaderIndex];
+    const headerPreset = headerPresets[selectedHeaderStyle];
+    
     console.log('Применяем случайный стиль:', selectedStyle, useSameStyle ? 'один для всех' : 'разные для разных');
+    console.log('Применяем случайный стиль для контактов:', selectedContactStyle);
+    console.log('Применяем случайный стиль для шапки:', selectedHeaderStyle);
+    
+    // Обновляем выбранный стиль шапки в родительском компоненте
+    if (typeof onHeaderStyleSelect === 'function') {
+      onHeaderStyleSelect(selectedHeaderStyle);
+    }
     
     // Применяем стиль ко всему сайту через коллбэк
     if (typeof onApplyToWholeWebsite === 'function') {
-      onApplyToWholeWebsite(selectedStyle, preset);
+      onApplyToWholeWebsite(selectedStyle, preset, contactPreset, headerPreset);
     } else {
       console.error('Функция onApplyToWholeWebsite не является функцией');
     }
@@ -331,6 +353,24 @@ const RandomStyleSelector = ({
               : "Случайные стили для разделов"
             }
           </Button>
+        </Grid>
+        <Grid item xs={12} md={1} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <IconButton
+            onClick={handleRandomStyleSelect}
+            size="large"
+            sx={{
+              color: '#4caf50',
+              border: '2px solid #4caf50',
+              backgroundColor: '#f8fff8',
+              '&:hover': {
+                backgroundColor: 'rgba(76, 175, 80, 0.08)'
+              },
+              width: 48,
+              height: 48
+            }}
+          >
+            <ShuffleIcon fontSize="medium" />
+          </IconButton>
         </Grid>
       </Grid>
       
