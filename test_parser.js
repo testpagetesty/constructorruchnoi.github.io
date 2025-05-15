@@ -100,39 +100,5 @@ Esnek ve Kişiye Özel
 // Парсим текст
 const parsedData = parsingFunctions.parseAdvantagesSection(testText);
 
-// Функция для проверки и исправления перепутанных заголовков и содержания
-function renderFeatureCards(cards) {
-  if (!cards || !Array.isArray(cards)) {
-    return [];
-  }
-  
-  // Создаем новый массив с исправленными карточками
-  return cards.map(card => {
-    // Проверяем условия для перестановки полей
-    const titleIsTooLong = card.title && card.title.length > 50;
-    const contentIsShort = !card.content || card.content.length < 30 || card.content === '\\';
-    
-    // Если заголовок длинный, а содержимое короткое, меняем их местами
-    if (titleIsTooLong && contentIsShort) {
-      return {
-        ...card,
-        title: card.content,
-        content: card.title
-      };
-    }
-    
-    // Иначе возвращаем карточку без изменений
-    return card;
-  });
-}
-
-// Применяем функцию исправления карточек
-if (parsedData && parsedData.cards) {
-  parsedData.cards = renderFeatureCards(parsedData.cards);
-}
-
-// Выводим результат
-console.log(JSON.stringify(parsedData, null, 2));
-
 // Сохраняем результат в файл для анализа
 fs.writeFileSync(path.join(__dirname, 'parsed_advantages.json'), JSON.stringify(parsedData, null, 2)); 

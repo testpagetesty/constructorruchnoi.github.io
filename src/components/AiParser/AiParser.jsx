@@ -1362,11 +1362,6 @@ ID: отзывы (укажите ID на вашем языке)
         case 'FEATURES':
           parsedData = parsers.parseAdvantagesSection(content);
           if (parsedData) {
-            // Применяем функцию renderFeatureCards для исправления перепутанных заголовков и контента
-            if (parsedData.cards && Array.isArray(parsedData.cards)) {
-              parsedData.cards = renderFeatureCards(parsedData.cards);
-            }
-                    
             // Проверяем, существует ли уже пункт меню с таким ID
             const existingFeatureMenuItem = headerData.menuItems.find(item => item.id === parsedData.id);
                     
@@ -2049,33 +2044,6 @@ ID: отзывы (укажите ID на вашем языке)
       }
     }
   };
-
-  // Функция для исправления карточек с перепутанными полями title и content
-  function renderFeatureCards(cards) {
-    // Проверка входных данных
-    if (!cards || !Array.isArray(cards)) {
-      return [];
-    }
-    
-    // Создаем новый массив с исправленными карточками
-    return cards.map(card => {
-      // Проверяем условия для перестановки полей
-      const titleIsTooLong = card.title && card.title.length > 50;
-      const contentIsShort = !card.content || card.content.length < 30 || card.content === '\\';
-      
-      // Если заголовок длинный, а содержимое короткое, меняем их местами
-      if (titleIsTooLong && contentIsShort) {
-        return {
-          ...card,
-          title: card.content,
-          content: card.title
-        };
-      }
-      
-      // Иначе возвращаем карточку без изменений
-      return card;
-    });
-  }
 
   return (
     <Accordion defaultExpanded={false} sx={{ mb: 2 }}>

@@ -316,28 +316,24 @@ export const parseAdvantagesSection = (content) => {
         continue;
       }
 
-      // Process advantages cards
-      if (!isHeaderSection) {
-        // Если строка короткая (заголовок) или это первая карточка
-        if (line.length < 100 || !currentCard) {
-          // Сохраняем предыдущую карточку, если она есть
+      // Обработка карточек преимуществ
+      if (sectionDescription && !isHeaderSection) {
+        if ((line.length < 100 || line.includes(':')) && (!currentCard || (currentCard && currentCard.content))) {
           if (currentCard && currentCard.content) {
             cards.push(currentCard);
           }
-          // Создаем новую карточку
           currentCard = {
-            id: `advantage_${cards.length + 1}`,
+            id: `feature_${cards.length + 1}`,
             title: line,
             content: ''
           };
         } else if (currentCard) {
-          // Добавляем контент к текущей карточке
           currentCard.content += (currentCard.content ? '\n' : '') + line;
         }
       }
     }
 
-    // Add the last card if exists
+    // Добавляем последнюю карточку, если она есть
     if (currentCard && currentCard.content) {
       cards.push(currentCard);
     }
@@ -348,10 +344,11 @@ export const parseAdvantagesSection = (content) => {
       content: cleanEmailsInText(card.content)
     }));
 
+    // Создаем структуру данных секции
     return {
       id: sectionId,
       title: sectionTitle || 'Наши преимущества',
-      description: sectionDescription || 'Почему клиенты выбирают нас',
+      description: sectionDescription || '',
       cardType: 'ELEVATED',
       cards: cleanedCards.map(card => ({
         ...card,
@@ -360,14 +357,9 @@ export const parseAdvantagesSection = (content) => {
         contentColor: '#333333',
         borderColor: '#e0e0e0',
         backgroundType: 'solid',
-        backgroundColor: '#ffffff',
-        style: {
-          borderRadius: '15px',
-          shadow: '0 4px 15px rgba(0, 0, 0, 0.1)'
-        }
+        backgroundColor: '#ffffff'
       })),
-      titleColor: '#1976d2',
-      descriptionColor: '#666666',
+      link: `#${sectionId}`,
       backgroundColor: '#ffffff',
       textColor: '#000000',
       borderColor: '#e0e0e0',
