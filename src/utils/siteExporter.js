@@ -49,17 +49,35 @@ export const exportSite = async (siteData) => {
 };
 
 const generateIndexHtml = (siteData) => {
+  const headerData = siteData.headerData || {};
   return `
     <!DOCTYPE html>
-    <html lang="${siteData.headerData?.language || 'ru'}">
+    <html lang="${headerData.language || 'ru'}">
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>${siteData.headerData?.siteName || 'My Site'}</title>
+        <title>${headerData.siteName || 'My Site'}</title>
+        ${headerData.domain ? `<link rel="canonical" href="https://${headerData.domain}" />` : ''}
         <link rel="stylesheet" href="styles.css">
       </head>
       <body>
-        <div id="root"></div>
+        <div id="root">
+          <header class="site-header">
+            <div class="header-content">
+              <div class="site-branding">
+                <h1 class="site-title">${headerData.siteName || 'My Site'}</h1>
+                ${headerData.domain ? `<div class="site-domain" style="color: ${headerData.titleColor || '#000000'}; opacity: 0.8; font-size: 0.9rem; margin-top: 0.25rem;">${headerData.domain}</div>` : ''}
+              </div>
+              <nav class="site-nav">
+                ${(headerData.menuItems || []).map(item => `
+                  <a href="${item.url || '#'}" class="nav-link">${item.text || item.title}</a>
+                `).join('')}
+              </nav>
+            </div>
+          </header>
+          ${generateMainContent(siteData)}
+          ${generateFooter(siteData)}
+        </div>
         <script src="app.js"></script>
       </body>
     </html>
@@ -68,22 +86,109 @@ const generateIndexHtml = (siteData) => {
 
 const generateStyles = () => {
   return `
-    body {
+    /* Reset and base styles */
+    * {
       margin: 0;
       padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+    }
+
+    /* Header styles */
+    .site-header {
+      background-color: var(--header-bg-color, #ffffff);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+      padding: 1rem 0;
+      position: relative;
+      z-index: 1000;
+    }
+
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .site-branding {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .site-title {
+      color: var(--title-color, #000000);
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin: 0;
+      line-height: 1.2;
+    }
+
+    .site-domain {
+      color: var(--title-color, #000000);
+      opacity: 0.8;
+      font-size: 0.9rem;
+      margin-top: 0.25rem;
+      font-weight: 400;
+      letter-spacing: 0.01em;
+      display: block;
+      line-height: 1.2;
+    }
+
+    .site-nav {
+      display: flex;
+      gap: 2rem;
+      align-items: center;
+    }
+
+    .nav-link {
+      color: var(--links-color, #000000);
+      text-decoration: none;
+      font-weight: 500;
+      transition: opacity 0.2s ease;
+    }
+
+    .nav-link:hover {
+      opacity: 0.8;
+    }
+
+    /* Responsive styles */
+    @media (max-width: 768px) {
+      .header-content {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+      }
+
+      .site-branding {
+        align-items: center;
+      }
+
+      .site-nav {
+        flex-direction: column;
+        gap: 1rem;
+      }
     }
   `;
 };
 
 const generateAppJs = (siteData) => {
+  const headerData = siteData.headerData || {};
+  
   return cleanJavaScript(`
     document.addEventListener('DOMContentLoaded', function() {
-      const root = document.getElementById('root');
-      if (root) {
-        root.innerHTML = \`${generateSiteContent(siteData)}\`;
-        initializeScripts();
-      }
+      // Установка CSS переменных
+      document.documentElement.style.setProperty('--header-bg-color', '${headerData.backgroundColor || '#ffffff'}');
+      document.documentElement.style.setProperty('--title-color', '${headerData.titleColor || '#000000'}');
+      document.documentElement.style.setProperty('--links-color', '${headerData.linksColor || '#000000'}');
+      
+      initializeScripts();
     });
 
     function initializeScripts() {
@@ -114,10 +219,22 @@ const generateAppJs = (siteData) => {
 };
 
 const generateSiteContent = (siteData) => {
-  // Generate site content HTML
+  const headerData = siteData.headerData || {};
   return cleanHTML(`
     <div class="site-container">
-      ${generateHeader(siteData)}
+      <header class="site-header">
+        <div class="header-content">
+          <div class="site-branding">
+            <h1 class="site-title">${headerData.siteName || 'My Site'}</h1>
+            ${headerData.domain ? `<div class="site-domain" style="color: ${headerData.titleColor || '#000000'}; opacity: 0.8; font-size: 0.9rem; margin-top: 0.25rem;">${headerData.domain}</div>` : ''}
+          </div>
+          <nav class="site-nav">
+            ${(headerData.menuItems || []).map(item => `
+              <a href="${item.url || '#'}" class="nav-link">${item.text || item.title}</a>
+            `).join('')}
+          </nav>
+        </div>
+      </header>
       ${generateMainContent(siteData)}
       ${generateFooter(siteData)}
     </div>

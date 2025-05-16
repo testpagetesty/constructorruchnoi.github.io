@@ -11,6 +11,7 @@ const initialHeaderData = {
   titleColor: '#2196f3',
   backgroundColor: '#e3f2fd',
   linksColor: '#1976d2',
+  domain: '',
   siteBackgroundColor: '#f8f9fa',
   siteBackgroundType: 'gradient',
   siteGradientColor1: '#e3f2fd',

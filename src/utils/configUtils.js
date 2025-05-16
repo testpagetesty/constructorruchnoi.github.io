@@ -29,6 +29,7 @@ export const defaultConfig = {
     backgroundColor: '#ffffff',
     titleColor: '#000000',
     linksColor: '#000000',
+    domain: '',
     menuItems: []
   },
   hero: {

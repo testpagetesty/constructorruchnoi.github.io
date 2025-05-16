@@ -1204,6 +1204,7 @@ const EditorPanel = ({
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <link rel="stylesheet" href="assets/css/styles.css">
   <meta name="description" content="${data.headerData.description || 'Our site offers the best solutions'}">
+  ${data.headerData.domain ? `<link rel="canonical" href="https://${data.headerData.domain}" />` : ''}
 </head>
 <body>
   ${data.headerData.siteBackgroundType === 'image' ? `
@@ -1256,7 +1257,10 @@ const EditorPanel = ({
   <header>
     <nav style="background-color: ${data.headerData.backgroundColor || '#ffffff'}; --menu-bg-color: ${data.headerData.backgroundColor || '#fff'}; --menu-link-color: ${data.headerData.linksColor || '#1976d2'};">
       <div class="nav-container">
-        <div class="logo" style="color: ${data.headerData.titleColor || '#000000'}">${data.headerData.siteName || 'My Site'}</div>
+        <div class="site-branding" style="display: flex; flex-direction: column; margin-right: 2rem;">
+          <div class="logo" style="color: ${data.headerData.titleColor || '#000000'}">${data.headerData.siteName || 'My Site'}</div>
+          ${data.headerData.domain ? `<div class="domain" style="color: ${data.headerData.titleColor || '#000000'}; opacity: 0.8; font-size: 0.9rem;">${data.headerData.domain}</div>` : ''}
+        </div>
         <button class="menu-toggle" aria-label="Menu">
           <span></span>
           <span></span>
@@ -1552,135 +1556,175 @@ const EditorPanel = ({
             ${contactData.description || 'Please leave your contact details and we will get back to you as soon as possible'}
           </p>
         </div>
-        <div class="contact-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+        <div class="contact-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; max-width: 1140px; margin: 0 auto; padding: 0 20px;">
           <div class="contact-form" style="
             border: 1px solid ${contactData.formBorderColor || '#1976d2'};
-            padding: 2rem;
+            padding: 2.5rem;
             border-radius: 8px;
             background-color: ${contactData.formBackgroundColor || '#ffffff'};
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
           ">
-            <form id="contactForm" onsubmit="handleSubmit(event)">
-              <div class="form-group">
-                <label for="name" style="color: ${contactData.labelColor || '#333'}">Name</label>
-                <input type="text" id="name" class="form-control" placeholder="Enter your name" style="
-                  border: 1px solid ${contactData.inputBorderColor || '#ddd'};
-                  background-color: ${contactData.inputBackgroundColor || '#ffffff'};
-                  color: ${contactData.inputTextColor || '#333'};
-                  padding: 0.75rem;
-                  width: 100%;
-                  border-radius: 4px;
-                  margin-bottom: 1rem;
-                ">
+            <form 
+              id="contactForm" 
+              method="POST"
+              onsubmit="submitForm(event)"
+            >
+              <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label for="name" style="color: ${contactData.labelColor || '#333'}; display: block; margin-bottom: 0.5rem; font-weight: 500;">Full Name</label>
+                <input 
+                  type="text" 
+                  id="name" 
+                  name="name" 
+                  class="form-control" 
+                  placeholder="Enter your full name" 
+                  style="
+                    border: 1px solid ${contactData.inputBorderColor || '#ddd'};
+                    background-color: ${contactData.inputBackgroundColor || '#ffffff'};
+                    color: ${contactData.inputTextColor || '#333'};
+                    padding: 0.85rem 1rem;
+                    width: 100%;
+                    border-radius: 6px;
+                    font-size: 1rem;
+                    box-sizing: border-box;
+                    margin-bottom: 0;
+                  " 
+                  required
+                >
               </div>
-              <div class="form-group">
-                <label for="email" style="color: ${contactData.labelColor || '#333'}">Email</label>
-                <input type="email" id="email" class="form-control" placeholder="Enter your email" style="
-                  border: 1px solid ${contactData.inputBorderColor || '#ddd'};
-                  background-color: ${contactData.inputBackgroundColor || '#ffffff'};
-                  color: ${contactData.inputTextColor || '#333'};
-                  padding: 0.75rem;
-                  width: 100%;
-                  border-radius: 4px;
-                  margin-bottom: 1rem;
-                ">
+              <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label for="phone" style="color: ${contactData.labelColor || '#333'}; display: block; margin-bottom: 0.5rem; font-weight: 500;">Phone Number</label>
+                <input 
+                  type="tel" 
+                  id="phone" 
+                  name="phone" 
+                  class="form-control" 
+                  placeholder="Enter your phone number with country code" 
+                  style="
+                    border: 1px solid ${contactData.inputBorderColor || '#ddd'};
+                    background-color: ${contactData.inputBackgroundColor || '#ffffff'};
+                    color: ${contactData.inputTextColor || '#333'};
+                    padding: 0.85rem 1rem;
+                    width: 100%;
+                    border-radius: 6px;
+                    font-size: 1rem;
+                    box-sizing: border-box;
+                    margin-bottom: 0;
+                  " 
+                  pattern="\\+?[0-9\\s-()]{7,}"
+                  required
+                >
               </div>
-              <div class="form-group">
-                <label for="phone" style="color: ${contactData.labelColor || '#333'}">Phone Number</label>
-                <input type="number" id="phone" class="form-control" placeholder="Enter your phone number" style="
-                  border: 1px solid ${contactData.inputBorderColor || '#ddd'};
-                  background-color: ${contactData.inputBackgroundColor || '#ffffff'};
-                  color: ${contactData.inputTextColor || '#333'};
-                  padding: 0.75rem;
-                  width: 100%;
-                  border-radius: 4px;
-                  margin-bottom: 1rem;
-                " pattern="[0-9]*" inputmode="numeric">
+              <div class="form-group" style="margin-bottom: 2rem;">
+                <label for="email" style="color: ${contactData.labelColor || '#333'}; display: block; margin-bottom: 0.5rem; font-weight: 500;">Email</label>
+                <input 
+                  type="email" 
+                  id="email" 
+                  name="email" 
+                  class="form-control" 
+                  placeholder="Enter your email address" 
+                  style="
+                    border: 1px solid ${contactData.inputBorderColor || '#ddd'};
+                    background-color: ${contactData.inputBackgroundColor || '#ffffff'};
+                    color: ${contactData.inputTextColor || '#333'};
+                    padding: 0.85rem 1rem;
+                    width: 100%;
+                    border-radius: 6px;
+                    font-size: 1rem;
+                    box-sizing: border-box;
+                    margin-bottom: 0;
+                  " 
+                  required
+                >
               </div>
-              <div class="form-group">
-                <label for="country" style="color: ${contactData.labelColor || '#333'}">Country</label>
-                <select id="country" class="form-control" style="
-                  border: 1px solid ${contactData.inputBorderColor || '#ddd'};
-                  background-color: ${contactData.inputBackgroundColor || '#ffffff'};
-                  color: ${contactData.inputTextColor || '#333'};
-                  padding: 0.75rem;
+              <button 
+                type="submit" 
+                class="submit-btn" 
+                style="
+                  background-color: ${contactData.buttonColor || '#1976d2'};
+                  color: ${contactData.buttonTextColor || '#ffffff'};
+                  border: none;
+                  padding: 0.9rem 1.5rem;
+                  border-radius: 6px;
+                  cursor: pointer;
+                  transition: all 0.3s ease;
+                  font-weight: 500;
                   width: 100%;
-                  border-radius: 4px;
-                  margin-bottom: 1rem;
-                ">
-                  <option value="">Select your country</option>
-                  <option value="RU">Russia</option>
-                  <option value="US">United States</option>
-                  <option value="GB">United Kingdom</option>
-                  <option value="DE">Germany</option>
-                  <option value="FR">France</option>
-                  <option value="IT">Italy</option>
-                  <option value="ES">Spain</option>
-                  <option value="CN">China</option>
-                  <option value="JP">Japan</option>
-                  <option value="IN">India</option>
-                  <option value="BR">Brazil</option>
-                  <option value="CA">Canada</option>
-                  <option value="AU">Australia</option>
-                  <option value="MX">Mexico</option>
-                  <option value="AR">Argentina</option>
-                  <option value="ZA">South Africa</option>
-                  <option value="EG">Egypt</option>
-                  <option value="SA">Saudi Arabia</option>
-                  <option value="AE">United Arab Emirates</option>
-                  <option value="SG">Singapore</option>
-                  <option value="KR">South Korea</option>
-                  <option value="ID">Indonesia</option>
-                  <option value="TH">Thailand</option>
-                  <option value="VN">Vietnam</option>
-                  <option value="MY">Malaysia</option>
-                  <option value="PH">Philippines</option>
-                  <option value="TR">Turkey</option>
-                  <option value="PL">Poland</option>
-                  <option value="NL">Netherlands</option>
-                  <option value="SE">Sweden</option>
-                  <option value="NO">Norway</option>
-                  <option value="DK">Denmark</option>
-                  <option value="FI">Finland</option>
-                  <option value="CH">Switzerland</option>
-                  <option value="AT">Austria</option>
-                  <option value="BE">Belgium</option>
-                  <option value="PT">Portugal</option>
-                  <option value="GR">Greece</option>
-                  <option value="CZ">Czech Republic</option>
-                  <option value="HU">Hungary</option>
-                  <option value="RO">Romania</option>
-                  <option value="UA">Ukraine</option>
-                  <option value="KZ">Kazakhstan</option>
-                  <option value="BY">Belarus</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label for="message" style="color: ${contactData.labelColor || '#333'}">Message</label>
-                <textarea id="message" class="form-control" placeholder="Enter your message" style="
-                  border: 1px solid ${contactData.inputBorderColor || '#ddd'};
-                  background-color: ${contactData.inputBackgroundColor || '#ffffff'};
-                  color: ${contactData.inputTextColor || '#333'};
-                  padding: 0.75rem;
-                  width: 100%;
-                  border-radius: 4px;
-                  min-height: 150px;
-                  resize: vertical;
-                  margin-bottom: 1rem;
-                "></textarea>
-              </div>
-              <button type="submit" class="submit-btn" style="
-                background-color: ${contactData.buttonColor || '#1976d2'};
-                color: ${contactData.buttonTextColor || '#ffffff'};
-                border: none;
-                padding: 0.75rem 1.5rem;
-                border-radius: 4px;
-                cursor: pointer;
-                transition: all 0.3s ease;
-                font-weight: 500;
-                width: 100%;
-              ">Send Message</button>
+                  font-size: 1rem;
+                  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+                "
+              >
+                Send Message
+              </button>
             </form>
+            <script>
+              document.addEventListener('DOMContentLoaded', function() {
+                const form = document.getElementById('contactForm');
+                const inputs = form.querySelectorAll('input[type="text"], input[type="tel"], input[type="email"]');
+                
+                // Загрузка сохраненных данных
+                try {
+                  const savedData = localStorage.getItem('contactFormData');
+                  if (savedData) {
+                    const data = JSON.parse(savedData);
+                    if (data) {
+                      inputs.forEach(input => {
+                        if (data[input.name]) {
+                          input.value = data[input.name];
+                        }
+                      });
+                    }
+                  }
+                } catch (error) {
+                  console.error('Error loading saved data:', error);
+                }
+
+                // Сохранение данных при вводе
+                inputs.forEach(input => {
+                  input.addEventListener('input', function() {
+                    try {
+                      const formData = {};
+                      inputs.forEach(inp => {
+                        formData[inp.name] = inp.value;
+                      });
+                      localStorage.setItem('contactFormData', JSON.stringify(formData));
+                    } catch (error) {
+                      console.error('Error saving data:', error);
+                    }
+                  });
+                });
+              });
+              
+              // Функция отправки формы с принудительным перенаправлением
+              async function submitForm(event) {
+                event.preventDefault();
+                
+                const form = event.target;
+                const formData = new FormData(form);
+                
+                try {
+                  // Очистка localStorage
+                  localStorage.removeItem('contactFormData');
+                  
+                  // Отправка данных формы на Formspree
+                  const response = await fetch('https://formspree.io/f/mldbzjyw', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                      'Accept': 'application/json'
+                    }
+                  });
+                  
+                  // Независимо от результата отправки, перенаправляем на merci.html
+                  window.location.href = 'merci.html';
+                } catch (error) {
+                  console.error('Error sending form:', error);
+                  // Даже при ошибке перенаправляем на merci.html
+                  window.location.href = 'merci.html';
+                }
+                
+                return false;
+              }
+            </script>
           </div>
           <div class="contact-info" style="
             border: 1px solid ${contactData.infoBorderColor || '#1976d2'};
@@ -1980,6 +2024,15 @@ const EditorPanel = ({
       text-decoration: none;
       white-space: nowrap;
       margin-right: 2rem;
+    }
+
+    .domain {
+                  display: block;
+      margin-top: 0.25rem;
+      font-size: 0.9rem;
+      font-weight: normal;
+      opacity: 0.8;
+      white-space: nowrap;
     }
 
     .nav-menu {
@@ -2860,7 +2913,7 @@ const EditorPanel = ({
       .no-card-section .about-content div strong {
         display: block;
         margin-top: 1rem;
-        margin-bottom: 0.5rem;
+                  margin-bottom: 0.5rem;
       }
     }
   `;
@@ -2971,6 +3024,7 @@ const EditorPanel = ({
           ...headerData,
           siteName: headerData.siteName || 'My Site',
           title: headerData.title || headerData.siteName || 'My Site',
+          domain: headerData.domain || '',
           description: headerData.description || 'Our site offers the best solutions',
           menuItems: headerData.menuItems || [],
           siteBackgroundImage: headerData.siteBackgroundType === 'image' ? 'assets/images/fon.jpg' : '',
@@ -3160,7 +3214,7 @@ const EditorPanel = ({
         h3 {
             color: #444;
             font-size: 22px;
-            font-weight: 500;
+                  font-weight: 500;
             margin-top: 25px;
             margin-bottom: 15px;
         }
@@ -4254,6 +4308,7 @@ ${mainHtml}
           ...headerData,
           siteName: headerData.siteName || 'Мой сайт',
           title: headerData.title || headerData.siteName || 'Мой сайт',
+          domain: headerData.domain || '',
           description: headerData.description || 'Наш сайт предлагает лучшие решения',
           menuItems: headerData.menuItems || [],
           siteBackgroundImage: headerData.siteBackgroundType === 'image' ? 'assets/images/hero/fon.jpg' : '',
@@ -4705,7 +4760,7 @@ ${mainHtml}
                             )}
                           </Box>
                           
-                          <input
+                <input 
                             type="file"
                             id={`section-image-upload-${item.id}`}
                             accept="image/*"

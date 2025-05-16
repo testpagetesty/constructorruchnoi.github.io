@@ -389,10 +389,19 @@ const HeaderEditor = ({
                       onHeaderChange({ 
                         ...headerData, 
                         siteName: newSiteName,
-                        // Если заголовок страницы не был изменен вручную, обновляем его вместе с названием сайта
                         title: headerData.title === headerData.siteName ? newSiteName : headerData.title
                       });
                     }}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Домен сайта"
+                    value={headerData.domain || ''}
+                    onChange={(e) => onHeaderChange({ ...headerData, domain: e.target.value })}
+                    placeholder="example.com"
+                    helperText="Укажите домен вашего сайта"
                   />
                 </Grid>
                 <Grid item xs={12}>
