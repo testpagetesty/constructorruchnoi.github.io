@@ -24,6 +24,10 @@ import TestimonialCard from '../Testimonial/TestimonialCard';
 import ReactDOM from 'react-dom/client';
 import { imageCacheService } from '../../utils/imageCacheService';
 
+// Импортируем новые компоненты для отображения изображений
+import SimpleImageGallery from './SimpleImageGallery';
+import DebugImageDisplay from './DebugImageDisplay';
+
 const SimpleCard = styled(Card)(({ theme, card }) => ({
   display: 'flex',
   flexDirection: 'column',
@@ -292,7 +296,29 @@ const PagePreview = ({
   const renderSection = (section) => {
     if (!section) return null;
     
-    const sectionImgUrl = sectionImages[section.id] || section.imagePath;
+    // Получаем URL изображения, учитывая возможную структуру данных
+    const getFirstImageUrl = (images) => {
+      console.log('[getFirstImageUrl] Input images:', images);
+      if (!images) return null;
+      
+      // Проверяем, является ли images массивом
+      if (Array.isArray(images)) {
+        if (images.length === 0) return null;
+        
+        const img = images[0];
+        if (typeof img === 'string') return img;
+        return img?.url || img?.path || null;
+      }
+      
+      // Если images - строка, возвращаем её как URL
+      if (typeof images === 'string') return images;
+      
+      // Если images - объект, пытаемся получить url или path
+      return images?.url || images?.path || null;
+    };
+    
+    const sectionImgUrl = getFirstImageUrl(sectionImages[section.id]) || section.imagePath;
+    console.log('[renderSection] Final sectionImgUrl:', sectionImgUrl);
     
     // Получаем цвета из карточек секции для градиента рамки
     const getBorderColors = () => {
@@ -357,15 +383,41 @@ const PagePreview = ({
           }
         }}>
           {isNoCards ? (
-            <Box sx={{ width: '100%', display: { xs: 'block', md: 'flex' }, alignItems: 'flex-start', position: 'relative' }}>
-              {section.imagePath && (
+            <Box sx={{ 
+              width: '100%', 
+              position: 'relative',
+              overflow: 'hidden',
+              display: 'flow-root' // Для корректной работы float
+            }}>
+              {sectionImages[section.id]?.length > 0 ? (
                 <Box
                   sx={{
-                    flex: '0 0 50%',
-                    maxWidth: { xs: '100%', md: '520px' },
-                    width: { xs: '100%', md: '50%' },
-                    mr: { xs: 0, md: 4 },
-                    mb: { xs: 2, md: 0 },
+                    float: 'right',
+                    margin: '0 0 1rem 1.5rem',
+                    maxWidth: { xs: '100%', sm: '300px' },
+                    width: { xs: '100%', sm: '40%' },
+                    height: { xs: '250px', sm: '300px' }, // Фиксированная высота
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
+                  }}
+                >
+                  <SimpleImageGallery 
+                    images={sectionImages[section.id]} 
+                    autoScroll={section.autoScrollEnabled !== undefined ? section.autoScrollEnabled : true}
+                    scrollInterval={2000}
+                    position="right"
+                    fillContainer={true} // Заполняем контейнер
+                  />
+                </Box>
+              ) : section.imagePath && (
+                <Box
+                  sx={{
+                    float: 'right',
+                    margin: '0 0 1rem 1.5rem',
+                    maxWidth: { xs: '100%', sm: '300px' },
+                    width: { xs: '100%', sm: '40%' },
+                    height: { xs: '250px', sm: '300px' }, // Фиксированная высота
                     borderRadius: '12px',
                     overflow: 'hidden',
                     boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
@@ -380,7 +432,8 @@ const PagePreview = ({
                     alt="About us"
                     style={{
                       width: '100%',
-                      height: 'auto',
+                      height: '100%', // Занимаем всю высоту
+                      objectFit: 'cover', // Используем cover для заполнения всей области
                       borderRadius: '12px',
                       display: 'block',
                       transition: 'transform 0.3s ease'
@@ -390,7 +443,7 @@ const PagePreview = ({
                   />
                 </Box>
               )}
-              <Box sx={{ overflow: 'hidden', flex: 1 }}>
+              <Box sx={{ overflow: 'hidden' }}>
                 <Typography 
                   variant="h3" 
                   component="h2"
@@ -423,7 +476,9 @@ const PagePreview = ({
                       lineHeight: 1.6,
                       textAlign: 'left',
                       color: section.descriptionColor || '#666666',
-                      mb: 2
+                      mb: 2,
+                      display: 'block',
+                      overflow: 'hidden'
                     }}
                   >
                     {section.description}
@@ -450,6 +505,9 @@ const PagePreview = ({
             <>
               <Box className="about-image" sx={{ 
                 flex: 1,
+                width: '100%',
+                maxWidth: '100%',
+                height: { xs: '300px', sm: '400px' }, // Фиксированная высота
                 position: 'relative',
                 '&::after': {
                   content: '""',
@@ -464,14 +522,36 @@ const PagePreview = ({
                   opacity: 0.3
                 }
               }}>
-                {section.imagePath && (
+                {sectionImages[section.id]?.length > 0 ? (
+                  <Box
+                  sx={{
+                    width: '100%',
+                    height: '100%', // Заполняем всю высоту родителя
+                    minWidth: '100%', // Принудительно устанавливаем минимальную ширину
+                    maxWidth: '100%', // Заполняем всю доступную ширину
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                  }}
+                >
+                  <SimpleImageGallery 
+                    images={sectionImages[section.id]} 
+                    autoScroll={section.autoScrollEnabled !== undefined ? section.autoScrollEnabled : true}
+                    scrollInterval={2000}
+                    position="center"
+                    fillContainer={true} // Заполняем контейнер
+                  />
+                </Box>
+                ) : section.imagePath && (
                   <img 
                     src={sectionImgUrl}
                     alt="About us"
                     style={{
                       width: '100%',
-                      maxWidth: '600px',
-                      height: 'auto',
+                      height: '100%', // Заполняем всю высоту
+                      minWidth: '100%',
+                      maxWidth: '100%',
+                      objectFit: 'cover', // Используем cover для заполнения
                       borderRadius: '12px',
                       boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                       transition: 'transform 0.3s ease'
@@ -537,7 +617,9 @@ const PagePreview = ({
                       lineHeight: 1.6,
                       textAlign: 'left',
                       color: section.descriptionColor || '#666666',
-                      mb: 2
+                      mb: 2,
+                      display: 'block',
+                      overflow: 'hidden'
                     }}
                   >
                     {section.description}
@@ -717,56 +799,91 @@ const PagePreview = ({
               </Fade>
             )}
 
-            {/* Добавляем отображение изображения секции только если есть карточки */}
-            {section.cardType !== CARD_TYPES.NONE && section.cards?.length > 0 && section.imagePath && (
+            {/* Добавляем отображение изображения секции только если тип секции НЕ "без карточек" */}
+            {section.cardType !== CARD_TYPES.NONE && (section.imagePath || sectionImages[section.id]?.length > 0) && (
               <Fade in timeout={1800}>
                 <Box className="section-image" sx={{ 
                   mt: 3, 
                   mb: 4,
                   textAlign: 'center',
-                  maxWidth: '100%'
+                  maxWidth: '100%',
+                  height: { xs: '300px', sm: '400px', md: '500px' } // Фиксированная высота контейнера
                 }}>
-                  <img 
-                    src={sectionImgUrl}
-                    alt={section.title || 'Section image'}
-                    loading="lazy"
-                    style={{
-                      maxWidth: '100%',
-                      height: 'auto',
-                      borderRadius: '12px',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                      transition: 'transform 0.3s ease'
-                    }}
-                    onMouseOver={(e) => { e.currentTarget.style.transform = 'scale(1.02)' }}
-                    onMouseOut={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
-                  />
+                  {/* Используем SimpleImageGallery если есть несколько изображений */}
+                  {sectionImages[section.id]?.length > 0 ? (
+                    <Box sx={{ 
+                      width: '100%',
+                      height: '100%', // Занимаем всю высоту родителя
+                      borderRadius: '12px', 
+                      overflow: 'hidden', 
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                    }}>
+                      <SimpleImageGallery 
+                        images={sectionImages[section.id]} 
+                        autoScroll={section.autoScrollEnabled !== undefined ? section.autoScrollEnabled : true}
+                        scrollInterval={2000}
+                        position="right"
+                        fillContainer={true} // Заполняем контейнер
+                      />
+                    </Box>
+                  ) : sectionImgUrl && (
+                    <img 
+                      src={sectionImgUrl}
+                      alt={section.title || 'Section image'}
+                      loading="lazy"
+                      style={{
+                        width: '100%',
+                        height: '100%', // Заполняем всю высоту
+                        objectFit: 'cover', // Используем cover для заполнения
+                        borderRadius: '12px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                        transition: 'transform 0.3s ease'
+                      }}
+                      onMouseOver={(e) => { e.currentTarget.style.transform = 'scale(1.02)' }}
+                      onMouseOut={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
+                      onError={(e) => {
+                        console.error('Image load error:', e);
+                        console.log('Current src:', e.target.src);
+                        console.log('Section imagePath:', section.imagePath);
+                        console.log('SectionImages state:', sectionImages[section.id]);
+
+                        if (e.target.src !== section.imagePath) {
+                          console.log('Falling back to direct imagePath');
+                          e.target.src = section.imagePath;
+                        }
+                      }}
+                      onLoad={() => console.log('Image loaded successfully:', sectionImgUrl)}
+                    />
+                  )}
                 </Box>
               </Fade>
             )}
           </Box>
 
           {section.cardType !== CARD_TYPES.NONE && section.cards?.length > 0 ? (
-              <Box sx={{ 
-                mt: section.description ? 0 : 16,
-                pt: section.description ? 8 : 0
+            <Box sx={{ 
+              mt: section.description ? 0 : 16,
+              pt: section.description ? 8 : 0
             }} className="cards-container">
-                <Grid container spacing={4}>
-                  {section.cards?.map((card, index) => (
-                    <Grid item xs={12} sm={6} md={4} key={card.id}>
-                      <Grow in timeout={1000 + index * 200}>
-                        <Box>
-                          {section.id === 'testimonials' ? (
-                            <TestimonialCard testimonial={card} />
-                          ) : (
-                            <Box sx={{ height: '100%' }}>
-                              {renderCard(card, section.cardType, section)}
-                            </Box>
-                          )}
-                        </Box>
-                      </Grow>
-                    </Grid>
-                  ))}
-                </Grid>
+              {/* Убираем дублирующие изображения, изображения уже отображаются выше */}
+              
+              <Grid container spacing={4}>
+                {section.cards?.map((card, index) => (
+                  <Grid item xs={12} sm={6} md={4} key={card.id}>
+                    <Grow in timeout={1000 + index * 200}>
+                      <Box>
+                        {section.id === 'testimonials' ? (
+                          <TestimonialCard testimonial={card} />
+                        ) : (
+                          <Box sx={{ height: '100%' }}>
+                            {renderCard(card, section.cardType, section)}
+                          </Box>
+                        )}
+                      </Box>
+                    </Grow>
+                  </Grid>
+                ))}
+              </Grid>
             </Box>
           ) : (
             <Box sx={{ 
@@ -798,11 +915,15 @@ const PagePreview = ({
                 zIndex: 0
               } : {}
             }}>
+              {console.log('[PagePreview] Секция без карточек:', section.id, 'Изображения:', sectionImages[section.id], 'ImagePath:', section.imagePath)}
+              
+              {/* Специальный контейнер для лучшего обтекания текстом в секциях без карточек */}
               <Box sx={{ 
                 position: 'relative',
                 textAlign: 'left',
                 overflow: 'hidden',
-                backgroundColor: section.showBackground !== false ? 'transparent' : 'transparent'
+                backgroundColor: section.showBackground !== false ? 'transparent' : 'transparent',
+                display: 'flow-root', // Решает проблемы с обтеканием floated элементов
               }}>
                 <Typography 
                   variant="h3" 
@@ -829,13 +950,17 @@ const PagePreview = ({
                 >
                   {section.title}
                 </Typography>
-                {section.imagePath && (
+                {console.log('[PagePreview] Тип карточек:', section.cardType, 'CARD_TYPES.NONE:', CARD_TYPES.NONE, 'Равен:', section.cardType === CARD_TYPES.NONE)}
+                {/* Отображаем изображения ТОЛЬКО для секций без карточек */}
+                {section.cardType === CARD_TYPES.NONE && (section.imagePath || sectionImages[section.id]?.length > 0) && (
                   <Box sx={{ 
                     float: 'right',
                     margin: '0 0 1rem 1.5rem',
-                    maxWidth: '300px',
-                    width: '100%',
+                    maxWidth: { xs: '100%', sm: '300px' },
+                    width: { xs: '100%', sm: '40%' },
+                    height: { xs: '250px', sm: '300px' }, // Фиксированная высота
                     position: 'relative',
+                    display: 'block',
                     '&::after': section.showBackground !== false ? {
                       content: '""',
                       position: 'absolute',
@@ -849,13 +974,31 @@ const PagePreview = ({
                       opacity: 0.3
                     } : {}
                   }}>
-                    {sectionImgUrl && (
+                    {sectionImages[section.id]?.length > 0 ? (
+                      <Box sx={{ 
+                        width: '100%',
+                        height: '100%', // Занимаем всю высоту родительского контейнера
+                        borderRadius: '12px', 
+                        overflow: 'hidden', 
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                      }}>
+                        <SimpleImageGallery 
+                          images={sectionImages[section.id]}
+                          autoScroll={section.autoScrollEnabled !== undefined ? section.autoScrollEnabled : true}
+                          scrollInterval={2000}
+                          position="right"
+                          maxHeight="100%"
+                          fillContainer={true} // Добавляем новый параметр для заполнения контейнера
+                        />
+                      </Box>
+                    ) : sectionImgUrl && (
                       <img 
                         src={sectionImgUrl}
                         alt={section.title || 'Section image'}
                         style={{
                           width: '100%',
-                          height: 'auto',
+                          height: '100%', // Занимаем всю высоту
+                          objectFit: 'cover', // Изменено с 'contain' на 'cover'
                           borderRadius: '12px',
                           boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                           transition: 'transform 0.3s ease',
@@ -863,6 +1006,10 @@ const PagePreview = ({
                         }}
                         onError={(e) => {
                           console.error('Image load error:', e);
+                          console.log('Current src:', e.target.src);
+                          console.log('Section imagePath:', section.imagePath);
+                          console.log('SectionImages state:', sectionImages[section.id]);
+
                           if (e.target.src !== section.imagePath) {
                             console.log('Falling back to direct imagePath');
                             e.target.src = section.imagePath;
@@ -873,50 +1020,54 @@ const PagePreview = ({
                     )}
                   </Box>
                 )}
-                <Box sx={{ pl: section.imagePath ? 2 : 0 }}>
-                  {section.description && (
-                    <Typography 
-                      variant="body1" 
-                      sx={{ 
-                        fontSize: { xs: '1rem', sm: '1.1rem' },
-                        lineHeight: 1.6,
-                        textAlign: section.imagePath ? 'left' : 'center',
-                        color: section.descriptionColor || '#666666',
-                        mb: 2
-                      }}
-                    >
-                      {section.description}
-                    </Typography>
-                  )}
-                  {section.cards?.map((card, index) => (
-                    <Box key={card.id} sx={{ mb: 2 }}>
-                      {card.title && (
-                        <Typography 
-                          variant="h6" 
-                          sx={{ 
-                            color: card.titleColor || section.titleColor || '#1976d2',
-                            mb: 1,
-                            fontWeight: 600
-                          }}
-                        >
-                          {card.title}
-                        </Typography>
-                      )}
-                      {card.content && (
-                        <Typography 
-                          variant="body1" 
-                          sx={{ 
-                            fontSize: { xs: '1rem', sm: '1.1rem' },
-                            lineHeight: 1.6,
-                            textAlign: section.imagePath ? 'left' : 'center',
-                            color: card.contentColor || section.contentColor || '#666666'
-                          }}
-                        >
-                          {card.content}
-                        </Typography>
-                      )}
-                    </Box>
-                  ))}
+                <Box sx={{ overflow: 'hidden', display: 'flow-root' }}> {/* Добавлен display: 'flow-root' для правильного обтекания */}
+                  <Box sx={{ pl: section.imagePath ? 2 : 0 }}>
+                    {section.description && (
+                      <Typography 
+                        variant="body1" 
+                        sx={{ 
+                          fontSize: { xs: '1rem', sm: '1.1rem' },
+                          lineHeight: 1.6,
+                          textAlign: section.imagePath ? 'left' : 'center',
+                          color: section.descriptionColor || '#666666',
+                          mb: 2,
+                          display: 'block',
+                          overflow: 'hidden'
+                        }}
+                      >
+                        {section.description}
+                      </Typography>
+                    )}
+                    {section.cards?.map((card, index) => (
+                      <Box key={card.id} sx={{ mb: 2 }}>
+                        {card.title && (
+                          <Typography 
+                            variant="h6" 
+                            sx={{ 
+                              color: card.titleColor || section.titleColor || '#1976d2',
+                              mb: 1,
+                              fontWeight: 600
+                            }}
+                          >
+                            {card.title}
+                          </Typography>
+                        )}
+                        {card.content && (
+                          <Typography 
+                            variant="body1" 
+                            sx={{ 
+                              fontSize: { xs: '1rem', sm: '1.1rem' },
+                              lineHeight: 1.6,
+                              textAlign: section.imagePath ? 'left' : 'center',
+                              color: card.contentColor || section.contentColor || '#666666'
+                            }}
+                          >
+                            {card.content}
+                          </Typography>
+                        )}
+                      </Box>
+                    ))}
+                  </Box>
                 </Box>
               </Box>
             </Box>
@@ -926,47 +1077,271 @@ const PagePreview = ({
     );
   };
 
+  // Заменяем обработчик сообщений для поддержки нового формата галереи
+  const handleMessage = useCallback((event) => {
+    console.log('[PagePreview] Received message:', event.data);
+    
+    switch (event.data.type) {
+      case 'UPDATE_SECTION_IMAGE': // Обрабатываем устаревший формат
+        const { sectionId, imagePath } = event.data;
+        if (sectionId && imagePath) {
+          console.log('[PagePreview] Processing UPDATE_SECTION_IMAGE for section:', sectionId);
+          setSectionImages(prev => ({
+            ...prev,
+            [sectionId]: [imagePath]
+          }));
+        }
+        break;
+      case 'UPDATE_SECTION_IMAGES': // Новый формат с массивом изображений
+        const { sectionId: sid, images } = event.data;
+        if (sid && images) {
+          console.log('[PagePreview] Processing UPDATE_SECTION_IMAGES for section:', sid, 'with images:', images);
+          setSectionImages(prev => {
+            // Обрабатываем разные форматы изображений
+            const newImageUrls = images.map(img => {
+              if (typeof img === 'string') return img;
+              return img.url || img.path;
+            });
+            
+            // Проверяем тип секции для корректной обработки
+            const section = Object.values(sectionsData || {}).find(s => s.id === sid);
+            console.log('[PagePreview] Section type for', sid, ':', section?.cardType, 'NONE:', CARD_TYPES.NONE);
+            
+            // Полностью заменяем изображения для секции
+            return {
+              ...prev,
+              [sid]: newImageUrls
+            };
+          });
+        }
+        break;
+      case 'ADD_SECTION_IMAGES': // Добавление изображений к существующим
+        const { sectionId: addSid, images: addImages } = event.data;
+        if (addSid && addImages) {
+          console.log('[PagePreview] Processing ADD_SECTION_IMAGES for section:', addSid);
+          setSectionImages(prev => {
+            const currentImages = [...(prev[addSid] || [])];
+            // Обрабатываем разные форматы изображений
+            const newImageUrls = addImages.map(img => {
+              if (typeof img === 'string') return img;
+              return img.url || img.path;
+            });
+            
+            // Добавляем новые изображения к текущим
+            const updatedImages = [...currentImages, ...newImageUrls];
+            
+            return {
+              ...prev,
+              [addSid]: updatedImages
+            };
+          });
+        }
+        break;
+      case 'REMOVE_SECTION_IMAGE':
+        const { sectionId: removeSid, imageIndex } = event.data;
+        if (removeSid && typeof imageIndex === 'number') {
+          console.log('[PagePreview] Processing REMOVE_SECTION_IMAGE for section:', removeSid, 'index:', imageIndex);
+          setSectionImages(prev => {
+            const currentImages = [...(prev[removeSid] || [])];
+            currentImages.splice(imageIndex, 1);
+            return {
+              ...prev,
+              [removeSid]: currentImages
+            };
+          });
+        }
+        break;
+      case 'REORDER_SECTION_IMAGES':
+        const { sectionId: reorderSid, images: newImages } = event.data;
+        if (reorderSid && newImages) {
+          console.log('[PagePreview] Processing REORDER_SECTION_IMAGES for section:', reorderSid);
+          setSectionImages(prev => {
+            // Обрабатываем разные форматы изображений
+            const reorderedUrls = newImages.map(img => {
+              if (typeof img === 'string') return img;
+              return img.url || img.path;
+            });
+            return {
+              ...prev,
+              [reorderSid]: reorderedUrls
+            };
+          });
+        }
+        break;
+      case 'UPDATE_AUTOSCROLL_SETTING':
+        // Обработка настройки автопрокрутки для галереи изображений
+        const { sectionId: autoScrollSectionId, autoScroll } = event.data;
+        if (autoScrollSectionId) {
+          console.log(`[PagePreview] Updating auto-scroll for section ${autoScrollSectionId}: ${autoScroll}`);
+          
+          // Находим элемент секции
+          const sectionElement = sectionRefs.current[autoScrollSectionId];
+          if (sectionElement) {
+            console.log(`[PagePreview] Found section element for ${autoScrollSectionId}`);
+            
+            // Пересылаем событие всем SimpleImageGallery на странице
+            // Это необходимо, так как SimpleImageGallery слушает события window
+            window.postMessage({
+              type: 'UPDATE_AUTOSCROLL_SETTING',
+              sectionId: autoScrollSectionId,
+              autoScroll: autoScroll
+            }, '*');
+            
+            // Также обновляем состояние при рендеринге секции
+            if (sectionsData && sectionsData[autoScrollSectionId]) {
+              const section = sectionsData[autoScrollSectionId];
+              if (section) {
+                // Обновляем секцию с новыми параметрами
+                section.autoScrollEnabled = autoScroll;
+                console.log(`[PagePreview] Updated section data with autoScrollEnabled=${autoScroll}`);
+              }
+            }
+          } else {
+            console.warn(`[PagePreview] Could not find section element for ${autoScrollSectionId}`);
+          }
+        }
+        break;
+      case 'SCROLL_TO_SECTION':
+        const element = sectionRefs.current[event.data.sectionId];
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+        break;
+    }
+  }, [sectionsData, renderSection]);
+
+  useEffect(() => {
+    console.log('[PagePreview] Current sectionImages state:', sectionImages);
+  }, [sectionImages]);
+
   useEffect(() => {
     const loadSectionImages = async () => {
-      const newImages = {};
+      console.log('[PagePreview] Loading section images for:', sectionsData);
+      const newImages = { ...sectionImages }; // Начинаем с текущего состояния изображений
       const sections = Object.values(sectionsData || {});
       
       for (const section of sections) {
-        if (section && section.imagePath) {
-          try {
-            // Получаем имя файла из пути
-            const filename = section.imagePath.split('/').pop();
+        if (section && section.id) {
+          // Проверяем есть ли массив images для нового формата
+          if (section.images && section.images.length > 0) {
+            console.log('[PagePreview] Found multiple images for section:', section.id, section.images);
+            const sectionImageUrls = [];
             
-            // Пытаемся получить изображение из кэша
-            const blob = await imageCacheService.getImage(filename);
-            
-            if (blob) {
-              // Если есть в кэше, создаем URL
-              const url = URL.createObjectURL(blob);
-              newImages[section.id] = url;
-            } else {
-              // Если нет в кэше, используем путь из секции
-              newImages[section.id] = section.imagePath;
+            // Преобразуем каждое изображение в URL
+            for (const image of section.images) {
+              try {
+                const imagePath = typeof image === 'string' ? image : image.path;
+                if (!imagePath) {
+                  console.warn('[PagePreview] Missing image path in:', image);
+                  continue;
+                }
+                
+                // Извлекаем имя файла для поиска в кэше
+                const filename = imagePath.split('/').pop();
+                
+                // Перед созданием нового blob URL, проверяем, не загружено ли уже это изображение
+                const existingImages = newImages[section.id] || [];
+                const existingImage = Array.isArray(existingImages) 
+                  ? existingImages.find(img => img.includes(filename))
+                  : (existingImages && existingImages.includes(filename) ? existingImages : null);
+                
+                if (existingImage) {
+                  // Если изображение уже загружено, используем существующий URL
+                  console.log('[PagePreview] Using existing URL for image:', existingImage);
+                  sectionImageUrls.push(existingImage);
+                } else {
+                  // Иначе загружаем новое изображение
+                  const blob = await imageCacheService.getImage(filename);
+                  
+                  if (blob) {
+                    const url = URL.createObjectURL(blob);
+                    sectionImageUrls.push(url);
+                    console.log('[PagePreview] Created blob URL for image:', url);
+                  } else {
+                    sectionImageUrls.push(imagePath);
+                    console.log('[PagePreview] Using direct image path:', imagePath);
+                  }
+                }
+              } catch (error) {
+                console.error('[PagePreview] Error loading section image:', error);
+                if (typeof image === 'string') {
+                  sectionImageUrls.push(image);
+                } else if (image.path) {
+                  sectionImageUrls.push(image.path);
+                }
+              }
             }
-          } catch (error) {
-            console.error('Error loading section image:', error);
-            // При ошибке используем путь из секции
-            newImages[section.id] = section.imagePath;
+            
+            // Заменяем изображения для данной секции
+            newImages[section.id] = sectionImageUrls;
+          } 
+          // Проверяем старый формат (один путь)
+          else if (section.imagePath) {
+            try {
+              console.log('[PagePreview] Found single image path for section:', section.id, section.imagePath);
+              const filename = section.imagePath.split('/').pop();
+              
+              // Проверяем, не загружено ли уже это изображение
+              const existingImages = newImages[section.id];
+              const existingImage = Array.isArray(existingImages) 
+                ? existingImages.find(img => img.includes(filename))
+                : (existingImages && existingImages.includes(filename) ? existingImages : null);
+              
+              if (existingImage) {
+                // Если изображение уже загружено, используем существующий URL
+                console.log('[PagePreview] Using existing URL for single image:', existingImage);
+                newImages[section.id] = Array.isArray(existingImages) ? [existingImage] : existingImage;
+              } else {
+                // Иначе загружаем новое изображение
+                const blob = await imageCacheService.getImage(filename);
+                
+                if (blob) {
+                  const url = URL.createObjectURL(blob);
+                  newImages[section.id] = [url];
+                  console.log('[PagePreview] Created blob URL for image:', url);
+                } else {
+                  newImages[section.id] = [section.imagePath];
+                  console.log('[PagePreview] Using direct image path:', section.imagePath);
+                }
+              }
+            } catch (error) {
+              console.error('[PagePreview] Error loading section image:', error);
+              newImages[section.id] = [section.imagePath];
+            }
           }
         }
       }
+      console.log('[PagePreview] Final images data:', newImages);
       setSectionImages(newImages);
     };
 
     loadSectionImages();
 
     return () => {
+      // Сохраняем текущие URLs, которые мы отозвали, чтобы не отзывать дважды
+      const revokedUrls = new Set();
+      
       // Очищаем только blob URLs
-      Object.values(sectionImages).forEach(url => {
-        if (url && url.startsWith('blob:')) {
-          URL.revokeObjectURL(url);
+      Object.values(sectionImages).forEach(urls => {
+        if (!urls) return;
+        
+        // Проверяем, является ли urls массивом
+        if (Array.isArray(urls)) {
+          urls.forEach(url => {
+            if (url && typeof url === 'string' && url.startsWith('blob:') && !revokedUrls.has(url)) {
+              console.log('[PagePreview] Revoking blob URL:', url);
+              URL.revokeObjectURL(url);
+              revokedUrls.add(url);
+            }
+          });
+        } else if (typeof urls === 'string' && urls.startsWith('blob:') && !revokedUrls.has(urls)) {
+          console.log('[PagePreview] Revoking blob URL:', urls);
+          URL.revokeObjectURL(urls);
+          revokedUrls.add(urls);
         }
       });
+      
+      console.log('[PagePreview] Revoked total blob URLs:', revokedUrls.size);
     };
   }, [sectionsData]);
 
@@ -1117,38 +1492,21 @@ const PagePreview = ({
     }
   }, [headerData]);
 
-  // Обновляем обработчик сообщений
-  const handleMessage = useCallback((event) => {
-    switch (event.data.type) {
-      case 'UPDATE_SECTION_IMAGE':
-        const { sectionId, imagePath } = event.data;
-        if (sectionId && imagePath) {
-          // Обновляем изображение в состоянии
-          setSectionImages(prev => ({
-            ...prev,
-            [sectionId]: imagePath
-          }));
-        }
-        break;
-      case 'REMOVE_SECTION_IMAGE':
-        setSectionImages(prev => {
-          const newImages = { ...prev };
-          delete newImages[event.data.sectionId];
-          return newImages;
-        });
-        break;
-      case 'SCROLL_TO_SECTION':
-        const element = sectionRefs.current[event.data.sectionId];
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth' });
-        }
-        break;
-    }
-  }, []);
-
   useEffect(() => {
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
+    console.log('[PagePreview] Setting up message listener');
+    
+    // Добавляем небольшую задержку перед установкой обработчика сообщений, 
+    // чтобы убедиться, что состояние изображений инициализировано
+    const timeoutId = setTimeout(() => {
+      console.log('[PagePreview] Message listener activated after delay');
+      window.addEventListener('message', handleMessage);
+    }, 500);
+    
+    return () => {
+      console.log('[PagePreview] Removing message listener');
+      clearTimeout(timeoutId);
+      window.removeEventListener('message', handleMessage);
+    };
   }, [handleMessage]);
 
   // Обработчик изменений настроек фона

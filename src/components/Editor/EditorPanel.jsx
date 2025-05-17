@@ -20,6 +20,7 @@ import Slider from '@mui/material/Slider';
 import { imageCacheService } from '../../utils/imageCacheService';
 import imageCompression from 'browser-image-compression';
 import AuthPanel from '../Auth/AuthPanel';
+import SectionImageGallery from './SectionImageGallery';
 
 const STYLE_PRESETS = {
   CORPORATE: {
@@ -628,6 +629,24 @@ const STYLE_PRESETS = {
   }
 };
 
+// Определяем функции для работы с изображениями до основного компонента
+const handleReorderImages = (sectionsData, sectionId, startIndex, endIndex) => {
+  const section = sectionsData[sectionId];
+  if (!section?.images) return sectionsData;
+
+  const newImages = [...section.images];
+  const [movedImage] = newImages.splice(startIndex, 1);
+  newImages.splice(endIndex, 0, movedImage);
+
+  return {
+    ...sectionsData,
+    [sectionId]: {
+      ...sectionsData[sectionId],
+      images: newImages
+    }
+  };
+};
+
 const EditorPanel = ({
   headerData = {
     siteName: 'My Site',
@@ -1013,8 +1032,10 @@ const EditorPanel = ({
       // Конвертация в Blob
       const blob = new Blob([compressedFile], { type: 'image/jpeg' });
       
-      // Используем ID секции для имени файла
-      const filename = `${sectionId}.jpg`;
+      // Генерируем уникальное имя файла, используя ID секции и временную метку
+      const timestamp = Date.now();
+      const randomStr = Math.random().toString(36).substring(2, 8);
+      const filename = `${sectionId}_${timestamp}_${randomStr}.jpg`;
 
       // Сохранение в кэш
       await imageCacheService.saveImage(filename, blob);
@@ -1043,51 +1064,61 @@ const EditorPanel = ({
   };
 
   const handleSectionImageUpload = async (id, event) => {
-    const file = event.target.files[0];
-    if (!file) return;
+    const files = Array.from(event.target.files);
+    if (!files.length) return;
 
     try {
-      // Проверка формата
-      if (!file.type.startsWith('image/')) {
-        throw new Error('Пожалуйста, выберите изображение');
+      const newImages = [];
+      
+      for (const file of files) {
+        // Проверка формата
+        if (!file.type.startsWith('image/')) {
+          throw new Error('Пожалуйста, выберите только изображения');
+        }
+
+        const { url, filename } = await processImage(file, id);
+        const imagePath = `/images/sections/${filename}`;
+        
+        newImages.push({
+          path: imagePath,
+          url: url,
+          filename: filename
+        });
       }
 
-      const { url, filename } = await processImage(file, id);
+      console.log('[EditorPanel] Processed images:', newImages);
 
-      // Обновляем путь к изображению в данных секции
-      const imagePath = `/images/sections/${filename}`;
-      console.log('Сохраняем изображение с путем:', imagePath);
-      
       // Обновляем данные секции
-      onSectionsChange({
+      const currentImages = sectionsData[id]?.images || [];
+      const updatedSectionsData = {
         ...sectionsData,
         [id]: {
           ...sectionsData[id],
-          imagePath: imagePath
+          images: [...currentImages, ...newImages]
         }
-      });
+      };
+      
+      onSectionsChange(updatedSectionsData);
 
-      // Отправляем сообщение в превью для обновления изображения
+      // Отправляем сообщение в превью для обновления изображений
       try {
         const previewIframe = document.querySelector('iframe.preview-iframe');
         if (previewIframe && previewIframe.contentWindow) {
+          console.log('[EditorPanel] Sending images to preview:', newImages);
           previewIframe.contentWindow.postMessage({
-            type: 'UPDATE_SECTION_IMAGE',
+            type: 'UPDATE_SECTION_IMAGES',
             sectionId: id,
-            imagePath: url // Используем blob URL для мгновенного отображения
+            images: newImages
           }, '*');
-          console.log('Отправлено сообщение для обновления изображения:', url);
         }
       } catch (error) {
         console.error('Ошибка при отправке сообщения в превью:', error);
       }
 
-      // Показываем уведомление
-      alert('Изображение секции успешно обработано и сохранено в кэш');
-
+      alert('Изображения секции успешно обработаны и сохранены');
     } catch (error) {
       console.error('Ошибка при загрузке:', error);
-      alert('Ошибка при загрузке изображения: ' + error.message);
+      alert('Ошибка при загрузке изображений: ' + error.message);
     }
   };
 
@@ -1362,6 +1393,141 @@ const EditorPanel = ({
           ${card.title ? `<br><strong style="color:${card.titleColor || section.titleColor || '#1a237e'}">${card.title}</strong>` : ''}
           ${card.content ? `<br><span style="color:${card.contentColor || section.contentColor || '#455a64'}">${card.content}</span>` : ''}
         `).join('');
+        
+        // Проверяем наличие изображений
+        const hasImages = Array.isArray(section.images) && section.images.length > 0;
+        const hasSingleImage = section.imagePath && !hasImages;
+        
+        // Подготавливаем HTML для галереи изображений если их несколько
+        let imagesHtml = '';
+        if (hasImages) {
+          if (section.images.length === 1) {
+            // Одно изображение из массива
+            const imgPath = typeof section.images[0] === 'string' 
+              ? section.images[0].replace('/images/sections/', 'assets/images/')
+              : (section.images[0].path || section.images[0].url || '').replace('/images/sections/', 'assets/images/');
+            
+            imagesHtml = `
+              <div style="
+                float: right;
+                margin: 0 0 1rem 1.5rem;
+                width: 40%;
+                max-width: 300px;
+                height: 300px;
+                position: relative;
+                border-radius: 12px;
+                overflow: hidden;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+              ">
+                <img 
+                  src="${imgPath}" 
+                  alt="${section.title || 'Section image'}"
+                  style="
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                    border-radius: 12px;
+                    display: block;
+                  "
+                >
+              </div>
+            `;
+          } else {
+            // Несколько изображений - делаем слайдер
+            imagesHtml = `
+              <div class="section-gallery" data-section-id="${section.id}" style="
+                float: right;
+                margin: 0 0 1rem 1.5rem;
+                width: 40%;
+                max-width: 300px;
+                height: 300px;
+                position: relative;
+                border-radius: 12px;
+                overflow: hidden;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+              ">
+                ${section.images.map((img, index) => {
+                  const imgPath = typeof img === 'string' 
+                    ? img.replace('/images/sections/', 'assets/images/')
+                    : (img.path || img.url || '').replace('/images/sections/', 'assets/images/');
+                  
+                  return `
+                    <img 
+                      src="${imgPath}" 
+                      alt="${section.title || 'Section image'} ${index + 1}"
+                      class="gallery-img"
+                      data-index="${index}"
+                      style="
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        object-fit: cover;
+                        display: ${index === 0 ? 'block' : 'none'};
+                        transition: opacity 0.5s ease;
+                      "
+                    >
+                  `;
+                }).join('')}
+                
+                <!-- Навигация галереи -->
+                <div style="
+                  position: absolute;
+                  bottom: 10px;
+                  left: 0;
+                  right: 0;
+                  text-align: center;
+                  z-index: 2;
+                ">
+                  ${section.images.map((_, index) => `
+                    <span 
+                      class="gallery-dot"
+                      data-index="${index}"
+                      style="
+                        display: inline-block;
+                        width: 8px;
+                        height: 8px;
+                        border-radius: 50%;
+                        background-color: ${index === 0 ? '#ffffff' : 'rgba(255,255,255,0.5)'};
+                        margin: 0 3px;
+                        cursor: pointer;
+                      "
+                    ></span>
+                  `).join('')}
+                </div>
+              </div>
+            `;
+          }
+        } else if (hasSingleImage) {
+          // Одно изображение из поля imagePath
+          imagesHtml = `
+            <div style="
+              float: right;
+              margin: 0 0 1rem 1.5rem;
+              width: 40%;
+              max-width: 300px;
+              height: 300px;
+              position: relative;
+              border-radius: 12px;
+              overflow: hidden;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            ">
+              <img 
+                src="${section.imagePath.replace('/images/sections/', 'assets/images/')}" 
+                alt="${section.title || 'Section image'}"
+                style="
+                  width: 100%;
+                  height: 100%;
+                  object-fit: cover;
+                  border-radius: 12px;
+                  display: block;
+                "
+              >
+            </div>
+          `;
+        }
+        
         return `
           <section id="${section.id}" class="section" style="
             padding: 4rem 0;
@@ -1389,17 +1555,18 @@ const EditorPanel = ({
                   ">${section.title}</h2>
                 ` : ''}
                 
+                <!-- Контейнер с текстовым содержимым и изображением с обтеканием -->
                 <div style="
-                  display: ${section.imagePath ? 'flex' : 'block'};
-                  flex-wrap: wrap;
-                  align-items: flex-start;
-                  justify-content: space-between;
+                  position: relative;
+                  display: flow-root; /* Для правильного обтекания */
                   ${section.showBackground !== false ? '' : 'background: transparent;'}
                 ">
+                  <!-- Изображение или галерея с обтеканием -->
+                  ${imagesHtml}
+                  
+                  <!-- Текстовое содержимое -->
                   <div style="
-                    flex: ${section.imagePath ? '1 1 60%' : '1 1 100%'};
-                    padding-right: ${section.imagePath ? '2rem' : '0'};
-                    text-align: ${section.imagePath ? 'left' : 'center'};
+                    overflow: hidden;
                     ${section.showBackground !== false ? '' : 'background: transparent;'}
                   ">
                     ${section.description ? `
@@ -1408,34 +1575,20 @@ const EditorPanel = ({
                         font-size: 1.1rem;
                         line-height: 1.6;
                         margin-bottom: 1rem;
+                        text-align: ${hasImages || hasSingleImage ? 'left' : 'center'};
                       ">${section.description}</p>
                     ` : ''}
                     
                     ${cardsText ? `
-                      <div style="margin-top: 1rem; ${section.showBackground !== false ? '' : 'background: transparent;'}">
+                      <div style="
+                        margin-top: 1rem; 
+                        ${section.showBackground !== false ? '' : 'background: transparent;'}
+                        text-align: ${hasImages || hasSingleImage ? 'left' : 'center'};
+                      ">
                         ${cardsText}
                       </div>
                     ` : ''}
                   </div>
-                  
-                  ${section.imagePath ? `
-                    <div style="
-                      flex: 1 1 35%;
-                      margin-bottom: 1rem;
-                      ${section.showBackground !== false ? '' : 'background: transparent;'}
-                    ">
-                      <img src="${section.imagePath.replace('/images/sections/', 'assets/images/')}" 
-                        alt="${section.title || 'Section image'}" 
-                        style="
-                          width: 100%;
-                          height: auto;
-                          border-radius: 12px;
-                          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                          display: block;
-                        "
-                      >
-                    </div>
-                  ` : ''}
                 </div>
               </div>
             </div>
@@ -1473,22 +1626,127 @@ const EditorPanel = ({
                   line-height: 1.6;
                 ">${section.description}</p>
               ` : ''}
-              ${section.imagePath ? `
-                <div class="section-image" style="
-                  width: 100%;
-                  margin: 2rem auto;
-                  text-align: center;
-                  max-width: 800px;
-                ">
-                  <img src="${section.imagePath.replace('/images/sections/', 'assets/images/')}" alt="${section.title || 'Section image'}" style="
-                    width: 100%;
-                    height: auto;
-                    border-radius: 12px;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                    transition: transform 0.3s ease;
-                  ">
-                </div>
-              ` : ''}
+              ${(() => {
+                // Проверяем наличие изображений
+                const hasImages = Array.isArray(section.images) && section.images.length > 0;
+                const hasSingleImage = section.imagePath && !hasImages;
+                
+                if (hasImages) {
+                  if (section.images.length === 1) {
+                    // Одно изображение из массива
+                    const imgPath = typeof section.images[0] === 'string' 
+                      ? section.images[0].replace('/images/sections/', 'assets/images/')
+                      : (section.images[0].path || section.images[0].url || '').replace('/images/sections/', 'assets/images/');
+                    
+                    return `
+                      <div class="section-image" style="
+                        width: 100%;
+                        margin: 2rem auto;
+                        text-align: center;
+                        max-width: 800px;
+                        height: 500px;
+                      ">
+                        <img src="${imgPath}" alt="${section.title || 'Section image'}" style="
+                          width: 100%;
+                          height: 100%;
+                          object-fit: cover;
+                          border-radius: 12px;
+                          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                          transition: transform 0.3s ease;
+                        ">
+                      </div>
+                    `;
+                  } else {
+                    // Несколько изображений - делаем слайдер
+                    return `
+                      <div class="section-gallery" data-section-id="${section.id}" style="
+                        width: 100%;
+                        margin: 2rem auto;
+                        text-align: center;
+                        max-width: 800px;
+                        height: 500px;
+                        position: relative;
+                        border-radius: 12px;
+                        overflow: hidden;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                      ">
+                        ${section.images.map((img, index) => {
+                          const imgPath = typeof img === 'string' 
+                            ? img.replace('/images/sections/', 'assets/images/')
+                            : (img.path || img.url || '').replace('/images/sections/', 'assets/images/');
+                          
+                          return `
+                            <img 
+                              src="${imgPath}" 
+                              alt="${section.title || 'Section image'} ${index + 1}"
+                              class="gallery-img"
+                              data-index="${index}"
+                              style="
+                                position: absolute;
+                                top: 0;
+                                left: 0;
+                                width: 100%;
+                                height: 100%;
+                                object-fit: cover;
+                                display: ${index === 0 ? 'block' : 'none'};
+                                transition: opacity 0.5s ease;
+                              "
+                            >
+                          `;
+                        }).join('')}
+                        
+                        <!-- Навигация галереи -->
+                        <div style="
+                          position: absolute;
+                          bottom: 10px;
+                          left: 0;
+                          right: 0;
+                          text-align: center;
+                          z-index: 2;
+                        ">
+                          ${section.images.map((_, index) => `
+                            <span 
+                              class="gallery-dot"
+                              data-index="${index}"
+                              style="
+                                display: inline-block;
+                                width: 10px;
+                                height: 10px;
+                                border-radius: 50%;
+                                background-color: ${index === 0 ? '#ffffff' : 'rgba(255,255,255,0.5)'};
+                                margin: 0 5px;
+                                cursor: pointer;
+                              "
+                            ></span>
+                          `).join('')}
+                        </div>
+                      </div>
+                    `;
+                  }
+                } else if (hasSingleImage) {
+                  // Одно изображение из поля imagePath
+                  return `
+                    <div class="section-image" style="
+                      width: 100%;
+                      margin: 2rem auto;
+                      text-align: center;
+                      max-width: 800px;
+                      height: 500px;
+                    ">
+                      <img src="${section.imagePath.replace('/images/sections/', 'assets/images/')}" alt="${section.title || 'Section image'}" style="
+                        width: 100%;
+                        height: 100%;
+                        object-fit: cover;
+                        border-radius: 12px;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                        transition: transform 0.3s ease;
+                      ">
+                    </div>
+                  `;
+                }
+                
+                return '';
+              })()}
             </div>
             <div class="cards-container${cardsClass ? ' ' + cardsClass : ''}">
               ${(section.cards || []).map(card => `
@@ -2164,6 +2422,33 @@ const EditorPanel = ({
       margin: 0;
       padding: 0;
       width: 100%;
+    }
+    
+    /* Стили для галереи изображений */
+    .section-gallery {
+      position: relative;
+      overflow: hidden;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .gallery-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: opacity 0.5s ease;
+    }
+    
+    .gallery-dot {
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    
+    /* Стили для изображений внутри секций с обтеканием текста */
+    section p + .section-gallery,
+    section h2 + .section-gallery {
+      margin-top: 1rem;
+      margin-bottom: 1rem;
     }
 
     /* Стили для рамок секций */
@@ -2988,7 +3273,108 @@ const EditorPanel = ({
           });
         }, { threshold: 0.15 });
         animatedEls.forEach(el => observer.observe(el));
+        
+        // Инициализация автоматических слайд-шоу изображений
+        initImageGalleries();
       });
+      
+      // Функция для инициализации всех галерей изображений на странице
+      function initImageGalleries() {
+        const galleries = document.querySelectorAll('.section-gallery');
+        
+        galleries.forEach(gallery => {
+          const images = gallery.querySelectorAll('.gallery-img');
+          const dots = gallery.querySelectorAll('.gallery-dot');
+          let currentIndex = 0;
+          let interval = null;
+          
+          // Если изображений меньше 2, не делаем ничего
+          if (images.length < 2) return;
+          
+          // Функция для переключения слайдов
+          function showSlide(index) {
+            // Скрываем все изображения
+            images.forEach(img => img.style.display = 'none');
+            
+            // Сбрасываем активные точки
+            dots.forEach(dot => dot.style.backgroundColor = 'rgba(255,255,255,0.5)');
+            
+            // Показываем выбранное изображение
+            if (images[index]) {
+              images[index].style.display = 'block';
+            }
+            
+            // Обновляем активную точку
+            if (dots[index]) {
+              dots[index].style.backgroundColor = '#ffffff';
+            }
+            
+            currentIndex = index;
+          }
+          
+          // Устанавливаем обработчики для точек навигации
+          dots.forEach((dot, index) => {
+            dot.addEventListener('click', () => {
+              clearInterval(interval); // Останавливаем автопрокрутку при ручном переключении
+              showSlide(index);
+              startAutoScroll(); // Перезапускаем автопрокрутку
+            });
+          });
+          
+          // Функция для запуска автопрокрутки
+          function startAutoScroll() {
+            // Очищаем предыдущий интервал, если он был
+            if (interval) {
+              clearInterval(interval);
+            }
+            
+            // Устанавливаем новый интервал
+            interval = setInterval(() => {
+              const nextIndex = (currentIndex + 1) % images.length;
+              showSlide(nextIndex);
+            }, 3000); // Интервал 3 секунды между слайдами
+          }
+          
+          // Добавляем обработчики для остановки автопрокрутки при наведении
+          gallery.addEventListener('mouseenter', () => {
+            clearInterval(interval);
+          });
+          
+          gallery.addEventListener('mouseleave', () => {
+            startAutoScroll();
+          });
+          
+          // Запускаем автопрокрутку при загрузке
+          startAutoScroll();
+          
+          // Добавляем свайп на мобильных устройствах
+          let touchStartX = 0;
+          let touchEndX = 0;
+          
+          gallery.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+          }, false);
+          
+          gallery.addEventListener('touchend', e => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+          }, false);
+          
+          function handleSwipe() {
+            if (touchEndX < touchStartX) {
+              // Свайп влево - следующий слайд
+              clearInterval(interval);
+              showSlide((currentIndex + 1) % images.length);
+              startAutoScroll();
+            } else if (touchEndX > touchStartX) {
+              // Свайп вправо - предыдущий слайд
+              clearInterval(interval);
+              showSlide((currentIndex - 1 + images.length) % images.length);
+              startAutoScroll();
+            }
+          }
+        });
+      }
     `;
   };
 
@@ -3421,6 +3807,40 @@ const EditorPanel = ({
 
       // Add images from sections
       for (const section of sectionsArray) {
+        // Обработка массива изображений
+        if (Array.isArray(section.images) && section.images.length > 0) {
+          for (const image of section.images) {
+            try {
+              let imageFilename = '';
+              
+              if (typeof image === 'string') {
+                imageFilename = image.split('/').pop();
+              } else if (image && (image.path || image.url)) {
+                imageFilename = (image.path || image.url).split('/').pop();
+              }
+              
+              if (!imageFilename) continue;
+              
+              // Пропускаем about.jpg и About.jpg, так как оно уже было добавлено ранее из aboutImageMetadata
+              if (imageFilename.toLowerCase() === 'about.jpg') {
+                console.log(`Skipping ${imageFilename} as it was already added`);
+                continue;
+              }
+              
+              const blob = await imageCacheService.getImage(imageFilename);
+              if (blob) {
+                imagesFolder.file(imageFilename, blob);
+                console.log(`Section multi-image ${imageFilename} successfully added to zip from cache`);
+              } else {
+                console.warn(`Section multi-image ${imageFilename} not found in cache`);
+              }
+            } catch (error) {
+              console.error(`Error getting section multi-image from cache:`, error);
+            }
+          }
+        }
+        
+        // Обработка одиночных изображений
         if (section.backgroundImage || section.imagePath) {
           try {
             const imageFilename = (section.backgroundImage || section.imagePath).split('/').pop();
@@ -3803,6 +4223,40 @@ const EditorPanel = ({
 
       // Add images from sections for PHP version
       for (const section of sectionsArray) {
+        // Обработка массива изображений
+        if (Array.isArray(section.images) && section.images.length > 0) {
+          for (const image of section.images) {
+            try {
+              let imageFilename = '';
+              
+              if (typeof image === 'string') {
+                imageFilename = image.split('/').pop();
+              } else if (image && (image.path || image.url)) {
+                imageFilename = (image.path || image.url).split('/').pop();
+              }
+              
+              if (!imageFilename) continue;
+              
+              // Пропускаем about.jpg и About.jpg, так как оно уже было добавлено ранее из aboutImageMetadata
+              if (imageFilename.toLowerCase() === 'about.jpg') {
+                console.log(`Skipping ${imageFilename} as it was already added for PHP version`);
+                continue;
+              }
+              
+              const blob = await imageCacheService.getImage(imageFilename);
+              if (blob) {
+                imagesFolder.file(imageFilename, blob);
+                console.log(`Section multi-image ${imageFilename} successfully added to zip from cache for PHP version`);
+              } else {
+                console.warn(`Section multi-image ${imageFilename} not found in cache for PHP version`);
+              }
+            } catch (error) {
+              console.error(`Error getting section multi-image from cache for PHP version:`, error);
+            }
+          }
+        }
+        
+        // Обработка одиночных изображений
         if (section.backgroundImage || section.imagePath) {
           try {
             const imageFilename = (section.backgroundImage || section.imagePath).split('/').pop();
@@ -4456,32 +4910,46 @@ ${mainHtml}
   };
 
   // Функция для удаления изображения секции
-  const handleDeleteSectionImage = async (sectionId) => {
+  const handleDeleteSectionImage = async (sectionId, imageIndex) => {
     try {
       if (!sectionId) {
         throw new Error('ID секции не указан');
       }
 
-      // Удаляем изображение из кеша
-      const filename = `section_${sectionId}.jpg`;
-      await imageCacheService.deleteImage(filename);
+      const section = sectionsData[sectionId];
+      if (!section?.images?.[imageIndex]) {
+        throw new Error('Изображение не найдено');
+      }
 
+      const imageToDelete = section.images[imageIndex];
+      console.log('[EditorPanel] Deleting image:', imageToDelete, 'at index:', imageIndex, 'from section:', sectionId);
+
+      // Удаляем изображение из кеша
+      await imageCacheService.deleteImage(imageToDelete.filename);
+
+      // Создаем новый массив изображений без удаленного
+      const updatedImages = section.images.filter((_, idx) => idx !== imageIndex);
+      
       // Обновляем данные секции
-      onSectionsChange({
+      const updatedSectionsData = {
         ...sectionsData,
         [sectionId]: {
           ...sectionsData[sectionId],
-          imagePath: null
+          images: updatedImages
         }
-      });
+      };
+      
+      onSectionsChange(updatedSectionsData);
 
       // Отправляем сообщение в превью
       try {
         const previewIframe = document.querySelector('iframe.preview-iframe');
         if (previewIframe && previewIframe.contentWindow) {
+          console.log('[EditorPanel] Sending DELETE message to preview for section:', sectionId, 'index:', imageIndex);
           previewIframe.contentWindow.postMessage({
             type: 'REMOVE_SECTION_IMAGE',
-            sectionId: sectionId
+            sectionId: sectionId,
+            imageIndex: imageIndex
           }, '*');
         }
       } catch (messageError) {
@@ -4733,40 +5201,40 @@ ${mainHtml}
                           rows={2}
                         />
                         <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', mt: 1 }}>
-                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, alignItems: 'center' }}>
+                          {/* Удаляем первую кнопку и оставляем только вторую */}
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, width: '100%' }}>
                             <Button
                               variant="contained"
                               startIcon={<ImageIcon />}
                               onClick={() => document.getElementById(`section-image-upload-${item.id}`).click()}
                               sx={{ minWidth: '200px' }}
                             >
-                              {section.imagePath ? 'Изменить изображение' : 'Загрузить изображение'}
+                              {section.images && section.images.length > 0 ? 'Добавить еще изображения' : 'Добавить изображения'}
                             </Button>
                             
-                            {section.imagePath && (
-                              <>
-                                <IconButton
-                                  color="error"
-                                  onClick={() => handleDeleteSectionImage(item.id)}
-                                  aria-label="Удалить изображение"
-                                >
-                                  <DeleteIcon />
-                                </IconButton>
-                                
-                                <Typography variant="body2" color="textSecondary" sx={{ fontSize: '0.8rem', mt: 0.5 }}>
-                                  {section.imagePath.split('/').pop()}
+                            <input
+                              type="file"
+                              id={`section-image-upload-${item.id}`}
+                              accept="image/*"
+                              multiple
+                              style={{ display: 'none' }}
+                              onChange={(e) => handleSectionImageUpload(item.id, e)}
+                            />
+                            
+                            {section.images && section.images.length > 0 && (
+                              <Box sx={{ mt: 2, width: '100%' }}>
+                                <Typography variant="body2" sx={{ mb: 1 }}>
+                                  Загруженные изображения (перетащите для изменения порядка)
                                 </Typography>
-                              </>
+                                <SectionImageGallery
+                                  sectionId={item.id}
+                                  images={section.images}
+                                  onReorder={(startIndex, endIndex) => handleReorderImagesInSection(item.id, startIndex, endIndex)}
+                                  onDelete={(index) => handleDeleteSectionImage(item.id, index)}
+                                />
+                              </Box>
                             )}
                           </Box>
-                          
-                <input 
-                            type="file"
-                            id={`section-image-upload-${item.id}`}
-                            accept="image/*"
-                            style={{ display: 'none' }}
-                            onChange={(e) => handleSectionImageUpload(item.id, e)}
-                          />
                         </Box>
                         <Box sx={{ display: 'flex', gap: 2 }}>
                           <TextField
@@ -5210,6 +5678,33 @@ ${mainHtml}
       </Collapse>
     </Paper>
   );
+
+  // Компонент для отображения галереи изображений секции
+  // SectionImageGallery был перемещен в отдельный файл
+
+  const handleReorderImagesInSection = (sectionId, startIndex, endIndex) => {
+  const updatedSectionsData = handleReorderImages(sectionsData, sectionId, startIndex, endIndex);
+  
+  if (updatedSectionsData === sectionsData) return;
+
+  console.log('[EditorPanel] Reordered images for section:', sectionId, 'Images:', updatedSectionsData[sectionId].images);
+
+  onSectionsChange(updatedSectionsData);
+
+  // Обновляем превью
+  try {
+    const previewIframe = document.querySelector('iframe.preview-iframe');
+    if (previewIframe && previewIframe.contentWindow) {
+      previewIframe.contentWindow.postMessage({
+        type: 'REORDER_SECTION_IMAGES',
+        sectionId: sectionId,
+        images: updatedSectionsData[sectionId].images
+      }, '*');
+    }
+  } catch (error) {
+    console.error('Ошибка при отправке сообщения в превью:', error);
+  }
+};
 
   return (
     <Container maxWidth="lg">
