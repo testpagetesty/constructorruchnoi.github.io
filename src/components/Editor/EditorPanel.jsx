@@ -1750,29 +1750,31 @@ const EditorPanel = ({
             </div>
             <div class="cards-container${cardsClass ? ' ' + cardsClass : ''}">
               ${(section.cards || []).map(card => `
-                <div class="card ${section.cardType}" data-card-id="${card.id}" style="
-                  ${card.backgroundType === 'solid' ? `background-color: ${card.backgroundColor || '#ffffff'};` : ''}
+                <div class="card ${section.cardType}" data-card-id="${card.id}" data-card-type="${section.cardType}" data-bg-type="${card.backgroundType}"
+                  style="${card.backgroundType === 'solid' ? `background-color: ${card.backgroundColor || '#ffffff'};` : ''}
                   ${card.backgroundType === 'gradient' ? `background: linear-gradient(${card.gradientDirection || 'to right'}, ${card.gradientColor1 || '#ffffff'}, ${card.gradientColor2 || '#f5f5f5'});` : ''}
                   border: 3px solid ${card.borderColor || '#e0e0e0'};
-                  box-shadow: ${card.style?.shadow || '0 2px 4px rgba(0,0,0,0.05)'};
                   border-radius: ${card.style?.borderRadius || '12px'};
+                  ${card.style?.shadow ? `box-shadow: ${card.style.shadow};` : ''}
                   position: relative;
                   z-index: 2;
                   display: flex;
                   flex-direction: column;
                   height: 100%;
                   padding: 1.5rem;
-                ">
+                  transition: all 0.3s ease-in-out;">
                   <h3 style="
                     color: ${card.titleColor || section.titleColor || '#1a237e'}; 
                     margin-bottom: 0.7rem;
                     font-size: 1.5rem;
                     font-weight: 600;
+                    transition: color 0.3s ease-in-out;
                   ">${card.title || ''}</h3>
                   <p style="
                     color: ${card.contentColor || section.contentColor || '#455a64'}; 
                     font-size: 1rem;
                     line-height: 1.6;
+                    transition: color 0.3s ease-in-out;
                   ">${card.content || ''}</p>
                 </div>
               `).join('')}
@@ -2285,7 +2287,7 @@ const EditorPanel = ({
     }
 
     .domain {
-                  display: block;
+      display: block;
       margin-top: 0.25rem;
       font-size: 0.9rem;
       font-weight: normal;
@@ -2526,7 +2528,6 @@ const EditorPanel = ({
       width: 100%;
       height: 100%;
       z-index: -1;
-      ${headerData.siteEnableOverlay ? `background-color: rgba(0, 0, 0, ${headerData.siteOverlayOpacity / 100 || 0.5}) !important;` : 'background-color: transparent !important;'}
     }
 
     main {
@@ -2649,15 +2650,6 @@ const EditorPanel = ({
       display: none !important;
     }
 
-    @keyframes zoomIn {
-      0% {
-        transform: scale(1);
-      }
-      100% {
-        transform: scale(1.1);
-      }
-    }
-
     .section-background-blur {
       position: absolute;
       top: 0;
@@ -2706,10 +2698,10 @@ const EditorPanel = ({
     }
 
     .section-header p {
-      font-size: 1.1rem;
-      line-height: 1.6;
+      font-size: 1.2rem;
       max-width: 800px;
       margin: 0 auto;
+      line-height: 1.6;
     }
 
     .about-section {
@@ -2846,181 +2838,6 @@ const EditorPanel = ({
       margin-right: auto;
     }
 
-    .cards-container {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 2rem;
-      padding: 1rem;
-      position: relative;
-      z-index: 2;
-      pointer-events: auto;
-    }
-
-    @media (max-width: 1024px) {
-      .cards-container {
-        grid-template-columns: repeat(2, 1fr);
-      }
-    }
-
-    @media (max-width: 768px) {
-      .cards-container {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .card {
-      transition: all 0.3s ease-in-out;
-      padding: 1.5rem;
-      display: flex;
-      flex-direction: column;
-      background-color: #ffffff;
-      width: 100%;
-      max-width: 280px;
-      border-radius: 12px;
-      overflow: hidden;
-      height: 100%;
-      margin: 1rem;
-    }
-
-    .card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-    }
-
-    .card-header {
-      margin-bottom: 1rem;
-    }
-
-    .card-header h3 {
-      transition: all 0.3s ease-in-out;
-      font-size: 1.1rem;
-      font-weight: 500;
-      margin: 0;
-      text-align: left;
-      margin-top: 0;
-      margin-bottom: 1rem;
-    }
-
-    .card:hover .card-header h3 {
-      color: #1976d2 !important;
-      transform: translateX(4px);
-    }
-
-    .card-content {
-      transition: all 0.3s ease-in-out;
-      font-size: 1rem;
-      line-height: 1.6;
-      text-align: left;
-      word-break: break-word;
-      hyphens: auto;
-      flex-grow: 1;
-    }
-
-    .content-wrapper {
-      padding: 0;
-    }
-
-    .card-content .content-wrapper {
-      padding: 0;
-    }
-
-    .card:hover .card-content {
-      color: #333 !important;
-    }
-
-    .card:hover .content-wrapper {
-      color: #333 !important;
-    }
-
-    /* Стили для разных типов карточек */
-    .card.simple {
-      border: 3px solid #e0e0e0;
-    }
-
-    .card.elevated {
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    .card.outlined {
-      border: 3px solid #e0e0e0;
-    }
-
-    .card.outlined:hover {
-      border-color: #1976d2;
-    }
-
-    .card.accent {
-      position: relative;
-      border-left: 4px solid #1976d2;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    .card.accent::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 4px;
-      background: linear-gradient(to bottom, #1976d2, #64b5f6);
-      transition: width 0.3s ease-in-out;
-    }
-
-    .card.accent:hover::before {
-      width: 6px;
-    }
-
-    .card.gradient {
-      background: linear-gradient(135deg, #1976d2 0%, #64b5f6 100%);
-      color: white;
-    }
-
-    .card.gradient:hover {
-      background: linear-gradient(135deg, #1565c0 0%, #42a5f5 100%);
-    }
-
-    .card.gradient .card-header h3,
-    .card.gradient .card-content,
-    .card.gradient .content-wrapper {
-      color: white !important;
-      text-align: left;
-    }
-
-    .card.gradient:hover .card-header h3,
-    .card.gradient:hover .card-content,
-    .card.gradient:hover .content-wrapper {
-      color: white !important;
-      text-align: left;
-    }
-
-    /* Анимации */
-    @keyframes borderPulse {
-      0% {
-        border-width: 4px;
-        box-shadow: 0 0 0 0 rgba(25, 118, 210, 0.4);
-      }
-      50% {
-        border-width: 5px;
-        box-shadow: 0 0 20px 10px rgba(25, 118, 210, 0.2);
-      }
-      100% {
-        border-width: 4px;
-        box-shadow: 0 0 0 0 rgba(25, 118, 210, 0.4);
-      }
-    }
-
-    @keyframes glowPulse {
-      0% {
-        box-shadow: 0 0 5px 0 rgba(25, 118, 210, 0.4);
-      }
-      50% {
-        box-shadow: 0 0 20px 10px rgba(25, 118, 210, 0.2);
-      }
-      100% {
-        box-shadow: 0 0 5px 0 rgba(25, 118, 210, 0.4);
-      }
-    }
-
     /* Контейнер для карточек */
     .cards-container {
       display: grid;
@@ -3042,6 +2859,141 @@ const EditorPanel = ({
       .cards-container {
         grid-template-columns: 1fr;
       }
+    }
+
+    /* Базовые стили карточек с анимациями */
+    .card {
+      transition: all 0.3s ease-in-out;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      background-color: #ffffff;
+      width: 100%;
+      max-width: 280px;
+      border-radius: 12px;
+      overflow: hidden;
+      height: 100%;
+      margin: 1rem;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* Заголовки и текст карточек */
+    .card-title {
+      color: #1a237e;
+      margin-bottom: 0.7rem;
+      font-size: 1.5rem;
+      font-weight: 600;
+      transition: all 0.3s ease-in-out;
+    }
+
+    .card-text {
+      color: #455a64;
+      font-size: 1rem;
+      line-height: 1.6;
+      transition: all 0.3s ease-in-out;
+    }
+
+    /* Simple Card */
+    .card.simple {
+      background-color: transparent;
+      border: 3px solid #e0e0e0;
+    }
+
+    .card.simple:hover {
+      transform: scale(1.2);
+      z-index: 3;
+    }
+
+    /* Elevated Card */
+    .card.elevated {
+      background-color: #ffffff;
+      border: 3px solid #e0e0e0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .card.elevated:hover {
+      transform: rotate(3deg) scale(1.05);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+      z-index: 3;
+    }
+
+    .card.elevated:hover .card-title {
+      color: #1976d2;
+      transform: translateX(4px);
+    }
+
+    /* Outlined Card */
+    .card.outlined {
+      background: linear-gradient(to right, #e8f5e9, #c8e6c9);
+      border: 3px solid #e0e0e0;
+    }
+
+    .card.outlined:hover {
+      transform: skew(-5deg) translateY(-5px);
+      border-color: #1976d2;
+      z-index: 3;
+    }
+
+    .card.outlined:hover .card-title {
+      color: #1976d2;
+    }
+
+    /* Accent Card */
+    .card.accent {
+      background-color: #ffffff;
+      border: 3px solid #e0e0e0;
+      position: relative;
+    }
+
+    .card.accent::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: linear-gradient(to bottom, #1976d2, #42a5f5);
+      transition: width 0.3s ease-in-out;
+      z-index: 1;
+    }
+
+    .card.accent:hover {
+      transform: translateX(10px) translateY(-5px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 3;
+    }
+
+    .card.accent:hover::before {
+      width: 6px;
+    }
+
+    .card.accent:hover .card-title {
+      color: #1976d2;
+    }
+
+    /* Gradient Card */
+    .card.gradient {
+      background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
+      border: 3px solid #e0e0e0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      transition: all 0.3s ease-in-out;
+      position: relative;
+      z-index: 2;
+    }
+
+    .card.gradient:hover {
+      transform: scale(1.2);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+      z-index: 3;
+    }
+
+    .card.gradient:hover h3 {
+      color: #1976d2;
+    }
+
+    .card.gradient:hover p {
+      color: #455a64;
     }
 
     /* Контейнер для секций */
@@ -3198,7 +3150,50 @@ const EditorPanel = ({
       .no-card-section .about-content div strong {
         display: block;
         margin-top: 1rem;
-                  margin-bottom: 0.5rem;
+        margin-bottom: 0.5rem;
+      }
+    }
+
+    /* Стили для текста в секциях */
+    .section h2 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.01562em;
+      text-transform: none;
+      margin-bottom: 1.5rem;
+      text-align: center;
+      color: inherit;
+      word-wrap: break-word;
+    }
+
+    .section p {
+      font-size: 1.25rem;
+      font-weight: 400;
+      line-height: 1.5;
+      letter-spacing: 0.00938em;
+      text-align: center;
+      margin-bottom: 2rem;
+      color: inherit;
+      max-width: 100%;
+      word-wrap: break-word;
+    }
+
+    @media (max-width: 600px) {
+      .section h2 {
+        font-size: 2rem;
+      }
+      .section p {
+        font-size: 1rem;
+      }
+    }
+
+    @media (max-width: 960px) {
+      .section h2 {
+        font-size: 2.25rem;
+      }
+      .section p {
+        font-size: 1.1rem;
       }
     }
   `;
@@ -5468,14 +5463,28 @@ ${mainHtml}
                                               <MenuItem value="to left">Справа налево</MenuItem>
                                               <MenuItem value="to bottom">Сверху вниз</MenuItem>
                                               <MenuItem value="to top">Снизу вверх</MenuItem>
-                                              <MenuItem value="to bottom right">Сверху слева вниз направо</MenuItem>
-                                              <MenuItem value="to bottom left">Сверху справа вниз налево</MenuItem>
-                                              <MenuItem value="to top right">Снизу слева вверх направо</MenuItem>
-                                              <MenuItem value="to top left">Снизу справа вверх налево</MenuItem>
+                                              <MenuItem value="45deg">По диагонали (45°)</MenuItem>
+                                              <MenuItem value="135deg">По диагонали (135°)</MenuItem>
                                             </Select>
                                           </FormControl>
                                         </Box>
                                       )}
+                                      <TextField
+                                        fullWidth
+                                        size="small"
+                                        label="Цвет текста заголовка"
+                                        type="color"
+                                        value={card.titleColor || '#000000'}
+                                        onChange={(e) => handleCardChange(item.id, card.id, 'titleColor', e.target.value)}
+                                      />
+                                      <TextField
+                                        fullWidth
+                                        size="small"
+                                        label="Цвет текста содержимого"
+                                        type="color"
+                                        value={card.contentColor || '#000000'}
+                                        onChange={(e) => handleCardChange(item.id, card.id, 'contentColor', e.target.value)}
+                                      />
                                     </Stack>
                                   </Paper>
                                 ))

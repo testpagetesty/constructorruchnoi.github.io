@@ -88,15 +88,198 @@ const generateStyles = () => {
   return `
     /* Reset and base styles */
     * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+      margin: 0 !important;
+      padding: 0 !important;
+      box-sizing: border-box !important;
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      line-height: 1.6;
-      color: #333;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+      line-height: 1.6 !important;
+      color: #333 !important;
+    }
+
+    /* Section styles */
+    .section {
+      position: relative !important;
+      padding: 2rem !important;
+      margin: 2rem 0 !important;
+      overflow: visible !important;
+    }
+
+    .section-content {
+      position: relative !important;
+      z-index: 2 !important;
+    }
+
+    .section-title {
+      font-size: 2rem !important;
+      font-weight: 600 !important;
+      margin-bottom: 1rem !important;
+      color: #1a237e !important;
+    }
+
+    .section-description {
+      font-size: 1.1rem !important;
+      color: #455a64 !important;
+      margin-bottom: 2rem !important;
+    }
+
+    /* Base card styles */
+    .card {
+      display: flex !important;
+      flex-direction: column !important;
+      width: 100% !important;
+      max-width: 280px !important;
+      border-radius: 12px !important;
+      overflow: hidden !important;
+      height: auto !important;
+      position: relative !important;
+      z-index: 2 !important;
+      transition: all 0.3s ease-in-out !important;
+      padding: 1.5rem !important;
+    }
+
+    /* Simple Card */
+    .card.simple {
+      background-color: transparent !important;
+      border: 3px solid #e0e0e0 !important;
+    }
+
+    .card.simple:hover {
+      transform: scale(1.2) !important;
+      z-index: 3 !important;
+    }
+
+    /* Elevated Card */
+    .card.elevated {
+      background-color: #ffffff !important;
+      border: 3px solid #e0e0e0 !important;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+    }
+
+    .card.elevated:hover {
+      transform: rotate(3deg) scale(1.05) !important;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2) !important;
+      z-index: 3 !important;
+    }
+
+    .card.elevated:hover .card-title {
+      color: #1976d2 !important;
+      transform: translateX(4px) !important;
+    }
+
+    .card.elevated:hover .card-text {
+      color: #333 !important;
+    }
+
+    /* Outlined Card */
+    .card.outlined {
+      background: linear-gradient(to right, #e8f5e9, #c8e6c9) !important;
+      border: 3px solid #e0e0e0 !important;
+    }
+
+    .card.outlined:hover {
+      transform: skew(-5deg) translateY(-5px) !important;
+      border-color: #1976d2 !important;
+      z-index: 3 !important;
+    }
+
+    .card.outlined:hover .card-title {
+      color: #1976d2 !important;
+    }
+
+    .card.outlined:hover .card-text {
+      color: #333 !important;
+    }
+
+    /* Accent Card */
+    .card.accent {
+      background-color: #ffffff !important;
+      border: 3px solid #e0e0e0 !important;
+      position: relative !important;
+    }
+
+    .card.accent::before {
+      content: "" !important;
+      position: absolute !important;
+      left: 0 !important;
+      top: 0 !important;
+      bottom: 0 !important;
+      width: 4px !important;
+      background: linear-gradient(to bottom, #1976d2, #42a5f5) !important;
+      transition: width 0.3s ease-in-out !important;
+      z-index: 1 !important;
+    }
+
+    .card.accent:hover {
+      transform: translateX(10px) translateY(-5px) !important;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+      z-index: 3 !important;
+    }
+
+    .card.accent:hover::before {
+      width: 6px !important;
+    }
+
+    .card.accent:hover .card-title {
+      color: #1976d2 !important;
+    }
+
+    .card.accent:hover .card-text {
+      color: #333 !important;
+    }
+
+    /* Gradient Card */
+    .card.gradient {
+      background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%) !important;
+      border: 3px solid #e0e0e0 !important;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+    }
+
+    .card.gradient:hover {
+      transform: rotate(-5deg) scale(1.1) !important;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+      z-index: 3 !important;
+    }
+
+    /* Card content styles */
+    .card-content {
+      padding: 1.5rem !important;
+      flex-grow: 1 !important;
+    }
+
+    .card-title {
+      color: #1a237e !important;
+      margin-bottom: 0.7rem !important;
+      font-size: 1.5rem !important;
+      font-weight: 600 !important;
+      transition: all 0.3s ease-in-out !important;
+    }
+
+    .card-text {
+      color: #455a64 !important;
+      font-size: 1rem !important;
+      line-height: 1.6 !important;
+      transition: all 0.3s ease-in-out !important;
+    }
+
+    /* Cards container */
+    .cards-container {
+      display: grid !important;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+      gap: 2rem !important;
+      padding: 2rem !important;
+      position: relative !important;
+      z-index: 2 !important;
+    }
+
+    /* Responsive styles */
+    @media (max-width: 768px) {
+      .cards-container {
+        grid-template-columns: 1fr !important;
+        padding: 1rem !important;
+      }
     }
 
     /* Header styles */
@@ -310,4 +493,25 @@ const generateTermsOfService = (siteData) => {
       </body>
     </html>
   `;
+};
+
+const generateSections = (siteData) => {
+  return siteData.sectionsData.map(section => `
+    <section class="section" style="background-color: ${section.backgroundColor || '#ffffff'};">
+      <div class="section-content">
+        ${section.title ? `<h2 class="section-title">${section.title}</h2>` : ''}
+        ${section.description ? `<p class="section-description">${section.description}</p>` : ''}
+        <div class="cards-container">
+          ${section.cards.map(card => `
+            <div class="card ${card.type}" data-card-id="${card.id}">
+              <div class="card-content">
+                ${card.title ? `<h3 class="card-title">${card.title}</h3>` : ''}
+                ${card.text ? `<p class="card-text">${card.text}</p>` : ''}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </section>
+  `).join('');
 }; 

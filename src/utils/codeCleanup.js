@@ -32,13 +32,15 @@ export const cleanJavaScript = (code) => {
 // Remove comments from CSS
 export const cleanCSS = (code) => {
   return removeComments(code)
-    // Remove empty rules
-    .replace(/[^{}]*{\s*}/g, '')
-    // Normalize whitespace in rules
+    // Remove empty rules, but keep rules with !important
+    .replace(/[^{}]*{\s*}(?!\s*!important)/g, '')
+    // Normalize whitespace in rules, but preserve !important
     .replace(/\s*{\s*/g, '{')
     .replace(/\s*}\s*/g, '}')
     .replace(/\s*;\s*/g, ';')
-    .replace(/\s*:\s*/g, ':');
+    .replace(/\s*:\s*/g, ':')
+    // Preserve !important declarations
+    .replace(/\s*!\s*important/g, ' !important');
 };
 
 // Remove comments from HTML

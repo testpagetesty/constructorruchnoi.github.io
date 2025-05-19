@@ -42,15 +42,25 @@ const SimpleCard = styled(Card)(({ theme, card }) => ({
   overflow: 'hidden',
   height: 'auto',
   transition: 'all 0.3s ease-in-out',
+  position: 'relative',
+  zIndex: 2,
   '&:hover': {
-    transform: 'translateY(-4px)',
-    boxShadow: theme.shadows[4],
+    transform: 'scale(1.2)',
+    zIndex: 3,
     '& .MuiTypography-h6': {
-      color: theme.palette.primary.main
+      color: card?.titleColor || theme.palette.primary.main
     },
     '& .MuiTypography-body2': {
-      color: theme.palette.text.primary
+      color: card?.contentColor || theme.palette.text.primary
     }
+  },
+  '& .MuiTypography-h6': {
+    color: card?.titleColor || theme.palette.text.primary,
+    transition: 'color 0.3s ease-in-out'
+  },
+  '& .MuiTypography-body2': {
+    color: card?.contentColor || theme.palette.text.secondary,
+    transition: 'color 0.3s ease-in-out'
   }
 }));
 
@@ -69,16 +79,26 @@ const ElevatedCard = styled(Card)(({ theme, card }) => ({
   boxShadow: theme.shadows[2],
   height: 'auto',
   transition: 'all 0.3s ease-in-out',
+  position: 'relative',
+  zIndex: 2,
   '&:hover': {
-    transform: 'translateY(-4px)',
+    transform: 'rotate(3deg) scale(1.05)',
     boxShadow: theme.shadows[8],
+    zIndex: 3,
     '& .MuiTypography-h6': {
-      color: theme.palette.primary.main,
-      transform: 'translateX(4px)'
+      color: card?.titleColor || theme.palette.primary.main
     },
     '& .MuiTypography-body2': {
-      color: theme.palette.text.primary
+      color: card?.contentColor || theme.palette.text.primary
     }
+  },
+  '& .MuiTypography-h6': {
+    color: card?.titleColor || theme.palette.text.primary,
+    transition: 'color 0.3s ease-in-out'
+  },
+  '& .MuiTypography-body2': {
+    color: card?.contentColor || theme.palette.text.secondary,
+    transition: 'color 0.3s ease-in-out'
   }
 }));
 
@@ -88,7 +108,7 @@ const OutlinedCard = styled(Card)(({ theme, card }) => ({
   backgroundColor: card?.backgroundType === 'solid' ? (card?.backgroundColor || 'transparent') : 'transparent',
   background: card?.backgroundType === 'gradient' 
     ? `linear-gradient(${card?.gradientDirection || 'to right'}, ${card?.gradientColor1 || '#e8f5e9'}, ${card?.gradientColor2 || '#c8e6c9'})`
-    : `linear-gradient(to right, #e8f5e9, #c8e6c9)`,
+    : undefined,
   border: `3px solid ${card?.borderColor || theme.palette.divider}`,
   width: '100%',
   maxWidth: '280px',
@@ -96,19 +116,30 @@ const OutlinedCard = styled(Card)(({ theme, card }) => ({
   overflow: 'hidden',
   height: 'auto',
   transition: 'all 0.3s ease-in-out',
+  position: 'relative',
+  zIndex: 2,
   '&:hover': {
-    transform: 'translateY(-4px)',
+    transform: 'skew(-5deg) translateY(-5px)',
     borderColor: theme.palette.primary.main,
+    zIndex: 3,
     '& .MuiTypography-h6': {
-      color: theme.palette.primary.main
+      color: card?.titleColor || theme.palette.primary.main
     },
     '& .MuiTypography-body2': {
-      color: theme.palette.text.primary
+      color: card?.contentColor || theme.palette.text.primary
     }
+  },
+  '& .MuiTypography-h6': {
+    color: card?.titleColor || theme.palette.text.primary,
+    transition: 'color 0.3s ease-in-out'
+  },
+  '& .MuiTypography-body2': {
+    color: card?.contentColor || theme.palette.text.secondary,
+    transition: 'color 0.3s ease-in-out'
   }
 }));
 
-const AccentCard = styled(Card)(({ theme, card, section }) => ({
+const AccentCard = styled(Card)(({ theme, card }) => ({
   display: 'flex',
   flexDirection: 'column',
   backgroundColor: card?.backgroundType === 'solid' ? (card?.backgroundColor || 'transparent') : 'transparent',
@@ -124,18 +155,28 @@ const AccentCard = styled(Card)(({ theme, card, section }) => ({
   boxShadow: theme.shadows[1],
   height: 'auto',
   transition: 'all 0.3s ease-in-out',
+  zIndex: 2,
   '&:hover': {
-    transform: 'translateY(-4px)',
+    transform: 'translateX(10px) translateY(-5px)',
     boxShadow: theme.shadows[4],
+    zIndex: 3,
     '& .MuiTypography-h6': {
-      color: theme.palette.primary.main
+      color: card?.titleColor || theme.palette.primary.main
     },
     '& .MuiTypography-body2': {
-      color: theme.palette.text.primary
+      color: card?.contentColor || theme.palette.text.primary
     },
     '&::before': {
       width: '6px'
     }
+  },
+  '& .MuiTypography-h6': {
+    color: card?.titleColor || theme.palette.text.primary,
+    transition: 'color 0.3s ease-in-out'
+  },
+  '& .MuiTypography-body2': {
+    color: card?.contentColor || theme.palette.text.secondary,
+    transition: 'color 0.3s ease-in-out'
   },
   '&::before': {
     content: '""',
@@ -145,7 +186,8 @@ const AccentCard = styled(Card)(({ theme, card, section }) => ({
     bottom: 0,
     width: '4px',
     background: `linear-gradient(to bottom, ${theme.palette.primary.main}, ${theme.palette.primary.light})`,
-    transition: 'width 0.3s ease-in-out'
+    transition: 'width 0.3s ease-in-out',
+    zIndex: 1
   }
 }));
 
@@ -164,18 +206,26 @@ const GradientCard = styled(Card)(({ theme, card }) => ({
   boxShadow: theme.shadows[1],
   height: 'auto',
   transition: 'all 0.3s ease-in-out',
+  position: 'relative',
+  zIndex: 2,
   '&:hover': {
-    transform: 'translateY(-4px)',
-    boxShadow: theme.shadows[4],
-    background: card?.backgroundType === 'solid' 
-      ? card?.backgroundColor 
-      : `linear-gradient(135deg, ${theme.palette.primary.light} 0%, ${theme.palette.primary.main} 100%)`,
+    transform: 'scale(1.2)',
+    boxShadow: theme.shadows[8],
+    zIndex: 3,
     '& .MuiTypography-h6': {
-      color: theme.palette.primary.contrastText
+      color: card?.titleColor || theme.palette.primary.main
     },
     '& .MuiTypography-body2': {
-      color: theme.palette.primary.contrastText
+      color: card?.contentColor || theme.palette.text.primary
     }
+  },
+  '& .MuiTypography-h6': {
+    color: card?.titleColor || theme.palette.text.primary,
+    transition: 'color 0.3s ease-in-out'
+  },
+  '& .MuiTypography-body2': {
+    color: card?.contentColor || theme.palette.text.secondary,
+    transition: 'color 0.3s ease-in-out'
   }
 }));
 
@@ -360,7 +410,7 @@ const PagePreview = ({
           backgroundColor: section.showBackground !== false ? (section.backgroundColor || 'transparent') : 'transparent',
           color: section.textColor || 'inherit',
           position: 'relative',
-          overflow: 'hidden',
+          overflow: 'visible',
           borderRadius: '20px',
           '&::before': (showBorders && section.showBackground !== false) ? {
             content: '""',
@@ -547,15 +597,21 @@ const PagePreview = ({
           {section.cardType !== CARD_TYPES.NONE && section.cards?.length > 0 ? (
             <Box sx={{ 
               mt: section.description ? 0 : 16,
-              pt: section.description ? 8 : 0
+              pt: section.description ? 8 : 0,
+              position: 'relative',
+              zIndex: 2
             }} className="cards-container">
-              {/* Убираем дублирующие изображения, изображения уже отображаются выше */}
-              
               <Grid container spacing={4}>
                 {section.cards?.map((card, index) => (
                   <Grid item xs={12} sm={6} md={4} key={card.id}>
                     <Grow in timeout={1000 + index * 200}>
-                      <Box>
+                      <Box sx={{ 
+                        position: 'relative',
+                        zIndex: 2,
+                        '&:hover': {
+                          zIndex: 3
+                        }
+                      }}>
                         {section.id === 'testimonials' ? (
                           <TestimonialCard testimonial={card} />
                         ) : (
