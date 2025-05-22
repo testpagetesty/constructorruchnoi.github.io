@@ -23,10 +23,19 @@ const removeComments = (code) => {
 export const exportSite = async (siteData) => {
   const zip = new JSZip();
   
-  // Add site files with cleaned code
-  zip.file('index.html', cleanHTML(generateIndexHtml(siteData)));
-  zip.file('styles.css', cleanCSS(generateStyles()));
-  zip.file('app.js', cleanJavaScript(generateAppJs(siteData)));
+  // Create assets directory structure
+  const assetsDir = zip.folder('assets');
+  const cssDir = assetsDir.folder('css');
+  const jsDir = assetsDir.folder('js');
+  const imagesDir = assetsDir.folder('images');
+  
+  // Generate and add styles
+  const styles = generateStyles();
+  cssDir.file('styles.css', cleanCSS(styles));
+  
+  // Generate and add HTML files
+  const indexHtml = generateIndexHtml(siteData);
+  zip.file('index.html', cleanHTML(indexHtml));
   
   // Add merci.html to root
   const merciHtml = await fetch('/merci.html').then(res => res.text());
@@ -56,29 +65,50 @@ const generateIndexHtml = (siteData) => {
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description" content="${headerData.description || ''}">
         <title>${headerData.siteName || 'My Site'}</title>
         ${headerData.domain ? `<link rel="canonical" href="https://${headerData.domain}" />` : ''}
-        <link rel="stylesheet" href="styles.css">
+        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="assets/css/styles.css">
+        <style>
+          /* Основные шрифты */
+          @font-face {
+            font-family: 'Montserrat';
+            font-style: normal;
+            font-weight: 400;
+            font-display: swap;
+            src: url(https://fonts.gstatic.com/s/montserrat/v25/JTUHjIg1_i6t8kCHKm4532VJOt5-QNFgpCtr6Hw5aXp-p7K4KLg.woff2) format('woff2');
+          }
+          @font-face {
+            font-family: 'Montserrat';
+            font-style: normal;
+            font-weight: 500;
+            font-display: swap;
+            src: url(https://fonts.gstatic.com/s/montserrat/v25/JTUHjIg1_i6t8kCHKm4532VJOt5-QNFgpCtZ6Hw5aXp-p7K4KLg.woff2) format('woff2');
+          }
+          @font-face {
+            font-family: 'Montserrat';
+            font-style: normal;
+            font-weight: 600;
+            font-display: swap;
+            src: url(https://fonts.gstatic.com/s/montserrat/v25/JTUHjIg1_i6t8kCHKm4532VJOt5-QNFgpCu173w5aXp-p7K4KLg.woff2) format('woff2');
+          }
+          @font-face {
+            font-family: 'Montserrat';
+            font-style: normal;
+            font-weight: 700;
+            font-display: swap;
+            src: url(https://fonts.gstatic.com/s/montserrat/v25/JTUHjIg1_i6t8kCHKm4532VJOt5-QNFgpCuM73w5aXp-p7K4KLg.woff2) format('woff2');
+          }
+        </style>
       </head>
       <body>
         <div id="root">
-          <header class="site-header">
-            <div class="header-content">
-              <div class="site-branding">
-                <h1 class="site-title">${headerData.siteName || 'My Site'}</h1>
-                ${headerData.domain ? `<div class="site-domain" style="color: ${headerData.titleColor || '#000000'}; opacity: 0.8; font-size: 0.9rem; margin-top: 0.25rem;">${headerData.domain}</div>` : ''}
-              </div>
-              <nav class="site-nav">
-                ${(headerData.menuItems || []).map(item => `
-                  <a href="${item.url || '#'}" class="nav-link">${item.text || item.title}</a>
-                `).join('')}
-              </nav>
-            </div>
-          </header>
-          ${generateMainContent(siteData)}
-          ${generateFooter(siteData)}
+          ${generateSiteContent(siteData)}
         </div>
-        <script src="app.js"></script>
+        <script>
+          ${generateAppJs(siteData)}
+        </script>
       </body>
     </html>
   `;
@@ -88,274 +118,106 @@ const generateStyles = () => {
   return `
     /* Reset and base styles */
     * {
-      margin: 0 !important;
-      padding: 0 !important;
-      box-sizing: border-box !important;
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
-      line-height: 1.6 !important;
-      color: #333 !important;
+      font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      overflow-x: hidden;
+      background: #fff;
     }
 
-    /* Section styles */
-    .section {
-      position: relative !important;
-      padding: 2rem !important;
-      margin: 2rem 0 !important;
-      overflow: visible !important;
+    /* Для предотвращения конфликтов стилей */
+    [data-nocards="true"] * {
+      box-sizing: border-box;
     }
 
-    .section-content {
-      position: relative !important;
-      z-index: 2 !important;
-    }
-
-    .section-title {
-      font-size: 2rem !important;
-      font-weight: 600 !important;
-      margin-bottom: 1rem !important;
-      color: #1a237e !important;
-    }
-
-    .section-description {
-      font-size: 1.1rem !important;
-      color: #455a64 !important;
-      margin-bottom: 2rem !important;
-    }
-
-    /* Base card styles */
-    .card {
-      display: flex !important;
-      flex-direction: column !important;
-      width: 100% !important;
-      max-width: 280px !important;
-      border-radius: 12px !important;
-      overflow: hidden !important;
-      height: auto !important;
-      position: relative !important;
-      z-index: 2 !important;
-      transition: all 0.3s ease-in-out !important;
-      padding: 1.5rem !important;
-    }
-
-    /* Simple Card */
-    .card.simple {
-      background-color: transparent !important;
-      border: 3px solid #e0e0e0 !important;
-    }
-
-    .card.simple:hover {
-      transform: scale(1.2) !important;
-      z-index: 3 !important;
-    }
-
-    /* Elevated Card */
-    .card.elevated {
-      background-color: #ffffff !important;
-      border: 3px solid #e0e0e0 !important;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-    }
-
-    .card.elevated:hover {
-      transform: rotate(3deg) scale(1.05) !important;
-      box-shadow: 0 8px 16px rgba(0,0,0,0.2) !important;
-      z-index: 3 !important;
-    }
-
-    .card.elevated:hover .card-title {
-      color: #1976d2 !important;
-      transform: translateX(4px) !important;
-    }
-
-    .card.elevated:hover .card-text {
-      color: #333 !important;
-    }
-
-    /* Outlined Card */
-    .card.outlined {
-      background: linear-gradient(to right, #e8f5e9, #c8e6c9) !important;
-      border: 3px solid #e0e0e0 !important;
-    }
-
-    .card.outlined:hover {
-      transform: skew(-5deg) translateY(-5px) !important;
-      border-color: #1976d2 !important;
-      z-index: 3 !important;
-    }
-
-    .card.outlined:hover .card-title {
-      color: #1976d2 !important;
-    }
-
-    .card.outlined:hover .card-text {
-      color: #333 !important;
-    }
-
-    /* Accent Card */
-    .card.accent {
-      background-color: #ffffff !important;
-      border: 3px solid #e0e0e0 !important;
-      position: relative !important;
-    }
-
-    .card.accent::before {
-      content: "" !important;
-      position: absolute !important;
-      left: 0 !important;
-      top: 0 !important;
-      bottom: 0 !important;
-      width: 4px !important;
-      background: linear-gradient(to bottom, #1976d2, #42a5f5) !important;
-      transition: width 0.3s ease-in-out !important;
-      z-index: 1 !important;
-    }
-
-    .card.accent:hover {
-      transform: translateX(10px) translateY(-5px) !important;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
-      z-index: 3 !important;
-    }
-
-    .card.accent:hover::before {
-      width: 6px !important;
-    }
-
-    .card.accent:hover .card-title {
-      color: #1976d2 !important;
-    }
-
-    .card.accent:hover .card-text {
-      color: #333 !important;
-    }
-
-    /* Gradient Card */
-    .card.gradient {
-      background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%) !important;
-      border: 3px solid #e0e0e0 !important;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-    }
-
-    .card.gradient:hover {
-      transform: rotate(-5deg) scale(1.1) !important;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
-      z-index: 3 !important;
-    }
-
-    /* Card content styles */
-    .card-content {
-      padding: 1.5rem !important;
-      flex-grow: 1 !important;
-    }
-
-    .card-title {
-      color: #1a237e !important;
-      margin-bottom: 0.7rem !important;
-      font-size: 1.5rem !important;
-      font-weight: 600 !important;
-      transition: all 0.3s ease-in-out !important;
-    }
-
-    .card-text {
-      color: #455a64 !important;
-      font-size: 1rem !important;
-      line-height: 1.6 !important;
-      transition: all 0.3s ease-in-out !important;
-    }
-
-    /* Cards container */
-    .cards-container {
-      display: grid !important;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
-      gap: 2rem !important;
-      padding: 2rem !important;
-      position: relative !important;
-      z-index: 2 !important;
-    }
-
-    /* Responsive styles */
-    @media (max-width: 768px) {
-      .cards-container {
-        grid-template-columns: 1fr !important;
-        padding: 1rem !important;
-      }
-    }
-
-    /* Header styles */
-    .site-header {
-      background-color: var(--header-bg-color, #ffffff);
-      border-bottom: 1px solid rgba(0, 0, 0, 0.12);
-      padding: 1rem 0;
+    /* Стили для секций без карточек */
+    .section-nocards {
+      background: #102826;
+      padding: 4rem 2rem;
+      width: 100%;
+      margin: 0;
       position: relative;
-      z-index: 1000;
+      overflow: hidden;
     }
-
-    .header-content {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 1rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    .section-nocards h2 {
+      color: #00e6e6;
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      text-align: center;
+      font-family: 'Montserrat', sans-serif;
+      position: relative;
     }
-
-    .site-branding {
+    .section-nocards h2:after {
+      content: '';
+      display: block;
+      width: 80px;
+      height: 3px;
+      background: #00e6e6;
+      margin: 15px auto;
+    }
+    .section-nocards > p {
+      color: #00e6e6;
+      font-size: 1.2rem;
+      line-height: 1.6;
+      margin-bottom: 3rem;
+      text-align: center;
+      max-width: 900px;
+      margin-left: auto;
+      margin-right: auto;
+      font-family: 'Montserrat', sans-serif;
+    }
+    .section-nocards .service-blocks {
       display: flex;
       flex-direction: column;
+      gap: 32px;
+      width: 100%;
     }
-
-    .site-title {
-      color: var(--title-color, #000000);
-      font-size: 1.5rem;
-      font-weight: 600;
+    .section-nocards .service-block {
+      background: rgba(255,255,255,0.03);
+      border-radius: 16px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+      margin-bottom: 0;
+      padding: 2rem;
+      text-align: left;
+      transition: box-shadow 0.3s;
+      animation: fadeInUp 0.7s cubic-bezier(.23,1.01,.32,1) both;
+    }
+    .section-nocards .service-block h3 {
+      color: #00e6e6;
+      margin-bottom: 1rem;
+      font-size: 1.3rem;
+      font-weight: 700;
+      font-family: 'Montserrat', sans-serif;
+    }
+    .section-nocards .service-block p {
+      color: #00e6e6;
+      font-size: 1.1rem;
+      line-height: 1.7;
       margin: 0;
-      line-height: 1.2;
+      font-family: 'Montserrat', sans-serif;
     }
-
-    .site-domain {
-      color: var(--title-color, #000000);
-      opacity: 0.8;
-      font-size: 0.9rem;
-      margin-top: 0.25rem;
-      font-weight: 400;
-      letter-spacing: 0.01em;
-      display: block;
-      line-height: 1.2;
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(40px); }
+      to { opacity: 1; transform: translateY(0); }
     }
-
-    .site-nav {
-      display: flex;
-      gap: 2rem;
-      align-items: center;
-    }
-
-    .nav-link {
-      color: var(--links-color, #000000);
-      text-decoration: none;
-      font-weight: 500;
-      transition: opacity 0.2s ease;
-    }
-
-    .nav-link:hover {
-      opacity: 0.8;
-    }
-
-    /* Responsive styles */
     @media (max-width: 768px) {
-      .header-content {
-        flex-direction: column;
-        text-align: center;
-        gap: 1rem;
+      .section-nocards {
+        padding: 2rem 0.5rem;
       }
-
-      .site-branding {
-        align-items: center;
+      .section-nocards .service-block {
+        padding: 1.2rem;
       }
-
-      .site-nav {
-        flex-direction: column;
-        gap: 1rem;
+      .section-nocards h2 {
+        font-size: 2rem;
+      }
+      .section-nocards > p {
+        font-size: 1.1rem;
       }
     }
   `;
@@ -366,12 +228,14 @@ const generateAppJs = (siteData) => {
   
   return cleanJavaScript(`
     document.addEventListener('DOMContentLoaded', function() {
-      // Установка CSS переменных
-      document.documentElement.style.setProperty('--header-bg-color', '${headerData.backgroundColor || '#ffffff'}');
-      document.documentElement.style.setProperty('--title-color', '${headerData.titleColor || '#000000'}');
-      document.documentElement.style.setProperty('--links-color', '${headerData.linksColor || '#000000'}');
+      // Set CSS variables
+      const root = document.documentElement;
+      root.style.setProperty('--header-bg-color', '${headerData.backgroundColor || '#ffffff'}');
+      root.style.setProperty('--header-title-color', '${headerData.titleColor || '#000000'}');
+      root.style.setProperty('--header-link-color', '${headerData.linksColor || '#000000'}');
       
       initializeScripts();
+      initializeAnimations();
     });
 
     function initializeScripts() {
@@ -398,18 +262,89 @@ const generateAppJs = (siteData) => {
         });
       });
     }
+
+    function initializeAnimations() {
+      // Create intersection observer for sections
+      const sectionObserver = new IntersectionObserver(
+        (entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('animate');
+              
+              // Ensure child elements get proper staggered animations
+              const section = entry.target;
+              const contentBlocks = section.querySelectorAll('.content-block');
+              contentBlocks.forEach((block, index) => {
+                block.style.setProperty('--index', index);
+              });
+              
+              // Only unobserve if all animations are complete
+              const lastDelay = contentBlocks.length * 0.15 + 1.8; // Maximum animation delay
+              setTimeout(() => {
+                sectionObserver.unobserve(entry.target);
+              }, lastDelay * 1000);
+            }
+          });
+        },
+        {
+          threshold: 0.15,
+          rootMargin: '0px 0px -10% 0px'
+        }
+      );
+
+      // Observe all sections except no-cards sections (they have their own animations)
+      document.querySelectorAll('.section:not([data-nocards="true"])').forEach(section => {
+        // Reset any existing animations
+        section.classList.remove('animate');
+        
+        // Start observing
+        sectionObserver.observe(section);
+        
+        // Handle images loading
+        const images = section.querySelectorAll('img');
+        if (images.length > 0) {
+          Promise.all(Array.from(images).map(img => {
+            if (img.complete) return Promise.resolve();
+            return new Promise(resolve => {
+              img.onload = resolve;
+              img.onerror = resolve; // Handle error case gracefully
+            });
+          })).then(() => {
+            // Re-trigger animation after images are loaded
+            if (section.classList.contains('animate')) {
+              section.classList.remove('animate');
+              requestAnimationFrame(() => {
+                section.classList.add('animate');
+              });
+            }
+          });
+        }
+      });
+    }
   `);
 };
 
 const generateSiteContent = (siteData) => {
   const headerData = siteData.headerData || {};
+  const headerStyles = [];
+  
+  if (headerData.backgroundColor) {
+    headerStyles.push(`--header-bg-color: ${headerData.backgroundColor}`);
+  }
+  if (headerData.titleColor) {
+    headerStyles.push(`--header-title-color: ${headerData.titleColor}`);
+  }
+  if (headerData.linksColor) {
+    headerStyles.push(`--header-link-color: ${headerData.linksColor}`);
+  }
+
   return cleanHTML(`
     <div class="site-container">
-      <header class="site-header">
+      <header class="site-header" style="${headerStyles.join('; ')}">
         <div class="header-content">
           <div class="site-branding">
             <h1 class="site-title">${headerData.siteName || 'My Site'}</h1>
-            ${headerData.domain ? `<div class="site-domain" style="color: ${headerData.titleColor || '#000000'}; opacity: 0.8; font-size: 0.9rem; margin-top: 0.25rem;">${headerData.domain}</div>` : ''}
+            ${headerData.domain ? `<div class="site-domain">${headerData.domain}</div>` : ''}
           </div>
           <nav class="site-nav">
             ${(headerData.menuItems || []).map(item => `
@@ -496,22 +431,83 @@ const generateTermsOfService = (siteData) => {
 };
 
 const generateSections = (siteData) => {
-  return siteData.sectionsData.map(section => `
-    <section class="section" style="background-color: ${section.backgroundColor || '#ffffff'};">
-      <div class="section-content">
-        ${section.title ? `<h2 class="section-title">${section.title}</h2>` : ''}
-        ${section.description ? `<p class="section-description">${section.description}</p>` : ''}
-        <div class="cards-container">
-          ${section.cards.map(card => `
-            <div class="card ${card.type}" data-card-id="${card.id}">
-              <div class="card-content">
-                ${card.title ? `<h3 class="card-title">${card.title}</h3>` : ''}
-                ${card.text ? `<p class="card-text">${card.text}</p>` : ''}
-              </div>
+  return siteData.sectionsData.map(section => generateSectionHTML(section)).join('');
+};
+
+function generateSectionHTML(section) {
+  // РАДИКАЛЬНО ИЗМЕНЕННЫЙ КОД ДЛЯ ТЕСТИРОВАНИЯ
+  if (section.cardType === 'none') {
+    // Очень заметный красный фон
+    return `
+      <section style="background: #ff0000; padding: 20px; color: white; border: 10px solid yellow;">
+        <h1 style="color: white; font-size: 36px; text-align: center;">⚠️ ИЗМЕНЕНО ⚠️</h1>
+        <h2 style="color: yellow; font-size: 24px;">${section.title || 'СЕКЦИЯ ИЗМЕНЕНА'}</h2>
+        ${section.description ? `<p style="color: white; font-size: 18px;">${section.description}</p>` : ''}
+        <div style="margin-top: 20px;">
+          ${(section.cards || []).map(card => `
+            <div style="background: rgba(0,0,0,0.5); padding: 15px; margin: 10px 0; border-radius: 10px;">
+              <h3 style="color: yellow; font-size: 20px;">${card.title || 'ЗАГОЛОВОК'}</h3>
+              <p style="color: white;">${card.text || card.content || 'ТЕКСТ ИЗМЕНЕН'}</p>
             </div>
           `).join('')}
         </div>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="section">
+      <div class="section-content">
+        <h2 class="section-title">${section.title || ''}</h2>
+        ${section.description ? `
+          <p class="section-description">${section.description}</p>
+        ` : ''}
+        <div class="cards-container">
+          ${section.cards.map((card, index) => generateCardHTML(card, section.cardType, index)).join('')}
+        </div>
       </div>
     </section>
-  `).join('');
-}; 
+  `;
+}
+
+function generateCardHTML(card, cardType, index) {
+  const cardStyles = [];
+  
+  if (card.backgroundColor) {
+    cardStyles.push(`--card-bg-color: ${card.backgroundColor}`);
+  } else if (card.gradientStart && card.gradientEnd) {
+    cardStyles.push(`--card-gradient-start: ${card.gradientStart}`);
+    cardStyles.push(`--card-gradient-end: ${card.gradientEnd}`);
+  }
+
+  if (card.titleColor) {
+    cardStyles.push(`--card-title-color: ${card.titleColor}`);
+  }
+  if (card.textColor) {
+    cardStyles.push(`--card-text-color: ${card.textColor}`);
+  }
+
+  cardStyles.push(`--index: ${index}`);
+
+  return `
+    <div class="card" data-card-id="${card.id || ''}" style="${cardStyles.join('; ')}">
+      ${card.imagePath ? `
+        <div class="card-image">
+          <img src="${card.imagePath}" alt="${card.title || ''}" loading="lazy">
+        </div>
+      ` : ''}
+      <div class="card-content">
+        ${card.title ? `<h3 class="card-title">${card.title}</h3>` : ''}
+        ${card.text ? `<p class="card-text">${card.text}</p>` : ''}
+        ${card.buttonText ? `
+          <a href="${card.buttonLink || '#'}" class="card-button">
+            ${card.buttonText}
+          </a>
+        ` : ''}
+      </div>
+    </div>
+  `;
+}
+
+
+

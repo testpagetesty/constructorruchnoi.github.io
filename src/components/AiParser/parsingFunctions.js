@@ -1038,6 +1038,22 @@ export const autoDetectSectionType = (content) => {
   return 'AUTO';
 };
 
+export const parseMerci = (content) => {
+  try {
+    const lines = content.split('\n').map(line => line.trim()).filter(line => line);
+    return {
+      message: lines[0] || 'Спасибо за обращение! Мы свяжемся с вами в ближайшее время.',
+      closeButtonText: lines[1] || 'Закрыть'
+    };
+  } catch (error) {
+    console.error('Error parsing merci section:', error);
+    return {
+      message: 'Спасибо за обращение! Мы свяжемся с вами в ближайшее время.',
+      closeButtonText: 'Закрыть'
+    };
+  }
+};
+
 export const parseFullSite = (content, headerData = {}) => {
   try {
     // Очищаем начальный текст от инструкций
@@ -1097,6 +1113,9 @@ export const parseFullSite = (content, headerData = {}) => {
           break;
         case 'КОНТАКТЫ':
           sections.contacts = parseContactsFull(sectionContent, headerData);
+          break;
+        case 'MERCI':
+          sections.merci = parseMerci(sectionContent);
           break;
         default:
           console.log(`Неизвестный раздел: ${sectionName}`);
@@ -1212,5 +1231,6 @@ export const parseContactsFull = (content, headerData = {}) => {
     return null;
   }
 }; 
+
 
 

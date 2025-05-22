@@ -59,7 +59,9 @@ const ContactEditor = ({ contactData = {}, onContactChange, expanded, onToggle, 
     buttonTextColor: '#ffffff',
     iconColor: '#1565c0',
     infoTitleColor: '#1565c0',
-    infoTextColor: '#424242'
+    infoTextColor: '#424242',
+    thankYouMessage: 'Спасибо за обращение! Мы свяжемся с вами в ближайшее время.',
+    closeButtonText: 'Закрыть'
   };
 
   // Эффект для синхронизации названия сайта с названием компании
@@ -421,6 +423,35 @@ const ContactEditor = ({ contactData = {}, onContactChange, expanded, onToggle, 
                 <MenuItem value="cursive">Рукописный</MenuItem>
               </Select>
             </FormControl>
+          </Grid>
+
+          <Grid item xs={12}>
+            <Typography variant="subtitle1" sx={{ mb: 1, mt: 2 }}>Страница спасибо</Typography>
+            <Divider sx={{ mb: 2 }} />
+          </Grid>
+
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              label="Текст сообщения"
+              multiline
+              rows={4}
+              name="thankYouMessage"
+              value={contactData.thankYouMessage || ''}
+              onChange={(e) => handleChange('thankYouMessage', e.target.value)}
+              placeholder="Введите текст сообщения, которое будет показано после отправки формы"
+            />
+          </Grid>
+
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              label="Название кнопки закрыть"
+              name="closeButtonText"
+              value={contactData.closeButtonText || 'Закрыть'}
+              onChange={(e) => handleChange('closeButtonText', e.target.value)}
+              placeholder="Введите текст для кнопки закрытия"
+            />
           </Grid>
         </Grid>
       </Collapse>

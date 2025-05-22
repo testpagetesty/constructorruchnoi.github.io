@@ -616,7 +616,8 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings }) => {
       NEWS: true,
       FAQ: true,
       TESTIMONIALS: true,
-      CONTACTS: true
+      CONTACTS: true,
+      MERCI: true
     },
     cardCounts: {
       ABOUT: 4,
@@ -683,7 +684,8 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings }) => {
     NEWS: 'Новости',
     FAQ: 'Вопросы и ответы',
     TESTIMONIALS: 'Отзывы',
-    CONTACTS: 'Контакты'
+    CONTACTS: 'Контакты',
+    MERCI: 'Сообщение благодарности'
   };
 
   return (
@@ -826,7 +828,8 @@ const AiParser = ({
       NEWS: true,
       FAQ: true,
       TESTIMONIALS: true,
-      CONTACTS: true
+      CONTACTS: true,
+      MERCI: true
     },
     cardCounts: {
       ABOUT: 4,
@@ -864,6 +867,7 @@ const AiParser = ({
 === РАЗДЕЛ: ВОПРОСЫ ===
 === РАЗДЕЛ: ОТЗЫВЫ ===
 === РАЗДЕЛ: КОНТАКТЫ ===
+=== РАЗДЕЛ: MERCI ===
 
 2. Заголовки внутри разделов - на выбранном языке. Например:
 - Для английского: "Contacts", "About Us", "Services"
@@ -980,6 +984,15 @@ ID: [укажите ID на выбранном языке]
 +7 (495) 123-45-67
 
 info@company.com
+=== КОНЕЦ РАЗДЕЛА ===\n\n`;
+    }
+
+    if (settings.includedSections.MERCI) {
+      sectionsPrompt += `=== РАЗДЕЛ: MERCI ===
+[Текст сообщения на выбранном языке, пример: "Спасибо за обращение, с вами свяжется в ближайшее время наш специалист"]
+
+[Текст кнопки на выбранном языке, пример: "Закрыть"]
+
 === КОНЕЦ РАЗДЕЛА ===\n\n`;
     }
 
@@ -1371,14 +1384,10 @@ info@company.com
               
               // Обновляем контакты
               if (parsedData.contacts) {
-                // Проверяем, что данные контактов заполнены правильно
                 const contactsData = {
-                  title: parsedData.contacts.title || 'Контакты',
-                  description: parsedData.contacts.description || '',
-                  companyName: parsedData.contacts.companyName || headerData.siteName || '',
-                  address: parsedData.contacts.address || '',
-                  phone: parsedData.contacts.phone || '',
-                  email: parsedData.contacts.email || ''
+                  ...parsedData.contacts,
+                  thankYouMessage: parsedData.merci?.message || contactData?.thankYouMessage,
+                  closeButtonText: parsedData.merci?.closeButtonText || contactData?.closeButtonText
                 };
                 onContactChange(contactsData);
               }
@@ -2335,6 +2344,7 @@ info@company.com
                 <MenuItem value="FAQ">Вопросы и ответы</MenuItem>
                 <MenuItem value="NEWS">Новости</MenuItem>
                 <MenuItem value="CONTACTS">Свяжитесь с нами</MenuItem>
+                <MenuItem value="MERCI">Сообщение благодарности</MenuItem>
                 <MenuItem value="LEGAL">Правовые документы</MenuItem>
               </Select>
             </FormControl>

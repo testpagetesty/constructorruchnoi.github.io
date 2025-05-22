@@ -395,6 +395,194 @@ const PagePreview = ({
 
     const borderColors = getBorderColors();
     
+    if (section.cardType === CARD_TYPES.NONE) {
+      return (
+        <Box sx={{
+          background: section.showBackground !== false ? 
+            (section.backgroundColor ? section.backgroundColor : 
+            (section.gradientStart && section.gradientEnd) ? 
+            `linear-gradient(145deg, ${section.gradientStart}, ${section.gradientEnd})` : 
+            'linear-gradient(145deg, #ffffff, #f5f5f5)') : 
+            'transparent',
+          borderRadius: '20px',
+          padding: '2rem',
+          margin: '2rem auto',
+          maxWidth: '1000px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+          position: 'relative',
+          overflow: 'hidden',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '3px',
+            background: `linear-gradient(90deg, ${borderColors.start}, ${borderColors.end})`,
+          }
+        }}>
+          <Box sx={{
+            maxWidth: '800px',
+            margin: '0 auto',
+            position: 'relative',
+            zIndex: 1
+          }}>
+            <Typography
+              variant="h2"
+              sx={{
+                fontSize: { xs: '1.5rem', md: '2rem' },
+                fontWeight: 600,
+                textAlign: 'left',
+                marginBottom: '1rem',
+                color: section.titleColor || theme.palette.text.primary,
+                fontFamily: '"Montserrat", sans-serif',
+                borderBottom: `2px solid ${theme.palette.primary.main}`,
+                paddingBottom: '0.5rem'
+              }}
+            >
+              {section.title}
+            </Typography>
+
+            <Box sx={{
+              display: 'flex',
+              flexDirection: { xs: 'column', md: 'row' },
+              gap: '2rem',
+              alignItems: 'flex-start',
+              marginBottom: '2rem'
+            }}>
+              <Box sx={{
+                flex: 1,
+                minWidth: 0 // Для корректного переноса текста
+              }}>
+                {section.description && (
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      fontSize: { xs: '0.9rem', md: '1rem' },
+                      textAlign: 'left',
+                      color: section.descriptionColor || theme.palette.text.secondary,
+                      fontFamily: '"Roboto", sans-serif',
+                      lineHeight: 1.6,
+                      maxWidth: '100%',
+                      padding: '0 0.5rem'
+                    }}
+                  >
+                    {section.description}
+                  </Typography>
+                )}
+              </Box>
+
+              {/* Изображение справа */}
+              {(section.imagePath || sectionImages[section.id]?.length > 0) && (
+                <Box sx={{
+                  width: { xs: '100%', md: '300px' },
+                  height: { xs: '250px', md: '300px' },
+                  flexShrink: 0,
+                  borderRadius: '12px',
+                  overflow: 'hidden',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                  position: 'relative',
+                  '& img': {
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    display: 'block',
+                    transition: 'transform 0.3s ease',
+                    '&:hover': {
+                      transform: 'scale(1.02)'
+                    }
+                  },
+                  '& .simple-image-gallery': {
+                    width: '100%',
+                    height: '100%',
+                    '& img': {
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover'
+                    }
+                  }
+                }}>
+                  {sectionImages[section.id]?.length > 0 ? (
+                    <SimpleImageGallery 
+                      images={sectionImages[section.id]}
+                      autoScroll={section.autoScrollEnabled !== undefined ? section.autoScrollEnabled : true}
+                      scrollInterval={2000}
+                      position="right"
+                      maxHeight="100%"
+                      fillContainer={true}
+                    />
+                  ) : sectionImgUrl && (
+                    <img 
+                      src={sectionImgUrl}
+                      alt={section.title || 'Section image'}
+                      loading="lazy"
+                      onError={(e) => {
+                        console.error('Image load error:', e);
+                        if (e.target.src !== section.imagePath) {
+                          e.target.src = section.imagePath;
+                        }
+                      }}
+                    />
+                  )}
+                </Box>
+              )}
+            </Box>
+
+            <Box sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1.5rem'
+            }}>
+              {section.cards?.map((card, index) => (
+                <Box
+                  key={card.id}
+                  sx={{
+                    padding: '1rem',
+                    borderLeft: `3px solid ${card.borderColor || theme.palette.primary.main}`,
+                    background: 'transparent',
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      background: 'rgba(0,0,0,0.02)',
+                      paddingLeft: '1.5rem'
+                    }
+                  }}
+                >
+                  {card.title && (
+                    <Typography
+                      variant="h3"
+                      sx={{
+                        fontSize: { xs: '1.1rem', md: '1.3rem' },
+                        fontWeight: 600,
+                        marginBottom: '0.5rem',
+                        color: card.titleColor || section.titleColor || theme.palette.text.primary,
+                        fontFamily: '"Montserrat", sans-serif'
+                      }}
+                    >
+                      {card.title}
+                    </Typography>
+                  )}
+                  {card.content && (
+                    <Typography
+                      variant="body1"
+                      sx={{
+                        fontSize: { xs: '0.9rem', md: '1rem' },
+                        lineHeight: 1.6,
+                        color: card.contentColor || section.contentColor || theme.palette.text.secondary,
+                        fontFamily: '"Roboto", sans-serif',
+                        whiteSpace: 'pre-wrap'
+                      }}
+                    >
+                      {card.content}
+                    </Typography>
+                  )}
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        </Box>
+      );
+    }
+
     return (
       <Box
         key={section.id}

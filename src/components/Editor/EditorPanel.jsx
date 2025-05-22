@@ -629,7 +629,7 @@ const STYLE_PRESETS = {
   }
 };
 
-// Определяем функции для работы с изображениями до основного компонента
+// Define image handling functions before the main component
 const handleReorderImages = (sectionsData, sectionId, startIndex, endIndex) => {
   const section = sectionsData[sectionId];
   if (!section?.images) return sectionsData;
@@ -696,29 +696,29 @@ const EditorPanel = ({
   const [sectionToDelete, setSectionToDelete] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Объединенный useEffect для всех проверок и отслеживаний
+  // Combined useEffect for all checks and tracking
   useEffect(() => {
-    // Проверка авторизации
+          // Check authentication
     const auth = localStorage.getItem('editorAuth');
     const authTime = localStorage.getItem('editorAuthTime');
     const currentTime = new Date().getTime();
     
-    // Проверяем, не истекло ли время авторизации (2 часа = 7200000 миллисекунд)
+          // Check if authentication time has expired (2 hours = 7200000 milliseconds)
     if (auth === 'true' && authTime && (currentTime - parseInt(authTime)) < 7200000) {
       setIsAuthenticated(true);
     } else {
-      // Если время истекло, очищаем данные авторизации
+              // If time has expired, clear authentication data
       localStorage.removeItem('editorAuth');
       localStorage.removeItem('editorAuthTime');
       setIsAuthenticated(false);
     }
 
-    // Обработчик предотвращения навигации
+          // Navigation prevention handler
     const handlePreventNavigation = (event) => {
-      // Если язык не указан, предотвращаем переход
+              // If language is not specified, prevent navigation
       if (!headerData.language || (typeof headerData.language === 'string' && headerData.language.trim() === '')) {
         event.preventDefault();
-        // Возвращаем секцию шапки в развернутое состояние
+                  // Return header section to expanded state
         setExpandedSections(prev => ({
           ...prev,
           header: true
@@ -728,7 +728,7 @@ const EditorPanel = ({
 
     window.addEventListener('preventNavigation', handlePreventNavigation);
 
-    // Отслеживание изменений в sectionsData
+          // Track changes in sectionsData
     console.log('sectionsData changed:', sectionsData);
     if (sectionsData.features) {
       console.log('Features section current state:', sectionsData.features);
@@ -752,9 +752,9 @@ const EditorPanel = ({
   }
 
   const toggleSection = (section) => {
-    // Проверяем язык перед переключением секции
+    // Check language before switching section
     if (section !== 'header' && (!headerData.language || (typeof headerData.language === 'string' && headerData.language.trim() === ''))) {
-      // Если язык не указан, оставляем секцию шапки развернутой
+              // If language is not specified, keep header section expanded
       setExpandedSections(prev => ({
         ...prev,
         header: true
@@ -765,20 +765,20 @@ const EditorPanel = ({
     setExpandedSections(prev => {
       const newState = { ...prev };
       
-      // Если это подпункт меню (начинается с menuItem_)
+      // If this is a menu subitem (starts with menuItem_)
       if (section.startsWith('menuItem_')) {
         const menuItemId = section.replace('menuItem_', '');
-        // Создаем новый объект menuItems, где все пункты закрыты
+                  // Create a new menuItems object where all items are closed
         const newMenuItems = {};
-        // Если пункт уже был открыт, просто закрываем его
+                  // If item was already open, just close it
         if (prev.menuItems[menuItemId]) {
           newState.menuItems = newMenuItems;
         } else {
-          // Если пункт был закрыт, закрываем все остальные и открываем его
+                      // If item was closed, close all others and open it
           newMenuItems[menuItemId] = true;
           newState.menuItems = newMenuItems;
           
-          // Прокручиваем к соответствующему разделу на сайте
+          // Scroll to corresponding section on the site
           setTimeout(() => {
             const targetSection = document.getElementById(menuItemId);
             if (targetSection) {
@@ -789,21 +789,21 @@ const EditorPanel = ({
         return newState;
       }
       
-      // Если это основной раздел
-      // Если секция уже открыта, просто закрываем её
+      // If this is a main section
+      // If section is already open, just close it
       if (newState[section]) {
         newState[section] = false;
         return newState;
       }
       
-      // Если секция закрыта, закрываем все остальные и открываем её
+      // If section is closed, close all others and open it
       Object.keys(newState).forEach(key => {
         if (key !== 'menuItems') {
           newState[key] = key === section;
         }
       });
 
-      // Прокручиваем к соответствующему разделу на сайте
+      // Scroll to corresponding section on the site
       setTimeout(() => {
         const targetSection = document.getElementById(section);
         if (targetSection) {
@@ -841,7 +841,7 @@ const EditorPanel = ({
     const newId = `section_${Date.now()}`;
     const newMenuItem = {
       id: newId,
-      text: 'Новый пункт меню',
+      text: 'New Menu Item',
       title: '',
       description: '',
       image: '',
@@ -856,18 +856,18 @@ const EditorPanel = ({
       gradientDirection: 'to right'
     };
 
-    // Проверяем, что ID уникален
+    // Check that ID is unique
     const isIdUnique = !headerData.menuItems.some(item => item.id === newId);
     if (!isIdUnique) {
-      console.error('ID уже существует, генерируем новый');
+      console.error('ID already exists, generating new one');
       return handleAddMenuItem(sectionId);
     }
 
-    // Добавляем новый пункт меню в headerData
+    // Add new menu item to headerData
     const updatedMenuItems = [...headerData.menuItems, newMenuItem];
     onHeaderChange({ ...headerData, menuItems: updatedMenuItems });
 
-    // Создаем новую секцию с тем же ID
+    // Create new section with the same ID
     const newSection = {
       id: newId,
       title: '',
@@ -876,10 +876,10 @@ const EditorPanel = ({
       cards: []
     };
 
-    // Обновляем sectionsData как объект
+    // Update sectionsData as object
     onSectionsChange({ ...sectionsData, [newId]: newSection });
 
-    // Открываем новый раздел в редакторе
+    // Open new section in editor
     setExpandedSections(prev => ({
       ...prev,
       menuItems: {
@@ -893,10 +893,10 @@ const EditorPanel = ({
     console.log('handleMenuItemChange called:', { id, field, value });
     console.log('Current headerData:', headerData);
     
-    // Обновляем пункт меню
+    // Update menu item
     const updatedMenuItems = headerData.menuItems.map(item => {
       if (item.id === id) {
-        // Если меняется ID, обновляем также и ссылку
+        // If ID changes, update link as well
         if (field === 'id') {
           return { ...item, [field]: value, link: `#${value}` };
         }
@@ -909,11 +909,11 @@ const EditorPanel = ({
     console.log('New headerData to be set:', newHeaderData);
     onHeaderChange(newHeaderData);
 
-    // Проверяем, существует ли секция
+    // Check if section exists
     let sectionExists = sectionsData[id] !== undefined;
     
     if (!sectionExists) {
-      // Если секции нет, создаем новую с базовыми параметрами
+      // If section doesn't exist, create new one with basic parameters
       const newSection = {
         id: id,
         title: '',
@@ -926,7 +926,7 @@ const EditorPanel = ({
       onSectionsChange({ ...sectionsData, [id]: newSection });
     }
 
-    // Если меняется ID, обновляем также и ID секции
+    // If ID changes, update section ID as well
     if (field === 'id') {
       const { [id]: oldSection, ...restSections } = sectionsData;
       if (oldSection) {
@@ -945,7 +945,7 @@ const EditorPanel = ({
       const updatedMenuItems = headerData.menuItems.filter(item => item.id !== sectionToDelete);
       onHeaderChange({ ...headerData, menuItems: updatedMenuItems });
       
-      // Удаляем секцию из объекта sectionsData
+      // Delete section from sectionsData object
       const { [sectionToDelete]: deletedSection, ...restSections } = sectionsData;
       onSectionsChange(restSections);
       
@@ -967,9 +967,9 @@ const EditorPanel = ({
   const handleSectionChange = (sectionId, field, value) => {
     if (!sectionsData[sectionId]) return;
     
-    // Если меняется тип карточки, проверяем его значение
+    // If card type changes, check its value
     if (field === 'cardType' && !Object.values(CARD_TYPES).includes(value)) {
-      console.error('Неверное значение типа карточки:', value);
+      console.error('Invalid card type value:', value);
       return;
     }
 
@@ -988,7 +988,7 @@ const EditorPanel = ({
     const preset = STYLE_PRESETS[presetName];
     if (!preset || !sectionId) return;
 
-    // Обновляем только выбранную секцию
+    // Update only selected section
     const updatedSections = {
       ...sectionsData,
       [sectionId]: {
@@ -998,7 +998,7 @@ const EditorPanel = ({
         cardType: preset.cardType,
         backgroundColor: preset.backgroundColor,
         borderColor: preset.borderColor,
-        // Обновляем карточки только в выбранной секции
+        // Update cards only in selected section
         cards: sectionsData[sectionId]?.cards?.map(card => ({
           ...card,
           titleColor: preset.cardTitleColor,
@@ -1022,25 +1022,25 @@ const EditorPanel = ({
 
   const processImage = async (file, sectionId) => {
     try {
-      // Сжатие изображения
+      // Image compression
       const compressedFile = await imageCompression(file, {
         maxSizeMB: 1,
         maxWidthOrHeight: 1920,
         useWebWorker: true
       });
 
-      // Конвертация в Blob
+              // Convert to Blob
       const blob = new Blob([compressedFile], { type: 'image/jpeg' });
       
-      // Генерируем уникальное имя файла, используя ID секции и временную метку
+              // Generate unique filename using section ID and timestamp
       const timestamp = Date.now();
       const randomStr = Math.random().toString(36).substring(2, 8);
       const filename = `${sectionId}_${timestamp}_${randomStr}.jpg`;
 
-      // Сохранение в кэш
+              // Save to cache
       await imageCacheService.saveImage(filename, blob);
 
-      // Создание URL для предпросмотра
+              // Create URL for preview
       const url = URL.createObjectURL(blob);
 
       // Сохранение метаданных изображения
@@ -1357,13 +1357,13 @@ const EditorPanel = ({
     </section>
 
     ${data.sectionsData.map(section => {
-      // Получаем цвета из карточек секции для градиента рамки
+      // Get border colors from section cards for gradient
       const getBorderColors = () => {
         if (section.cards && section.cards.length > 0) {
           const firstCard = section.cards[0];
           const lastCard = section.cards[section.cards.length - 1];
           
-          // Используем цвет обводки карточки
+          // Use card border color
           const startColor = firstCard.borderColor || '#1976d2';
           const endColor = lastCard.borderColor || '#64b5f6';
 
@@ -1373,7 +1373,7 @@ const EditorPanel = ({
           };
         }
         
-        // Если карточек нет, используем цвета по умолчанию
+        // If no cards, use default colors
         return {
           start: '#1976d2',
           end: '#64b5f6'
@@ -1382,33 +1382,129 @@ const EditorPanel = ({
 
       const borderColors = getBorderColors();
 
-      // Старый блок: если есть карточки, рендерим как раньше
+      // Legacy block: if there are cards, render as before
       const cardsCount = (section.cards || []).length;
       let cardsClass = '';
       if (cardsCount === 2) cardsClass = 'cards-2';
       if (cardsCount === 3) cardsClass = 'cards-3';
       if (section.cardType === 'none') {
-        // Собираем текст из карточек с гарантированными цветами
-        const cardsText = (section.cards || []).map(card => `
-          ${card.title ? `<br><strong style="color:${card.titleColor || section.titleColor || '#1a237e'}">${card.title}</strong>` : ''}
-          ${card.content ? `<br><span style="color:${card.contentColor || section.contentColor || '#455a64'}">${card.content}</span>` : ''}
-        `).join('');
-        
-        // Проверяем наличие изображений
+        // Check for images
         const hasImages = Array.isArray(section.images) && section.images.length > 0;
         const hasSingleImage = section.imagePath && !hasImages;
         
-        // Подготавливаем HTML для галереи изображений если их несколько
-        let imagesHtml = '';
-        if (hasImages) {
-          if (section.images.length === 1) {
-            // Одно изображение из массива
-            const imgPath = typeof section.images[0] === 'string' 
-              ? section.images[0].replace('/images/sections/', 'assets/images/')
-              : (section.images[0].path || section.images[0].url || '').replace('/images/sections/', 'assets/images/');
-            
+        // Get colors from section
+        const bgColor = section.backgroundColor || '#ffffff';
+        const titleColor = section.titleColor || '#1a237e';
+        const descriptionColor = section.descriptionColor || '#455a64';
+        const contentColor = section.contentColor || '#455a64';
+        
+                  // Prepare HTML for image gallery if there are multiple images
+          let imagesHtml = '';
+          if (hasImages) {
+            if (section.images.length === 1) {
+              // Single image from array
+              const imgPath = typeof section.images[0] === 'string' 
+                ? section.images[0].replace('/images/sections/', 'assets/images/')
+                : (section.images[0].path || section.images[0].url || '').replace('/images/sections/', 'assets/images/');
+              
+              imagesHtml = `
+                <div class="image-container" style="
+                  float: right;
+                  margin: 0 0 1rem 1.5rem;
+                  width: 40%;
+                  max-width: 300px;
+                  height: 300px;
+                  position: relative;
+                  border-radius: 12px;
+                  overflow: hidden;
+                  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                  transition: transform 0.3s ease;
+                " onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                  <img 
+                    src="${imgPath}" 
+                    alt="${section.title || 'Section image'}"
+                    style="
+                      width: 100%;
+                      height: 100%;
+                      object-fit: cover;
+                      border-radius: 12px;
+                      display: block;
+                    "
+                  >
+                </div>
+              `;
+            } else {
+              // Несколько изображений - делаем слайдер
+              imagesHtml = `
+                <div class="section-gallery" data-section-id="${section.id}" style="
+                  float: right;
+                  margin: 0 0 1rem 1.5rem;
+                  width: 40%;
+                  max-width: 300px;
+                  height: 300px;
+                  position: relative;
+                  border-radius: 12px;
+                  overflow: hidden;
+                  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                  transition: transform 0.3s ease;
+                " onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                  ${section.images.map((img, index) => {
+                    const imgPath = typeof img === 'string' 
+                      ? img.replace('/images/sections/', 'assets/images/')
+                      : (img.path || img.url || '').replace('/images/sections/', 'assets/images/');
+                    
+                    return `
+                      <img 
+                        src="${imgPath}" 
+                        alt="${section.title || 'Section image'} ${index + 1}"
+                        class="gallery-img"
+                        data-index="${index}"
+                        style="
+                          position: absolute;
+                          top: 0;
+                          left: 0;
+                          width: 100%;
+                          height: 100%;
+                          object-fit: cover;
+                          display: ${index === 0 ? 'block' : 'none'};
+                          transition: opacity 0.5s ease;
+                        "
+                      >
+                    `;
+                  }).join('')}
+                  
+                  <!-- Gallery Navigation -->
+                  <div style="
+                    position: absolute;
+                    bottom: 10px;
+                    left: 0;
+                    right: 0;
+                    text-align: center;
+                    z-index: 2;
+                  ">
+                    ${section.images.map((_, index) => `
+                      <span 
+                        class="gallery-dot"
+                        data-index="${index}"
+                        style="
+                          display: inline-block;
+                          width: 8px;
+                          height: 8px;
+                          border-radius: 50%;
+                          background-color: ${index === 0 ? '#ffffff' : 'rgba(255,255,255,0.5)'};
+                          margin: 0 3px;
+                          cursor: pointer;
+                        "
+                      ></span>
+                    `).join('')}
+                  </div>
+                </div>
+              `;
+            }
+          } else if (hasSingleImage) {
+            // Одно изображение из поля imagePath
             imagesHtml = `
-              <div style="
+              <div class="image-container" style="
                 float: right;
                 margin: 0 0 1rem 1.5rem;
                 width: 40%;
@@ -1418,9 +1514,10 @@ const EditorPanel = ({
                 border-radius: 12px;
                 overflow: hidden;
                 box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-              ">
+                transition: transform 0.3s ease;
+              " onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
                 <img 
-                  src="${imgPath}" 
+                  src="${section.imagePath.replace('/images/sections/', 'assets/images/')}" 
                   alt="${section.title || 'Section image'}"
                   style="
                     width: 100%;
@@ -1432,121 +1529,134 @@ const EditorPanel = ({
                 >
               </div>
             `;
-          } else {
-            // Несколько изображений - делаем слайдер
-            imagesHtml = `
-              <div class="section-gallery" data-section-id="${section.id}" style="
-                float: right;
-                margin: 0 0 1rem 1.5rem;
-                width: 40%;
-                max-width: 300px;
-                height: 300px;
-                position: relative;
-                border-radius: 12px;
-                overflow: hidden;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-              ">
-                ${section.images.map((img, index) => {
-                  const imgPath = typeof img === 'string' 
-                    ? img.replace('/images/sections/', 'assets/images/')
-                    : (img.path || img.url || '').replace('/images/sections/', 'assets/images/');
-                  
-                  return `
-                    <img 
-                      src="${imgPath}" 
-                      alt="${section.title || 'Section image'} ${index + 1}"
-                      class="gallery-img"
-                      data-index="${index}"
-                      style="
-                        position: absolute;
-                        top: 0;
-                        left: 0;
-                        width: 100%;
-                        height: 100%;
-                        object-fit: cover;
-                        display: ${index === 0 ? 'block' : 'none'};
-                        transition: opacity 0.5s ease;
-                      "
-                    >
-                  `;
-                }).join('')}
-                
-                <!-- Навигация галереи -->
-                <div style="
-                  position: absolute;
-                  bottom: 10px;
-                  left: 0;
-                  right: 0;
-                  text-align: center;
-                  z-index: 2;
-                ">
-                  ${section.images.map((_, index) => `
-                    <span 
-                      class="gallery-dot"
-                      data-index="${index}"
-                      style="
-                        display: inline-block;
-                        width: 8px;
-                        height: 8px;
-                        border-radius: 50%;
-                        background-color: ${index === 0 ? '#ffffff' : 'rgba(255,255,255,0.5)'};
-                        margin: 0 3px;
-                        cursor: pointer;
-                      "
-                    ></span>
-                  `).join('')}
-                </div>
-              </div>
-            `;
-          }
-        } else if (hasSingleImage) {
-          // Одно изображение из поля imagePath
-          imagesHtml = `
-            <div style="
-              float: right;
-              margin: 0 0 1rem 1.5rem;
-              width: 40%;
-              max-width: 300px;
-              height: 300px;
-              position: relative;
-              border-radius: 12px;
-              overflow: hidden;
-              box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            ">
-              <img 
-                src="${section.imagePath.replace('/images/sections/', 'assets/images/')}" 
-                alt="${section.title || 'Section image'}"
-                style="
-                  width: 100%;
-                  height: 100%;
-                  object-fit: cover;
-                  border-radius: 12px;
-                  display: block;
-                "
-              >
-            </div>
-          `;
         }
         
-        return `
-          <section id="${section.id}" class="section" style="
-            padding: 4rem 0;
-            position: relative;
-            background: ${section.showBackground !== false ? (section.backgroundColor || '#ffffff') : 'transparent'};
-            border-top: 1px solid rgba(0,0,0,0.1);
-            color: ${section.contentColor || '#455a64'};
-          ">
+                 // Генерируем HTML для карточек - каждая карточка с левой цветной полосой и эффектами
+         const cardsHtml = (section.cards || []).map((card, index) => {
+           const cardTitleColor = card.titleColor || titleColor;
+           const cardContentColor = card.contentColor || contentColor;
+           const cardBorderColor = card.borderColor || '#1976d2';
+           
+           return `
+              <div class="service-block" style="
+                padding: 1rem;
+                margin-bottom: 1rem;
+                border-left: 3px solid ${cardBorderColor};
+                background: ${section.showBackground !== false ? 'rgba(255,255,255,0.05)' : 'transparent'};
+                transition: all 0.3s ease;
+                opacity: 0;
+                --index: ${index};
+                cursor: pointer;
+                position: relative;
+              " 
+              onmouseover="this.style.transform='translateX(10px)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'"
+              onmouseout="this.style.transform='translateX(0)'; this.style.boxShadow='none'"
+              >
+                <h3 style="
+                  color: ${cardTitleColor};
+                  font-size: 1.3rem;
+                  font-weight: 600;
+                  margin-bottom: 0.5rem;
+                  font-family: 'Montserrat', sans-serif;
+                  text-align: left;
+                ">${card.title || ''}</h3>
+                <p style="
+                  color: ${cardContentColor};
+                  font-size: 1rem;
+                  line-height: 1.6;
+                  margin: 0;
+                  font-family: 'Roboto', sans-serif;
+                  text-align: left;
+                ">${card.content || card.text || ''}</p>
+              </div>
+           `;
+        }).join('');
+        
+                  // Создаем структуру, максимально приближенную к превью
+          return `
+            <style>
+              @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+              }
+              
+              @keyframes slideInLeft {
+                from { opacity: 0; transform: translateX(-30px); }
+                to { opacity: 1; transform: translateX(0); }
+              }
+              
+              @keyframes slideUp {
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
+              }
+              
+              #${section.id} .service-block {
+                animation: slideInLeft 0.5s ease-out forwards;
+                animation-delay: calc(var(--index, 0) * 0.1s);
+              }
+              
+              #${section.id} h2 {
+                animation: slideUp 0.7s ease-out forwards;
+              }
+              
+              #${section.id} > p {
+                animation: slideUp 0.7s ease-out 0.2s forwards;
+                opacity: 0;
+                animation-fill-mode: forwards;
+              }
+              
+              /* Media query for mobile devices */
+              @media (max-width: 768px) {
+                #${section.id} .image-container {
+                  float: none !important;
+                  margin: 0 auto 2rem auto !important;
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  height: 250px !important;
+                }
+                
+                #${section.id} .section-gallery {
+                  float: none !important;
+                  margin: 0 auto 2rem auto !important;
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  height: 250px !important;
+                }
+              }
+            </style>
+            
+            <section id="${section.id}" class="section section-nocards" style="
+              padding: 4rem 0;
+              position: relative;
+              background: ${section.showBackground !== false ? bgColor : 'transparent'};
+              border-radius: 20px;
+              margin: 2rem auto;
+              max-width: 1000px;
+              box-shadow: ${section.showBackground !== false ? '0 4px 12px rgba(0,0,0,0.05)' : 'none'};
+              overflow: hidden;
+              animation: fadeIn 0.5s ease-in-out;
+            ">
+              <!-- Top color bar -->
+              <div style="
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 3px;
+                background: linear-gradient(90deg, #1976d2, #42a5f5);
+                display: ${section.showBackground !== false ? 'block' : 'none'};
+              "></div>
+            
             <div class="container">
               <div class="section-content" style="
                 position: relative;
-                max-width: 1200px;
+                max-width: 1000px;
                 margin: 0 auto;
-                padding: 0 1rem;
-                ${section.showBackground !== false ? '' : 'background: transparent;'}
+                padding: 0 2rem;
               ">
                 ${section.title ? `
                   <h2 style="
-                    color: ${section.titleColor || '#1a237e'};
+                    color: ${titleColor};
                     font-size: 2rem;
                     font-weight: 700;
                     margin-bottom: 1.5rem;
@@ -1555,39 +1665,34 @@ const EditorPanel = ({
                   ">${section.title}</h2>
                 ` : ''}
                 
-                <!-- Контейнер с текстовым содержимым и изображением с обтеканием -->
-                <div style="
+                ${section.description ? `
+                  <p style="
+                    color: ${descriptionColor};
+                    font-size: 1.1rem;
+                    line-height: 1.6;
+                    margin-bottom: 2rem;
+                    text-align: center;
+                    max-width: 800px;
+                    margin-left: auto;
+                    margin-right: auto;
+                  ">${section.description}</p>
+                ` : ''}
+                
+                <!-- Container with text and image -->
+                <div class="with-image" style="
                   position: relative;
-                  display: flow-root; /* Для правильного обтекания */
-                  ${section.showBackground !== false ? '' : 'background: transparent;'}
+                  display: flow-root;
                 ">
-                  <!-- Изображение или галерея с обтеканием -->
+                  <!-- Floating image -->
                   ${imagesHtml}
                   
-                  <!-- Текстовое содержимое -->
+                  <!-- Cards -->
                   <div style="
-                    overflow: hidden;
-                    ${section.showBackground !== false ? '' : 'background: transparent;'}
+                    display: flex;
+                    flex-direction: column;
+                    gap: 20px;
                   ">
-                    ${section.description ? `
-                      <p style="
-                        color: ${section.descriptionColor || '#455a64'};
-                        font-size: 1.1rem;
-                        line-height: 1.6;
-                        margin-bottom: 1rem;
-                        text-align: ${hasImages || hasSingleImage ? 'left' : 'center'};
-                      ">${section.description}</p>
-                    ` : ''}
-                    
-                    ${cardsText ? `
-                      <div style="
-                        margin-top: 1rem; 
-                        ${section.showBackground !== false ? '' : 'background: transparent;'}
-                        text-align: ${hasImages || hasSingleImage ? 'left' : 'center'};
-                      ">
-                        ${cardsText}
-                      </div>
-                    ` : ''}
+                    ${cardsHtml}
                   </div>
                 </div>
               </div>
@@ -1695,8 +1800,8 @@ const EditorPanel = ({
                           `;
                         }).join('')}
                         
-                        <!-- Навигация галереи -->
-                        <div style="
+                                        <!-- Gallery Navigation -->
+                <div style="
                           position: absolute;
                           bottom: 10px;
                           left: 0;
@@ -1921,7 +2026,7 @@ const EditorPanel = ({
                 const form = document.getElementById('contactForm');
                 const inputs = form.querySelectorAll('input[type="text"], input[type="tel"], input[type="email"]');
                 
-                // Загрузка сохраненных данных
+                // Load saved data
                 try {
                   const savedData = localStorage.getItem('contactFormData');
                   if (savedData) {
@@ -1938,7 +2043,7 @@ const EditorPanel = ({
                   console.error('Error loading saved data:', error);
                 }
 
-                // Сохранение данных при вводе
+                // Save data on input
                 inputs.forEach(input => {
                   input.addEventListener('input', function() {
                     try {
@@ -1954,7 +2059,7 @@ const EditorPanel = ({
                 });
               });
               
-              // Функция отправки формы с принудительным перенаправлением
+              // Form submission function with forced redirect
               async function submitForm(event) {
                 event.preventDefault();
                 
@@ -1962,23 +2067,23 @@ const EditorPanel = ({
                 const formData = new FormData(form);
                 
                 try {
-                  // Очистка localStorage
+                  // Clear localStorage
                   localStorage.removeItem('contactFormData');
                   
-                  // Отправка данных формы на Formspree
+                  // Send form data to Formspree
                   const response = await fetch('https://formspree.io/f/mldbzjyw', {
                     method: 'POST',
                     body: formData,
                     headers: {
                       'Accept': 'application/json'
                     }
+                  }).finally(() => {
+                    // Always redirect to merci.html
+                    window.location.href = 'merci.html';
                   });
-                  
-                  // Независимо от результата отправки, перенаправляем на merci.html
-                  window.location.href = 'merci.html';
                 } catch (error) {
                   console.error('Error sending form:', error);
-                  // Даже при ошибке перенаправляем на merci.html
+                  // Even on error, redirect to merci.html
                   window.location.href = 'merci.html';
                 }
                 
@@ -2249,954 +2354,1141 @@ const EditorPanel = ({
   };
 
   const generateCSS = () => {
-    return `* {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: 'Roboto', sans-serif;
-    }
+    return `
+      /* Base styles */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: 'Roboto', sans-serif;
+      }
 
-    header {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 1000;
-    }
-
-    nav {
-      padding: 1rem;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    .nav-container {
-      max-width: 1200px;
-      margin: 0 auto;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0 1rem;
-    }
-
-    .logo {
-      font-size: 1.5rem;
-      font-weight: 700;
-      text-decoration: none;
-      white-space: nowrap;
-      margin-right: 2rem;
-    }
-
-    .domain {
-      display: block;
-      margin-top: 0.25rem;
-      font-size: 0.9rem;
-      font-weight: normal;
-      opacity: 0.8;
-      white-space: nowrap;
-    }
-
-    .nav-menu {
-      display: flex;
-      list-style: none;
-      margin: 0;
-      padding: 0;
-      flex-wrap: nowrap;
-    }
-
-    .nav-menu li {
-      margin-left: 2rem;
-      white-space: nowrap;
-    }
-
-    .nav-menu a {
-      text-decoration: none;
-      position: relative;
-      white-space: nowrap;
-    }
-
-    .nav-menu a::after {
-      content: '';
-      position: absolute;
-      bottom: -5px;
-      left: 0;
-      width: 0;
-      height: 2px;
-      background-color: currentColor;
-      transition: width 0.3s ease;
-    }
-
-    .nav-menu a:hover::after {
-      width: 100%;
-    }
-
-    .menu-toggle {
-      display: none;
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 0.5rem;
-    }
-
-    .menu-toggle span {
-      display: block;
-      width: 25px;
-      height: 3px;
-      background-color: currentColor;
-      margin: 5px 0;
-      transition: all 0.3s ease;
-    }
-
-    @media (max-width: 768px) {
-      .menu-toggle {
-        display: block;
-        color: inherit;
-        z-index: 1002;
+      /* Styles for sections without cards */
+      .section-nocards {
+        background: linear-gradient(135deg, #f6f9fc 0%, #ffffff 100%);
+        border-radius: 40px;
+        padding: 5rem 3rem;
+        margin: 4rem auto;
+        max-width: 1400px;
+        box-shadow: 0 30px 60px rgba(0,0,0,0.15);
         position: relative;
+        overflow: hidden;
+      }
+
+      .section-nocards::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 8px;
+        background: linear-gradient(90deg, #FF6B6B, #4ECDC4);
+      }
+
+      .section-nocards h2 {
+        font-size: 3rem;
+        font-weight: 900;
+        text-align: center;
+        margin-bottom: 3rem;
+        background: linear-gradient(45deg, #2C3E50, #3498DB);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-transform: uppercase;
+        letter-spacing: 3px;
+        font-family: "Montserrat", sans-serif;
+        text-shadow: 3px 3px 6px rgba(0,0,0,0.2);
+      }
+
+      .section-nocards p {
+        font-size: 1.8rem;
+        text-align: center;
+        margin-bottom: 5rem;
+        color: #34495E;
+        font-family: "Playfair Display", serif;
+        font-style: italic;
+        line-height: 1.8;
+        max-width: 800px;
+        margin: 0 auto 5rem;
+        padding: 0 1.5rem;
+      }
+
+      /* Styles for blocks in sections without cards */
+      .section-nocards .service-block {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 30px;
+        padding: 4rem;
+        box-shadow: 0 15px 45px rgba(0,0,0,0.08);
+        border: 2px solid rgba(0,0,0,0.08);
+        transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        transform: translateY(0);
+        margin-bottom: 4rem;
+      }
+
+      .section-nocards .service-block:hover {
+        transform: translateY(-20px);
+        box-shadow: 0 30px 60px rgba(0,0,0,0.15);
+        border-color: #4ECDC4;
+        border-width: 3px;
+      }
+
+      .section-nocards .service-block h3 {
+        font-size: 2.8rem;
+        font-weight: 800;
+        margin-bottom: 2.5rem;
+        color: #2C3E50;
+        font-family: "Montserrat", sans-serif;
+        border-bottom: 4px solid #4ECDC4;
+        padding-bottom: 1.5rem;
+      }
+
+      .section-nocards .service-block p {
+        font-size: 1.5rem;
+        line-height: 2;
+        color: #34495E;
+        font-family: "Playfair Display", serif;
+        white-space: pre-wrap;
+        text-align: left;
+        margin: 0;
+      }
+
+      /* Styles for sections without cards with images */
+      .section-nocards.with-image {
+        display: flex;
+        flex-direction: row;
+        align-items: flex-start;
+        gap: 4rem;
+      }
+
+      .section-nocards.with-image .content {
+        flex: 1;
+      }
+
+      .section-nocards.with-image .image-container {
+        flex: 0 0 40%;
+        position: relative;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        transition: all 0.4s ease;
+      }
+
+      .section-nocards.with-image .image-container:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 30px 60px rgba(0,0,0,0.2);
+      }
+
+      .section-nocards.with-image .image-container img {
+        width: 100%;
+        height: auto;
+        display: block;
+        transition: transform 0.4s ease;
+      }
+
+      .section-nocards.with-image .image-container:hover img {
+        transform: scale(1.05);
+      }
+
+      /* Animations */
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .section-nocards .service-block {
+        animation: fadeInUp 0.7s ease-out forwards;
+      }
+
+      /* Responsiveness */
+      @media (max-width: 768px) {
+        .section-nocards {
+          padding: 3rem 1.5rem;
+          margin: 2rem auto;
+          border-radius: 20px;
+        }
+
+        .section-nocards h2 {
+          font-size: 2rem;
+          margin-bottom: 2rem;
+        }
+
+        .section-nocards p {
+          font-size: 1.2rem;
+          margin-bottom: 3rem;
+        }
+
+        .section-nocards .service-block {
+          padding: 2rem;
+          margin-bottom: 2rem;
+        }
+
+        .section-nocards .service-block h3 {
+          font-size: 1.8rem;
+          margin-bottom: 1.5rem;
+        }
+
+        .section-nocards .service-block p {
+          font-size: 1.1rem;
+          line-height: 1.6;
+        }
+
+        .section-nocards.with-image {
+          flex-direction: column;
+        }
+
+        .section-nocards.with-image .image-container {
+          flex: 0 0 100%;
+          margin-bottom: 2rem;
+        }
+      }
+
+      /* Other styles */
+      header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+      }
+
+      nav {
+        padding: 1rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+
+      .nav-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 1rem;
+      }
+
+      .logo {
+        font-size: 1.5rem;
+        font-weight: 700;
+        text-decoration: none;
+        white-space: nowrap;
+        margin-right: 2rem;
+      }
+
+      .domain {
+        display: block;
+        margin-top: 0.25rem;
+        font-size: 0.9rem;
+        font-weight: normal;
+        opacity: 0.8;
+        white-space: nowrap;
       }
 
       .nav-menu {
-        display: none !important;
-        position: absolute;
-        top: 100%;
-        left: 0;
-        right: 0;
-        background: var(--menu-bg-color, #fff);
-        padding: 1rem 0;
-        flex-direction: column;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-        z-index: 1001;
-        border-bottom-left-radius: 12px;
-        border-bottom-right-radius: 12px;
-      }
-
-      .nav-menu.active {
-        display: flex !important;
+        display: flex;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        flex-wrap: nowrap;
       }
 
       .nav-menu li {
-        margin: 0.5rem 0;
-        width: 100%;
-        text-align: center;
+        margin-left: 2rem;
+        white-space: nowrap;
       }
 
       .nav-menu a {
-        display: block;
-        padding: 0.75rem 1rem;
-        font-size: 1.1rem;
-        font-weight: 500;
-        color: var(--menu-link-color, #1976d2) !important;
-        background: transparent;
-        transition: color 0.3s;
+        text-decoration: none;
+        position: relative;
+        white-space: nowrap;
       }
 
       .nav-menu a::after {
-        display: none;
+        content: '';
+        position: absolute;
+        bottom: -5px;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background-color: currentColor;
+        transition: width 0.3s ease;
       }
 
-      .logo {
-        font-size: 1.1rem;
-        margin-right: 1rem;
-        white-space: nowrap;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .nav-container {
-        padding: 0 0.5rem;
-      }
-
-      .logo {
-        font-size: 1rem;
-      }
-
-      .nav-menu a {
-        font-size: 0.9rem;
-      }
-    }
-
-    body {
-      line-height: 1.6;
-      color: #333;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow-x: hidden;
-      margin: 0;
-      padding: 0;
-      width: 100%;
-    }
-    
-    /* Стили для галереи изображений */
-    .section-gallery {
-      position: relative;
-      overflow: hidden;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
-    
-    .gallery-img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transition: opacity 0.5s ease;
-    }
-    
-    .gallery-dot {
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-    
-    /* Стили для изображений внутри секций с обтеканием текста */
-    section p + .section-gallery,
-    section h2 + .section-gallery {
-      margin-top: 1rem;
-      margin-bottom: 1rem;
-    }
-
-    /* Стили для рамок секций */
-    section {
-      position: relative;
-      padding: 6rem 0;
-      margin: 2rem 0;
-      overflow: hidden;
-    }
-
-    section:first-child {
-      margin-top: 0;
-    }
-
-    section:last-child {
-      margin-bottom: 0;
-    }
-
-    section::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      border: 4px solid transparent;
-      border-radius: 20px;
-      background: linear-gradient(45deg, var(--border-start-color, #1976d2), var(--border-end-color, #64b5f6)) border-box;
-      -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
-      -webkit-mask-composite: xor;
-      mask-composite: exclude;
-      z-index: 1;
-      transition: all 0.3s ease-in-out;
-      animation: borderPulse 3s infinite, glowPulse 3s infinite;
-      pointer-events: none;
-    }
-
-    section:hover::before {
-      border: 5px solid transparent;
-      box-shadow: 0 0 25px 15px var(--border-start-color, #1976d2);
-      animation: none;
-    }
-
-    @keyframes borderPulse {
-      0% {
-        border-width: 4px;
-        box-shadow: 0 0 0 0 rgba(25, 118, 210, 0.4);
-      }
-      50% {
-        border-width: 5px;
-        box-shadow: 0 0 20px 10px rgba(25, 118, 210, 0.2);
-      }
-      100% {
-        border-width: 4px;
-        box-shadow: 0 0 0 0 rgba(25, 118, 210, 0.4);
-      }
-    }
-
-    @keyframes glowPulse {
-      0% {
-        box-shadow: 0 0 5px 0 rgba(25, 118, 210, 0.4);
-      }
-      50% {
-        box-shadow: 0 0 20px 10px rgba(25, 118, 210, 0.2);
-      }
-      100% {
-        box-shadow: 0 0 5px 0 rgba(25, 118, 210, 0.4);
-      }
-    }
-
-    .site-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: -1;
-    }
-
-    main {
-      flex: 1;
-      padding-top: 60px;
-      width: 100%;
-      overflow-x: hidden;
-    }
-
-    .hero {
-      height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 0 2rem;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .hero[style*="background-image"] {
-      animation: zoomIn 20s ease-in-out infinite alternate;
-    }
-
-    @keyframes zoomIn {
-      0% {
-        transform: scale(1);
-      }
-      100% {
-        transform: scale(1.1);
-      }
-    }
-
-    .hero-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      z-index: 1;
-      animation: fadeIn 1s ease-in-out;
-    }
-
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-      }
-      to {
-        opacity: 1;
-      }
-    }
-
-    .hero-content {
-      max-width: 800px;
-      z-index: 2;
-      position: relative;
-      animation: slideUp 1s ease-out;
-    }
-
-    @keyframes slideUp {
-      from {
-        transform: translateY(50px);
-        opacity: 0;
-      }
-      to {
-        transform: translateY(0);
-        opacity: 1;
-      }
-    }
-
-    .hero h1 {
-      font-size: 3rem;
-      margin-bottom: 1.5rem;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-      animation: fadeIn 1s ease-in-out 0.3s both;
-    }
-
-    .hero p {
-      font-size: 1.2rem;
-      margin-bottom: 2rem;
-      max-width: 600px;
-      margin-left: auto;
-      margin-right: auto;
-      text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-      animation: fadeIn 1s ease-in-out 0.6s both;
-    }
-
-    .hero button {
-      padding: 1rem 2rem;
-      font-size: 1.1rem;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-      animation: fadeIn 1s ease-in-out 0.9s both;
-    }
-
-    .hero button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-    }
-
-    .section {
-      padding: 6rem 1rem;
-      width: 100%;
-      box-sizing: border-box;
-      position: relative;
-      overflow: hidden;
-      background-color: var(--section-background-color, transparent);
-    }
-
-    .section[data-show-background="false"] {
-      background-color: transparent !important;
-      background-image: none !important;
-    }
-
-    .section[data-show-background="false"] .section-background-blur,
-    .section[data-show-background="false"] .section-overlay {
-      display: none !important;
-    }
-
-    .section-background-blur {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-size: cover;
-      background-position: center;
-      z-index: 0;
-      animation: zoomIn 20s ease-in-out infinite alternate;
-    }
-
-    .section-container {
-      position: relative;
-      z-index: 2;
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 1rem;
-    }
-
-    .section-header {
-      text-align: center;
-      margin-bottom: 3rem;
-    }
-
-    .section-header h2 {
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
-      position: relative;
-    }
-
-    .section-header h2::after {
-      content: '';
-      position: absolute;
-      bottom: -10px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 50px;
-      height: 3px;
-      background-color: #1976d2;
-      transition: width 0.3s ease-in-out;
-    }
-
-    .section-header h2:hover::after {
-      width: 100px;
-    }
-
-    .section-header p {
-      font-size: 1.2rem;
-      max-width: 800px;
-      margin: 0 auto;
-      line-height: 1.6;
-    }
-
-    .about-section {
-      display: flex;
-      align-items: flex-start;
-      gap: 2rem;
-      padding: 2rem;
-      position: relative;
-      border-radius: 16px;
-      background: linear-gradient(145deg, #ffffff, #f5f5f5);
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    }
-
-    .about-section::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      border-radius: 16px;
-      padding: 2px;
-      background: linear-gradient(45deg, #1976d2, #42a5f5);
-      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-      -webkit-mask-composite: xor;
-      mask-composite: exclude;
-    }
-
-    .about-content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-      padding-left: 1rem;
-      text-align: left;
-      position: relative;
-    }
-
-    .about-content::before {
-      content: "";
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 4px;
-      background: linear-gradient(to bottom, #1976d2, #42a5f5);
-      border-radius: 2px;
-    }
-
-    .about-content h2 {
-      font-size: 2.5rem;
-      font-weight: 700;
-      margin-bottom: 1rem;
-      text-align: left;
-      position: relative;
-    }
-
-    .about-content h2::after {
-      content: "";
-      position: absolute;
-      bottom: -8px;
-      left: 0;
-      width: 60px;
-      height: 4px;
-      background: linear-gradient(to right, #1976d2, #42a5f5);
-      border-radius: 2px;
-    }
-
-    .about-content p {
-      font-size: 1.1rem;
-      line-height: 1.6;
-      text-align: left;
-    }
-
-    .section-image {
-      width: 100%;
-      margin: 2rem auto;
-      text-align: center;
-      max-width: 800px;
-    }
-
-    .section-image img {
-      width: 100%;
-      height: auto;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      transition: transform 0.3s ease;
-    }
-
-    .section-image img:hover {
-      transform: scale(1.02);
-    }
-
-    @media (max-width: 768px) {
-      .about-section {
-        flex-direction: column;
-      }
-      
-      .about-content {
-        padding-left: 0;
-        padding-top: 1rem;
-      }
-    }
-
-    .section h2 {
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
-      text-align: center;
-      position: relative;
-    }
-
-    .section h2::after {
-      content: '';
-      position: absolute;
-      bottom: -10px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 50px;
-      height: 3px;
-      background-color: #1976d2;
-      transition: width 0.3s ease-in-out;
-    }
-
-    .section h2:hover::after {
-      width: 100px;
-    }
-
-    .section p {
-      font-size: 1.1rem;
-      margin-bottom: 3rem;
-      text-align: center;
-      max-width: 800px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-
-    /* Контейнер для карточек */
-    .cards-container {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 2rem;
-      padding: 1rem;
-      position: relative;
-      z-index: 2;
-      pointer-events: auto;
-    }
-
-    @media (max-width: 1024px) {
-      .cards-container {
-        grid-template-columns: repeat(2, 1fr);
-      }
-    }
-
-    @media (max-width: 768px) {
-      .cards-container {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    /* Базовые стили карточек с анимациями */
-    .card {
-      transition: all 0.3s ease-in-out;
-      padding: 1.5rem;
-      display: flex;
-      flex-direction: column;
-      background-color: #ffffff;
-      width: 100%;
-      max-width: 280px;
-      border-radius: 12px;
-      overflow: hidden;
-      height: 100%;
-      margin: 1rem;
-      position: relative;
-      z-index: 2;
-    }
-
-    /* Заголовки и текст карточек */
-    .card-title {
-      color: #1a237e;
-      margin-bottom: 0.7rem;
-      font-size: 1.5rem;
-      font-weight: 600;
-      transition: all 0.3s ease-in-out;
-    }
-
-    .card-text {
-      color: #455a64;
-      font-size: 1rem;
-      line-height: 1.6;
-      transition: all 0.3s ease-in-out;
-    }
-
-    /* Simple Card */
-    .card.simple {
-      background-color: transparent;
-      border: 3px solid #e0e0e0;
-    }
-
-    .card.simple:hover {
-      transform: scale(1.2);
-      z-index: 3;
-    }
-
-    /* Elevated Card */
-    .card.elevated {
-      background-color: #ffffff;
-      border: 3px solid #e0e0e0;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    .card.elevated:hover {
-      transform: rotate(3deg) scale(1.05);
-      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-      z-index: 3;
-    }
-
-    .card.elevated:hover .card-title {
-      color: #1976d2;
-      transform: translateX(4px);
-    }
-
-    /* Outlined Card */
-    .card.outlined {
-      background: linear-gradient(to right, #e8f5e9, #c8e6c9);
-      border: 3px solid #e0e0e0;
-    }
-
-    .card.outlined:hover {
-      transform: skew(-5deg) translateY(-5px);
-      border-color: #1976d2;
-      z-index: 3;
-    }
-
-    .card.outlined:hover .card-title {
-      color: #1976d2;
-    }
-
-    /* Accent Card */
-    .card.accent {
-      background-color: #ffffff;
-      border: 3px solid #e0e0e0;
-      position: relative;
-    }
-
-    .card.accent::before {
-      content: "";
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 4px;
-      background: linear-gradient(to bottom, #1976d2, #42a5f5);
-      transition: width 0.3s ease-in-out;
-      z-index: 1;
-    }
-
-    .card.accent:hover {
-      transform: translateX(10px) translateY(-5px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      z-index: 3;
-    }
-
-    .card.accent:hover::before {
-      width: 6px;
-    }
-
-    .card.accent:hover .card-title {
-      color: #1976d2;
-    }
-
-    /* Gradient Card */
-    .card.gradient {
-      background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
-      border: 3px solid #e0e0e0;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      transition: all 0.3s ease-in-out;
-      position: relative;
-      z-index: 2;
-    }
-
-    .card.gradient:hover {
-      transform: scale(1.2);
-      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-      z-index: 3;
-    }
-
-    .card.gradient:hover h3 {
-      color: #1976d2;
-    }
-
-    .card.gradient:hover p {
-      color: #455a64;
-    }
-
-    /* Контейнер для секций */
-    .section-container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 2rem;
-    }
-
-    /* Заголовок секции */
-    .section-header {
-      text-align: center;
-      margin-bottom: 4rem;
-    }
-
-    .section-header h2 {
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
-      position: relative;
-      display: inline-block;
-    }
-
-    .section-header p {
-      font-size: 1.2rem;
-      max-width: 800px;
-      margin: 0 auto;
-      line-height: 1.6;
-    }
-
-    @media (max-width: 768px) {
-      .contact-grid {
-        grid-template-columns: 1fr !important;
-        gap: 1.5rem !important;
-      }
-    }
-
-    .section-image img:hover {
-      transform: scale(1.02);
-    }
-
-    .image-upload-control {
-      margin-top: 1rem;
-      display: flex;
-      justify-content: flex-start;
-    }
-
-    .upload-button {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 1rem;
-      background-color: #1976d2;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-
-    .upload-button:hover {
-      background-color: #1565c0;
-    }
-
-    .upload-button i {
-      font-size: 1.2rem;
-    }
-
-    @media (max-width: 768px) {
-      .nav-container {
-        padding: 0 0.5rem;
-      }
-
-      .logo {
-        font-size: 1rem;
-      }
-
-      .nav-menu a {
-        font-size: 0.9rem;
-      }
-    }
-
-    .cards-container.cards-2 {
-      max-width: 1200px;
-      margin-left: auto;
-      margin-right: auto;
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 2rem;
-    }
-    .cards-container.cards-3 {
-      max-width: 1200px;
-      margin-left: auto;
-      margin-right: auto;
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 2rem;
-    }
-    
-    @media (max-width: 1024px) {
-      .cards-container.cards-2,
-      .cards-container.cards-3 {
-        grid-template-columns: 1fr;
-      }
-    }
-    
-    .cards-container.cards-2 .card,
-    .cards-container.cards-3 .card {
-      max-width: 100%;
-      width: 100%;
-    }
-
-    .card, .section-image img, .about-image img {
-      opacity: 0;
-      transform: translateY(40px);
-      transition: opacity 0.8s cubic-bezier(0.4,0,0.2,1), transform 0.8s cubic-bezier(0.4,0,0.2,1);
-    }
-    .card.animate-on-scroll, .section-image img.animate-on-scroll, .about-image img.animate-on-scroll {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    .about-section::before, .about-content::before {
-      display: none !important;
-    }
-
-    @media (max-width: 1024px) {
-      .no-card-section {
-        flex-direction: column;
-        align-items: center;
-      }
-      
-      .no-card-section .about-image {
-        min-width: 100%;
-        max-width: 500px;
-        margin: 0 auto 2rem auto;
-        order: -1;
-      }
-      
-      .no-card-section .about-content {
+      .nav-menu a:hover::after {
         width: 100%;
-        text-align: center;
       }
-      
-      .no-card-section .about-content h2,
-      .no-card-section .about-content p,
-      .no-card-section .about-content div {
-        text-align: center !important;
-      }
-      
-      .no-card-section .about-content div br {
+
+      .menu-toggle {
         display: none;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0.5rem;
+      }
+
+      .menu-toggle span {
+        display: block;
+        width: 25px;
+        height: 3px;
+        background-color: currentColor;
+        margin: 5px 0;
+        transition: all 0.3s ease;
+      }
+
+      @media (max-width: 768px) {
+        .menu-toggle {
+          display: block;
+          color: inherit;
+          z-index: 1002;
+          position: relative;
+        }
+
+        .nav-menu {
+          display: none !important;
+          position: absolute;
+          top: 100%;
+          left: 0;
+          right: 0;
+          background: var(--menu-bg-color, #fff);
+          padding: 1rem 0;
+          flex-direction: column;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+          z-index: 1001;
+          border-bottom-left-radius: 12px;
+          border-bottom-right-radius: 12px;
+        }
+
+        .nav-menu.active {
+          display: flex !important;
+        }
+
+        .nav-menu li {
+          margin: 0.5rem 0;
+          width: 100%;
+          text-align: center;
+        }
+
+        .nav-menu a {
+          display: block;
+          padding: 0.75rem 1rem;
+          font-size: 1.1rem;
+          font-weight: 500;
+          color: var(--menu-link-color, #1976d2) !important;
+          background: transparent;
+          transition: color 0.3s;
+        }
+
+        .nav-menu a::after {
+          display: none;
+        }
+
+        .logo {
+          font-size: 1.1rem;
+          margin-right: 1rem;
+          white-space: nowrap;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .nav-container {
+          padding: 0 0.5rem;
+        }
+
+        .logo {
+          font-size: 1rem;
+        }
+
+        .nav-menu a {
+          font-size: 0.9rem;
+        }
+      }
+
+      body {
+        line-height: 1.6;
+        color: #333;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow-x: hidden;
+        margin: 0;
+        padding: 0;
+        width: 100%;
       }
       
-      .no-card-section .about-content div strong {
-        display: block;
+      /* Styles for image gallery */
+      .section-gallery {
+        position: relative;
+        overflow: hidden;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      }
+      
+      .gallery-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: opacity 0.5s ease;
+      }
+      
+      .gallery-dot {
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+      }
+      
+      /* Styles for images inside sections with text wrapping */
+      section p + .section-gallery,
+      section h2 + .section-gallery {
         margin-top: 1rem;
-        margin-bottom: 0.5rem;
+        margin-bottom: 1rem;
       }
-    }
 
-    /* Стили для текста в секциях */
-    .section h2 {
-      font-size: 2.5rem;
-      font-weight: 700;
-      line-height: 1.2;
-      letter-spacing: -0.01562em;
-      text-transform: none;
-      margin-bottom: 1.5rem;
-      text-align: center;
-      color: inherit;
-      word-wrap: break-word;
-    }
+      /* Styles for section borders */
+      section {
+        position: relative;
+        padding: 6rem 0;
+        margin: 2rem 0;
+        overflow: hidden;
+      }
 
-    .section p {
-      font-size: 1.25rem;
-      font-weight: 400;
-      line-height: 1.5;
-      letter-spacing: 0.00938em;
-      text-align: center;
-      margin-bottom: 2rem;
-      color: inherit;
-      max-width: 100%;
-      word-wrap: break-word;
-    }
+      section:first-child {
+        margin-top: 0;
+      }
 
-    @media (max-width: 600px) {
+      section:last-child {
+        margin-bottom: 0;
+      }
+
+      section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border: 4px solid transparent;
+        border-radius: 20px;
+        background: linear-gradient(45deg, var(--border-start-color, #1976d2), var(--border-end-color, #64b5f6)) border-box;
+        -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        z-index: 1;
+        transition: all 0.3s ease-in-out;
+        animation: borderPulse 3s infinite, glowPulse 3s infinite;
+        pointer-events: none;
+      }
+
+      section:hover::before {
+        border: 5px solid transparent;
+        box-shadow: 0 0 25px 15px var(--border-start-color, #1976d2);
+        animation: none;
+      }
+
+      @keyframes borderPulse {
+        0% {
+          border-width: 4px;
+          box-shadow: 0 0 0 0 rgba(25, 118, 210, 0.4);
+        }
+        50% {
+          border-width: 5px;
+          box-shadow: 0 0 20px 10px rgba(25, 118, 210, 0.2);
+        }
+        100% {
+          border-width: 4px;
+          box-shadow: 0 0 0 0 rgba(25, 118, 210, 0.4);
+        }
+      }
+
+      @keyframes glowPulse {
+        0% {
+          box-shadow: 0 0 5px 0 rgba(25, 118, 210, 0.4);
+        }
+        50% {
+          box-shadow: 0 0 20px 10px rgba(25, 118, 210, 0.2);
+        }
+        100% {
+          box-shadow: 0 0 5px 0 rgba(25, 118, 210, 0.4);
+        }
+      }
+
+      .site-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+      }
+
+      main {
+        flex: 1;
+        padding-top: 60px;
+        width: 100%;
+        overflow-x: hidden;
+      }
+
+      .hero {
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 0 2rem;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .hero[style*="background-image"] {
+        animation: zoomIn 20s ease-in-out infinite alternate;
+      }
+
+      @keyframes zoomIn {
+        0% {
+          transform: scale(1);
+        }
+        100% {
+          transform: scale(1.1);
+        }
+      }
+
+      .hero-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1;
+        animation: fadeIn 1s ease-in-out;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      .hero-content {
+        max-width: 800px;
+        z-index: 2;
+        position: relative;
+        animation: slideUp 1s ease-out;
+      }
+
+      @keyframes slideUp {
+        from {
+          transform: translateY(50px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      .hero h1 {
+        font-size: 3rem;
+        margin-bottom: 1.5rem;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        animation: fadeIn 1s ease-in-out 0.3s both;
+      }
+
+      .hero p {
+        font-size: 1.2rem;
+        margin-bottom: 2rem;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        animation: fadeIn 1s ease-in-out 0.6s both;
+      }
+
+      .hero button {
+        padding: 1rem 2rem;
+        font-size: 1.1rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        animation: fadeIn 1s ease-in-out 0.9s both;
+      }
+
+      .hero button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      }
+
+      .section {
+        padding: 6rem 1rem;
+        width: 100%;
+        box-sizing: border-box;
+        position: relative;
+        overflow: hidden;
+        background-color: var(--section-background-color, transparent);
+      }
+
+      .section[data-show-background="false"] {
+        background-color: transparent !important;
+        background-image: none !important;
+      }
+
+      .section[data-show-background="false"] .section-background-blur,
+      .section[data-show-background="false"] .section-overlay {
+        display: none !important;
+      }
+
+      .section-background-blur {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-size: cover;
+        background-position: center;
+        z-index: 0;
+        animation: zoomIn 20s ease-in-out infinite alternate;
+      }
+
+      .section-container {
+        position: relative;
+        z-index: 2;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 1rem;
+      }
+
+      .section-header {
+        text-align: center;
+        margin-bottom: 3rem;
+      }
+
+      .section-header h2 {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        position: relative;
+      }
+
+      .section-header h2::after {
+        content: '';
+        position: absolute;
+        bottom: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 50px;
+        height: 3px;
+        background-color: #1976d2;
+        transition: width 0.3s ease-in-out;
+      }
+
+      .section-header h2:hover::after {
+        width: 100px;
+      }
+
+      .section-header p {
+        font-size: 1.2rem;
+        max-width: 800px;
+        margin: 0 auto;
+        line-height: 1.6;
+      }
+
+      .about-section {
+        display: flex;
+        align-items: flex-start;
+        gap: 2rem;
+        padding: 2rem;
+        position: relative;
+        border-radius: 16px;
+        background: linear-gradient(145deg, #ffffff, #f5f5f5);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      }
+
+      .about-section::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border-radius: 16px;
+        padding: 2px;
+        background: linear-gradient(45deg, #1976d2, #42a5f5);
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+      }
+
+      .about-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        padding-left: 1rem;
+        text-align: left;
+        position: relative;
+      }
+
+      .about-content::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: linear-gradient(to bottom, #1976d2, #42a5f5);
+        border-radius: 2px;
+      }
+
+      .about-content h2 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        text-align: left;
+        position: relative;
+      }
+
+      .about-content h2::after {
+        content: "";
+        position: absolute;
+        bottom: -8px;
+        left: 0;
+        width: 60px;
+        height: 4px;
+        background: linear-gradient(to right, #1976d2, #42a5f5);
+        border-radius: 2px;
+      }
+
+      .about-content p {
+        font-size: 1.1rem;
+        line-height: 1.6;
+        text-align: left;
+      }
+
+      .section-image {
+        width: 100%;
+        margin: 2rem auto;
+        text-align: center;
+        max-width: 800px;
+      }
+
+      .section-image img {
+        width: 100%;
+        height: auto;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        transition: transform 0.3s ease;
+      }
+
+      .section-image img:hover {
+        transform: scale(1.02);
+      }
+
+      @media (max-width: 768px) {
+        .about-section {
+          flex-direction: column;
+        }
+        
+        .about-content {
+          padding-left: 0;
+          padding-top: 1rem;
+        }
+      }
+
       .section h2 {
-        font-size: 2rem;
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        text-align: center;
+        position: relative;
       }
-      .section p {
-        font-size: 1rem;
-      }
-    }
 
-    @media (max-width: 960px) {
-      .section h2 {
-        font-size: 2.25rem;
+      .section h2::after {
+        content: '';
+        position: absolute;
+        bottom: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 50px;
+        height: 3px;
+        background-color: #1976d2;
+        transition: width 0.3s ease-in-out;
       }
+
+      .section h2:hover::after {
+        width: 100px;
+      }
+
       .section p {
         font-size: 1.1rem;
+        margin-bottom: 3rem;
+        text-align: center;
+        max-width: 800px;
+        margin-left: auto;
+        margin-right: auto;
       }
-    }
-  `;
+
+      /* Container for cards */
+      .cards-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 2rem;
+        padding: 1rem;
+        position: relative;
+        z-index: 2;
+        pointer-events: auto;
+      }
+
+      @media (max-width: 1024px) {
+        .cards-container {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      @media (max-width: 768px) {
+        .cards-container {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* Basic card styles with animations */
+      .card {
+        transition: all 0.3s ease-in-out;
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        background-color: #ffffff;
+        width: 100%;
+        max-width: 280px;
+        border-radius: 12px;
+        overflow: hidden;
+        height: 100%;
+        margin: 1rem;
+        position: relative;
+        z-index: 2;
+      }
+
+      /* Card headings and text */
+      .card-title {
+        color: #1a237e;
+        margin-bottom: 0.7rem;
+        font-size: 1.5rem;
+        font-weight: 600;
+        transition: all 0.3s ease-in-out;
+      }
+
+      .card-text {
+        color: #455a64;
+        font-size: 1rem;
+        line-height: 1.6;
+        transition: all 0.3s ease-in-out;
+      }
+
+      /* Simple Card */
+      .card.simple {
+        background-color: transparent;
+        border: 3px solid #e0e0e0;
+      }
+
+      .card.simple:hover {
+        transform: scale(1.2);
+        z-index: 3;
+      }
+
+      /* Elevated Card */
+      .card.elevated {
+        background-color: #ffffff;
+        border: 3px solid #e0e0e0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+
+      .card.elevated:hover {
+        transform: rotate(3deg) scale(1.05);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        z-index: 3;
+      }
+
+      .card.elevated:hover .card-title {
+        color: #1976d2;
+        transform: translateX(4px);
+      }
+
+      /* Outlined Card */
+      .card.outlined {
+        background: linear-gradient(to right, #e8f5e9, #c8e6c9);
+        border: 3px solid #e0e0e0;
+      }
+
+      .card.outlined:hover {
+        transform: skew(-5deg) translateY(-5px);
+        border-color: #1976d2;
+        z-index: 3;
+      }
+
+      .card.outlined:hover .card-title {
+        color: #1976d2;
+      }
+
+      /* Accent Card */
+      .card.accent {
+        background-color: #ffffff;
+        border: 3px solid #e0e0e0;
+        position: relative;
+      }
+
+      .card.accent::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: linear-gradient(to bottom, #1976d2, #42a5f5);
+        transition: width 0.3s ease-in-out;
+        z-index: 1;
+      }
+
+      .card.accent:hover {
+        transform: translateX(10px) translateY(-5px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 3;
+      }
+
+      .card.accent:hover::before {
+        width: 6px;
+      }
+
+      .card.accent:hover .card-title {
+        color: #1976d2;
+      }
+
+      /* Gradient Card */
+      .card.gradient {
+        background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
+        border: 3px solid #e0e0e0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: all 0.3s ease-in-out;
+        position: relative;
+        z-index: 2;
+      }
+
+      .card.gradient:hover {
+        transform: scale(1.2);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        z-index: 3;
+      }
+
+      .card.gradient:hover h3 {
+        color: #1976d2;
+      }
+
+      .card.gradient:hover p {
+        color: #455a64;
+      }
+
+      /* Container for sections */
+      .section-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 2rem;
+      }
+
+      /* Section heading */
+      .section-header {
+        text-align: center;
+        margin-bottom: 4rem;
+      }
+
+      .section-header h2 {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        position: relative;
+        display: inline-block;
+      }
+
+      .section-header p {
+        font-size: 1.2rem;
+        max-width: 800px;
+        margin: 0 auto;
+        line-height: 1.6;
+      }
+
+      @media (max-width: 768px) {
+        .contact-grid {
+          grid-template-columns: 1fr !important;
+          gap: 1.5rem !important;
+        }
+      }
+
+      .section-image img:hover {
+        transform: scale(1.02);
+      }
+
+      .image-upload-control {
+        margin-top: 1rem;
+        display: flex;
+        justify-content: flex-start;
+      }
+
+      .upload-button {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background-color: #1976d2;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+      }
+
+      .upload-button:hover {
+        background-color: #1565c0;
+      }
+
+      .upload-button i {
+        font-size: 1.2rem;
+      }
+
+      @media (max-width: 768px) {
+        .nav-container {
+          padding: 0 0.5rem;
+        }
+
+        .logo {
+          font-size: 1rem;
+        }
+
+        .nav-menu a {
+          font-size: 0.9rem;
+        }
+      }
+
+      .cards-container.cards-2 {
+        max-width: 1200px;
+        margin-left: auto;
+        margin-right: auto;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 2rem;
+      }
+      .cards-container.cards-3 {
+        max-width: 1200px;
+        margin-left: auto;
+        margin-right: auto;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 2rem;
+      }
+      
+      @media (max-width: 1024px) {
+        .cards-container.cards-2,
+        .cards-container.cards-3 {
+          grid-template-columns: 1fr;
+        }
+      }
+      
+      .cards-container.cards-2 .card,
+      .cards-container.cards-3 .card {
+        max-width: 100%;
+        width: 100%;
+      }
+
+      .card, .section-image img, .about-image img {
+        opacity: 0;
+        transform: translateY(40px);
+        transition: opacity 0.8s cubic-bezier(0.4,0,0.2,1), transform 0.8s cubic-bezier(0.4,0,0.2,1);
+      }
+      .card.animate-on-scroll, .section-image img.animate-on-scroll, .about-image img.animate-on-scroll {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .about-section::before, .about-content::before {
+        display: none !important;
+      }
+
+      @media (max-width: 1024px) {
+        .no-card-section {
+          flex-direction: column;
+          align-items: center;
+        }
+        
+        .no-card-section .about-image {
+          min-width: 100%;
+          max-width: 500px;
+          margin: 0 auto 2rem auto;
+          order: -1;
+        }
+        
+        .no-card-section .about-content {
+          width: 100%;
+          text-align: center;
+        }
+        
+        .no-card-section .about-content h2,
+        .no-card-section .about-content p,
+        .no-card-section .about-content div {
+          text-align: center !important;
+        }
+        
+        .no-card-section .about-content div br {
+          display: none;
+        }
+        
+        .no-card-section .about-content div strong {
+          display: block;
+          margin-top: 1rem;
+          margin-bottom: 0.5rem;
+        }
+      }
+
+      /* Styles for text in sections */
+      .section h2 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        line-height: 1.2;
+        letter-spacing: -0.01562em;
+        text-transform: none;
+        margin-bottom: 1.5rem;
+        text-align: center;
+        color: inherit;
+        word-wrap: break-word;
+      }
+
+      .section p {
+        font-size: 1.25rem;
+        font-weight: 400;
+        line-height: 1.5;
+        letter-spacing: 0.00938em;
+        text-align: center;
+        margin-bottom: 2rem;
+        color: inherit;
+        max-width: 100%;
+        word-wrap: break-word;
+      }
+
+      @media (max-width: 600px) {
+        .section h2 {
+          font-size: 2rem;
+        }
+        .section p {
+          font-size: 1rem;
+        }
+      }
+
+      @media (max-width: 960px) {
+        .section h2 {
+          font-size: 2.25rem;
+        }
+        .section p {
+          font-size: 1.1rem;
+        }
+      }
+    `;
   };
 
   const generateJS = () => {
@@ -3250,11 +3542,17 @@ const EditorPanel = ({
           const form = document.getElementById('contactForm');
           const formData = new FormData(form);
           
-          // Add server data sending here
-          // For example, using fetch or XMLHttpRequest
-          
-          // Open merci.html in new tab
-          window.open('merci.html', '_blank');
+          // Send form data
+          fetch('https://formspree.io/f/mldbzjyw', {
+            method: 'POST',
+            body: formData,
+            headers: {
+              'Accept': 'application/json'
+            }
+          }).finally(() => {
+            // Always redirect to merci.html
+            window.location.href = 'merci.html';
+          });
         };
 
         // Cards and images scroll animation
@@ -3269,11 +3567,11 @@ const EditorPanel = ({
         }, { threshold: 0.15 });
         animatedEls.forEach(el => observer.observe(el));
         
-        // Инициализация автоматических слайд-шоу изображений
+        // Initialize automatic image slideshows
         initImageGalleries();
       });
       
-      // Функция для инициализации всех галерей изображений на странице
+      // Function to initialize all image galleries on the page
       function initImageGalleries() {
         const galleries = document.querySelectorAll('.section-gallery');
         
@@ -3283,23 +3581,23 @@ const EditorPanel = ({
           let currentIndex = 0;
           let interval = null;
           
-          // Если изображений меньше 2, не делаем ничего
+          // If there are less than 2 images, do nothing
           if (images.length < 2) return;
           
-          // Функция для переключения слайдов
+          // Function to switch slides
           function showSlide(index) {
-            // Скрываем все изображения
+                          // Hide all images
             images.forEach(img => img.style.display = 'none');
             
-            // Сбрасываем активные точки
+                          // Reset active dots
             dots.forEach(dot => dot.style.backgroundColor = 'rgba(255,255,255,0.5)');
             
-            // Показываем выбранное изображение
+                          // Show selected image
             if (images[index]) {
               images[index].style.display = 'block';
             }
             
-            // Обновляем активную точку
+                          // Update active dot
             if (dots[index]) {
               dots[index].style.backgroundColor = '#ffffff';
             }
@@ -3307,30 +3605,30 @@ const EditorPanel = ({
             currentIndex = index;
           }
           
-          // Устанавливаем обработчики для точек навигации
+          // Set handlers for navigation dots
           dots.forEach((dot, index) => {
             dot.addEventListener('click', () => {
-              clearInterval(interval); // Останавливаем автопрокрутку при ручном переключении
+              clearInterval(interval); // Stop auto-scroll on manual switch
               showSlide(index);
-              startAutoScroll(); // Перезапускаем автопрокрутку
+                              startAutoScroll(); // Restart auto-scroll
             });
           });
           
-          // Функция для запуска автопрокрутки
+          // Function to start auto-scroll
           function startAutoScroll() {
-            // Очищаем предыдущий интервал, если он был
+                          // Clear previous interval if it exists
             if (interval) {
               clearInterval(interval);
             }
             
-            // Устанавливаем новый интервал
+                          // Set new interval
             interval = setInterval(() => {
               const nextIndex = (currentIndex + 1) % images.length;
               showSlide(nextIndex);
-            }, 3000); // Интервал 3 секунды между слайдами
+            }, 3000); // 3 seconds interval between slides
           }
           
-          // Добавляем обработчики для остановки автопрокрутки при наведении
+          // Add handlers to stop auto-scroll on hover
           gallery.addEventListener('mouseenter', () => {
             clearInterval(interval);
           });
@@ -3339,10 +3637,10 @@ const EditorPanel = ({
             startAutoScroll();
           });
           
-          // Запускаем автопрокрутку при загрузке
+          // Start auto-scroll on load
           startAutoScroll();
           
-          // Добавляем свайп на мобильных устройствах
+          // Add swipe on mobile devices
           let touchStartX = 0;
           let touchEndX = 0;
           
@@ -3357,12 +3655,12 @@ const EditorPanel = ({
           
           function handleSwipe() {
             if (touchEndX < touchStartX) {
-              // Свайп влево - следующий слайд
+              // Swipe left - next slide
               clearInterval(interval);
               showSlide((currentIndex + 1) % images.length);
               startAutoScroll();
             } else if (touchEndX > touchStartX) {
-              // Свайп вправо - предыдущий слайд
+              // Swipe right - previous slide
               clearInterval(interval);
               showSlide((currentIndex - 1 + images.length) % images.length);
               startAutoScroll();
@@ -3383,9 +3681,31 @@ const EditorPanel = ({
       const jsFolder = assetsFolder.folder('js');
       const imagesFolder = assetsFolder.folder('images');
 
-      // Add merci.html to root
+      // Add merci.html to root with language settings
       const merciResponse = await fetch('/merci.html');
-      const merciContent = await merciResponse.text();
+      let merciContent = await merciResponse.text();
+      
+      // Применяем язык из настроек
+      const language = headerData?.language || 'ru';
+      merciContent = merciContent.replace(
+        /<html[^>]*>/,
+        `<html lang="${language}">`
+      );
+      
+      // Заменяем значения по умолчанию на значения из полей редактирования
+      const thankYouMessage = contactData?.thankYouMessage || 'Спасибо за обращение! Мы свяжемся с вами в ближайшее время.';
+      const closeButtonText = contactData?.closeButtonText || 'Закрыть';
+      
+      merciContent = merciContent.replace(
+        'const message = urlParams.get(\'message\') || \'Спасибо за обращение! Мы свяжемся с вами в ближайшее время.\';',
+        `const message = urlParams.get('message') || '${thankYouMessage.replace(/'/g, "\\'")}';`
+      );
+      
+      merciContent = merciContent.replace(
+        'const closeButtonText = urlParams.get(\'closeButtonText\') || \'Закрыть\';',
+        `const closeButtonText = urlParams.get('closeButtonText') || '${closeButtonText.replace(/'/g, "\\'")}';`
+      );
+      
       zip.file('merci.html', merciContent);
 
       // Convert sections from object to array if needed
@@ -3895,9 +4215,31 @@ const EditorPanel = ({
       const jsFolder = assetsFolder.folder('js');
       const imagesFolder = assetsFolder.folder('images');
 
-      // Add merci.html to root
+      // Add merci.html to root with language settings
       const merciResponse = await fetch('/merci.html');
-      const merciContent = await merciResponse.text();
+      let merciContent = await merciResponse.text();
+      
+      // Применяем язык из настроек
+      const language = headerData?.language || 'ru';
+      merciContent = merciContent.replace(
+        /<html[^>]*>/,
+        `<html lang="${language}">`
+      );
+      
+      // Заменяем значения по умолчанию на значения из полей редактирования
+      const thankYouMessage = contactData?.thankYouMessage || 'Спасибо за обращение! Мы свяжемся с вами в ближайшее время.';
+      const closeButtonText = contactData?.closeButtonText || 'Закрыть';
+      
+      merciContent = merciContent.replace(
+        'const message = urlParams.get(\'message\') || \'Спасибо за обращение! Мы свяжемся с вами в ближайшее время.\';',
+        `const message = urlParams.get('message') || '${thankYouMessage.replace(/'/g, "\\'")}';`
+      );
+      
+      merciContent = merciContent.replace(
+        'const closeButtonText = urlParams.get(\'closeButtonText\') || \'Закрыть\';',
+        `const closeButtonText = urlParams.get('closeButtonText') || '${closeButtonText.replace(/'/g, "\\'")}';`
+      );
+      
       zip.file('merci.html', merciContent);
 
       // Convert sections from object to array if needed
@@ -5751,18 +6093,18 @@ ${mainHtml}
         open={deleteDialogOpen}
         onClose={handleCancelDelete}
       >
-        <DialogTitle>Подтверждение удаления</DialogTitle>
+        <DialogTitle>Delete Confirmation</DialogTitle>
         <DialogContent>
           <Typography>
-            Вы уверены, что хотите удалить эту секцию? Это действие нельзя отменить.
+            Are you sure you want to delete this section? This action cannot be undone.
           </Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCancelDelete} color="primary">
-            Отмена
+            Cancel
           </Button>
           <Button onClick={handleConfirmDelete} color="error" variant="contained">
-            Удалить
+            Delete
           </Button>
         </DialogActions>
       </Dialog>
