@@ -338,8 +338,7 @@ const generateSiteContent = (siteData) => {
     headerStyles.push(`--header-link-color: ${headerData.linksColor}`);
   }
 
-  return cleanHTML(`
-    <div class="site-container">
+  return cleanHTML(`    <div class="site-container">
       <header class="site-header" style="${headerStyles.join('; ')}">
         <div class="header-content">
           <div class="site-branding">
@@ -360,8 +359,7 @@ const generateSiteContent = (siteData) => {
 };
 
 const generateHeader = (siteData) => {
-  return cleanHTML(`
-    <header>
+  return cleanHTML(`    <header>
       <nav>
         ${generateNavigation(siteData)}
       </nav>
@@ -508,6 +506,8 @@ function generateCardHTML(card, cardType, index) {
     </div>
   `;
 }
+
+
 
 
 

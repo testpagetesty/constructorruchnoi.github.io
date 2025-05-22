@@ -159,16 +159,16 @@
         <button class="close-button" onclick="window.history.back()" id="closeButton"></button>
     </div>
     <script>
-        // Получаем параметры из URL
+        // Get parameters from URL
         const urlParams = new URLSearchParams(window.location.search);
         const message = urlParams.get('message') || 'Спасибо за обращение! Мы свяжемся с вами в ближайшее время.';
         const closeButtonText = urlParams.get('closeButtonText') || 'Закрыть';
 
-        // Устанавливаем текст сообщения и кнопки
+        // Set message and button text
         document.getElementById('thankYouMessage').textContent = message;
         document.getElementById('closeButton').textContent = closeButtonText;
 
-        // Добавляем обработчик клавиши Escape
+        // Add Escape key handler
         document.addEventListener('keydown', function(event) {
             if (event.key === 'Escape') {
                 window.history.back();

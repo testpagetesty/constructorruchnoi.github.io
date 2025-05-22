@@ -3685,14 +3685,14 @@ const EditorPanel = ({
       const merciResponse = await fetch('/merci.html');
       let merciContent = await merciResponse.text();
       
-      // Применяем язык из настроек
+      // Apply language settings from configuration
       const language = headerData?.language || 'ru';
       merciContent = merciContent.replace(
         /<html[^>]*>/,
         `<html lang="${language}">`
       );
       
-      // Заменяем значения по умолчанию на значения из полей редактирования
+      // Replace default values with values from edit fields
       const thankYouMessage = contactData?.thankYouMessage || 'Спасибо за обращение! Мы свяжемся с вами в ближайшее время.';
       const closeButtonText = contactData?.closeButtonText || 'Закрыть';
       
@@ -4219,14 +4219,14 @@ const EditorPanel = ({
       const merciResponse = await fetch('/merci.html');
       let merciContent = await merciResponse.text();
       
-      // Применяем язык из настроек
+      // Apply language settings from configuration
       const language = headerData?.language || 'ru';
       merciContent = merciContent.replace(
         /<html[^>]*>/,
         `<html lang="${language}">`
       );
       
-      // Заменяем значения по умолчанию на значения из полей редактирования
+      // Replace default values with values from edit fields
       const thankYouMessage = contactData?.thankYouMessage || 'Спасибо за обращение! Мы свяжемся с вами в ближайшее время.';
       const closeButtonText = contactData?.closeButtonText || 'Закрыть';
       
