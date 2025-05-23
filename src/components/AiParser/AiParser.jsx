@@ -605,29 +605,114 @@ info@your-law.com
 ПРОВЕРКА: Убедитесь, что ВСЕ заголовки и ВЕСЬ текст написаны ТОЛЬКО на выбранном языке. Не смешивайте языки. Если выбран не русский язык, НЕ используйте русский текст нигде в документах.`,
 };
 
+const WordRangeEditor = ({ section, ranges, onChange }) => {
+  const handleRangeChange = (field, type, value) => {
+    const newRange = { ...ranges[field] };
+    const parsedValue = Math.max(1, parseInt(value) || 1);
+    
+    // Определяем тип контента
+    const isCardContent = field === 'cardContent';
+    
+    // Применяем ограничения для cardContent
+    if (isCardContent) {
+      if (type === 'min') {
+        // Минимум не может быть меньше 55 для cardContent
+        newRange.min = Math.max(55, parsedValue);
+        // Если максимум меньше минимума + 10, корректируем максимум
+        if (newRange.max < newRange.min + 10) {
+          newRange.max = Math.min(130, newRange.min + 10);
+        }
+      } else if (type === 'max') {
+        // Максимум не может быть больше 130 для cardContent
+        newRange.max = Math.min(130, parsedValue);
+        // Если минимум больше максимума - 10, корректируем минимум
+        if (newRange.min > newRange.max - 10) {
+          newRange.min = Math.max(55, newRange.max - 10);
+        }
+      }
+    } else {
+      // Для других полей просто обновляем значение
+      newRange[type] = parsedValue;
+      
+      // Убедимся, что max всегда больше min
+      if (type === 'min' && newRange.max < newRange.min) {
+        newRange.max = newRange.min + 1;
+      } else if (type === 'max' && newRange.max < newRange.min) {
+        newRange.min = newRange.max - 1;
+      }
+    }
+    
+    onChange(section, field, newRange);
+  };
+
+  const getFieldLabel = (field) => {
+    if (section === 'HERO') {
+      switch (field) {
+        case 'title':
+          return 'Заголовок Hero';
+        case 'description':
+          return 'Описание Hero';
+        default:
+          return field;
+      }
+    } else {
+      switch (field) {
+        case 'sectionTitle':
+          return 'Заголовок раздела';
+        case 'sectionDescription':
+          return 'Описание раздела';
+        case 'cardContent':
+          return 'Содержимое карточки';
+        default:
+          return field;
+      }
+    }
+  };
+
+  return (
+    <Box sx={{ mb: 2 }}>
+      <Typography variant="subtitle1" gutterBottom>
+        {section === 'HERO' ? 'Hero секция' : section}:
+      </Typography>
+      {Object.entries(ranges).map(([field, range]) => (
+        <Box key={field} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+          <Typography variant="body2" sx={{ minWidth: 150 }}>
+            {getFieldLabel(field)}:
+          </Typography>
+          <TextField
+            size="small"
+            type="number"
+            label="Мин"
+            value={range.min}
+            onChange={(e) => handleRangeChange(field, 'min', e.target.value)}
+            sx={{ width: 80, mr: 1 }}
+            inputProps={{
+              min: field === 'cardContent' ? 55 : 1,
+              max: field === 'cardContent' ? 130 : undefined
+            }}
+          />
+          <Typography variant="body2" sx={{ mx: 1 }}>-</Typography>
+          <TextField
+            size="small"
+            type="number"
+            label="Макс"
+            value={range.max}
+            onChange={(e) => handleRangeChange(field, 'max', e.target.value)}
+            sx={{ width: 80 }}
+            inputProps={{
+              min: field === 'cardContent' ? 55 : 1,
+              max: field === 'cardContent' ? 130 : undefined
+            }}
+          />
+        </Box>
+      ))}
+    </Box>
+  );
+};
+
 // Добавляем компонент настройки промпта полного сайта
 const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings }) => {
-  const [settings, setSettings] = useState(initialSettings || {
-    includedSections: {
-      HERO: true,
-      ABOUT: true,
-      SERVICES: true,
-      FEATURES: true,
-      NEWS: true,
-      FAQ: true,
-      TESTIMONIALS: true,
-      CONTACTS: true,
-      MERCI: true
-    },
-    cardCounts: {
-      ABOUT: 4,
-      SERVICES: 4,
-      FEATURES: 4,
-      NEWS: 3,
-      FAQ: 4,
-      TESTIMONIALS: 3
-    }
-  });
+  const [settings, setSettings] = useState(initialSettings);
 
   const handleSectionToggle = (section) => {
     setSettings(prev => ({
@@ -649,25 +734,16 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings }) => {
     }));
   };
 
-  // Добавляем функцию для рандомизации количества карточек
-  const handleRandomizeCardCounts = () => {
-    const newCardCounts = { ...settings.cardCounts };
-    
-    // Рандомизируем количество карточек для каждого раздела, 
-    // учитывая ограничение для услуг (минимум 4)
-    Object.keys(newCardCounts).forEach(section => {
-      if (section === 'SERVICES') {
-        // Для услуг минимум 4 карточки, максимум 8
-        newCardCounts[section] = Math.floor(Math.random() * 5) + 4; // 4-8
-      } else {
-        // Для остальных разделов от 2 до 7 карточек
-        newCardCounts[section] = Math.floor(Math.random() * 6) + 2; // 2-7
-      }
-    });
-    
+  const handleWordRangeChange = (section, field, newRange) => {
     setSettings(prev => ({
       ...prev,
-      cardCounts: newCardCounts
+      wordRanges: {
+        ...prev.wordRanges,
+        [section]: {
+          ...prev.wordRanges[section],
+          [field]: newRange
+        }
+      }
     }));
   };
 
@@ -688,6 +764,186 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings }) => {
     MERCI: 'Сообщение благодарности'
   };
 
+  const randomizeAllSettings = () => {
+    // Рандомизируем количество карточек
+    const newCardCounts = { ...settings.cardCounts };
+    Object.keys(newCardCounts).forEach(section => {
+      if (section === 'SERVICES') {
+        // Для услуг минимум 4 карточки, максимум 8
+        newCardCounts[section] = Math.floor(Math.random() * 5) + 4; // 4-8
+      } else {
+        // Для остальных разделов от 2 до 7 карточек
+        newCardCounts[section] = Math.floor(Math.random() * 6) + 2; // 2-7
+      }
+    });
+
+    // Стили контента с разными характеристиками
+    const contentStyles = {
+      MINIMAL: {
+        titleMultiplier: 0.6,
+        descriptionMultiplier: 0.7,
+        contentMultiplier: 0.5
+      },
+      STANDARD: {
+        titleMultiplier: 1,
+        descriptionMultiplier: 1,
+        contentMultiplier: 1
+      },
+      DETAILED: {
+        titleMultiplier: 1.3,
+        descriptionMultiplier: 1.5,
+        contentMultiplier: 1.8
+      },
+      COMPREHENSIVE: {
+        titleMultiplier: 1.6,
+        descriptionMultiplier: 2,
+        contentMultiplier: 2.5
+      }
+    };
+
+    // Выбираем случайный стиль для каждого раздела
+    const getRandomStyle = () => {
+      const styles = Object.keys(contentStyles);
+      return styles[Math.floor(Math.random() * styles.length)];
+    };
+
+    const getRandomRange = (type, section) => {
+      // Определяем тип раздела
+      const isContentSection = ['FEATURES', 'TESTIMONIALS', 'ABOUT', 'NEWS', 'SERVICES', 'FAQ'].includes(section);
+      
+      // Устанавливаем жесткие максимальные ограничения
+      const HARD_LIMITS = {
+        content: isContentSection 
+          ? { minRange: [55, 90], max: 130 } // Изменяем диапазон минимальных значений
+          : { minRange: [20, 60], max: 90 },
+        description: { minRange: [20, 60], max: 90 },
+        title: { minRange: [2, 20], max: 30 }
+      };
+
+      // Определяем тип контента для применения ограничений
+      let contentType = 'title'; // по умолчанию
+      if (type === 'cardContent' || type.includes('content')) {
+        contentType = 'content';
+      } else if (type.includes('description') || type.includes('Description')) {
+        contentType = 'description';
+      }
+
+      // Генерируем случайное минимальное значение
+      let randomMin;
+      const [minRange, maxRange] = HARD_LIMITS[contentType].minRange;
+      
+      // Для контента в указанных разделах генерируем случайное значение в диапазоне
+      if (contentType === 'content' && isContentSection) {
+        // Генерируем случайное значение между 55 и 90
+        randomMin = Math.floor(Math.random() * (maxRange - minRange + 1)) + minRange;
+      } else {
+        randomMin = Math.floor(minRange + Math.random() * (maxRange - minRange));
+      }
+
+      // Генерируем максимальное значение с учетом ограничений
+      const maxLimit = HARD_LIMITS[contentType].max;
+      const minDiff = contentType === 'content' ? 10 : (contentType === 'description' ? 5 : 2);
+      
+      // Ограничиваем максимальную разницу
+      const maxDiff = contentType === 'content' && isContentSection
+        ? Math.min(40, 130 - randomMin) // Увеличиваем возможную разницу до 40 слов
+        : Math.min(20, maxLimit - randomMin);
+
+      let randomMax = Math.min(
+        maxLimit,
+        randomMin + minDiff + Math.floor(Math.random() * (maxDiff - minDiff))
+      );
+
+      // Обеспечиваем минимальную разницу и максимальное ограничение
+      if (randomMax - randomMin < minDiff) {
+        randomMax = Math.min(randomMin + minDiff, maxLimit);
+      }
+
+      // Финальная проверка ограничений для указанных разделов
+      if (contentType === 'content' && isContentSection) {
+        randomMin = Math.max(55, randomMin); // Гарантируем минимум 55 слов
+        randomMax = Math.min(randomMax, 130); // Гарантируем максимум 130 слов
+        
+        // Убеждаемся, что разница между min и max составляет хотя бы 10 слов
+        if (randomMax - randomMin < 10) {
+          if (randomMax < 130) {
+            randomMax = Math.min(130, randomMin + 10);
+          } else {
+            randomMin = Math.max(55, randomMax - 10);
+          }
+        }
+      }
+
+      return { min: randomMin, max: randomMax };
+    };
+
+    const newWordRanges = {};
+    
+    // Для каждой секции генерируем новые диапазоны
+    Object.entries(settings.wordRanges).forEach(([section, fields]) => {
+      newWordRanges[section] = {};
+      Object.entries(fields).forEach(([field]) => {
+        newWordRanges[section][field] = getRandomRange(field, section);
+      });
+    });
+
+    // Дополнительная обработка для обеспечения контраста между разделами
+    const sections = Object.keys(newWordRanges);
+    for (let i = 0; i < sections.length; i++) {
+      for (let j = i + 1; j < sections.length; j++) {
+        const section1 = sections[i];
+        const section2 = sections[j];
+        
+        // Проверяем перекрытие диапазонов для cardContent
+        if (newWordRanges[section1].cardContent && newWordRanges[section2].cardContent) {
+          const range1 = newWordRanges[section1].cardContent;
+          const range2 = newWordRanges[section2].cardContent;
+          
+          // Если диапазоны слишком похожи, корректируем один из них
+          if (Math.abs(range1.min - range2.min) < 15 && Math.abs(range1.max - range2.max) < 30) {
+            if (Math.random() < 0.5) {
+              // Уменьшаем первый диапазон
+              range1.min = Math.max(55, Math.min(110, range1.min - 10));
+              range1.max = Math.max(65, Math.min(130, range1.max - 10));
+            } else {
+              // Увеличиваем второй диапазон
+              range2.min = Math.max(55, Math.min(110, range2.min + 10));
+              range2.max = Math.max(65, Math.min(130, range2.max + 10));
+            }
+            
+            // Проверяем и корректируем разницу между min и max
+            if (range1.max - range1.min < 10) {
+              range1.max = Math.min(130, range1.min + 10);
+            }
+            if (range2.max - range2.min < 10) {
+              range2.max = Math.min(130, range2.min + 10);
+            }
+          }
+        }
+      }
+    }
+
+    // Финальная проверка всех диапазонов
+    Object.entries(newWordRanges).forEach(([section, fields]) => {
+      if (fields.cardContent) {
+        fields.cardContent.min = Math.max(55, Math.min(110, fields.cardContent.min));
+        fields.cardContent.max = Math.max(65, Math.min(130, fields.cardContent.max));
+        
+        // Обеспечиваем минимальную разницу
+        if (fields.cardContent.max - fields.cardContent.min < 10) {
+          fields.cardContent.max = Math.min(130, fields.cardContent.min + 10);
+        }
+      }
+    });
+
+    // Обновляем все настройки одновременно
+    setSettings(prev => ({
+      ...prev,
+      cardCounts: newCardCounts,
+      wordRanges: newWordRanges
+    }));
+  };
+
   return (
     <Dialog 
       open={open} 
@@ -695,8 +951,17 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings }) => {
       maxWidth="md"
       fullWidth
     >
-      <DialogTitle>
-        Настройка промпта полного сайта
+      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography variant="h6">Настройка промпта полного сайта</Typography>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={randomizeAllSettings}
+          startIcon={<ShuffleIcon />}
+          size="small"
+        >
+          Случайные значения
+        </Button>
       </DialogTitle>
       <DialogContent>
         <Box sx={{ mb: 3, mt: 1 }}>
@@ -727,15 +992,6 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings }) => {
           <Typography variant="subtitle1">
             Количество карточек в каждом разделе:
           </Typography>
-          <Button 
-            variant="outlined" 
-            color="secondary" 
-            size="small" 
-            onClick={handleRandomizeCardCounts}
-            startIcon={<TuneIcon />}
-          >
-            Случайное кол-во
-          </Button>
         </Box>
         
         <Grid container spacing={3}>
@@ -760,6 +1016,32 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings }) => {
             )
           ))}
         </Grid>
+
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="h6" gutterBottom>
+            Диапазоны количества слов:
+          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+            <Typography variant="body2" color="textSecondary">
+              Настройте количество слов для каждого элемента
+            </Typography>
+          </Box>
+          <Accordion defaultExpanded>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Typography>Настройки диапазонов</Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              {Object.entries(settings.wordRanges).map(([section, ranges]) => (
+                <WordRangeEditor
+                  key={section}
+                  section={section}
+                  ranges={ranges}
+                  onChange={handleWordRangeChange}
+                />
+              ))}
+            </AccordionDetails>
+          </Accordion>
+        </Box>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Отмена</Button>
@@ -821,7 +1103,7 @@ const AiParser = ({
   const [showFullSiteSettings, setShowFullSiteSettings] = useState(false);
   const [fullSiteSettings, setFullSiteSettings] = useState({
     includedSections: {
-      HERO: true,
+      HERO: true, // Hero секция всегда включена
       ABOUT: true,
       SERVICES: true,
       FEATURES: true,
@@ -838,6 +1120,42 @@ const AiParser = ({
       NEWS: 3,
       FAQ: 4,
       TESTIMONIALS: 3
+    },
+    wordRanges: {
+      HERO: {
+        title: { min: 3, max: 7 },        // Для заголовка Hero
+        description: { min: 15, max: 25 }  // Для описания Hero
+      },
+      ABOUT: {
+        sectionTitle: { min: 2, max: 10 },
+        sectionDescription: { min: 10, max: 45 },
+        cardContent: { min: 55, max: 130 }
+      },
+      SERVICES: {
+        sectionTitle: { min: 2, max: 10 },
+        sectionDescription: { min: 10, max: 45 },
+        cardContent: { min: 55, max: 130 }
+      },
+      FEATURES: {
+        sectionTitle: { min: 2, max: 10 },
+        sectionDescription: { min: 10, max: 45 },
+        cardContent: { min: 55, max: 130 }
+      },
+      NEWS: {
+        sectionTitle: { min: 2, max: 10 },
+        sectionDescription: { min: 10, max: 45 },
+        cardContent: { min: 55, max: 130 }
+      },
+      FAQ: {
+        sectionTitle: { min: 2, max: 10 },
+        sectionDescription: { min: 10, max: 45 },
+        cardContent: { min: 55, max: 130 }
+      },
+      TESTIMONIALS: {
+        sectionTitle: { min: 2, max: 10 },
+        sectionDescription: { min: 10, max: 45 },
+        cardContent: { min: 55, max: 130 }
+      }
     }
   });
   
@@ -849,109 +1167,101 @@ const AiParser = ({
   
   // Функция для генерации промпта полного сайта с учетом настроек
   const generateFullSitePrompt = (settings) => {
+    const getWordRange = (section, field) => {
+      const range = settings.wordRanges[section]?.[field];
+      if (!range) return '';
+      return `(${range.min}-${range.max} слов)`;
+    };
+
     let sectionsPrompt = `Создайте полный контент для сайта. Строго следуйте формату ниже.
 
 КРИТИЧЕСКИ ВАЖНО: 
 1. Заголовки разделов (=== РАЗДЕЛ: ИМЯ ===) ВСЕГДА должны быть на русском языке
 2. Весь остальной контент (включая ID и заголовки внутри разделов) должен быть на выбранном языке
 3. Не использовать смешанные языки или транслитерацию
-4. Каждый раздел должен начинаться с "=== РАЗДЕЛ: ИМЯ ===" (на русском) и заканчиваться "=== КОНЕЦ РАЗДЕЛА ==="
+4. Каждый раздел должен начинаться с "=== РАЗДЕЛ: ИМЯ ===" и заканчиваться "=== КОНЕЦ РАЗДЕЛА ==="\n\n`;
 
-ВАЖНО О ЯЗЫКАХ:
-1. Разделители === РАЗДЕЛ: ИМЯ === всегда на русском:
-=== РАЗДЕЛ: HERO ===
-=== РАЗДЕЛ: О НАС ===
-=== РАЗДЕЛ: УСЛУГИ ===
-=== РАЗДЕЛ: ПРЕИМУЩЕСТВА ===
-=== РАЗДЕЛ: НОВОСТИ ===
-=== РАЗДЕЛ: ВОПРОСЫ ===
-=== РАЗДЕЛ: ОТЗЫВЫ ===
-=== РАЗДЕЛ: КОНТАКТЫ ===
-=== РАЗДЕЛ: MERCI ===
+    // Добавляем Hero секцию в начало
+    sectionsPrompt += `=== РАЗДЕЛ: HERO ===
+1. Первая строка - название сайта (1-2 слова, легко запоминающееся)
+2. Вторая строка - заголовок hero секции ${getWordRange('HERO', 'title')}
+3. Третья строка - описание ${getWordRange('HERO', 'description')}
 
-2. Заголовки внутри разделов - на выбранном языке. Например:
-- Для английского: "Contacts", "About Us", "Services"
-- Для испанского: "Contactos", "Sobre Nosotros", "Servicios"
-- Для португальского: "Contatos", "Sobre Nós", "Serviços"
-- Для итальянского: "Contatti", "Chi Siamo", "Servizi"\n\n`;
-
-    if (settings.includedSections.HERO) {
-      sectionsPrompt += `=== РАЗДЕЛ: HERO ===
-1. Первая строка - название сайта (максимум 2 слова)
-2. Вторая строка - заголовок hero секции (4-7 слов)
-3. Третья строка - описание (15-25 слов)
+Пример структуры:
+ПравоЩит
+Надежная защита ваших интересов
+Профессиональная юридическая поддержка для бизнеса и частных лиц. Решаем сложные правовые вопросы, гарантируя результат.
 === КОНЕЦ РАЗДЕЛА ===\n\n`;
-    }
 
     if (settings.includedSections.ABOUT) {
       sectionsPrompt += `=== РАЗДЕЛ: О НАС ===
 ID: [укажите ID на выбранном языке]
-[Заголовок раздела на выбранном языке]
-Описание раздела (20-30 слов)
+[Заголовок раздела ${getWordRange('ABOUT', 'sectionTitle')}]
+[Описание раздела ${getWordRange('ABOUT', 'sectionDescription')}]
 
 [${settings.cardCounts.ABOUT} карточек в формате:]
 Заголовок карточки
-Описание (50-100 слов)
+Описание ${getWordRange('ABOUT', 'cardContent')}
 === КОНЕЦ РАЗДЕЛА ===\n\n`;
     }
 
     if (settings.includedSections.SERVICES) {
       sectionsPrompt += `=== РАЗДЕЛ: УСЛУГИ ===
 ID: [укажите ID на выбранном языке]
-[Заголовок раздела на выбранном языке]
-Описание раздела (20-30 слов)
+[Заголовок раздела ${getWordRange('SERVICES', 'sectionTitle')}]
+[Описание раздела ${getWordRange('SERVICES', 'sectionDescription')}]
 
 [${settings.cardCounts.SERVICES} карточек услуг в формате:]
 Название услуги
-Описание услуги (50-100 слов)
+Описание услуги ${getWordRange('SERVICES', 'cardContent')}
 === КОНЕЦ РАЗДЕЛА ===\n\n`;
     }
 
     if (settings.includedSections.FEATURES) {
       sectionsPrompt += `=== РАЗДЕЛ: ПРЕИМУЩЕСТВА ===
 ID: [укажите ID на выбранном языке]
-[Заголовок раздела на выбранном языке]
-Описание раздела (20-30 слов)
+[Заголовок раздела ${getWordRange('FEATURES', 'sectionTitle')}]
+[Описание раздела ${getWordRange('FEATURES', 'sectionDescription')}]
 
 [${settings.cardCounts.FEATURES} преимуществ в формате:]
 Заголовок преимущества
-Описание преимущества (30-50 слов)
+Описание преимущества ${getWordRange('FEATURES', 'cardContent')}
 === КОНЕЦ РАЗДЕЛА ===\n\n`;
     }
 
     if (settings.includedSections.NEWS) {
       sectionsPrompt += `=== РАЗДЕЛ: НОВОСТИ ===
 ID: [укажите ID на выбранном языке]
-[Заголовок раздела на выбранном языке]
-Описание раздела (20-30 слов)
+[Заголовок раздела ${getWordRange('NEWS', 'sectionTitle')}]
+[Описание раздела ${getWordRange('NEWS', 'sectionDescription')}]
 
 [${settings.cardCounts.NEWS} новостей в формате:]
 Заголовок новости
-Текст новости (50-100 слов)
+Текст новости ${getWordRange('NEWS', 'cardContent')}
 === КОНЕЦ РАЗДЕЛА ===\n\n`;
     }
 
     if (settings.includedSections.FAQ) {
       sectionsPrompt += `=== РАЗДЕЛ: ВОПРОСЫ ===
 ID: [укажите ID на выбранном языке]
-[Заголовок раздела на выбранном языке]
-Описание раздела (20-30 слов)
+[Заголовок раздела ${getWordRange('FAQ', 'sectionTitle')}]
+[Описание раздела ${getWordRange('FAQ', 'sectionDescription')}]
 
 [${settings.cardCounts.FAQ} вопросов в формате:]
 Вопрос?
-Ответ (50-100 слов)
+Ответ ${getWordRange('FAQ', 'cardContent')}
 === КОНЕЦ РАЗДЕЛА ===\n\n`;
     }
 
     if (settings.includedSections.TESTIMONIALS) {
       sectionsPrompt += `=== РАЗДЕЛ: ОТЗЫВЫ ===
 ID: [укажите ID на выбранном языке]
-[Заголовок раздела на выбранном языке]
-Описание раздела (20-30 слов)
+[Заголовок раздела ${getWordRange('TESTIMONIALS', 'sectionTitle')}]
+[Описание раздела ${getWordRange('TESTIMONIALS', 'sectionDescription')}]
 
 [${settings.cardCounts.TESTIMONIALS} отзывов в формате:]
 Имя автора
-Текст отзыва (50-80 слов)
+Текст отзыва ${getWordRange('TESTIMONIALS', 'cardContent')}
 === КОНЕЦ РАЗДЕЛА ===\n\n`;
     }
 

@@ -399,7 +399,7 @@ const HeaderEditor = ({
                     fullWidth
                     label="Домен сайта"
                     value={headerData.domain || ''}
-                    onChange={(e) => onHeaderChange({ ...headerData, domain: e.target.value })}
+                    onChange={(e) => onHeaderChange({ ...headerData, domain: e.target.value.toLowerCase() })}
                     placeholder="example.com"
                     helperText="Укажите домен вашего сайта"
                   />
