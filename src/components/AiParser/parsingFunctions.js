@@ -90,12 +90,18 @@ const cleanSectionContent = (content) => {
         !trimmedLine.match(/^\[\d+-\d+/) && // Строки вида "[4-6"
         !trimmedLine.match(/^\[[^\]]+\]/) && // Строки в квадратных скобках
         !trimmedLine.match(/^\(/) && // Строки в круглых скобках
-        !trimmedLine.match(/^ID[:\s]/i) && // "ID:" или "ID " с любой локализацией 
+        // Убираем лишнюю фильтрацию по ID - пусть парсеры сами обрабатывают ID строки
+        // !trimmedLine.match(/^ID[:\s]/i) && // "ID:" или "ID " с любой локализацией 
         trimmedLine !== 'О нас' && // Заголовки навигации
         trimmedLine !== 'Услуги' &&
         trimmedLine !== 'Преимущества' &&
         trimmedLine !== 'Отзывы' &&
-        trimmedLine !== 'Вопросы и ответы';
+        trimmedLine !== 'Вопросы и ответы' &&
+        trimmedLine !== 'About Us' &&
+        trimmedLine !== 'Services' &&
+        trimmedLine !== 'Features' &&
+        trimmedLine !== 'Testimonials' &&
+        trimmedLine !== 'FAQ';
     })
     .join('\n');
 };
@@ -150,9 +156,9 @@ export const parseServices = (content) => {
       if (line.toLowerCase().match(/^id[:\s]/i)) {
         const customId = line.split(/[:]/)[1].trim();
         if (customId) {
-          // Удаляем все пробелы и специальные символы из ID
+          // Удаляем все пробелы и специальные символы из ID, но сохраняем unicode символы
           sectionId = customId.toLowerCase()
-            .replace(/[^a-zа-яё0-9\u0600-\u06FF]/g, '_') // Заменяем все специальные символы на _
+            .replace(/[^a-zа-яё0-9\u4e00-\u9fff\u0600-\u06FF\u3040-\u309F\u30A0-\u30FF]/g, '_') // Поддержка латиницы, кириллицы, китайского, арабского, японского
             .replace(/_+/g, '_') // Заменяем множественные _ на один
             .replace(/^_|_$/g, ''); // Удаляем _ в начале и конце
         }
@@ -294,7 +300,7 @@ export const parseAdvantagesSection = (content) => {
         const customId = line.split(/[:]/)[1].trim();
         if (customId) {
           sectionId = customId.toLowerCase()
-            .replace(/[^a-zа-яё0-9\u0600-\u06FF]/g, '_')
+            .replace(/[^a-zа-яё0-9\u4e00-\u9fff\u0600-\u06FF\u3040-\u309F\u30A0-\u30FF]/g, '_')
             .replace(/_+/g, '_')
             .replace(/^_|_$/g, '');
         }
@@ -404,7 +410,7 @@ export const parseAboutSection = (content) => {
         const customId = line.split(/[:]/)[1].trim();
         if (customId) {
           sectionId = customId.toLowerCase()
-            .replace(/[^a-zа-яё0-9\u0600-\u06FF]/g, '_')
+            .replace(/[^a-zа-яё0-9\u4e00-\u9fff\u0600-\u06FF\u3040-\u309F\u30A0-\u30FF]/g, '_')
             .replace(/_+/g, '_')
             .replace(/^_|_$/g, '');
         }
@@ -520,7 +526,7 @@ export const parseTestimonials = (content) => {
         const customId = line.split(/[:]/)[1].trim();
         if (customId) {
           sectionId = customId.toLowerCase()
-            .replace(/[^a-zа-яё0-9\u0600-\u06FF]/g, '_')
+            .replace(/[^a-zа-яё0-9\u4e00-\u9fff\u0600-\u06FF\u3040-\u309F\u30A0-\u30FF]/g, '_')
             .replace(/_+/g, '_')
             .replace(/^_|_$/g, '');
         }
@@ -638,7 +644,7 @@ export const parseFaq = (content) => {
         const customId = line.split(/[:]/)[1].trim();
         if (customId) {
           sectionId = customId.toLowerCase()
-            .replace(/[^a-zа-яё0-9\u0600-\u06FF]/g, '_')
+            .replace(/[^a-zа-яё0-9\u4e00-\u9fff\u0600-\u06FF\u3040-\u309F\u30A0-\u30FF]/g, '_')
             .replace(/_+/g, '_')
             .replace(/^_|_$/g, '');
         }
@@ -756,7 +762,7 @@ export const parseNews = (content) => {
         const customId = line.split(/[:]/)[1].trim();
         if (customId) {
           sectionId = customId.toLowerCase()
-            .replace(/[^a-zа-яё0-9\u0600-\u06FF]/g, '_')
+            .replace(/[^a-zа-яё0-9\u4e00-\u9fff\u0600-\u06FF\u3040-\u309F\u30A0-\u30FF]/g, '_')
             .replace(/_+/g, '_')
             .replace(/^_|_$/g, '');
           
@@ -893,7 +899,7 @@ export const parseContacts = (content, headerData = {}) => {
           if (headerData?.siteName) {
             const domainName = headerData.siteName
               .toLowerCase()
-              .replace(/[^a-zа-яё0-9\u0600-\u06FF]/g, '-')
+              .replace(/[^a-zа-яё0-9\u4e00-\u9fff\u0600-\u06FF\u3040-\u309F\u30A0-\u30FF]/g, '-')
               .replace(/-+/g, '-')
               .replace(/^-|-$/g, '')
               .replace(/[а-яё]/g, char => {
@@ -1056,15 +1062,20 @@ export const parseMerci = (content) => {
 
 export const parseFullSite = (content, headerData = {}) => {
   try {
-    // Очищаем начальный текст от инструкций
+    // Очищаем начальный текст от инструкций и символов экранирования
     let cleanedContent = content;
+    
+    // Удаляем символы экранирования из разделителей
+    cleanedContent = cleanedContent.replace(/\\===/g, '===');
+    
     // Удаляем всё от начала до первого === РАЗДЕЛ: если это нужно
-    const firstSectionIndex = content.indexOf('=== РАЗДЕЛ:');
+    const firstSectionIndex = cleanedContent.indexOf('=== РАЗДЕЛ:');
     if (firstSectionIndex > 0) {
-      cleanedContent = content.substring(firstSectionIndex);
+      cleanedContent = cleanedContent.substring(firstSectionIndex);
     }
     
     const sections = {};
+    // Стандартный regex для обработки уже очищенного контента
     const sectionRegex = /=== РАЗДЕЛ: ([^=]+) ===([\s\S]*?)=== КОНЕЦ РАЗДЕЛА ===/g;
     let match;
 
@@ -1086,42 +1097,82 @@ export const parseFullSite = (content, headerData = {}) => {
       const sectionContent = section.content;
       
       console.log(`Обрабатываем раздел: ${sectionName}, длина контента: ${sectionContent.length}`);
+      console.log(`Содержимое раздела ${sectionName}:`, sectionContent.substring(0, 200) + '...');
 
-      switch (sectionName) {
-        case 'HERO':
-          sections.hero = parseHero(sectionContent);
-          console.log('Результат парсинга Hero:', sections.hero);
-          break;
-        case 'УСЛУГИ':
-          sections.services = parseServices(sectionContent);
-          break;
-        case 'О НАС':
-          sections.about = parseAboutSection(sectionContent);
-          break;
-        case 'ПРЕИМУЩЕСТВА':
-          sections.features = parseAdvantagesSection(sectionContent);
-          break;
-        case 'ОТЗЫВЫ':
-          sections.testimonials = parseTestimonials(sectionContent);
-          break;
-        case 'ВОПРОСЫ':
-          sections.faq = parseFaq(sectionContent);
-          break;
-        case 'НОВОСТИ':
-          sections.news = parseNews(sectionContent);
-          console.log('Результат парсинга новостей в полном сайте:', sections.news);
-          break;
-        case 'КОНТАКТЫ':
-          sections.contacts = parseContactsFull(sectionContent, headerData);
-          break;
-        case 'MERCI':
-          sections.merci = parseMerci(sectionContent);
-          break;
-        default:
-          console.log(`Неизвестный раздел: ${sectionName}`);
+      try {
+        switch (sectionName) {
+          case 'HERO':
+            sections.hero = parseHero(sectionContent);
+            console.log('Результат парсинга Hero:', sections.hero);
+            if (!sections.hero) {
+              console.error('parseHero вернул null для раздела HERO');
+            }
+            break;
+          case 'УСЛУГИ':
+            sections.services = parseServices(sectionContent);
+            console.log('Результат парсинга Services:', sections.services);
+            if (!sections.services) {
+              console.error('parseServices вернул null для раздела УСЛУГИ');
+            }
+            break;
+          case 'О НАС':
+            sections.about = parseAboutSection(sectionContent);
+            console.log('Результат парсинга About:', sections.about);
+            if (!sections.about) {
+              console.error('parseAboutSection вернул null для раздела О НАС');
+            }
+            break;
+          case 'ПРЕИМУЩЕСТВА':
+            sections.features = parseAdvantagesSection(sectionContent);
+            console.log('Результат парсинга Features:', sections.features);
+            if (!sections.features) {
+              console.error('parseAdvantagesSection вернул null для раздела ПРЕИМУЩЕСТВА');
+            }
+            break;
+          case 'ОТЗЫВЫ':
+            sections.testimonials = parseTestimonials(sectionContent);
+            console.log('Результат парсинга Testimonials:', sections.testimonials);
+            if (!sections.testimonials) {
+              console.error('parseTestimonials вернул null для раздела ОТЗЫВЫ');
+            }
+            break;
+          case 'ВОПРОСЫ':
+            sections.faq = parseFaq(sectionContent);
+            console.log('Результат парсинга FAQ:', sections.faq);
+            if (!sections.faq) {
+              console.error('parseFaq вернул null для раздела ВОПРОСЫ');
+            }
+            break;
+          case 'НОВОСТИ':
+            sections.news = parseNews(sectionContent);
+            console.log('Результат парсинга новостей в полном сайте:', sections.news);
+            if (!sections.news) {
+              console.error('parseNews вернул null для раздела НОВОСТИ');
+            }
+            break;
+          case 'КОНТАКТЫ':
+            sections.contacts = parseContactsFull(sectionContent, headerData);
+            console.log('Результат парсинга Contacts:', sections.contacts);
+            if (!sections.contacts) {
+              console.error('parseContactsFull вернул null для раздела КОНТАКТЫ');
+            }
+            break;
+          case 'MERCI':
+            sections.merci = parseMerci(sectionContent);
+            console.log('Результат парсинга Merci:', sections.merci);
+            if (!sections.merci) {
+              console.error('parseMerci вернул null для раздела MERCI');
+            }
+            break;
+          default:
+            console.log(`Неизвестный раздел: ${sectionName}`);
+        }
+      } catch (sectionError) {
+        console.error(`Ошибка при парсинге раздела ${sectionName}:`, sectionError);
       }
     }
 
+    console.log('Итоговые результаты парсинга:', sections);
     return sections;
   } catch (error) {
     console.error('Error parsing full site content:', error);
@@ -1187,7 +1238,7 @@ export const parseContactsFull = (content, headerData = {}) => {
           if (headerData?.siteName) {
             const domainName = headerData.siteName
               .toLowerCase()
-              .replace(/[^a-zа-яё0-9\u0600-\u06FF]/g, '-')
+              .replace(/[^a-zа-яё0-9\u4e00-\u9fff\u0600-\u06FF\u3040-\u309F\u30A0-\u30FF]/g, '-')
               .replace(/-+/g, '-')
               .replace(/^-|-$/g, '')
               .replace(/[а-яё]/g, char => {
