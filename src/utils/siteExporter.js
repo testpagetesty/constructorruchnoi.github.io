@@ -52,6 +52,26 @@ export const exportSite = async (siteData) => {
   zip.file('cookie-policy.html', cleanHTML(generateCookiePolicy(siteData)));
   zip.file('terms-of-service.html', cleanHTML(generateTermsOfService(siteData)));
   
+  // Add robots.txt to the archive (unchanged from root directory)
+  try {
+    const robotsResponse = await fetch('/robots.txt');
+    const robotsContent = await robotsResponse.text();
+    zip.file('robots.txt', robotsContent);
+    console.log('robots.txt successfully added to export zip');
+  } catch (error) {
+    console.warn('Could not fetch robots.txt for export, using default content');
+    zip.file('robots.txt', 'User-agent: *\nDisallow:');
+  }
+
+  // Add sitemap.xml to the archive (dynamically generated with domain from settings)
+  try {
+    const sitemapContent = generateSitemap(siteData);
+    zip.file('sitemap.xml', sitemapContent);
+    console.log('sitemap.xml successfully added to export zip with domain:', siteData.headerData?.domain);
+  } catch (error) {
+    console.error('Error generating sitemap.xml for export:', error);
+  }
+  
   // Generate and download zip
   const content = await zip.generateAsync({ type: 'blob' });
   saveAs(content, 'site.zip');
@@ -426,6 +446,46 @@ const generateTermsOfService = (siteData) => {
       </body>
     </html>
   `;
+};
+
+const generateSitemap = (siteData) => {
+  const domain = siteData.headerData?.domain || 'example.com';
+  const baseUrl = domain.startsWith('http') ? domain : `https://${domain}`;
+  const currentDate = new Date().toISOString().replace('Z', '+00:00');
+  
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+        <loc>${baseUrl}/index.html</loc>
+        <lastmod>${currentDate}</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>1.0</priority>
+    </url>
+    <url>
+        <loc>${baseUrl}/merci.html</loc>
+        <lastmod>${currentDate}</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.5</priority>
+    </url>
+    <url>
+        <loc>${baseUrl}/privacy-policy.html</loc>
+        <lastmod>${currentDate}</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.3</priority>
+    </url>
+    <url>
+        <loc>${baseUrl}/terms-of-service.html</loc>
+        <lastmod>${currentDate}</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.3</priority>
+    </url>
+    <url>
+        <loc>${baseUrl}/cookie-policy.html</loc>
+        <lastmod>${currentDate}</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.3</priority>
+    </url>
+</urlset>`;
 };
 
 const generateSections = (siteData) => {

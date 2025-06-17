@@ -3671,6 +3671,46 @@ const EditorPanel = ({
     `;
   };
 
+  const generateSitemap = (siteData) => {
+    const domain = siteData.headerData.domain || 'example.com';
+    const baseUrl = domain.startsWith('http') ? domain : `https://${domain}`;
+    const currentDate = new Date().toISOString().replace('Z', '+00:00');
+    
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+        <loc>${baseUrl}/index.html</loc>
+        <lastmod>${currentDate}</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>1.0</priority>
+    </url>
+    <url>
+        <loc>${baseUrl}/merci.html</loc>
+        <lastmod>${currentDate}</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.5</priority>
+    </url>
+    <url>
+        <loc>${baseUrl}/privacy-policy.html</loc>
+        <lastmod>${currentDate}</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.3</priority>
+    </url>
+    <url>
+        <loc>${baseUrl}/terms-of-service.html</loc>
+        <lastmod>${currentDate}</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.3</priority>
+    </url>
+    <url>
+        <loc>${baseUrl}/cookie-policy.html</loc>
+        <lastmod>${currentDate}</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.3</priority>
+    </url>
+</urlset>`;
+  };
+
   const handleDownloadSite = async () => {
     try {
       const zip = new JSZip();
@@ -3989,6 +4029,26 @@ const EditorPanel = ({
 
         zip.file(`${doc.id}.html`, htmlContent);
       });
+
+      // Add robots.txt to the archive (unchanged from root directory)
+      try {
+        const robotsResponse = await fetch('/robots.txt');
+        const robotsContent = await robotsResponse.text();
+        zip.file('robots.txt', robotsContent);
+        console.log('robots.txt successfully added to zip');
+      } catch (error) {
+        console.warn('Could not fetch robots.txt, using default content');
+        zip.file('robots.txt', 'User-agent: *\nDisallow:');
+      }
+
+      // Add sitemap.xml to the archive (dynamically generated with domain from settings)
+      try {
+        const sitemapContent = generateSitemap(siteData);
+        zip.file('sitemap.xml', sitemapContent);
+        console.log('sitemap.xml successfully added to zip with domain:', siteData.headerData.domain);
+      } catch (error) {
+        console.error('Error generating sitemap.xml:', error);
+      }
 
       // Get hero image from cache
       if (heroData.backgroundImage) {
@@ -4452,9 +4512,29 @@ const EditorPanel = ({
 </body>
 </html>`;
 
-        zip.file(`${doc.id}.html`, htmlContent);
+                zip.file(`${doc.id}.html`, htmlContent);
       });
 
+      // Add robots.txt to the archive (unchanged from root directory)
+      try {
+        const robotsResponse = await fetch('/robots.txt');
+        const robotsContent = await robotsResponse.text();
+        zip.file('robots.txt', robotsContent);
+        console.log('robots.txt successfully added to PHP zip');
+      } catch (error) {
+        console.warn('Could not fetch robots.txt for PHP, using default content');
+        zip.file('robots.txt', 'User-agent: *\nDisallow:');
+      }
+
+      // Add sitemap.xml to the archive (dynamically generated with domain from settings)
+      try {
+        const sitemapContent = generateSitemap(siteData);
+        zip.file('sitemap.xml', sitemapContent);
+        console.log('sitemap.xml successfully added to PHP zip with domain:', siteData.headerData.domain);
+      } catch (error) {
+        console.error('Error generating sitemap.xml for PHP:', error);
+      }
+      
       // Get hero image from cache
       if (heroData.backgroundImage) {
         try {
