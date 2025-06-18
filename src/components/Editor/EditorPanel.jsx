@@ -1290,7 +1290,7 @@ const EditorPanel = ({
       <div class="nav-container">
         <div class="site-branding" style="display: flex; flex-direction: column; margin-right: 2rem;">
           <div class="logo" style="color: ${data.headerData.titleColor || '#000000'}">${data.headerData.siteName || 'My Site'}</div>
-          ${data.headerData.domain ? `<div class="domain" style="color: ${data.headerData.titleColor || '#000000'}; opacity: 0.8; font-size: 0.9rem;">${data.headerData.domain}</div>` : ''}
+          <div class="domain" style="color: ${data.headerData.titleColor || '#000000'}; opacity: 0.8; font-size: 0.9rem; display: none;">${data.headerData.domain || ''}</div>
         </div>
         <button class="menu-toggle" aria-label="Menu">
           <span></span>
@@ -3569,6 +3569,9 @@ const EditorPanel = ({
         
         // Initialize automatic image slideshows
         initImageGalleries();
+        
+        // Auto-detect and display current domain
+        autoDisplayDomain();
       });
       
       // Function to initialize all image galleries on the page
@@ -3668,6 +3671,61 @@ const EditorPanel = ({
           }
         });
       }
+      
+      // Function to automatically detect and display current domain
+      function autoDisplayDomain() {
+        // Get current domain from browser
+        const currentDomain = window.location.hostname;
+        
+        // Skip if localhost or IP address
+        if (currentDomain === 'localhost' || 
+            currentDomain === '127.0.0.1' || 
+            currentDomain.includes('192.168.') ||
+            currentDomain.includes('10.0.') ||
+            /^\d+\.\d+\.\d+\.\d+$/.test(currentDomain)) {
+          return;
+        }
+        
+        // Find domain display element
+        const domainElement = document.querySelector('.domain');
+        
+        if (domainElement) {
+          // Update existing domain element
+          domainElement.textContent = currentDomain;
+          domainElement.style.display = 'block';
+        } else {
+          // Create new domain element if it doesn't exist
+          const sitebranding = document.querySelector('.site-branding');
+          if (sitebranding) {
+            const domainDiv = document.createElement('div');
+            domainDiv.className = 'domain';
+            domainDiv.textContent = currentDomain;
+            domainDiv.style.cssText = 'color: inherit; opacity: 0.8; font-size: 0.9rem; margin-top: 4px;';
+            sitebranding.appendChild(domainDiv);
+          }
+        }
+        
+        // Update any other domain references on the page
+        const domainPlaceholders = document.querySelectorAll('[data-auto-domain]');
+        domainPlaceholders.forEach(element => {
+          element.textContent = currentDomain;
+        });
+        
+        // Update contact email if it contains placeholder domain
+        const emailElements = document.querySelectorAll('a[href*="@"], [data-email]');
+        emailElements.forEach(element => {
+          const href = element.getAttribute('href') || '';
+          const text = element.textContent || '';
+          
+          if (href.includes('@example.com') || text.includes('@example.com')) {
+            const newHref = href.replace('@example.com', \`@\${currentDomain}\`);
+            const newText = text.replace('@example.com', \`@\${currentDomain}\`);
+            
+            if (href !== newHref) element.setAttribute('href', newHref);
+            if (text !== newText) element.textContent = newText;
+          }
+        });
+      }
     `;
   };
 
@@ -3680,6 +3738,73 @@ const EditorPanel = ({
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
         <loc>${baseUrl}/index.html</loc>
+        <lastmod>${currentDate}</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>1.0</priority>
+    </url>
+    <url>
+        <loc>${baseUrl}/merci.html</loc>
+        <lastmod>${currentDate}</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.5</priority>
+    </url>
+    <url>
+        <loc>${baseUrl}/privacy-policy.html</loc>
+        <lastmod>${currentDate}</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.3</priority>
+    </url>
+    <url>
+        <loc>${baseUrl}/terms-of-service.html</loc>
+        <lastmod>${currentDate}</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.3</priority>
+    </url>
+    <url>
+        <loc>${baseUrl}/cookie-policy.html</loc>
+        <lastmod>${currentDate}</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.3</priority>
+    </url>
+</urlset>`;
+  };
+
+  const generateSafeFileName = (siteData) => {
+    let fileName = '';
+    
+    // Приоритет: домен, затем название сайта
+    if (siteData.headerData.domain && siteData.headerData.domain.trim()) {
+      fileName = siteData.headerData.domain.trim();
+      // Убираем протокол если есть
+      fileName = fileName.replace(/^https?:\/\//, '');
+      // Убираем www. если есть
+      fileName = fileName.replace(/^www\./, '');
+    } else if (siteData.headerData.siteName && siteData.headerData.siteName.trim()) {
+      fileName = siteData.headerData.siteName.trim();
+    } else {
+      fileName = 'site';
+    }
+    
+    // Заменяем недопустимые символы для имени файла
+    fileName = fileName
+      .replace(/[<>:"/\\|?*]/g, '') // Убираем недопустимые символы Windows
+      .replace(/\s+/g, '-') // Заменяем пробелы на дефисы
+      .replace(/[^a-zA-Z0-9а-яА-ЯёЁ\-\.]/g, '') // Оставляем только буквы (включая кириллицу), цифры, дефисы и точки
+      .replace(/--+/g, '-') // Убираем множественные дефисы
+      .replace(/^-+|-+$/g, ''); // Убираем дефисы в начале и конце
+    
+    return fileName || 'site';
+  };
+
+  const generateSitemapPHP = (siteData) => {
+    const domain = siteData.headerData.domain || 'example.com';
+    const baseUrl = domain.startsWith('http') ? domain : `https://${domain}`;
+    const currentDate = new Date().toISOString().replace('Z', '+00:00');
+    
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+        <loc>${baseUrl}/index.php</loc>
         <lastmod>${currentDate}</lastmod>
         <changefreq>weekly</changefreq>
         <priority>1.0</priority>
@@ -4258,7 +4383,8 @@ const EditorPanel = ({
         type: 'blob',
         mimeType: 'application/zip'
       });
-      saveAs(content, 'site.zip');
+      const fileName = generateSafeFileName(siteData);
+      saveAs(content, `${fileName}.zip`);
     } catch (error) {
       console.error('Error during site download:', error);
       alert('Ошибка при скачивании сайта: ' + error.message);
@@ -4528,7 +4654,7 @@ const EditorPanel = ({
 
       // Add sitemap.xml to the archive (dynamically generated with domain from settings)
       try {
-        const sitemapContent = generateSitemap(siteData);
+        const sitemapContent = generateSitemapPHP(siteData);
         zip.file('sitemap.xml', sitemapContent);
         console.log('sitemap.xml successfully added to PHP zip with domain:', siteData.headerData.domain);
       } catch (error) {
@@ -4716,7 +4842,8 @@ const EditorPanel = ({
         type: 'blob',
         mimeType: 'application/zip'
       });
-      saveAs(content, 'php-site.zip');
+      const fileName = generateSafeFileName(siteData);
+      saveAs(content, `${fileName}-php.zip`);
     } catch (error) {
       console.error('Error during PHP site download:', error);
       alert('Ошибка при скачивании PHP сайта: ' + error.message);

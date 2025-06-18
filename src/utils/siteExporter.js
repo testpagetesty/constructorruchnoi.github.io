@@ -74,7 +74,8 @@ export const exportSite = async (siteData) => {
   
   // Generate and download zip
   const content = await zip.generateAsync({ type: 'blob' });
-  saveAs(content, 'site.zip');
+  const fileName = generateSafeFileName(siteData);
+  saveAs(content, `${fileName}.zip`);
 };
 
 const generateIndexHtml = (siteData) => {
@@ -256,6 +257,7 @@ const generateAppJs = (siteData) => {
       
       initializeScripts();
       initializeAnimations();
+      autoDisplayDomain();
     });
 
     function initializeScripts() {
@@ -341,6 +343,60 @@ const generateAppJs = (siteData) => {
         }
       });
     }
+
+    function autoDisplayDomain() {
+      // Get current domain from browser
+      const currentDomain = window.location.hostname;
+      
+      // Skip if localhost or IP address
+      if (currentDomain === 'localhost' || 
+          currentDomain === '127.0.0.1' || 
+          currentDomain.includes('192.168.') ||
+          currentDomain.includes('10.0.') ||
+          /^\\d+\\.\\d+\\.\\d+\\.\\d+$/.test(currentDomain)) {
+        return;
+      }
+      
+      // Find domain display element
+      const domainElement = document.querySelector('.domain, .site-domain');
+      
+      if (domainElement) {
+        // Update existing domain element
+        domainElement.textContent = currentDomain;
+        domainElement.style.display = 'block';
+      } else {
+        // Create new domain element if it doesn't exist
+        const sitebranding = document.querySelector('.site-branding');
+        if (sitebranding) {
+          const domainDiv = document.createElement('div');
+          domainDiv.className = 'domain';
+          domainDiv.textContent = currentDomain;
+          domainDiv.style.cssText = 'color: inherit; opacity: 0.8; font-size: 0.9rem; margin-top: 4px;';
+          sitebranding.appendChild(domainDiv);
+        }
+      }
+      
+      // Update any other domain references on the page
+      const domainPlaceholders = document.querySelectorAll('[data-auto-domain]');
+      domainPlaceholders.forEach(element => {
+        element.textContent = currentDomain;
+      });
+      
+      // Update contact email if it contains placeholder domain
+      const emailElements = document.querySelectorAll('a[href*="@"], [data-email]');
+      emailElements.forEach(element => {
+        const href = element.getAttribute('href') || '';
+        const text = element.textContent || '';
+        
+        if (href.includes('@example.com') || text.includes('@example.com')) {
+          const newHref = href.replace('@example.com', \`@\${currentDomain}\`);
+          const newText = text.replace('@example.com', \`@\${currentDomain}\`);
+          
+          if (href !== newHref) element.setAttribute('href', newHref);
+          if (text !== newText) element.textContent = newText;
+        }
+      });
+    }
   `);
 };
 
@@ -363,7 +419,7 @@ const generateSiteContent = (siteData) => {
         <div class="header-content">
           <div class="site-branding">
             <h1 class="site-title">${headerData.siteName || 'My Site'}</h1>
-            ${headerData.domain ? `<div class="site-domain">${headerData.domain}</div>` : ''}
+            <div class="site-domain" style="display: none;">${headerData.domain || ''}</div>
           </div>
           <nav class="site-nav">
             ${(headerData.menuItems || []).map(item => `
@@ -457,6 +513,73 @@ const generateSitemap = (siteData) => {
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
         <loc>${baseUrl}/index.html</loc>
+        <lastmod>${currentDate}</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>1.0</priority>
+    </url>
+    <url>
+        <loc>${baseUrl}/merci.html</loc>
+        <lastmod>${currentDate}</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.5</priority>
+    </url>
+    <url>
+        <loc>${baseUrl}/privacy-policy.html</loc>
+        <lastmod>${currentDate}</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.3</priority>
+    </url>
+    <url>
+        <loc>${baseUrl}/terms-of-service.html</loc>
+        <lastmod>${currentDate}</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.3</priority>
+    </url>
+    <url>
+        <loc>${baseUrl}/cookie-policy.html</loc>
+        <lastmod>${currentDate}</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.3</priority>
+    </url>
+</urlset>`;
+};
+
+const generateSafeFileName = (siteData) => {
+  let fileName = '';
+  
+  // Приоритет: домен, затем название сайта
+  if (siteData.headerData?.domain && siteData.headerData.domain.trim()) {
+    fileName = siteData.headerData.domain.trim();
+    // Убираем протокол если есть
+    fileName = fileName.replace(/^https?:\/\//, '');
+    // Убираем www. если есть
+    fileName = fileName.replace(/^www\./, '');
+  } else if (siteData.headerData?.siteName && siteData.headerData.siteName.trim()) {
+    fileName = siteData.headerData.siteName.trim();
+  } else {
+    fileName = 'site';
+  }
+  
+  // Заменяем недопустимые символы для имени файла
+  fileName = fileName
+    .replace(/[<>:"/\\|?*]/g, '') // Убираем недопустимые символы Windows
+    .replace(/\s+/g, '-') // Заменяем пробелы на дефисы
+    .replace(/[^a-zA-Z0-9а-яА-ЯёЁ\-\.]/g, '') // Оставляем только буквы (включая кириллицу), цифры, дефисы и точки
+    .replace(/--+/g, '-') // Убираем множественные дефисы
+    .replace(/^-+|-+$/g, ''); // Убираем дефисы в начале и конце
+  
+  return fileName || 'site';
+};
+
+const generateSitemapPHP = (siteData) => {
+  const domain = siteData.headerData?.domain || 'example.com';
+  const baseUrl = domain.startsWith('http') ? domain : `https://${domain}`;
+  const currentDate = new Date().toISOString().replace('Z', '+00:00');
+  
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+        <loc>${baseUrl}/index.php</loc>
         <lastmod>${currentDate}</lastmod>
         <changefreq>weekly</changefreq>
         <priority>1.0</priority>
