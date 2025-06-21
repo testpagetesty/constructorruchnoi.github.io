@@ -2126,6 +2126,7 @@ const EditorPanel = ({
                     <i class="fas fa-envelope" style="color: ${contactData.iconColor || '#1976d2'}; margin-right: 0.5rem;"></i>
                     ${contactData.email}
                   </p>
+                  <div class="contact-domain" style="color: ${contactData.infoTextColor || '#333'}; opacity: 0.8; font-size: 0.9rem; margin-top: 4px; margin-left: 1.5rem; display: none;"></div>
                 ` : ''}
               </div>
             </div>
@@ -2203,6 +2204,7 @@ const EditorPanel = ({
             <i class="fas fa-envelope" style="color: ${data.footerData.iconColor || '#fff'}"></i>
             ${data.contactData.email || 'Email'}
           </p>
+          <div class="footer-domain" style="color: ${data.footerData.textColor || '#fff'}; opacity: 0.8; font-size: 0.9rem; margin-top: 4px; margin-left: 1.5rem; display: none;"></div>
         </div>
 
         <div style="
@@ -3572,6 +3574,9 @@ const EditorPanel = ({
         
         // Auto-detect and display current domain
         autoDisplayDomain();
+        
+        // Also call with delay for reliability
+        setTimeout(autoDisplayDomain, 100);
       });
       
       // Function to initialize all image galleries on the page
@@ -3676,6 +3681,7 @@ const EditorPanel = ({
       function autoDisplayDomain() {
         // Get current domain from browser
         const currentDomain = window.location.hostname;
+        console.log('Current domain detected:', currentDomain);
         
         // Skip if localhost or IP address
         if (currentDomain === 'localhost' || 
@@ -3683,16 +3689,20 @@ const EditorPanel = ({
             currentDomain.includes('192.168.') ||
             currentDomain.includes('10.0.') ||
             /^\d+\.\d+\.\d+\.\d+$/.test(currentDomain)) {
+          console.log('Skipping domain display for localhost/IP');
           return;
         }
         
-        // Find domain display element
-        const domainElement = document.querySelector('.domain');
+        console.log('Auto-displaying domain:', currentDomain);
+        
+        // Find domain display element in header
+        const domainElement = document.querySelector('.domain, .site-domain');
         
         if (domainElement) {
           // Update existing domain element
           domainElement.textContent = currentDomain;
           domainElement.style.display = 'block';
+          console.log('Updated header domain element');
         } else {
           // Create new domain element if it doesn't exist
           const sitebranding = document.querySelector('.site-branding');
@@ -3702,8 +3712,31 @@ const EditorPanel = ({
             domainDiv.textContent = currentDomain;
             domainDiv.style.cssText = 'color: inherit; opacity: 0.8; font-size: 0.9rem; margin-top: 4px;';
             sitebranding.appendChild(domainDiv);
+            console.log('Created new header domain element');
           }
         }
+        
+        // Update contact domain elements
+        const allContactDomainElements = document.querySelectorAll('.contact-domain');
+        console.log('Found contact domain elements:', allContactDomainElements.length);
+        
+        allContactDomainElements.forEach((domainElement, index) => {
+          const oldText = domainElement.textContent;
+          domainElement.textContent = currentDomain;
+          domainElement.style.display = 'block'; // Show the element like in header
+          console.log('Updated contact domain element', index + 1, 'from:', oldText, 'to:', currentDomain);
+        });
+        
+        // Update footer domain elements
+        const allFooterDomainElements = document.querySelectorAll('.footer-domain');
+        console.log('Found footer domain elements:', allFooterDomainElements.length);
+        
+        allFooterDomainElements.forEach((domainElement, index) => {
+          const oldText = domainElement.textContent;
+          domainElement.textContent = currentDomain;
+          domainElement.style.display = 'block'; // Show the element like in header
+          console.log('Updated footer domain element', index + 1, 'from:', oldText, 'to:', currentDomain);
+        });
         
         // Update any other domain references on the page
         const domainPlaceholders = document.querySelectorAll('[data-auto-domain]');
@@ -4638,7 +4671,7 @@ const EditorPanel = ({
 </body>
 </html>`;
 
-                zip.file(`${doc.id}.html`, htmlContent);
+        zip.file(`${doc.id}.html`, htmlContent);
       });
 
       // Add robots.txt to the archive (unchanged from root directory)
@@ -4660,7 +4693,7 @@ const EditorPanel = ({
       } catch (error) {
         console.error('Error generating sitemap.xml for PHP:', error);
       }
-      
+
       // Get hero image from cache
       if (heroData.backgroundImage) {
         try {

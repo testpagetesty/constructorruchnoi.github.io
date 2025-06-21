@@ -257,6 +257,15 @@ const generateAppJs = (siteData) => {
       
       initializeScripts();
       initializeAnimations();
+      
+      // Add a small delay to ensure DOM is fully loaded
+      setTimeout(() => {
+        console.log('Starting autoDisplayDomain function...');
+        autoDisplayDomain();
+        console.log('Finished autoDisplayDomain function');
+      }, 100);
+      
+      // Also try without delay for immediate execution
       autoDisplayDomain();
     });
 
@@ -354,16 +363,20 @@ const generateAppJs = (siteData) => {
           currentDomain.includes('192.168.') ||
           currentDomain.includes('10.0.') ||
           /^\\d+\\.\\d+\\.\\d+\\.\\d+$/.test(currentDomain)) {
+        console.log('Skipping domain display for localhost/IP');
         return;
       }
       
-      // Find domain display element
+      console.log('Auto-displaying domain:', currentDomain);
+      
+      // Find domain display element in header
       const domainElement = document.querySelector('.domain, .site-domain');
       
       if (domainElement) {
         // Update existing domain element
         domainElement.textContent = currentDomain;
         domainElement.style.display = 'block';
+        console.log('Updated header domain element');
       } else {
         // Create new domain element if it doesn't exist
         const sitebranding = document.querySelector('.site-branding');
@@ -373,8 +386,31 @@ const generateAppJs = (siteData) => {
           domainDiv.textContent = currentDomain;
           domainDiv.style.cssText = 'color: inherit; opacity: 0.8; font-size: 0.9rem; margin-top: 4px;';
           sitebranding.appendChild(domainDiv);
+          console.log('Created new header domain element');
         }
       }
+      
+      // Update contact domain elements
+      const allContactDomainElements = document.querySelectorAll('.contact-domain');
+      console.log('Found contact domain elements:', allContactDomainElements.length);
+      
+      allContactDomainElements.forEach((domainElement, index) => {
+        const oldText = domainElement.textContent;
+        domainElement.textContent = currentDomain;
+        domainElement.style.display = 'block'; // Show the element like in header
+        console.log('Updated contact domain element', index + 1, 'from:', oldText, 'to:', currentDomain);
+      });
+      
+      // Update footer domain elements
+      const allFooterDomainElements = document.querySelectorAll('.footer-domain');
+      console.log('Found footer domain elements:', allFooterDomainElements.length);
+      
+      allFooterDomainElements.forEach((domainElement, index) => {
+        const oldText = domainElement.textContent;
+        domainElement.textContent = currentDomain;
+        domainElement.style.display = 'block'; // Show the element like in header
+        console.log('Updated footer domain element', index + 1, 'from:', oldText, 'to:', currentDomain);
+      });
       
       // Update any other domain references on the page
       const domainPlaceholders = document.querySelectorAll('[data-auto-domain]');

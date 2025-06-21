@@ -15,7 +15,7 @@ const AuthPanel = ({ onAuth }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     // Здесь можно изменить пароль на любой другой
-    if (password === 'admin123') {
+    if (password === 'admin351') {
       onAuth(true);
       setError('');
     } else {
