@@ -30,7 +30,9 @@ import {
   Checkbox,
   Grid,
   Slider,
-  Switch
+  Switch,
+  Radio,
+  RadioGroup
 } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -524,6 +526,7 @@ const WordRangeEditor = ({ section, ranges, onChange }) => {
 // Добавляем компонент настройки промпта полного сайта
 const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings }) => {
   const [settings, setSettings] = useState(initialSettings);
+  const [promptType, setPromptType] = useState('optimized');
 
   const handleSectionToggle = (section) => {
     setSettings(prev => ({
@@ -559,7 +562,7 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings }) => {
   };
 
   const handleSave = () => {
-    onSave(settings);
+    onSave(settings, promptType);
     onClose();
   };
 
@@ -777,9 +780,67 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings }) => {
       </DialogTitle>
       <DialogContent>
         <Box sx={{ mb: 3, mt: 1 }}>
-          <Typography variant="subtitle1" gutterBottom>
-            Выберите разделы для включения в промпт:
+          <Typography variant="h6" gutterBottom>
+            Тип промпта:
           </Typography>
+          <FormControl fullWidth sx={{ mb: 3 }}>
+            <RadioGroup
+              value={promptType}
+              onChange={(e) => setPromptType(e.target.value)}
+            >
+              <FormControlLabel 
+                value="full" 
+                control={<Radio />} 
+                label={
+                  <Box>
+                    <Typography variant="body1" component="div">
+                      <strong>Полный промпт</strong> (оригинальный)
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary">
+                      Включает все разделы и правовые документы. Может быть слишком длинным для некоторых AI моделей.
+                    </Typography>
+                  </Box>
+                }
+              />
+              <FormControlLabel 
+                value="optimized" 
+                control={<Radio />} 
+                label={
+                  <Box>
+                    <Typography variant="body1" component="div">
+                      <strong>Оптимизированный промпт</strong> (рекомендуется)
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary">
+                      Сокращенная версия без правовых документов. Лучше работает с большинством AI моделей.
+                    </Typography>
+                  </Box>
+                }
+              />
+              <FormControlLabel 
+                value="legal_only" 
+                control={<Radio />} 
+                label={
+                  <Box>
+                    <Typography variant="body1" component="div">
+                      <strong>Только правовые документы</strong>
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary">
+                      Специализированный промпт только для генерации правовых документов. Гарантирует полные результаты.
+                    </Typography>
+                  </Box>
+                }
+              />
+            </RadioGroup>
+          </FormControl>
+        </Box>
+        
+        {promptType !== 'legal_only' && (
+          <>
+            <Divider sx={{ mb: 3 }} />
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="subtitle1" gutterBottom>
+                Выберите разделы для включения в промпт:
+              </Typography>
           <Grid container spacing={2}>
             {Object.keys(settings.includedSections).map((section) => (
               <Grid item xs={6} sm={4} key={section}>
@@ -852,8 +913,10 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings }) => {
                 />
               ))}
             </AccordionDetails>
-          </Accordion>
-        </Box>
+              </Accordion>
+            </Box>
+          </>
+        )}
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Отмена</Button>
@@ -1229,6 +1292,229 @@ info@company.com
     return sectionsPrompt;
   };
 
+  // Функция для генерации отдельного промпта для правовых документов
+  const generateLegalDocumentsPrompt = () => {
+    const theme = globalSettings.theme === 'CUSTOM' 
+      ? globalSettings.customTheme 
+      : WEBSITE_THEMES[globalSettings.theme];
+
+    let language;
+    let languageCode = '';
+    
+    if (globalSettings.language === 'CUSTOM' && globalSettings.customLanguage) {
+      languageCode = globalSettings.customLanguage;
+      language = `языке с кодом ISO ${globalSettings.customLanguage}`;
+    } else {
+      const langString = LANGUAGES[globalSettings.language] || '';
+      language = langString.split(' ')[0];
+      const codeMatch = langString.match(/\(([a-z]{2})\)/i);
+      languageCode = codeMatch ? codeMatch[1].toLowerCase() : '';
+    }
+
+    return `СПЕЦИАЛИЗИРОВАННЫЙ ПРОМПТ ДЛЯ ПРАВОВЫХ ДОКУМЕНТОВ
+
+Создайте три юридических документа для сайта "${theme}" СТРОГО на ${language}.
+
+КРИТИЧЕСКИ ВАЖНО:
+1. Весь текст документов ОБЯЗАТЕЛЬНО должен быть только на ${language}
+2. Каждый документ должен быть ПОЛНЫМ (1200-2000 слов)
+3. Документы должны соответствовать требованиям GDPR и быть универсальными
+
+ФОРМАТ ДОКУМЕНТОВ:
+- Каждый документ начинается с заголовка в круглых скобках на отдельной строке
+- После заголовка сразу идет текст документа  
+- Между документами оставляйте ровно две пустые строки
+
+СОЗДАЙТЕ ТРИ ДОКУМЕНТА В СТРОГОМ ПОРЯДКЕ:
+
+1. ПОЛИТИКА КОНФИДЕНЦИАЛЬНОСТИ - должна включать разделы:
+   - Общие положения
+   - Какую информацию мы собираем
+   - Как мы используем информацию
+   - Защита данных и срок хранения
+   - Передача данных третьим лицам
+   - Использование файлов cookie
+   - Права пользователя
+   - Изменения в политике
+   - Согласие пользователя
+
+2. ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ - должно включать разделы:
+   - Общие положения и термины
+   - Права и обязанности пользователя
+   - Права и обязанности администрации
+   - Условия использования контента
+   - Интеллектуальная собственность
+   - Отказ от ответственности
+   - Регистрация и учетная запись
+   - Безопасность и конфиденциальность
+   - Порядок разрешения споров
+   - Заключительные положения
+
+3. ПОЛИТИКА ИСПОЛЬЗОВАНИЯ COOKIE - должна включать разделы:
+   - Что такое файлы cookie
+   - Типы файлов cookie
+   - Цели использования cookie
+   - Контроль файлов cookie
+   - Сторонние cookie-файлы
+   - Срок хранения cookie
+   - Как отключить cookie
+   - Обновления политики
+
+СТРОГИЕ ПРАВИЛА:
+- НЕ указывать конкретные контактные данные
+- Использовать формулировки "наш сайт", "администрация сайта"
+- НЕ добавлять комментарии после последнего документа
+- НЕ использовать форматирование Markdown или HTML
+- Ответ должен содержать ТОЛЬКО три документа
+
+ФИНАЛЬНАЯ ПРОВЕРКА:
+1. Все документы написаны полностью на ${language}
+2. Каждый документ содержит все требуемые разделы
+3. Нет дополнительных комментариев после последнего документа
+4. Объем каждого документа 1200-2000 слов`;
+  };
+
+  // Улучшенная функция генерации промпта полного сайта (без правовых документов)
+  const generateOptimizedFullSitePrompt = (settings) => {
+    const getWordRange = (section, field) => {
+      const range = settings.wordRanges[section]?.[field];
+      if (!range) return '';
+      return `(${range.min}-${range.max} слов)`;
+    };
+
+    let sectionsPrompt = `ОПТИМИЗИРОВАННЫЙ ПРОМПТ ПОЛНОГО САЙТА
+
+Создайте контент для сайта согласно указанным разделам.
+
+ФОРМАТ РАЗДЕЛИТЕЛЕЙ:
+=== РАЗДЕЛ: ИМЯ ===
+(контент раздела)
+=== КОНЕЦ РАЗДЕЛА ===
+
+ВАЖНО: Каждый раздел ОБЯЗАТЕЛЬНО должен заканчиваться "=== КОНЕЦ РАЗДЕЛА ==="
+
+`;
+
+    // Добавляем Hero секцию
+    sectionsPrompt += `=== РАЗДЕЛ: HERO ===
+1. Название сайта (1-2 слова)
+2. Заголовок hero секции ${getWordRange('HERO', 'title')}
+3. Описание ${getWordRange('HERO', 'description')}
+=== КОНЕЦ РАЗДЕЛА ===
+
+`;
+
+    // Добавляем остальные секции
+    if (settings.includedSections.ABOUT) {
+      sectionsPrompt += `=== РАЗДЕЛ: О НАС ===
+ID: [ID на выбранном языке]
+[Заголовок ${getWordRange('ABOUT', 'sectionTitle')}]
+[Описание ${getWordRange('ABOUT', 'sectionDescription')}]
+
+[${settings.cardCounts.ABOUT} карточек:]
+Заголовок карточки
+Описание ${getWordRange('ABOUT', 'cardContent')}
+=== КОНЕЦ РАЗДЕЛА ===
+
+`;
+    }
+
+    if (settings.includedSections.SERVICES) {
+      sectionsPrompt += `=== РАЗДЕЛ: УСЛУГИ ===
+ID: [ID на выбранном языке]
+[Заголовок ${getWordRange('SERVICES', 'sectionTitle')}]
+[Описание ${getWordRange('SERVICES', 'sectionDescription')}]
+
+[${settings.cardCounts.SERVICES} услуг:]
+Название услуги
+Описание ${getWordRange('SERVICES', 'cardContent')}
+=== КОНЕЦ РАЗДЕЛА ===
+
+`;
+    }
+
+    if (settings.includedSections.FEATURES) {
+      sectionsPrompt += `=== РАЗДЕЛ: ПРЕИМУЩЕСТВА ===
+ID: [ID на выбранном языке]
+[Заголовок ${getWordRange('FEATURES', 'sectionTitle')}]
+[Описание ${getWordRange('FEATURES', 'sectionDescription')}]
+
+[${settings.cardCounts.FEATURES} преимуществ:]
+Заголовок преимущества
+Описание ${getWordRange('FEATURES', 'cardContent')}
+=== КОНЕЦ РАЗДЕЛА ===
+
+`;
+    }
+
+    if (settings.includedSections.NEWS) {
+      sectionsPrompt += `=== РАЗДЕЛ: НОВОСТИ ===
+ID: [ID на выбранном языке]
+[Заголовок ${getWordRange('NEWS', 'sectionTitle')}]
+[Описание ${getWordRange('NEWS', 'sectionDescription')}]
+
+[${settings.cardCounts.NEWS} новостей:]
+Заголовок новости
+Текст новости ${getWordRange('NEWS', 'cardContent')}
+=== КОНЕЦ РАЗДЕЛА ===
+
+`;
+    }
+
+    if (settings.includedSections.FAQ) {
+      sectionsPrompt += `=== РАЗДЕЛ: ВОПРОСЫ ===
+ID: [ID на выбранном языке]
+[Заголовок ${getWordRange('FAQ', 'sectionTitle')}]
+[Описание ${getWordRange('FAQ', 'sectionDescription')}]
+
+[${settings.cardCounts.FAQ} вопросов:]
+Вопрос?
+Ответ ${getWordRange('FAQ', 'cardContent')}
+=== КОНЕЦ РАЗДЕЛА ===
+
+`;
+    }
+
+    if (settings.includedSections.TESTIMONIALS) {
+      sectionsPrompt += `=== РАЗДЕЛ: ОТЗЫВЫ ===
+ID: [ID на выбранном языке]
+[Заголовок ${getWordRange('TESTIMONIALS', 'sectionTitle')}]
+[Описание ${getWordRange('TESTIMONIALS', 'sectionDescription')}]
+
+[${settings.cardCounts.TESTIMONIALS} отзывов:]
+Имя автора
+Текст отзыва ${getWordRange('TESTIMONIALS', 'cardContent')}
+=== КОНЕЦ РАЗДЕЛА ===
+
+`;
+    }
+
+    if (settings.includedSections.CONTACTS) {
+      sectionsPrompt += `=== РАЗДЕЛ: КОНТАКТЫ ===
+[Заголовок на выбранном языке]
+
+([Описание, 15-20 слов])
+
+[Адрес в формате выбранной страны]
+
+[Телефон в формате выбранной страны]
+
+[Email]
+=== КОНЕЦ РАЗДЕЛА ===
+
+`;
+    }
+
+    sectionsPrompt += `ТРЕБОВАНИЯ:
+1. Весь контент на одном языке (указанном в настройках)
+2. ID секций на выбранном языке, только "ID:" на английском
+3. Не использовать форматирование Markdown/HTML
+4. Каждый раздел должен заканчиваться "=== КОНЕЦ РАЗДЕЛА ==="
+5. Не пропускать указанные разделы`;
+
+    return sectionsPrompt;
+  };
+
   // Модифицируем функцию копирования промпта
   const copyPromptToClipboard = () => {
     // Для полного сайта показываем диалог настроек
@@ -1256,19 +1542,30 @@ info@company.com
   };
   
   // Функция для обработки сохранения настроек промпта полного сайта
-  const handleFullSiteSettingsSave = (settings) => {
+  const handleFullSiteSettingsSave = (settings, promptType = 'full') => {
     setFullSiteSettings(settings);
     
-    // Генерируем промпт на основе настроек
-    const fullSitePrompt = generateFullSitePrompt(settings);
+    let finalPrompt = '';
     
-    // Применяем глобальные настройки
-    const enhancedPrompt = applyGlobalSettings(fullSitePrompt);
+    if (promptType === 'legal_only') {
+      // Генерируем только промпт для правовых документов
+      finalPrompt = applyGlobalSettings(generateLegalDocumentsPrompt());
+      setParserMessage('Специализированный промпт для правовых документов скопирован в буфер обмена.');
+    } else if (promptType === 'optimized') {
+      // Генерируем оптимизированный промпт без правовых документов
+      const optimizedPrompt = generateOptimizedFullSitePrompt(settings);
+      finalPrompt = applyGlobalSettings(optimizedPrompt);
+      setParserMessage('Оптимизированный промпт полного сайта (без правовых документов) скопирован в буфер обмена.');
+    } else {
+      // Оригинальный полный промпт (по умолчанию)
+      const fullSitePrompt = generateFullSitePrompt(settings);
+      finalPrompt = applyGlobalSettings(fullSitePrompt);
+      setParserMessage('Полный промпт сайта скопирован в буфер обмена.');
+    }
     
     // Копируем промпт в буфер обмена
-    navigator.clipboard.writeText(enhancedPrompt)
+    navigator.clipboard.writeText(finalPrompt)
       .then(() => {
-        setParserMessage('Настроенный промпт полного сайта скопирован в буфер обмена.');
         // Очищаем текстовое поле после копирования
         handleClearText();
       })
@@ -2690,6 +2987,36 @@ info@company.com
                   </Button>
                 </span>
               </Tooltip>
+              {targetSection === 'LEGAL' && (
+                <Tooltip title="Скопировать оптимизированный промпт для правовых документов" arrow placement="top">
+                  <span>
+                    <Button
+                      variant="contained"
+                      color="secondary"
+                      onClick={() => {
+                        const legalPrompt = applyGlobalSettings(generateLegalDocumentsPrompt());
+                        navigator.clipboard.writeText(legalPrompt)
+                          .then(() => {
+                            setParserMessage('Оптимизированный промпт для правовых документов скопирован в буфер обмена.');
+                            handleClearText();
+                          })
+                          .catch(() => {
+                            setParserMessage('Не удалось скопировать промпт.');
+                          });
+                      }}
+                      startIcon={<ContentCopyIcon sx={{ fontSize: '0.9rem' }} />}
+                      sx={{
+                        background: 'linear-gradient(45deg, #ed6c02 30%, #ff9800 90%)',
+                        '&:hover': {
+                          background: 'linear-gradient(45deg, #e65100 30%, #f57c00 90%)'
+                        }
+                      }}
+                    >
+                      Промпт Legal
+                    </Button>
+                  </span>
+                </Tooltip>
+              )}
               </Box>
               
               <TextField

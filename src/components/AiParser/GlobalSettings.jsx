@@ -201,6 +201,56 @@ const GlobalSettings = ({ open, onClose, settings, onSettingsChange }) => {
                 }
               }}
             />
+            
+            <Box sx={{ 
+              mt: 2, 
+              p: 2, 
+              backgroundColor: '#f5f5f5', 
+              borderRadius: 2,
+              border: '1px solid #e0e0e0'
+            }}>
+              <Typography variant="h6" sx={{ mb: 1, color: '#1976d2', fontWeight: 'bold' }}>
+                📋 Пошаговый гайд по настройке:
+              </Typography>
+              <Box component="ol" sx={{ pl: 2, m: 0 }}>
+                <Typography component="li" variant="body2" sx={{ mb: 1 }}>
+                  <strong>Ввести тематику сайта</strong> - выберите подходящую категорию из списка выше
+                </Typography>
+                <Typography component="li" variant="body2" sx={{ mb: 1 }}>
+                  <strong>Обязательно выбрать язык контента</strong> - укажите язык для генерации всего контента
+                </Typography>
+                <Typography component="li" variant="body2" sx={{ mb: 0 }}>
+                  <strong>В ключевых особенностях прописать по порядку:</strong>
+                  <br />
+                  <Typography 
+                    variant="body2" 
+                    component="span" 
+                    sx={{ 
+                      color: '#d32f2f',
+                      fontWeight: 'bold',
+                      animation: 'pulse 2s infinite',
+                      '@keyframes pulse': {
+                        '0%': { opacity: 1 },
+                        '50%': { opacity: 0.7 },
+                        '100%': { opacity: 1 }
+                      }
+                    }}
+                  >
+                    Страна → Язык сайта → Ключевые особенности
+                  </Typography>
+                </Typography>
+              </Box>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  mt: 1, 
+                  fontStyle: 'italic', 
+                  color: '#666'
+                }}
+              >
+                Пример: "страна Германия, язык немецкий, премиум качество, экологичность"
+              </Typography>
+            </Box>
           </Grid>
 
 
