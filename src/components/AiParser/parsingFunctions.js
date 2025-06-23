@@ -29,6 +29,78 @@ export const SECTION_KEYWORDS = {
 };
 
 // Функция для генерации случайного телефонного номера, сохраняя исходный формат
+const generateRandomEmail = (siteName) => {
+  const emailPrefixes = [
+    'info', 'contact', 'office', 'hello', 'support', 'mail', 'team', 'admin',
+    'service', 'sales', 'clients', 'help', 'legal', 'company', 'director',
+    'manager', 'secretary', 'consulting', 'general', 'reception', 'inquiry', 
+    'hr', 'jobs', 'career', 'business', 'partners', 'marketing', 'press',
+    'welcome', 'connect', 'reach', 'assist', 'communicate', 'engage', 'relate'
+  ];
+  
+  const universalDomains = [
+    'businesscorp', 'globalgroup', 'proservice', 'expertteam', 'qualitywork',
+    'professional', 'excellence', 'premium', 'worldwide', 'international',
+    'consulting', 'solutions', 'services', 'company', 'corporation',
+    'enterprise', 'business', 'group', 'team', 'expert', 'quality',
+    'reliable', 'trusted', 'leading', 'advanced', 'innovative', 'modern',
+    'digital', 'online', 'network', 'global', 'success', 'growth',
+    'development', 'progress', 'achievement', 'performance', 'excellence',
+    // Добавляем еще 50 универсальных доменов
+    'smartbusiness', 'topcompany', 'bestservice', 'quicksolutions', 'fastwork',
+    'easyaccess', 'perfectchoice', 'strongteam', 'brightfuture', 'newvision',
+    'bigideas', 'freshstart', 'cleanwork', 'sharpfocus', 'deepknowledge',
+    'widerange', 'fullservice', 'totalcare', 'maxresults', 'superb-co',
+    'first-class', 'top-notch', 'high-end', 'next-level', 'cutting-edge',
+    'state-of-art', 'world-class', 'industry-best', 'market-leader', 'trend-setter',
+    'game-changer', 'breakthrough', 'milestone', 'benchmark', 'goldstandard',
+    'platinum-group', 'diamond-corp', 'crystal-clear', 'rock-solid', 'iron-strong',
+    'steel-works', 'titanium-co', 'silver-line', 'copper-solutions', 'bronze-level',
+    'emerald-group', 'sapphire-corp', 'ruby-solutions', 'pearl-company', 'amber-works',
+    'coral-group', 'jade-solutions', 'opal-corp', 'quartz-company', 'granite-group'
+  ];
+  
+  const randomPrefix = emailPrefixes[Math.floor(Math.random() * emailPrefixes.length)];
+  
+  if (siteName) {
+    // Пытаемся создать домен на основе названия сайта
+    let domainName = siteName
+      .toLowerCase()
+      .replace(/[^a-zа-яё0-9]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+    
+    // Транслитерация кириллицы
+    domainName = domainName.replace(/[а-яё]/g, char => {
+      const translit = {
+        'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'e',
+        'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm',
+        'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
+        'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch',
+        'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
+      };
+      return translit[char] || char;
+    });
+    
+    // Проверяем, остались ли неанглийские символы (китайский, арабский, японский и т.д.)
+    const hasNonEnglish = /[^a-z0-9-]/.test(domainName);
+    
+    // Если остались неанглийские символы или домен слишком короткий/длинный
+    if (hasNonEnglish || domainName.length < 2 || domainName.length > 25) {
+      // Используем случайный универсальный домен
+      const randomDomain = universalDomains[Math.floor(Math.random() * universalDomains.length)];
+      return `${randomPrefix}@${randomDomain}.com`;
+    } else {
+      // Используем обработанное название сайта
+      return `${randomPrefix}@${domainName}.com`;
+    }
+  } else {
+    // Если нет названия сайта, используем случайный универсальный домен
+    const randomDomain = universalDomains[Math.floor(Math.random() * universalDomains.length)];
+    return `${randomPrefix}@${randomDomain}.com`;
+  }
+};
+
 const generateRandomPhone = (originalPhone) => {
   // Если номер не предоставлен, создаем стандартный российский формат
   if (!originalPhone) {
@@ -895,35 +967,8 @@ export const parseContacts = (content, headerData = {}) => {
           // Всегда генерируем случайный телефонный номер с сохранением формата
           contactData.phone = generateRandomPhone(originalPhone);
         } else if (line.toLowerCase().includes('email:') || line.includes('@')) {
-          // Генерируем email на основе названия сайта
-          if (headerData?.siteName) {
-            const domainName = headerData.siteName
-              .toLowerCase()
-              .replace(/[^a-zа-яё0-9\u4e00-\u9fff\u0600-\u06FF\u3040-\u309F\u30A0-\u30FF]/g, '-')
-              .replace(/-+/g, '-')
-              .replace(/^-|-$/g, '')
-              .replace(/[а-яё]/g, char => {
-                const translit = {
-                  'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'e',
-                  'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm',
-                  'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
-                  'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch',
-                  'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
-                };
-                return translit[char] || char;
-              });
-            
-            const emailPrefixes = [
-              'info', 'contact', 'office', 'hello', 'support', 'mail', 'team', 'admin',
-              'service', 'sales', 'clients', 'help', 'legal', 'company', 'director',
-              'manager', 'secretary', 'consulting', 'general', 'reception', 'inquiry', 
-              'hr', 'jobs', 'career', 'business', 'partners', 'marketing', 'press'
-            ];
-            const randomPrefix = emailPrefixes[Math.floor(Math.random() * emailPrefixes.length)];
-            contactData.email = `${randomPrefix}@${domainName}.com`;
-          } else {
-            contactData.email = 'info@example.com';
-          }
+          // Генерируем email с улучшенной логикой
+          contactData.email = generateRandomEmail(headerData?.siteName);
         } else if (!contactData.address) {
           // Если это не телефон и не email, считаем это адресом
           contactData.address = cleanEmailsInText(line);
@@ -1060,7 +1105,7 @@ export const parseMerci = (content) => {
   }
 };
 
-export const parseFullSite = (content, headerData = {}) => {
+export const parseFullSite = (content, headerData = {}, contactData = {}) => {
   try {
     // Очищаем начальный текст от инструкций и символов экранирования
     let cleanedContent = content;
@@ -1164,6 +1209,13 @@ export const parseFullSite = (content, headerData = {}) => {
               console.error('parseMerci вернул null для раздела MERCI');
             }
             break;
+          case 'ПРАВОВЫЕ ДОКУМЕНТЫ':
+            sections.legalDocuments = parseLegalDocuments(sectionContent, contactData);
+            console.log('Результат парсинга Legal Documents:', sections.legalDocuments);
+            if (!sections.legalDocuments) {
+              console.error('parseLegalDocuments вернул null для раздела ПРАВОВЫЕ ДОКУМЕНТЫ');
+            }
+            break;
           default:
             console.log(`Неизвестный раздел: ${sectionName}`);
         }
@@ -1234,35 +1286,8 @@ export const parseContactsFull = (content, headerData = {}) => {
           // Всегда генерируем случайный телефонный номер с сохранением формата
           contactData.phone = generateRandomPhone(originalPhone);
         } else if (line.toLowerCase().includes('email:') || line.includes('@')) {
-          // Генерируем email на основе названия сайта
-          if (headerData?.siteName) {
-            const domainName = headerData.siteName
-              .toLowerCase()
-              .replace(/[^a-zа-яё0-9\u4e00-\u9fff\u0600-\u06FF\u3040-\u309F\u30A0-\u30FF]/g, '-')
-              .replace(/-+/g, '-')
-              .replace(/^-|-$/g, '')
-              .replace(/[а-яё]/g, char => {
-                const translit = {
-                  'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'e',
-                  'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm',
-                  'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
-                  'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch',
-                  'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
-                };
-                return translit[char] || char;
-              });
-            
-            const emailPrefixes = [
-              'info', 'contact', 'office', 'hello', 'support', 'mail', 'team', 'admin',
-              'service', 'sales', 'clients', 'help', 'legal', 'company', 'director',
-              'manager', 'secretary', 'consulting', 'general', 'reception', 'inquiry', 
-              'hr', 'jobs', 'career', 'business', 'partners', 'marketing', 'press'
-            ];
-            const randomPrefix = emailPrefixes[Math.floor(Math.random() * emailPrefixes.length)];
-            contactData.email = `${randomPrefix}@${domainName}.com`;
-          } else {
-            contactData.email = 'info@example.com';
-          }
+          // Генерируем email с улучшенной логикой
+          contactData.email = generateRandomEmail(headerData?.siteName);
         } else if (!contactData.address) {
           // Если это не телефон и не email, считаем это адресом
           contactData.address = cleanEmailsInText(line);

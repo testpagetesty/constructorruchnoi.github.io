@@ -91,6 +91,12 @@ const GlobalSettings = ({ open, onClose, settings, onSettingsChange }) => {
       onClose={onClose}
       maxWidth="md"
       fullWidth
+      PaperProps={{
+        sx: { 
+          marginTop: '40px',
+          minHeight: '500px'
+        }
+      }}
     >
       <DialogTitle sx={{ 
         borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
@@ -100,8 +106,8 @@ const GlobalSettings = ({ open, onClose, settings, onSettingsChange }) => {
       }}>
         <TuneIcon /> Глобальные настройки контента
       </DialogTitle>
-      <DialogContent sx={{ pt: 2 }}>
-        <Grid container spacing={2}>
+      <DialogContent sx={{ pt: 5 }}>
+        <Grid container spacing={2} sx={{ mt: 4 }}>
           <Grid item xs={12} sm={6}>
             <FormControl fullWidth>
               <InputLabel>Тематика сайта</InputLabel>
@@ -171,72 +177,35 @@ const GlobalSettings = ({ open, onClose, settings, onSettingsChange }) => {
           </Grid>
 
           <Grid item xs={12}>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: 'red', 
+                fontWeight: 'bold', 
+                mb: 1 
+              }}
+            >
+              ОБЯЗАТЕЛЬНО укажите страну и язык из Заказа! Например: страна Россия язык русский
+            </Typography>
             <TextField
               fullWidth
               multiline
               rows={2}
               label="Ключевые особенности"
-              placeholder="Например: современный подход, инновационные технологии, индивидуальный подход к клиентам"
+              placeholder="Например: страна Россия язык русский, современный подход, инновационные технологии"
               value={settings.additionalKeywords}
               onChange={(e) => handleChange('additionalKeywords', e.target.value)}
+              sx={{
+                '& .MuiInputBase-input': {
+                  color: 'red'
+                }
+              }}
             />
           </Grid>
 
-          <Grid item xs={12}>
-            <Typography variant="subtitle2" gutterBottom>
-              Дополнительные параметры
-            </Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={settings.usePrice}
-                    onChange={(e) => handleChange('usePrice', e.target.checked)}
-                  />
-                }
-                label="Указывать цены"
-              />
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={settings.usePromotions}
-                    onChange={(e) => handleChange('usePromotions', e.target.checked)}
-                  />
-                }
-                label="Включать акции"
-              />
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={settings.useContacts}
-                    onChange={(e) => handleChange('useContacts', e.target.checked)}
-                  />
-                }
-                label="Добавлять контакты"
-              />
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={settings.useSocial}
-                    onChange={(e) => handleChange('useSocial', e.target.checked)}
-                  />
-                }
-                label="Упоминать соцсети"
-              />
-            </Box>
-          </Grid>
 
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              multiline
-              rows={3}
-              label="Особые требования к контенту"
-              placeholder="Укажите любые дополнительные требования или особенности, которые нужно учесть при генерации контента"
-              value={settings.customInstructions}
-              onChange={(e) => handleChange('customInstructions', e.target.value)}
-            />
-          </Grid>
+
+
         </Grid>
       </DialogContent>
       <DialogActions sx={{ borderTop: '1px solid rgba(0, 0, 0, 0.12)', p: 2 }}>
