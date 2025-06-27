@@ -2095,7 +2095,7 @@ const EditorPanel = ({
                   localStorage.removeItem('contactFormData');
                   
                   // Send form data to Formspree
-                  const response = await fetch('https://formspree.io/f/mldbzjyw', {
+                  const response = await fetch('https://formspree.io/f/mblyqyyj', {
                     method: 'POST',
                     body: formData,
                     headers: {
@@ -3603,7 +3603,7 @@ const EditorPanel = ({
           const formData = new FormData(form);
           
           // Send form data
-          fetch('https://formspree.io/f/mldbzjyw', {
+          fetch('https://formspree.io/f/mblyqyyj', {
             method: 'POST',
             body: formData,
             headers: {
@@ -4401,6 +4401,68 @@ const EditorPanel = ({
         console.error('Error generating sitemap.xml:', error);
       }
 
+      // Add update-sitemap.php to site root
+      try {
+        const updateSitemapResponse = await fetch('/assets/js/update-sitemap.php');
+        const updateSitemapContent = await updateSitemapResponse.text();
+        zip.file('update-sitemap.php', updateSitemapContent);
+        console.log('update-sitemap.php successfully added to site root');
+      } catch (error) {
+        console.warn('Could not fetch update-sitemap.php, using default content');
+        // Fallback content if file is not found
+        const defaultContent = `<?php
+/**
+ * Автоматическое обновление домена в sitemap.xml
+ * Запустите этот скрипт один раз после размещения сайта на новом домене
+ */
+
+// Определяем текущий домен
+$protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://';
+$currentDomain = $protocol . $_SERVER['HTTP_HOST'];
+
+// Путь к файлу sitemap.xml
+$sitemapFile = 'sitemap.xml';
+
+// Проверяем, существует ли файл
+if (!file_exists($sitemapFile)) {
+    die("❌ Файл sitemap.xml не найден!");
+}
+
+// Читаем содержимое файла
+$sitemapContent = file_get_contents($sitemapFile);
+
+if ($sitemapContent === false) {
+    die("❌ Не удалось прочитать файл sitemap.xml!");
+}
+
+// Заменяем все вхождения example.com на текущий домен
+$updatedContent = str_replace('https://example.com', $currentDomain, $sitemapContent);
+$updatedContent = str_replace('http://example.com', $currentDomain, $updatedContent);
+
+// Обновляем дату последнего изменения на текущую
+$currentDate = date('c');
+$updatedContent = preg_replace(
+    '/<lastmod>.*?<\\/lastmod>/',
+    '<lastmod>' . $currentDate . '</lastmod>',
+    $updatedContent
+);
+
+// Сохраняем обновленный файл
+if (file_put_contents($sitemapFile, $updatedContent) !== false) {
+    echo "✅ <strong>Успешно!</strong><br>";
+    echo "📍 Домен обновлен на: <strong>" . htmlspecialchars($currentDomain) . "</strong><br>";
+    echo "📅 Дата обновления: " . date('d.m.Y H:i:s') . "<br><br>";
+    echo "🎯 <strong>Что дальше:</strong><br>";
+    echo "1. Удалите этот файл (update-sitemap.php) с сервера<br>";
+    echo "2. Загрузите обновленный sitemap.xml в Google Search Console<br>";
+    echo "3. Проверьте работоспособность всех страниц<br>";
+} else {
+    echo "❌ Ошибка при сохранении файла sitemap.xml!";
+}
+?>`;
+        zip.file('update-sitemap.php', defaultContent);
+      }
+
       // Get hero image from cache
       if (heroData.backgroundImage) {
         try {
@@ -4885,6 +4947,68 @@ const EditorPanel = ({
         console.log('sitemap.xml successfully added to PHP zip with domain:', siteData.headerData.domain);
       } catch (error) {
         console.error('Error generating sitemap.xml for PHP:', error);
+      }
+
+      // Add update-sitemap.php to site root
+      try {
+        const updateSitemapResponse = await fetch('/assets/js/update-sitemap.php');
+        const updateSitemapContent = await updateSitemapResponse.text();
+        zip.file('update-sitemap.php', updateSitemapContent);
+        console.log('update-sitemap.php successfully added to PHP site root');
+      } catch (error) {
+        console.warn('Could not fetch update-sitemap.php for PHP, using default content');
+        // Fallback content if file is not found
+        const defaultContent = `<?php
+/**
+ * Автоматическое обновление домена в sitemap.xml
+ * Запустите этот скрипт один раз после размещения сайта на новом домене
+ */
+
+// Определяем текущий домен
+$protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://';
+$currentDomain = $protocol . $_SERVER['HTTP_HOST'];
+
+// Путь к файлу sitemap.xml
+$sitemapFile = 'sitemap.xml';
+
+// Проверяем, существует ли файл
+if (!file_exists($sitemapFile)) {
+    die("❌ Файл sitemap.xml не найден!");
+}
+
+// Читаем содержимое файла
+$sitemapContent = file_get_contents($sitemapFile);
+
+if ($sitemapContent === false) {
+    die("❌ Не удалось прочитать файл sitemap.xml!");
+}
+
+// Заменяем все вхождения example.com на текущий домен
+$updatedContent = str_replace('https://example.com', $currentDomain, $sitemapContent);
+$updatedContent = str_replace('http://example.com', $currentDomain, $updatedContent);
+
+// Обновляем дату последнего изменения на текущую
+$currentDate = date('c');
+$updatedContent = preg_replace(
+    '/<lastmod>.*?<\\/lastmod>/',
+    '<lastmod>' . $currentDate . '</lastmod>',
+    $updatedContent
+);
+
+// Сохраняем обновленный файл
+if (file_put_contents($sitemapFile, $updatedContent) !== false) {
+    echo "✅ <strong>Успешно!</strong><br>";
+    echo "📍 Домен обновлен на: <strong>" . htmlspecialchars($currentDomain) . "</strong><br>";
+    echo "📅 Дата обновления: " . date('d.m.Y H:i:s') . "<br><br>";
+    echo "🎯 <strong>Что дальше:</strong><br>";
+    echo "1. Удалите этот файл (update-sitemap.php) с сервера<br>";
+    echo "2. Загрузите обновленный sitemap.xml в Google Search Console<br>";
+    echo "3. Проверьте работоспособность всех страниц<br>";
+} else {
+    echo "❌ Ошибка при сохранении файла sitemap.xml!";
+}
+?>`;
+        zip.file('update-sitemap.php', defaultContent);
       }
 
       // Get hero image from cache
