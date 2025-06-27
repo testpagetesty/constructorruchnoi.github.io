@@ -963,7 +963,7 @@ const AiParser = ({
   const [globalSettings, setGlobalSettings] = useState({
     theme: 'CUSTOM',
     customTheme: '',
-    language: 'RU',
+    language: '',
     contentStyle: 'PROFESSIONAL',
     additionalKeywords: '',
     usePrice: false,
@@ -986,7 +986,7 @@ const AiParser = ({
       FAQ: true,
       TESTIMONIALS: true,
       CONTACTS: true,
-      MERCI: false,
+      MERCI: true, // Включаем сообщение благодарности по умолчанию
       LEGAL: true // Добавляем правовые документы в настройки
     },
     cardCounts: {
@@ -1049,13 +1049,25 @@ const AiParser = ({
       return `(${range.min}-${range.max} слов)`;
     };
 
+    // Получаем информацию о выбранном языке из глобальных настроек
+    let languageName = 'русском языке';
+    
+    if (globalSettings.language === 'CUSTOM' && globalSettings.customLanguage) {
+      languageName = `языке с кодом ${globalSettings.customLanguage}`;
+    } else if (globalSettings.language) {
+      const langObj = LANGUAGES.find(lang => lang.code === globalSettings.language);
+      if (langObj) {
+        languageName = langObj.label.split(' - ')[0]; // Берем русское название до " - "
+      }
+    }
+
     let sectionsPrompt = `Создайте полный контент для сайта. Строго следуйте формату ниже.
 
 ОБЯЗАТЕЛЬНО СОЗДАЙТЕ ВСЕ УКАЗАННЫЕ РАЗДЕЛЫ, ВКЛЮЧАЯ ПРАВОВЫЕ ДОКУМЕНТЫ В КОНЦЕ!
 
 КРИТИЧЕСКИ ВАЖНО: 
 1. Весь контент, включая ID секций, ДОЛЖЕН быть на одном языке (который указан в настройках)
-2. ID секции должен быть написан на том же языке, что и весь контент, только само слово "ID:" всегда на английском, так как оно является системным, всё что после него на выбранном языке
+2. ID секций: буквы "ID" всегда на английском языке, название секции после двоеточия - на ${languageName}
 3. Не использовать смешанные языки или транслитерацию
 4. КАЖДЫЙ раздел ОБЯЗАТЕЛЬНО должен начинаться с "=== РАЗДЕЛ: ИМЯ ===" и ОБЯЗАТЕЛЬНО заканчиваться "=== КОНЕЦ РАЗДЕЛА ==="
 5. НЕ ИСПОЛЬЗУЙТЕ символы экранирования (\) перед разделителями === 
@@ -1083,7 +1095,7 @@ const AiParser = ({
 
     if (settings.includedSections.ABOUT) {
       sectionsPrompt += `=== РАЗДЕЛ: О НАС ===
-ID: [укажите ID на выбранном языке]
+ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
 [Заголовок раздела ${getWordRange('ABOUT', 'sectionTitle')}]
 [Описание раздела ${getWordRange('ABOUT', 'sectionDescription')}]
 
@@ -1095,7 +1107,7 @@ ID: [укажите ID на выбранном языке]
 
     if (settings.includedSections.SERVICES) {
       sectionsPrompt += `=== РАЗДЕЛ: УСЛУГИ ===
-ID: [укажите ID на выбранном языке]
+ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
 [Заголовок раздела ${getWordRange('SERVICES', 'sectionTitle')}]
 [Описание раздела ${getWordRange('SERVICES', 'sectionDescription')}]
 
@@ -1107,7 +1119,7 @@ ID: [укажите ID на выбранном языке]
 
     if (settings.includedSections.FEATURES) {
       sectionsPrompt += `=== РАЗДЕЛ: ПРЕИМУЩЕСТВА ===
-ID: [укажите ID на выбранном языке]
+ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
 [Заголовок раздела ${getWordRange('FEATURES', 'sectionTitle')}]
 [Описание раздела ${getWordRange('FEATURES', 'sectionDescription')}]
 
@@ -1119,7 +1131,7 @@ ID: [укажите ID на выбранном языке]
 
     if (settings.includedSections.NEWS) {
       sectionsPrompt += `=== РАЗДЕЛ: НОВОСТИ ===
-ID: [укажите ID на выбранном языке]
+ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
 [Заголовок раздела ${getWordRange('NEWS', 'sectionTitle')}]
 [Описание раздела ${getWordRange('NEWS', 'sectionDescription')}]
 
@@ -1131,7 +1143,7 @@ ID: [укажите ID на выбранном языке]
 
     if (settings.includedSections.FAQ) {
       sectionsPrompt += `=== РАЗДЕЛ: ВОПРОСЫ ===
-ID: [укажите ID на выбранном языке]
+ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
 [Заголовок раздела ${getWordRange('FAQ', 'sectionTitle')}]
 [Описание раздела ${getWordRange('FAQ', 'sectionDescription')}]
 
@@ -1143,7 +1155,7 @@ ID: [укажите ID на выбранном языке]
 
     if (settings.includedSections.TESTIMONIALS) {
       sectionsPrompt += `=== РАЗДЕЛ: ОТЗЫВЫ ===
-ID: [укажите ID на выбранном языке]
+ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
 [Заголовок раздела ${getWordRange('TESTIMONIALS', 'sectionTitle')}]
 [Описание раздела ${getWordRange('TESTIMONIALS', 'sectionDescription')}]
 
@@ -1304,11 +1316,20 @@ info@company.com
     if (globalSettings.language === 'CUSTOM' && globalSettings.customLanguage) {
       languageCode = globalSettings.customLanguage;
       language = `языке с кодом ISO ${globalSettings.customLanguage}`;
+    } else if (globalSettings.language) {
+      const langObj = LANGUAGES.find(lang => lang.code === globalSettings.language);
+      if (langObj) {
+        language = langObj.label.split(' - ')[0]; // Берем русское название до " - "
+        const codeMatch = langObj.label.match(/\(([a-z]{2})\)/i);
+        languageCode = codeMatch ? codeMatch[1].toLowerCase() : '';
+      } else {
+        language = 'русском языке';
+        languageCode = 'ru';
+      }
     } else {
-      const langString = LANGUAGES[globalSettings.language] || '';
-      language = langString.split(' ')[0];
-      const codeMatch = langString.match(/\(([a-z]{2})\)/i);
-      languageCode = codeMatch ? codeMatch[1].toLowerCase() : '';
+      // Если язык не выбран, используем русский по умолчанию
+      language = 'русском языке';
+      languageCode = 'ru';
     }
 
     return `СПЕЦИАЛИЗИРОВАННЫЙ ПРОМПТ ДЛЯ ПРАВОВЫХ ДОКУМЕНТОВ
@@ -1382,6 +1403,18 @@ info@company.com
       return `(${range.min}-${range.max} слов)`;
     };
 
+    // Получаем информацию о выбранном языке из глобальных настроек
+    let languageName = 'русском языке';
+    
+    if (globalSettings.language === 'CUSTOM' && globalSettings.customLanguage) {
+      languageName = `языке с кодом ${globalSettings.customLanguage}`;
+    } else if (globalSettings.language) {
+      const langObj = LANGUAGES.find(lang => lang.code === globalSettings.language);
+      if (langObj) {
+        languageName = langObj.label.split(' - ')[0]; // Берем русское название до " - "
+      }
+    }
+
     let sectionsPrompt = `ОПТИМИЗИРОВАННЫЙ ПРОМПТ ПОЛНОГО САЙТА
 
 Создайте контент для сайта согласно указанным разделам.
@@ -1407,7 +1440,7 @@ info@company.com
     // Добавляем остальные секции
     if (settings.includedSections.ABOUT) {
       sectionsPrompt += `=== РАЗДЕЛ: О НАС ===
-ID: [ID на выбранном языке]
+ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
 [Заголовок ${getWordRange('ABOUT', 'sectionTitle')}]
 [Описание ${getWordRange('ABOUT', 'sectionDescription')}]
 
@@ -1421,7 +1454,7 @@ ID: [ID на выбранном языке]
 
     if (settings.includedSections.SERVICES) {
       sectionsPrompt += `=== РАЗДЕЛ: УСЛУГИ ===
-ID: [ID на выбранном языке]
+ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
 [Заголовок ${getWordRange('SERVICES', 'sectionTitle')}]
 [Описание ${getWordRange('SERVICES', 'sectionDescription')}]
 
@@ -1435,7 +1468,7 @@ ID: [ID на выбранном языке]
 
     if (settings.includedSections.FEATURES) {
       sectionsPrompt += `=== РАЗДЕЛ: ПРЕИМУЩЕСТВА ===
-ID: [ID на выбранном языке]
+ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
 [Заголовок ${getWordRange('FEATURES', 'sectionTitle')}]
 [Описание ${getWordRange('FEATURES', 'sectionDescription')}]
 
@@ -1449,7 +1482,7 @@ ID: [ID на выбранном языке]
 
     if (settings.includedSections.NEWS) {
       sectionsPrompt += `=== РАЗДЕЛ: НОВОСТИ ===
-ID: [ID на выбранном языке]
+ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
 [Заголовок ${getWordRange('NEWS', 'sectionTitle')}]
 [Описание ${getWordRange('NEWS', 'sectionDescription')}]
 
@@ -1463,7 +1496,7 @@ ID: [ID на выбранном языке]
 
     if (settings.includedSections.FAQ) {
       sectionsPrompt += `=== РАЗДЕЛ: ВОПРОСЫ ===
-ID: [ID на выбранном языке]
+ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
 [Заголовок ${getWordRange('FAQ', 'sectionTitle')}]
 [Описание ${getWordRange('FAQ', 'sectionDescription')}]
 
@@ -1477,7 +1510,7 @@ ID: [ID на выбранном языке]
 
     if (settings.includedSections.TESTIMONIALS) {
       sectionsPrompt += `=== РАЗДЕЛ: ОТЗЫВЫ ===
-ID: [ID на выбранном языке]
+ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
 [Заголовок ${getWordRange('TESTIMONIALS', 'sectionTitle')}]
 [Описание ${getWordRange('TESTIMONIALS', 'sectionDescription')}]
 
@@ -1505,9 +1538,20 @@ ID: [ID на выбранном языке]
 `;
     }
 
+    if (settings.includedSections.MERCI) {
+      sectionsPrompt += `=== РАЗДЕЛ: MERCI ===
+[Текст сообщения на выбранном языке, пример: "Спасибо за обращение, с вами свяжется в ближайшее время наш специалист"]
+
+[Текст кнопки на выбранном языке, пример: "Закрыть"]
+
+=== КОНЕЦ РАЗДЕЛА ===
+
+`;
+    }
+
     sectionsPrompt += `ТРЕБОВАНИЯ:
 1. Весь контент на одном языке (указанном в настройках)
-2. ID секций на выбранном языке, только "ID:" на английском
+2. ID секций: буквы "ID" всегда на английском, название секции после двоеточия - на ${languageName}
 3. Не использовать форматирование Markdown/HTML
 4. Каждый раздел должен заканчиваться "=== КОНЕЦ РАЗДЕЛА ==="
 5. Не пропускать указанные разделы`;
@@ -1589,15 +1633,26 @@ ID: [ID на выбранном языке]
       languageCode = globalSettings.customLanguage;
       language = `языке с кодом ISO ${globalSettings.customLanguage}`;
       languageName = `языке с кодом ${globalSettings.customLanguage}`;
+    } else if (globalSettings.language) {
+      const langObj = LANGUAGES.find(lang => lang.code === globalSettings.language);
+      if (langObj) {
+        // Извлекаем название языка и код
+        languageName = langObj.label.split(' - ')[0]; // Берем русское название до " - "
+        language = languageName;
+        
+        // Извлекаем код языка из строки в формате "Русский - English (en)"
+        const codeMatch = langObj.label.match(/\(([a-z]{2})\)/i);
+        languageCode = codeMatch ? codeMatch[1].toLowerCase() : '';
+      } else {
+        languageName = 'русском языке';
+        language = languageName;
+        languageCode = 'ru';
+      }
     } else {
-      const langString = LANGUAGES[globalSettings.language] || '';
-      // Извлекаем название языка и код
-      languageName = langString.split(' ')[0]; // Берем только название языка без кода
+      // Если язык не выбран, используем русский по умолчанию
+      languageName = 'русском языке';
       language = languageName;
-      
-      // Извлекаем код языка из строки в формате "Русский (ru)"
-      const codeMatch = langString.match(/\(([a-z]{2})\)/i);
-      languageCode = codeMatch ? codeMatch[1].toLowerCase() : '';
+      languageCode = 'ru';
     }
 
     let enhancedPrompt = `Создайте контент для сайта "${theme}" на ${language}.\n`;
@@ -1666,11 +1721,16 @@ ID: [ID на выбранном языке]
     if (newSettings.language === 'CUSTOM') {
       // Если выбран "Другой язык", используем значение из поля ввода
       languageCode = newSettings.customLanguage || '';
+    } else if (newSettings.language) {
+      // Извлекаем код языка из объекта языка
+      const langObj = LANGUAGES.find(lang => lang.code === newSettings.language);
+      if (langObj) {
+        const match = langObj.label.match(/\(([a-z]{2})\)/i);
+        languageCode = match ? match[1].toLowerCase() : '';
+      }
     } else {
-      // Извлекаем код языка из строки, например "Русский (ru)" -> "ru"
-      const languageString = LANGUAGES[newSettings.language] || '';
-      const match = languageString.match(/\(([a-z]{2})\)/i);
-      languageCode = match ? match[1].toLowerCase() : '';
+      // Если язык не выбран, используем русский по умолчанию
+      languageCode = 'ru';
     }
     
     // Обновляем код языка в настройках шапки, если он отличается

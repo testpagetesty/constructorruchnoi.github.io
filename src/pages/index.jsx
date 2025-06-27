@@ -207,6 +207,10 @@ export default function Home() {
       cookiePolicy: 'Политика использования cookie'
     }
   });
+  const [liveChatData, setLiveChatData] = useState({
+    enabled: true,
+    apiKey: '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'
+  });
 
   console.log('Home component state:', {
     headerData,
@@ -310,6 +314,11 @@ export default function Home() {
     }
   };
 
+  const handleLiveChatChange = (newLiveChatData) => {
+    console.log('handleLiveChatChange called with:', newLiveChatData);
+    setLiveChatData(newLiveChatData);
+  };
+
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -350,6 +359,8 @@ export default function Home() {
           onFooterChange={handleFooterChange}
           legalDocuments={footerData.legalDocuments}
           onLegalDocumentsChange={handleLegalDocumentsChange}
+          liveChatData={liveChatData}
+          onLiveChatChange={handleLiveChatChange}
         />
       </Box>
       <Box sx={{ 
@@ -366,6 +377,7 @@ export default function Home() {
           footerData={footerData}
           contactData={contactData}
           legalDocuments={footerData.legalDocuments}
+          liveChatData={liveChatData}
         />
       </Box>
     </Box>

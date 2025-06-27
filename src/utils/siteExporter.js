@@ -2,6 +2,7 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { exportCookieConsentData } from './cookieConsentExporter';
 import { cleanHTML, cleanCSS, cleanJavaScript } from './codeCleanup';
+import { generateLiveChatHTML, generateLiveChatCSS, generateLiveChatJS } from './liveChatExporter';
 
 // Function to remove all comments from code
 const removeComments = (code) => {
@@ -21,6 +22,10 @@ const removeComments = (code) => {
 };
 
 export const exportSite = async (siteData) => {
+  console.log('🚀 exportSite called with siteData:', siteData);
+  console.log('🔍 liveChatData:', siteData.liveChatData);
+  console.log('🔍 liveChatData.enabled:', siteData.liveChatData?.enabled);
+  
   const zip = new JSZip();
   
   // Create assets directory structure
@@ -28,6 +33,197 @@ export const exportSite = async (siteData) => {
   const cssDir = assetsDir.folder('css');
   const jsDir = assetsDir.folder('js');
   const imagesDir = assetsDir.folder('images');
+  
+  // Add chat open sound if live chat is enabled
+  console.log('🔍 Checking live chat status:', {
+    liveChatData: siteData.liveChatData,
+    enabled: siteData.liveChatData?.enabled
+  });
+  
+  if (siteData.liveChatData?.enabled) {
+    try {
+      console.log('🔊 Adding chat open sound...');
+      
+      // Try to fetch the sound file from different sources
+      console.log('🔄 Attempting to fetch sound file...');
+      
+      // Try different paths including API endpoint
+      const possiblePaths = [
+        '/api/get-sound-file',  // API endpoint (priority)
+        '/1.mp3', 
+        './1.mp3', 
+        './public/1.mp3', 
+        '/public/1.mp3'
+      ];
+      let response = null;
+      let successPath = null;
+      
+      for (const path of possiblePaths) {
+        try {
+          console.log('🔄 Trying path:', path);
+          response = await fetch(path);
+          console.log('📡 Response for', path, ':', response.status, response.statusText);
+          
+          if (response.ok) {
+            successPath = path;
+            console.log('✅ Found sound file at:', successPath);
+            
+            // Additional information for API endpoint
+            if (path === '/api/get-sound-file') {
+              const fileSize = response.headers.get('X-File-Size');
+              const filePath = response.headers.get('X-File-Path');
+              console.log('📊 API endpoint info - Size:', fileSize, 'bytes, Path:', filePath);
+            }
+            
+            break;
+          }
+        } catch (error) {
+          console.log('❌ Error fetching', path, ':', error.message);
+        }
+      }
+      
+      if (!successPath) {
+        console.log('❌ Could not find sound file at any path');
+        console.log('📝 Tried paths:', possiblePaths);
+      }
+      
+      if (response && response.ok) {
+        console.log('✅ Successfully fetched sound file from:', successPath);
+        const soundBlob = await response.blob();
+        console.log('📦 Sound blob size:', soundBlob.size, 'bytes');
+        const soundBuffer = await soundBlob.arrayBuffer();
+        console.log('🔄 Converting to ArrayBuffer, size:', soundBuffer.byteLength, 'bytes');
+        
+        // Add the original file as MP3
+        assetsDir.file('chat-open.mp3', soundBuffer);
+        
+        // Also add as OGG and WAV with same data (browsers will handle decoding)
+        assetsDir.file('chat-open.ogg', soundBuffer);
+        assetsDir.file('chat-open.wav', soundBuffer);
+        
+        // Add to root directory as backup
+        zip.file('chat-open.mp3', soundBuffer);
+        zip.file('chat-open.ogg', soundBuffer);
+        zip.file('chat-open.wav', soundBuffer);
+        
+        console.log('✅ Chat open sound added to export in multiple formats and locations');
+        console.log(`📊 Final sound file size: ${soundBuffer.byteLength} bytes`);
+        console.log('📁 Files added to assets/: chat-open.mp3, chat-open.ogg, chat-open.wav');
+        console.log('📁 Files added to root/: chat-open.mp3, chat-open.ogg, chat-open.wav');
+        
+        // Add verification file
+        assetsDir.file('SOUND-SUCCESS.txt', 
+          'CHAT SOUND SUCCESSFULLY ADDED\n' +
+          '===========================\n\n' +
+          'Sound file was successfully found and added to export.\n' +
+          'Source path: ' + successPath + '\n' +
+                      'File size: ' + soundBuffer.byteLength + ' bytes\n' +
+            'Added at: ' + new Date().toISOString() + '\n\n' +
+                      'ADDED FILES:\n' +
+            '- assets/chat-open.mp3\n' +
+          '- assets/chat-open.ogg\n' +
+          '- assets/chat-open.wav\n' +
+                      '- chat-open.mp3 (in root)\n' +
+            '- chat-open.ogg (in root)\n' +
+            '- chat-open.wav (in root)\n\n' +
+            'Chat JavaScript code will automatically try to load sound from:\n' +
+          '1. assets/chat-open.ogg\n' +
+          '2. assets/chat-open.wav\n' +
+          '3. assets/chat-open.mp3\n' +
+          '4. chat-open.ogg\n' +
+          '5. chat-open.wav\n' +
+          '6. chat-open.mp3\n\n' +
+                      'If sound does not play, check browser console for debugging.'
+        );
+      } else {
+        console.warn('⚠️ Could not load chat sound file from any path');
+        console.warn('📝 Tried paths:', possiblePaths);
+        console.warn('🔧 Creating instruction file instead');
+        
+        // Add manual instruction file
+        assetsDir.file('README-SOUND.txt', 
+          'CHAT SOUND ADDING INSTRUCTION\n' +
+          '=====================================\n\n' +
+          'Sound file was not found automatically.\n' +
+          'Source file: C:\\Users\\840G5\\Desktop\\НОВЫЙ\\public\\1.mp3\n\n' +
+          'Tried paths:\n' +
+          possiblePaths.map(path => '- ' + path).join('\n') + '\n\n' +
+          'WHAT TO DO:\n' +
+          '1. Find file 1.mp3 in public/ folder\n' +
+          '2. Copy it to assets/ folder of exported site\n' +
+          '3. Rename to one of formats:\n' +
+          '   - chat-open.ogg (priority 1)\n' +
+          '   - chat-open.wav (priority 2)\n' +
+          '   - chat-open.mp3 (priority 3)\n\n' +
+          'ALTERNATIVELY:\n' +
+          '- Place file in root folder of site\n' +
+          '- JavaScript code will automatically find sound\n\n' +
+          'ONLINE CONVERTERS (if OGG needed):\n' +
+          '- https://convertio.co/mp3-ogg/\n' +
+          '- https://online-audio-converter.com/\n' +
+          '- https://cloudconvert.com/mp3-to-ogg\n\n' +
+          'DEBUGGING:\n' +
+          '- Open browser console (F12)\n' +
+          '- Click on chat button\n' +
+          '- Check sound loading messages'
+        );
+      }
+    } catch (error) {
+      console.error('❌ Error processing chat sound:', error);
+      // Add manual instruction file with error details
+      assetsDir.file('README-SOUND.txt', 
+        'CHAT SOUND ADDING INSTRUCTION (ERROR)\n' +
+        '============================================\n\n' +
+        'Error occurred during automatic sound adding:\n' +
+        'Error: ' + error.message + '\n\n' +
+        'Source file: C:\\Users\\840G5\\Desktop\\НОВЫЙ\\public\\1.mp3\n\n' +
+        'WHAT TO DO:\n' +
+        '1. Find file 1.mp3 in public/ folder\n' +
+        '2. Copy it to assets/ folder of exported site\n' +
+        '3. Rename to one of formats:\n' +
+        '   - chat-open.ogg (priority 1)\n' +
+        '   - chat-open.wav (priority 2)\n' +
+        '   - chat-open.mp3 (priority 3)\n\n' +
+        'ALTERNATIVELY:\n' +
+        '- Place file in root folder of site\n' +
+        '- JavaScript code will automatically find sound\n\n' +
+        'ONLINE CONVERTERS (if OGG needed):\n' +
+        '- https://convertio.co/mp3-ogg/\n' +
+        '- https://online-audio-converter.com/\n' +
+        '- https://cloudconvert.com/mp3-to-ogg\n\n' +
+        'TECHNICAL INFORMATION:\n' +
+        'Error time: ' + new Date().toISOString() + '\n' +
+        'User Agent: ' + (typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown') + '\n' +
+        'Error stack: ' + error.stack
+      );
+    }
+  }
+  
+  // Process and add chat operator photo if live chat is enabled
+  if (siteData.liveChatData?.enabled) {
+    try {
+      console.log('🎭 Processing chat operator photo...');
+      const response = await fetch('/api/process-chat-photo', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (response.ok) {
+        const photoBlob = await response.blob();
+        const originalFile = response.headers.get('X-Original-File');
+        const photoSize = response.headers.get('X-Photo-Size');
+        
+        imagesDir.file('operator.jpg', photoBlob);
+        console.log(`✅ Chat operator photo added to export: ${originalFile} (${photoSize} bytes)`);
+      } else {
+        console.warn('⚠️ Could not process chat operator photo:', response.status);
+      }
+    } catch (error) {
+      console.error('❌ Error processing chat operator photo:', error);
+    }
+  }
   
   // Generate and add styles
   const styles = generateStyles();
@@ -80,19 +276,27 @@ export const exportSite = async (siteData) => {
 
 const generateIndexHtml = (siteData) => {
   const headerData = siteData.headerData || {};
+  const heroData = siteData.heroData || {};
+  const liveChatData = siteData.liveChatData || {};
+  const siteName = headerData.siteName || 'My Site';
+  const languageCode = headerData.language || 'ru';
+  
+  // Use description from headerData (already synchronized with heroData.subtitle in HeaderEditor)
+  const metaDescription = headerData.description || 'Our site offers the best solutions';
+  
   return `
     <!DOCTYPE html>
-    <html lang="${headerData.language || 'ru'}">
+    <html lang="${languageCode}">
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta name="description" content="${headerData.description || ''}">
-        <title>${headerData.siteName || 'My Site'}</title>
+        <meta name="description" content="${metaDescription}">
+        <title>${siteName}</title>
         ${headerData.domain ? `<link rel="canonical" href="https://${headerData.domain}" />` : ''}
         <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="assets/css/styles.css">
         <style>
-          /* Основные шрифты */
+          /* Main fonts */
           @font-face {
             font-family: 'Montserrat';
             font-style: normal;
@@ -121,14 +325,22 @@ const generateIndexHtml = (siteData) => {
             font-display: swap;
             src: url(https://fonts.gstatic.com/s/montserrat/v25/JTUHjIg1_i6t8kCHKm4532VJOt5-QNFgpCuM73w5aXp-p7K4KLg.woff2) format('woff2');
           }
+          
+          /* Live Chat Styles */
+          ${liveChatData.enabled ? generateLiveChatCSS() : ''}
         </style>
       </head>
       <body>
         <div id="root">
           ${generateSiteContent(siteData)}
         </div>
+        
+        ${liveChatData.enabled ? generateLiveChatHTML(siteName, languageCode, liveChatData) : ''}
+        
         <script>
           ${generateAppJs(siteData)}
+          
+          ${liveChatData.enabled ? generateLiveChatJS(siteName, languageCode, liveChatData) : ''}
         </script>
       </body>
     </html>
@@ -151,12 +363,12 @@ const generateStyles = () => {
       background: #fff;
     }
 
-    /* Для предотвращения конфликтов стилей */
+    /* To prevent style conflicts */
     [data-nocards="true"] * {
       box-sizing: border-box;
     }
 
-    /* Стили для секций без карточек */
+    /* Styles for sections without cards */
     .section-nocards {
       background: #102826;
       padding: 4rem 2rem;
@@ -498,7 +710,7 @@ const generateFooter = (siteData) => {
 const generatePrivacyPolicy = (siteData) => {
   return `
     <!DOCTYPE html>
-    <html lang="${siteData.headerData?.language || 'ru'}">
+    <html lang="ru">
       <head>
         <meta charset="UTF-8">
         <title>Privacy Policy</title>
@@ -513,7 +725,7 @@ const generatePrivacyPolicy = (siteData) => {
 const generateCookiePolicy = (siteData) => {
   return `
     <!DOCTYPE html>
-    <html lang="${siteData.headerData?.language || 'ru'}">
+    <html lang="ru">
       <head>
         <meta charset="UTF-8">
         <title>Cookie Policy</title>
@@ -528,7 +740,7 @@ const generateCookiePolicy = (siteData) => {
 const generateTermsOfService = (siteData) => {
   return `
     <!DOCTYPE html>
-    <html lang="${siteData.headerData?.language || 'ru'}">
+    <html lang="ru">
       <head>
         <meta charset="UTF-8">
         <title>Terms of Service</title>
@@ -583,12 +795,12 @@ const generateSitemap = (siteData) => {
 const generateSafeFileName = (siteData) => {
   let fileName = '';
   
-  // Приоритет: домен, затем название сайта
+  // Priority: domain, then site name
   if (siteData.headerData?.domain && siteData.headerData.domain.trim()) {
     fileName = siteData.headerData.domain.trim();
-    // Убираем протокол если есть
+    // Remove protocol if present
     fileName = fileName.replace(/^https?:\/\//, '');
-    // Убираем www. если есть
+    // Remove www. if present
     fileName = fileName.replace(/^www\./, '');
   } else if (siteData.headerData?.siteName && siteData.headerData.siteName.trim()) {
     fileName = siteData.headerData.siteName.trim();
@@ -596,13 +808,13 @@ const generateSafeFileName = (siteData) => {
     fileName = 'site';
   }
   
-  // Заменяем недопустимые символы для имени файла
-  fileName = fileName
-    .replace(/[<>:"/\\|?*]/g, '') // Убираем недопустимые символы Windows
-    .replace(/\s+/g, '-') // Заменяем пробелы на дефисы
-    .replace(/[^a-zA-Z0-9а-яА-ЯёЁ\-\.]/g, '') // Оставляем только буквы (включая кириллицу), цифры, дефисы и точки
-    .replace(/--+/g, '-') // Убираем множественные дефисы
-    .replace(/^-+|-+$/g, ''); // Убираем дефисы в начале и конце
+      // Replace invalid characters for filename
+    fileName = fileName
+      .replace(/[<>:"/\\|?*]/g, '') // Remove invalid Windows characters
+          .replace(/\s+/g, '-') // Replace spaces with dashes
+      .replace(/[^a-zA-Z0-9а-яА-ЯёЁ\-\.]/g, '') // Keep only letters (including Cyrillic), numbers, dashes and dots
+          .replace(/--+/g, '-') // Remove multiple dashes
+      .replace(/^-+|-+$/g, ''); // Remove dashes at beginning and end
   
   return fileName || 'site';
 };
@@ -652,19 +864,19 @@ const generateSections = (siteData) => {
 };
 
 function generateSectionHTML(section) {
-  // РАДИКАЛЬНО ИЗМЕНЕННЫЙ КОД ДЛЯ ТЕСТИРОВАНИЯ
+  // RADICALLY CHANGED CODE FOR TESTING
   if (section.cardType === 'none') {
-    // Очень заметный красный фон
+    // Very noticeable red background
     return `
       <section style="background: #ff0000; padding: 20px; color: white; border: 10px solid yellow;">
-        <h1 style="color: white; font-size: 36px; text-align: center;">⚠️ ИЗМЕНЕНО ⚠️</h1>
-        <h2 style="color: yellow; font-size: 24px;">${section.title || 'СЕКЦИЯ ИЗМЕНЕНА'}</h2>
+        <h1 style="color: white; font-size: 36px; text-align: center;">⚠️ CHANGED ⚠️</h1>
+        <h2 style="color: yellow; font-size: 24px;">${section.title || 'SECTION CHANGED'}</h2>
         ${section.description ? `<p style="color: white; font-size: 18px;">${section.description}</p>` : ''}
         <div style="margin-top: 20px;">
           ${(section.cards || []).map(card => `
             <div style="background: rgba(0,0,0,0.5); padding: 15px; margin: 10px 0; border-radius: 10px;">
-              <h3 style="color: yellow; font-size: 20px;">${card.title || 'ЗАГОЛОВОК'}</h3>
-              <p style="color: white;">${card.text || card.content || 'ТЕКСТ ИЗМЕНЕН'}</p>
+              <h3 style="color: yellow; font-size: 20px;">${card.title || 'TITLE'}</h3>
+              <p style="color: white;">${card.text || card.content || 'TEXT CHANGED'}</p>
             </div>
           `).join('')}
         </div>

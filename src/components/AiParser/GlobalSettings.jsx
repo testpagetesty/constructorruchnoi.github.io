@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -14,7 +14,8 @@ import {
   Typography,
   Box,
   FormControlLabel,
-  Checkbox
+  Checkbox,
+  Autocomplete
 } from '@mui/material';
 import TuneIcon from '@mui/icons-material/Tune';
 
@@ -32,42 +33,42 @@ export const WEBSITE_THEMES = {
   CUSTOM: 'Другое'
 };
 
-// Доступные языки
-export const LANGUAGES = {
-  RU: 'Русский (ru)',
-  EN: 'English (en)',
-  ES: 'Español (es)',
-  FR: 'Français (fr)',
-  DE: 'Deutsch (de)',
-  IT: 'Italiano (it)',
-  PT: 'Português (pt)',
-  NL: 'Nederlands (nl)',
-  PL: 'Polski (pl)',
-  AR: 'العربية (ar)',
-  ZH: '中文 (zh)',
-  JA: '日本語 (ja)',
-  KO: '한국어 (ko)',
-  TR: 'Türkçe (tr)',
-  HE: 'עברית (he)',
-  HI: 'हिन्दी (hi)',
-  UK: 'Українська (uk)',
-  BE: 'Беларуская (be)',
-  CS: 'Čeština (cs)',
-  DA: 'Dansk (da)',
-  FI: 'Suomi (fi)',
-  EL: 'Ελληνικά (el)',
-  HU: 'Magyar (hu)',
-  NO: 'Norsk (no)',
-  RO: 'Română (ro)',
-  SV: 'Svenska (sv)',
-  TH: 'ไทย (th)',
-  VI: 'Tiếng Việt (vi)',
-  BG: 'Български (bg)',
-  SR: 'Српски (sr)',
-  SK: 'Slovenčina (sk)',
-  SL: 'Slovenščina (sl)',
-  CUSTOM: 'Другой язык по коду ISO 639-1'
-};
+// Доступные языки с русскими названиями для поиска
+export const LANGUAGES = [
+  { code: 'RU', label: 'Русский (ru)', searchTerms: 'русский ru russia' },
+  { code: 'EN', label: 'Английский - English (en)', searchTerms: 'английский english en usa uk' },
+  { code: 'ES', label: 'Испанский - Español (es)', searchTerms: 'испанский spanish es spain' },
+  { code: 'FR', label: 'Французский - Français (fr)', searchTerms: 'французский french fr france' },
+  { code: 'DE', label: 'Немецкий - Deutsch (de)', searchTerms: 'немецкий german de germany' },
+  { code: 'IT', label: 'Итальянский - Italiano (it)', searchTerms: 'итальянский italian it italy' },
+  { code: 'PT', label: 'Португальский - Português (pt)', searchTerms: 'португальский portuguese pt portugal brazil' },
+  { code: 'NL', label: 'Нидерландский - Nederlands (nl)', searchTerms: 'нидерландский dutch nl netherlands' },
+  { code: 'PL', label: 'Польский - Polski (pl)', searchTerms: 'польский polish pl poland' },
+  { code: 'AR', label: 'Арабский - العربية (ar)', searchTerms: 'арабский arabic ar saudi arabia' },
+  { code: 'ZH', label: 'Китайский - 中文 (zh)', searchTerms: 'китайский chinese zh china' },
+  { code: 'JA', label: 'Японский - 日本語 (ja)', searchTerms: 'японский japanese ja japan' },
+  { code: 'KO', label: 'Корейский - 한국어 (ko)', searchTerms: 'корейский korean ko korea' },
+  { code: 'TR', label: 'Турецкий - Türkçe (tr)', searchTerms: 'турецкий turkish tr turkey' },
+  { code: 'HE', label: 'Иврит - עברית (he)', searchTerms: 'иврит hebrew he israel' },
+  { code: 'HI', label: 'Хинди - हिन्दी (hi)', searchTerms: 'хинди hindi hi india' },
+  { code: 'UK', label: 'Украинский - Українська (uk)', searchTerms: 'украинский ukrainian uk ukraine' },
+  { code: 'BE', label: 'Белорусский - Беларуская (be)', searchTerms: 'белорусский belarusian be belarus' },
+  { code: 'CS', label: 'Чешский - Čeština (cs)', searchTerms: 'чешский czech cs czechia' },
+  { code: 'DA', label: 'Датский - Dansk (da)', searchTerms: 'датский danish da denmark' },
+  { code: 'FI', label: 'Финский - Suomi (fi)', searchTerms: 'финский finnish fi finland' },
+  { code: 'EL', label: 'Греческий - Ελληνικά (el)', searchTerms: 'греческий greek el greece' },
+  { code: 'HU', label: 'Венгерский - Magyar (hu)', searchTerms: 'венгерский hungarian hu hungary' },
+  { code: 'NO', label: 'Норвежский - Norsk (no)', searchTerms: 'норвежский norwegian no norway' },
+  { code: 'RO', label: 'Румынский - Română (ro)', searchTerms: 'румынский romanian ro romania' },
+  { code: 'SV', label: 'Шведский - Svenska (sv)', searchTerms: 'шведский swedish sv sweden' },
+  { code: 'TH', label: 'Тайский - ไทย (th)', searchTerms: 'тайский thai th thailand' },
+  { code: 'VI', label: 'Вьетнамский - Tiếng Việt (vi)', searchTerms: 'вьетнамский vietnamese vi vietnam' },
+  { code: 'BG', label: 'Болгарский - Български (bg)', searchTerms: 'болгарский bulgarian bg bulgaria' },
+  { code: 'SR', label: 'Сербский - Српски (sr)', searchTerms: 'сербский serbian sr serbia' },
+  { code: 'SK', label: 'Словацкий - Slovenčina (sk)', searchTerms: 'словацкий slovak sk slovakia' },
+  { code: 'SL', label: 'Словенский - Slovenščina (sl)', searchTerms: 'словенский slovenian sl slovenia' },
+  { code: 'CUSTOM', label: 'Другой язык по коду ISO 639-1', searchTerms: 'другой custom iso' }
+];
 
 // Предустановленные стили контента
 export const CONTENT_STYLES = {
@@ -78,12 +79,32 @@ export const CONTENT_STYLES = {
 };
 
 const GlobalSettings = ({ open, onClose, settings, onSettingsChange }) => {
+  const [languageInputValue, setLanguageInputValue] = useState('');
+  
   const handleChange = (field, value) => {
     onSettingsChange({
       ...settings,
       [field]: value
     });
   };
+
+  // Находим выбранный язык для отображения
+  const selectedLanguage = useMemo(() => {
+    if (!settings.language) return null;
+    return LANGUAGES.find(lang => lang.code === settings.language) || null;
+  }, [settings.language]);
+
+  // Фильтрация языков для поиска
+  const filteredLanguages = useMemo(() => {
+    if (!languageInputValue) return LANGUAGES;
+    
+    const searchTerm = languageInputValue.toLowerCase();
+    return LANGUAGES.filter(lang => 
+      lang.label.toLowerCase().includes(searchTerm) ||
+      lang.searchTerms.toLowerCase().includes(searchTerm) ||
+      lang.code.toLowerCase().includes(searchTerm)
+    );
+  }, [languageInputValue]);
 
   return (
     <Dialog 
@@ -135,18 +156,42 @@ const GlobalSettings = ({ open, onClose, settings, onSettingsChange }) => {
           )}
 
           <Grid item xs={12} sm={6}>
-            <FormControl fullWidth>
-              <InputLabel>Язык контента</InputLabel>
-              <Select
-                value={settings.language}
-                onChange={(e) => handleChange('language', e.target.value)}
-                label="Язык контента"
-              >
-                {Object.entries(LANGUAGES).map(([key, value]) => (
-                  <MenuItem key={key} value={key}>{value}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <Autocomplete
+              fullWidth
+              options={filteredLanguages}
+              value={selectedLanguage}
+              onChange={(event, newValue) => {
+                handleChange('language', newValue ? newValue.code : '');
+              }}
+              inputValue={languageInputValue}
+              onInputChange={(event, newInputValue) => {
+                setLanguageInputValue(newInputValue);
+              }}
+              getOptionLabel={(option) => option.label}
+              renderOption={(props, option) => (
+                <Box component="li" {...props} key={option.code}>
+                  <Typography variant="body2">
+                    {option.label}
+                  </Typography>
+                </Box>
+              )}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Выберите язык"
+                  placeholder={selectedLanguage ? "" : "Выберите язык"}
+                  helperText="Например: русский, английский, spanish, deutsch..."
+                  variant="outlined"
+                />
+              )}
+              noOptionsText="Язык не найден"
+              clearText="Очистить"
+              openText="Открыть список"
+              closeText="Закрыть список"
+              isClearable
+              clearOnBlur={false}
+              selectOnFocus
+            />
             {settings.language === 'CUSTOM' && (
               <TextField
                 fullWidth

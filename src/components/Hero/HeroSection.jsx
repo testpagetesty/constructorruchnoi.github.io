@@ -176,7 +176,7 @@ const HeroSection = ({
           sx={{
             color: titleColor,
             fontWeight: 700,
-            marginBottom: theme.spacing(2),
+            marginBottom: theme.spacing(0.5),
             textShadow: '2px 2px 4px rgba(0,0,0,0.3)'
           }}
         >

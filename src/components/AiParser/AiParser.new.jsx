@@ -95,7 +95,7 @@ const AiParser = ({
   const [globalSettings, setGlobalSettings] = useState({
     theme: 'LAW',
     customTheme: '',
-    language: 'RU',
+    language: '',
     contentStyle: 'PROFESSIONAL',
     additionalKeywords: '',
     usePrice: false,
@@ -116,8 +116,12 @@ const AiParser = ({
     let language;
     if (globalSettings.language === 'CUSTOM' && globalSettings.customLanguage) {
       language = `языке с кодом ISO ${globalSettings.customLanguage}`;
+    } else if (globalSettings.language) {
+      const langObj = LANGUAGES.find(lang => lang.code === globalSettings.language);
+      language = langObj ? langObj.label.split(' - ')[0] : 'русском языке'; // Берем русское название до " - "
     } else {
-      language = LANGUAGES[globalSettings.language].split(' ')[0]; // Берем только название языка без кода
+      // Если язык не выбран, используем русский по умолчанию
+      language = 'русском языке';
     }
 
     let enhancedPrompt = `Создайте контент для сайта "${theme}" на ${language}.\n`;

@@ -16,6 +16,9 @@ import { CARD_TYPES } from '../../utils/configUtils';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { exportSite } from '../../utils/siteExporter';
+import { generateLiveChatHTML, generateLiveChatCSS, generateLiveChatJS } from '../../utils/liveChatExporter';
+
+import LiveChatEditor from './LiveChatEditor';
 import Slider from '@mui/material/Slider';
 import { imageCacheService } from '../../utils/imageCacheService';
 import imageCompression from 'browser-image-compression';
@@ -671,7 +674,9 @@ const EditorPanel = ({
   footerData,
   onFooterChange,
   legalDocuments,
-  onLegalDocumentsChange
+  onLegalDocumentsChange,
+  liveChatData = { enabled: false, apiKey: '' },
+  onLiveChatChange
 }) => {
   console.log('EditorPanel received props:', {
     headerData,
@@ -689,7 +694,8 @@ const EditorPanel = ({
     menuItems: {},
     contact: false,
     footer: false,
-    legal: false
+    legal: false,
+    liveChat: false
   });
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -1043,7 +1049,7 @@ const EditorPanel = ({
               // Create URL for preview
       const url = URL.createObjectURL(blob);
 
-      // Сохранение метаданных изображения
+              // Save image metadata
       const imageMetadata = {
         filename,
         type: 'image/jpeg',
@@ -1051,14 +1057,14 @@ const EditorPanel = ({
         lastModified: new Date().toISOString()
       };
 
-      // Сохранение метаданных в кэш
+      // Save metadata to cache
       const metadataKey = `section_${sectionId}_metadata`;
       await imageCacheService.saveMetadata(metadataKey, imageMetadata);
-      console.log('✓ Метаданные изображения сохранены в кэш:', imageMetadata);
+      console.log('✓ Image metadata saved to cache:', imageMetadata);
 
       return { url, filename, blob };
     } catch (error) {
-      console.error('Ошибка при обработке изображения:', error);
+      console.error('Error processing image:', error);
       throw error;
     }
   };
@@ -1071,9 +1077,9 @@ const EditorPanel = ({
       const newImages = [];
       
       for (const file of files) {
-        // Проверка формата
+        // Check format
         if (!file.type.startsWith('image/')) {
-          throw new Error('Пожалуйста, выберите только изображения');
+          throw new Error('Please select only images');
         }
 
         const { url, filename } = await processImage(file, id);
@@ -1088,7 +1094,7 @@ const EditorPanel = ({
 
       console.log('[EditorPanel] Processed images:', newImages);
 
-      // Обновляем данные секции
+      // Update section data
       const currentImages = sectionsData[id]?.images || [];
       const updatedSectionsData = {
         ...sectionsData,
@@ -1100,7 +1106,7 @@ const EditorPanel = ({
       
       onSectionsChange(updatedSectionsData);
 
-      // Отправляем сообщение в превью для обновления изображений
+      // Send message to preview for image update
       try {
         const previewIframe = document.querySelector('iframe.preview-iframe');
         if (previewIframe && previewIframe.contentWindow) {
@@ -1112,13 +1118,13 @@ const EditorPanel = ({
           }, '*');
         }
       } catch (error) {
-        console.error('Ошибка при отправке сообщения в превью:', error);
+        console.error('Error sending message to preview:', error);
       }
 
-      alert('Изображения секции успешно обработаны и сохранены');
+      alert('Section images successfully processed and saved');
     } catch (error) {
-      console.error('Ошибка при загрузке:', error);
-      alert('Ошибка при загрузке изображений: ' + error.message);
+      console.error('Error loading:', error);
+      alert('Error loading images: ' + error.message);
     }
   };
 
@@ -1127,7 +1133,7 @@ const EditorPanel = ({
     if (!section) return;
 
     const updatedCards = section.cards.map(card => {
-      // Применяем изменения только к выбранной карточке
+      // Apply changes only to selected card
       if (card.id === cardId) {
         return { ...card, [field]: value };
       }
@@ -1147,18 +1153,18 @@ const EditorPanel = ({
     const section = sectionsData[sectionId];
     if (!section) return;
 
-    // Проверяем, что секция поддерживает карточки
+    // Check that section supports cards
     if (section.cardType === CARD_TYPES.NONE) {
-      console.warn('Нельзя добавить карточку в секцию с типом NONE');
+      console.warn('Cannot add card to section with type NONE');
       return;
     }
 
-    // Генерируем новый ID для карточки
+    // Generate new ID for card
     let newCardId;
     if (!section.cards || section.cards.length === 0) {
       newCardId = 1;
       } else {
-      // Находим максимальный ID среди существующих карточек
+      // Find maximum ID among existing cards
       const maxId = Math.max(...section.cards.map(card => {
         const id = parseInt(card.id);
         return isNaN(id) ? 0 : id;
@@ -1168,14 +1174,14 @@ const EditorPanel = ({
 
     console.log('Generating new card with ID:', newCardId);
     
-    // Берем стили из первой карточки, если она есть
+    // Take styles from first card if it exists
     const firstCard = (section.cards && section.cards[0]) || {};
     
-    // Создаем новую карточку
+    // Create new card
     const newCard = {
       id: newCardId,
-      title: `Карточка ${newCardId}`,
-      content: 'Содержимое карточки',
+      title: `Card ${newCardId}`,
+      content: 'Card content',
       showTitle: true,
       titleColor: firstCard.titleColor || '#333333',
       contentColor: firstCard.contentColor || '#666666',
@@ -1191,7 +1197,7 @@ const EditorPanel = ({
       }
     };
 
-    // Обновляем секцию с новой карточкой
+    // Update section with new card
     onSectionsChange({
       ...sectionsData,
       [sectionId]: {
@@ -1224,6 +1230,11 @@ const EditorPanel = ({
   };
 
   const generateHTML = (data) => {
+    console.log('🚀 generateHTML called with data:', data);
+    console.log('🚀 liveChatData:', data.liveChatData);
+    console.log('🚀 liveChatData.enabled:', data.liveChatData?.enabled);
+    console.log('🚀 liveChatData.apiKey:', data.liveChatData?.apiKey ? 'Present' : 'Missing');
+    
     return `<!DOCTYPE html>
 <html lang="${data.headerData.language || 'en'}">
 <head>
@@ -1236,6 +1247,10 @@ const EditorPanel = ({
   <link rel="stylesheet" href="assets/css/styles.css">
   <meta name="description" content="${data.headerData.description || 'Our site offers the best solutions'}">
   ${data.headerData.domain ? `<link rel="canonical" href="https://${data.headerData.domain}" />` : ''}
+  <style>
+    /* Live Chat Styles */
+    ${data.liveChatData?.enabled ? generateLiveChatCSS() : ''}
+  </style>
 </head>
 <body>
   ${data.headerData.siteBackgroundType === 'image' ? `
@@ -1325,8 +1340,10 @@ const EditorPanel = ({
     <section id="hero" class="hero" style="
       ${data.heroData.backgroundType === 'solid' ? `background-color: ${data.heroData.backgroundColor || '#ffffff'};` : ''}
       ${data.heroData.backgroundType === 'gradient' ? `background: linear-gradient(${data.heroData.gradientDirection || 'to right'}, ${data.heroData.gradientColor1 || '#ffffff'}, ${data.heroData.gradientColor2 || '#f5f5f5'});` : ''}
-      ${data.heroData.backgroundType === 'image' ? `background-image: url('${data.heroData.backgroundImage.replace('/images/hero/', 'assets/images/')}'); background-size: cover; background-position: center;` : ''}
     ">
+      ${data.heroData.backgroundType === 'image' ? `
+        <div class="hero-bg-animation" style="background-image: url('${data.heroData.backgroundImage.replace('/images/hero/', 'assets/images/')}');"></div>
+      ` : ''}
       ${data.heroData.enableOverlay ? `
         <div class="hero-overlay" style="
           background: linear-gradient(rgba(0,0,0,${data.heroData.overlayOpacity / 100 || 0.5}), rgba(0,0,0,${data.heroData.overlayOpacity / 100 || 0.5}));
@@ -1434,7 +1451,7 @@ const EditorPanel = ({
                 </div>
               `;
             } else {
-              // Несколько изображений - делаем слайдер
+              // Multiple images - create slider
               imagesHtml = `
                 <div class="section-gallery" data-section-id="${section.id}" style="
                   float: right;
@@ -1502,7 +1519,7 @@ const EditorPanel = ({
               `;
             }
           } else if (hasSingleImage) {
-            // Одно изображение из поля imagePath
+            // Single image from imagePath field
             imagesHtml = `
               <div class="image-container" style="
                 float: right;
@@ -1531,7 +1548,7 @@ const EditorPanel = ({
             `;
         }
         
-                 // Генерируем HTML для карточек - каждая карточка с левой цветной полосой и эффектами
+                 // Generate HTML for cards - each card with left colored border and effects
          const cardsHtml = (section.cards || []).map((card, index) => {
            const cardTitleColor = card.titleColor || titleColor;
            const cardContentColor = card.contentColor || contentColor;
@@ -1572,7 +1589,7 @@ const EditorPanel = ({
            `;
         }).join('');
         
-                  // Создаем структуру, максимально приближенную к превью
+                  // Create structure as close as possible to preview
           return `
             <style>
               @keyframes fadeIn {
@@ -1934,6 +1951,11 @@ const EditorPanel = ({
               method="POST"
               onsubmit="submitForm(event)"
             >
+              <input type="hidden" name="_next" value="merci.html" />
+              <input type="hidden" name="_captcha" value="false" />
+              <input type="hidden" name="_template" value="table" />
+              <input type="hidden" name="_subject" value="New message from website" />
+              <input type="hidden" name="_language" id="formLanguage" value="en" />
               <div class="form-group" style="margin-bottom: 1.5rem;">
                 <label for="name" style="color: ${contactData.labelColor || '#333'}; display: block; margin-bottom: 0.5rem; font-weight: 500;">Full Name</label>
                 <input 
@@ -2025,6 +2047,8 @@ const EditorPanel = ({
               document.addEventListener('DOMContentLoaded', function() {
                 const form = document.getElementById('contactForm');
                 const inputs = form.querySelectorAll('input[type="text"], input[type="tel"], input[type="email"]');
+                
+                // Language logic removed
                 
                 // Load saved data
                 try {
@@ -2349,6 +2373,12 @@ const EditorPanel = ({
         };
       }
     });
+  </script>
+
+  ${data.liveChatData?.enabled ? generateLiveChatHTML(data.headerData.siteName || 'Наш сайт', data.headerData.language || 'ru', data.liveChatData) : ''}
+
+  <script>
+    ${data.liveChatData?.enabled ? generateLiveChatJS(data.headerData.siteName || 'Наш сайт', data.headerData.language || 'ru', data.liveChatData) : ''}
   </script>
 
   </body>
@@ -2842,8 +2872,34 @@ const EditorPanel = ({
         overflow: hidden;
       }
 
-      .hero[style*="background-image"] {
-        animation: zoomIn 20s ease-in-out infinite alternate;
+      .hero {
+        position: relative;
+        overflow: hidden;
+      }
+
+      .hero-bg-animation {
+        position: absolute;
+        top: -5%;
+        left: -5%;
+        width: 110%;
+        height: 110%;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        z-index: -1;
+        animation: heroBackgroundZoom 15s ease-in-out infinite;
+      }
+
+      @keyframes heroBackgroundZoom {
+        0% { 
+          transform: scale(1);
+        }
+        50% { 
+          transform: scale(1.05);
+        }
+        100% { 
+          transform: scale(1);
+        }
       }
 
       @keyframes zoomIn {
@@ -2893,20 +2949,22 @@ const EditorPanel = ({
       }
 
       .hero h1 {
-        font-size: 3rem;
-        margin-bottom: 1.5rem;
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+        line-height: 1.1;
         text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        animation: fadeIn 1s ease-in-out 0.3s both;
+        animation: none !important;
       }
 
       .hero p {
         font-size: 1.2rem;
-        margin-bottom: 2rem;
+        margin-bottom: 1rem;
+        line-height: 1.3;
         max-width: 600px;
         margin-left: auto;
         margin-right: auto;
         text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-        animation: fadeIn 1s ease-in-out 0.6s both;
+        animation: none !important;
       }
 
       .hero button {
@@ -2917,7 +2975,7 @@ const EditorPanel = ({
         cursor: pointer;
         transition: all 0.3s ease;
         box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        animation: fadeIn 1s ease-in-out 0.9s both;
+        animation: none !important;
       }
 
       .hero button:hover {
@@ -3964,8 +4022,143 @@ const EditorPanel = ({
             title: legalDocuments?.cookiePolicy?.title || '',
             content: (legalDocuments?.cookiePolicy?.content || '').toString()
           }
+        },
+        liveChatData: {
+          ...liveChatData,
+          enabled: liveChatData.enabled || false,
+          apiKey: liveChatData.apiKey || '',
+          selectedResponses: liveChatData.selectedResponses || '',
+          allTranslations: liveChatData.allTranslations || ''
         }
       };
+
+      console.log('🚀 handleDownloadSite - siteData:', siteData);
+      console.log('🚀 handleDownloadSite - siteData.liveChatData:', siteData.liveChatData);
+
+      // Process and add chat operator photo if live chat is enabled
+      if (siteData.liveChatData?.enabled) {
+        try {
+          console.log('🎭 Processing chat operator photo...');
+          const response = await fetch('/api/process-chat-photo', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          });
+          
+          if (response.ok) {
+            const photoBlob = await response.blob();
+            const originalFile = response.headers.get('X-Original-File');
+            const photoSize = response.headers.get('X-Photo-Size');
+            
+            imagesFolder.file('operator.jpg', photoBlob);
+            console.log(`✅ Chat operator photo added to export: ${originalFile} (${photoSize} bytes)`);
+          } else {
+            console.warn('⚠️ Could not process chat operator photo:', response.status);
+          }
+        } catch (error) {
+          console.error('❌ Error processing chat operator photo:', error);
+        }
+
+        // Add chat open sound
+        try {
+          console.log('🔊 Adding chat open sound...');
+          
+          // Try to fetch the sound file from different sources
+          const possiblePaths = [
+            '/api/get-sound-file',  // API endpoint (приоритет)
+            '/1.mp3', 
+            './1.mp3', 
+            './public/1.mp3', 
+            '/public/1.mp3'
+          ];
+          let soundResponse = null;
+          let successPath = null;
+          
+          for (const path of possiblePaths) {
+            try {
+              console.log('🔄 Trying sound path:', path);
+              soundResponse = await fetch(path);
+              console.log('📡 Sound response for', path, ':', soundResponse.status, soundResponse.statusText);
+              
+              if (soundResponse.ok) {
+                successPath = path;
+                console.log('✅ Found sound file at:', successPath);
+                
+                // Дополнительная информация для API endpoint
+                if (path === '/api/get-sound-file') {
+                  const fileSize = soundResponse.headers.get('X-File-Size');
+                  console.log('📊 API endpoint info - Size:', fileSize, 'bytes');
+                }
+                
+                break;
+              }
+            } catch (error) {
+              console.log('❌ Error fetching sound from', path, ':', error.message);
+            }
+          }
+          
+          if (soundResponse && soundResponse.ok) {
+            console.log('✅ Successfully fetched sound file');
+            const soundBlob = await soundResponse.blob();
+            console.log('📦 Sound blob size:', soundBlob.size, 'bytes');
+            const soundBuffer = await soundBlob.arrayBuffer();
+            console.log('🔄 Converting to ArrayBuffer, size:', soundBuffer.byteLength, 'bytes');
+            
+            // Add only OGG format
+            assetsFolder.file('chat-open.ogg', soundBuffer);
+            
+            console.log('✅ Chat open sound added to export as OGG format');
+            console.log(`📊 Final sound file size: ${soundBuffer.byteLength} bytes`);
+            console.log('📁 File added to assets/: chat-open.ogg');
+          } else {
+            console.warn('⚠️ Could not load chat sound file from any path');
+            console.warn('📝 Tried paths:', possiblePaths);
+            console.warn('🔧 Creating instruction file instead');
+            
+            // Add manual instruction file
+            assetsFolder.file('README-SOUND.txt', 
+              'ИНСТРУКЦИЯ ПО ДОБАВЛЕНИЮ ЗВУКА ЧАТА\n' +
+              '=====================================\n\n' +
+              'Звуковой файл не был найден автоматически.\n' +
+              'Исходный файл: C:\\Users\\840G5\\Desktop\\НОВЫЙ\\public\\1.mp3\n\n' +
+              'Попробованные пути:\n' +
+              possiblePaths.map(path => '- ' + path).join('\n') + '\n\n' +
+              'ЧТО ДЕЛАТЬ:\n' +
+              '1. Найдите файл 1.mp3 в папке public/\n' +
+              '2. Конвертируйте MP3 в OGG формат\n' +
+              '3. Поместите файл в эту папку (assets/)\n' +
+              '4. Переименуйте в chat-open.ogg\n\n' +
+              'ОНЛАЙН КОНВЕРТЕРЫ:\n' +
+              '- https://convertio.co/mp3-ogg/\n' +
+              '- https://online-audio-converter.com/\n' +
+              '- https://cloudconvert.com/mp3-to-ogg'
+            );
+          }
+        } catch (error) {
+          console.error('❌ Error processing chat sound:', error);
+          // Add manual instruction file with error details
+          assetsFolder.file('README-SOUND.txt', 
+            'ИНСТРУКЦИЯ ПО ДОБАВЛЕНИЮ ЗВУКА ЧАТА (ОШИБКА)\n' +
+            '============================================\n\n' +
+            'Произошла ошибка при автоматическом добавлении звука:\n' +
+            'Ошибка: ' + error.message + '\n\n' +
+            'Исходный файл: C:\\Users\\840G5\\Desktop\\НОВЫЙ\\public\\1.mp3\n\n' +
+            'ЧТО ДЕЛАТЬ:\n' +
+            '1. Найдите файл 1.mp3 в папке public/\n' +
+            '2. Конвертируйте MP3 в OGG формат\n' +
+            '3. Поместите файл в эту папку (assets/)\n' +
+            '4. Переименуйте в chat-open.ogg\n\n' +
+            'ОНЛАЙН КОНВЕРТЕРЫ:\n' +
+            '- https://convertio.co/mp3-ogg/\n' +
+            '- https://online-audio-converter.com/\n' +
+            '- https://cloudconvert.com/mp3-to-ogg\n\n' +
+            'ТЕХНИЧЕСКАЯ ИНФОРМАЦИЯ:\n' +
+            'Время ошибки: ' + new Date().toISOString() + '\n' +
+            'User Agent: ' + (typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown')
+          );
+        }
+      }
 
       // Add HTML file
       const htmlContent = generateHTML(siteData);
@@ -5387,6 +5580,13 @@ ${mainHtml}
             title: legalDocuments?.cookiePolicy?.title || '',
             content: legalDocuments?.cookiePolicy?.content || ''
           }
+        },
+        liveChatData: {
+          ...liveChatData,
+          enabled: liveChatData.enabled || false,
+          apiKey: liveChatData.apiKey || '',
+          selectedResponses: liveChatData.selectedResponses || '',
+          allTranslations: liveChatData.allTranslations || ''
         }
       };
 
@@ -5651,6 +5851,17 @@ ${mainHtml}
       expanded={expandedSections.legal}
       onToggle={() => toggleSection('legal')}
       id="legal"
+    />
+  );
+
+  const liveChatEditorBlock = (
+    <LiveChatEditor
+      liveChatData={liveChatData}
+      onLiveChatChange={onLiveChatChange}
+      expanded={expandedSections.liveChat}
+      onToggle={() => toggleSection('liveChat')}
+      headerData={headerData}
+      id="liveChat"
     />
   );
 
@@ -6307,6 +6518,7 @@ ${mainHtml}
         {contactEditorBlock}
         {footerEditorBlock}
         {legalDocumentsEditorBlock}
+        {liveChatEditorBlock}
         
         <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center', gap: 2 }}>
         <Button 

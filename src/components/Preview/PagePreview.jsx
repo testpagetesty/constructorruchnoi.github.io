@@ -23,6 +23,7 @@ import Header from '../Header/Header';
 import TestimonialCard from '../Testimonial/TestimonialCard';
 import ReactDOM from 'react-dom/client';
 import { imageCacheService } from '../../utils/imageCacheService';
+import LiveChatWidget from '../LiveChat/LiveChatWidget';
 
 // Импортируем новые компоненты для отображения изображений
 import SimpleImageGallery from './SimpleImageGallery';
@@ -252,7 +253,8 @@ const PagePreview = ({
   sectionsData = {},
   contactData,
   footerData,
-  legalDocuments
+  legalDocuments,
+  liveChatData = { enabled: false, apiKey: '' }
 }) => {
   const sectionRefs = useRef({});
   const cardRefs = useRef({});
@@ -1562,6 +1564,14 @@ const PagePreview = ({
             headerData={headerData}
           />
         </Box>
+        
+        {/* Live Chat Widget */}
+        {liveChatData?.enabled && (
+          <LiveChatWidget 
+            siteName={headerData?.siteName || 'Мой сайт'} 
+            apiKey={liveChatData?.apiKey || ''} 
+          />
+        )}
       </Box>
     </>
   );
