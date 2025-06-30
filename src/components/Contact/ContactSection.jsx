@@ -100,10 +100,36 @@ const ContactSection = React.forwardRef(({
     infoTitleColor: dataInfoTitleColor = infoTitleColor,
     infoTextColor: dataInfoTextColor = infoTextColor,
     titleFont: dataTitleFont = titleFont,
-    textFont: dataTextFont = textFont
+    textFont: dataTextFont = textFont,
+    // 🎨 ДОБАВЛЯЕМ ПОДДЕРЖКУ ФОНОВЫХ НАСТРОЕК
+    showBackground = false,
+    backgroundType = 'solid',
+    backgroundColor = '#ffffff',
+    gradientColor1 = '#ffffff',
+    gradientColor2 = '#f5f5f5',
+    gradientDirection = 'to right'
   } = contactData;
 
   const theme = useTheme();
+
+  // 🎨 СОЗДАЕМ СТИЛИ ДЛЯ ФОНА СЕКЦИИ
+  const getSectionBackgroundStyle = () => {
+    if (!showBackground) {
+      return { backgroundColor: 'transparent' };
+    }
+
+    if (backgroundType === 'gradient') {
+      const gradientValue = `linear-gradient(${gradientDirection}, ${gradientColor1}, ${gradientColor2})`;
+      return {
+        background: gradientValue,
+        backgroundColor: gradientColor1 // fallback
+      };
+    } else {
+      return {
+        backgroundColor: backgroundColor
+      };
+    }
+  };
 
   const getFontStyle = (type) => {
     switch (type) {
@@ -127,7 +153,9 @@ const ContactSection = React.forwardRef(({
       sx={{ 
         py: 8,
         px: 2,
-        backgroundColor: 'inherit'
+        ...getSectionBackgroundStyle(),
+        position: 'relative',
+        zIndex: 2 // Выше обычных секций (z-index: 1) но ниже глобального z-index: 10
       }}
     >
       <Container maxWidth="lg">

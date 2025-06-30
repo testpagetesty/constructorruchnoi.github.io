@@ -2638,6 +2638,14 @@ ID: [название секции на ${languageName}, при этом бук�
         } else {
           // Создаем новый стиль на основе основного стиля
           matchingContactStyle = {
+            // 🎨 ФОНОВЫЕ НАСТРОЙКИ для fallback стиля
+            showBackground: true,
+            backgroundType: 'solid',
+            backgroundColor: stylePreset.backgroundColor || '#f8f9fa',
+            gradientColor1: stylePreset.backgroundColor || '#ffffff',
+            gradientColor2: stylePreset.cardBackgroundColor || '#f5f5f5',
+            gradientDirection: 'to bottom',
+            // Остальные настройки
             titleColor: stylePreset.titleColor,
             descriptionColor: stylePreset.descriptionColor,
             companyInfoColor: stylePreset.titleColor,
@@ -2664,6 +2672,14 @@ ID: [название секции на ${languageName}, при этом бук�
       
       onContactChange({
         ...contactData,
+        // 🎨 ФОНОВЫЕ НАСТРОЙКИ - ВАЖНО ДОБАВИТЬ И ЗДЕСЬ!
+        showBackground: matchingContactStyle.showBackground,
+        backgroundType: matchingContactStyle.backgroundType,
+        backgroundColor: matchingContactStyle.backgroundColor,
+        gradientColor1: matchingContactStyle.gradientColor1,
+        gradientColor2: matchingContactStyle.gradientColor2,
+        gradientDirection: matchingContactStyle.gradientDirection,
+        // Остальные настройки
         titleColor: matchingContactStyle.titleColor,
         descriptionColor: matchingContactStyle.descriptionColor,
         companyInfoColor: matchingContactStyle.companyInfoColor,
@@ -2796,8 +2812,26 @@ ID: [название секции на ${languageName}, при этом бук�
         const contactPresetKeys = Object.keys(contactPresets);
         const randomContactPreset = contactPresets[contactPresetKeys[Math.floor(Math.random() * contactPresetKeys.length)]];
         
+        console.log('🎨 APPLYING RANDOM CONTACT PRESET:', randomContactPreset.name);
+        console.log('🎨 BACKGROUND SETTINGS:', {
+          showBackground: randomContactPreset.showBackground,
+          backgroundType: randomContactPreset.backgroundType,
+          backgroundColor: randomContactPreset.backgroundColor,
+          gradientColor1: randomContactPreset.gradientColor1,
+          gradientColor2: randomContactPreset.gradientColor2,
+          gradientDirection: randomContactPreset.gradientDirection
+        });
+        
         onContactChange({
           ...contactData,
+          // 🎨 ФОНОВЫЕ НАСТРОЙКИ - САМОЕ ВАЖНОЕ!
+          showBackground: randomContactPreset.showBackground,
+          backgroundType: randomContactPreset.backgroundType,
+          backgroundColor: randomContactPreset.backgroundColor,
+          gradientColor1: randomContactPreset.gradientColor1,
+          gradientColor2: randomContactPreset.gradientColor2,
+          gradientDirection: randomContactPreset.gradientDirection,
+          // Остальные настройки
           titleColor: randomContactPreset.titleColor,
           descriptionColor: randomContactPreset.descriptionColor,
           companyInfoColor: randomContactPreset.companyInfoColor,

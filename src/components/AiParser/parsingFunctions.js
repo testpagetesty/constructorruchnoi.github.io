@@ -178,11 +178,54 @@ const cleanSectionContent = (content) => {
     .join('\n');
 };
 
+export const cleanSectionId = (id) => {
+  if (!id) return '';
+  return id.toLowerCase()
+    // Поддержка всех нужных символов:
+    // - латиница, кириллица (a-zа-яё)
+    // - китайский основной (\u4e00-\u9fff)
+    // - китайский расширенный-A (\u3400-\u4DBF)
+    // - китайский расширенный-B (\u20000-\u2A6DF)
+    // - китайский совместимости (\uF900-\uFAFF)
+    // - корейский хангыль (\uac00-\ud7af)
+    // - корейский джамо (\u1100-\u11FF)
+    // - корейский совместимости джамо (\u3130-\u318F)
+    // - японская хирагана (\u3040-\u309F)
+    // - японская катакана (\u30A0-\u30FF)
+    // - японская катакана расширенная (\u31F0-\u31FF)
+    // - японские пунктуация и символы (\u3000-\u303F)
+    // - арабский основной (\u0600-\u06FF)
+    // - арабский дополнительный (\u0750-\u077F)
+    // - арабский расширенный-A (\u08A0-\u08FF)
+    // - арабские формы представления-A (\uFB50-\uFDFF)
+    // - арабские формы представления-B (\uFE70-\uFEFF)
+    // - иврит (\u0590-\u05FF)
+    // - иврит расширенный (\uFB1D-\uFB4F)
+    // - хинди деванагари (\u0900-\u097F)
+    // - деванагари расширенный (\uA8E0-\uA8FF)
+    // - бенгальский (\u0980-\u09FF)
+    // - гурмукхи (\u0A00-\u0A7F)
+    // - гуджарати (\u0A80-\u0AFF)
+    // - тамильский (\u0B80-\u0BFF)
+    // - телугу (\u0C00-\u0C7F)
+    // - каннада (\u0C80-\u0CFF)
+    // - малаялам (\u0D00-\u0D7F)
+    // - тайский (\u0E00-\u0E7F)
+    // - тайский расширенный (\u0E80-\u0EFF)
+    // - греческий и коптский (\u0370-\u03FF)
+    // - греческий расширенный (\u1F00-\u1FFF)
+    // - вьетнамский (\u0102-\u0103\u0110-\u0111\u0128-\u0129\u0168-\u0169\u01A0-\u01A1\u01AF-\u01B0\u1EA0-\u1EF9)
+    // - все диакритические знаки для европейских языков (\u00C0-\u00FF\u0100-\u017F)
+    .replace(/[^a-zа-яё0-9\u4e00-\u9fff\u3400-\u4DBF\u20000-\u2A6DF\uF900-\uFAFF\uac00-\ud7af\u1100-\u11FF\u3130-\u318F\u3040-\u309F\u30A0-\u30FF\u31F0-\u31FF\u3000-\u303F\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF\u0590-\u05FF\uFB1D-\uFB4F\u0900-\u097F\uA8E0-\uA8FF\u0980-\u09FF\u0A00-\u0A7F\u0A80-\u0AFF\u0B80-\u0BFF\u0C00-\u0C7F\u0C80-\u0CFF\u0D00-\u0D7F\u0E00-\u0E7F\u0E80-\u0EFF\u0370-\u03FF\u1F00-\u1FFF\u0102-\u0103\u0110-\u0111\u0128-\u0129\u0168-\u0169\u01A0-\u01A1\u01AF-\u01B0\u1EA0-\u1EF9\u00C0-\u00FF\u0100-\u017F]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '');
+};
+
 // Функции парсинга для разных типов контента
 export const parseServices = (content) => {
   try {
     const lines = content.split('\n');
-    let sectionId = 'услуги'; // Значение по умолчанию
+    let sectionId = 'services';
     let sectionTitle = '';
     let sectionDescription = '';
     const cards = [];
@@ -228,11 +271,8 @@ export const parseServices = (content) => {
       if (line.toLowerCase().match(/^id[:\s]/i)) {
         const customId = line.split(/[:]/)[1].trim();
         if (customId) {
-          // Удаляем все пробелы и специальные символы из ID, но сохраняем unicode символы
-          sectionId = customId.toLowerCase()
-            .replace(/[^a-zа-яё0-9\u4e00-\u9fff\u0600-\u06FF\u3040-\u309F\u30A0-\u30FF]/g, '_') // Поддержка латиницы, кириллицы, китайского, арабского, японского
-            .replace(/_+/g, '_') // Заменяем множественные _ на один
-            .replace(/^_|_$/g, ''); // Удаляем _ в начале и конце
+          sectionId = cleanSectionId(customId);
+          console.log('Установлен ID секции услуг:', sectionId);
         }
         isHeaderSection = true;
         continue;
@@ -306,7 +346,7 @@ export const parseServices = (content) => {
 
     return sectionData;
   } catch (error) {
-    console.error('Error parsing services:', error);
+    console.error('Ошибка при парсинге секции услуг:', error);
     return null;
   }
 };
@@ -371,10 +411,8 @@ export const parseAdvantagesSection = (content) => {
       if (line.toLowerCase().match(/^id[:\s]/i)) {
         const customId = line.split(/[:]/)[1].trim();
         if (customId) {
-          sectionId = customId.toLowerCase()
-            .replace(/[^a-zа-яё0-9\u4e00-\u9fff\u0600-\u06FF\u3040-\u309F\u30A0-\u30FF]/g, '_')
-            .replace(/_+/g, '_')
-            .replace(/^_|_$/g, '');
+          sectionId = cleanSectionId(customId);
+          console.log('Установлен ID секции преимуществ:', sectionId);
         }
         isHeaderSection = true;
         continue;
@@ -455,7 +493,7 @@ export const parseAdvantagesSection = (content) => {
 export const parseAboutSection = (content) => {
   try {
     const lines = content.split('\n');
-    let sectionId = 'about'; // Значение по умолчанию
+    let sectionId = 'about';
     let sectionTitle = '';
     let sectionDescription = '';
     const cards = [];
@@ -481,10 +519,8 @@ export const parseAboutSection = (content) => {
       if (line.toLowerCase().match(/^id[:\s]/i)) {
         const customId = line.split(/[:]/)[1].trim();
         if (customId) {
-          sectionId = customId.toLowerCase()
-            .replace(/[^a-zа-яё0-9\u4e00-\u9fff\u0600-\u06FF\u3040-\u309F\u30A0-\u30FF]/g, '_')
-            .replace(/_+/g, '_')
-            .replace(/^_|_$/g, '');
+          sectionId = cleanSectionId(customId);
+          console.log('Установлен ID секции о нас:', sectionId);
         }
         isHeaderSection = true;
         continue;
@@ -563,7 +599,7 @@ export const parseAboutSection = (content) => {
 
     return sectionData;
   } catch (error) {
-    console.error('Error parsing about section:', error);
+    console.error('Ошибка при парсинге секции о нас:', error);
     return null;
   }
 };
@@ -597,10 +633,8 @@ export const parseTestimonials = (content) => {
       if (line.toLowerCase().match(/^id[:\s]/i)) {
         const customId = line.split(/[:]/)[1].trim();
         if (customId) {
-          sectionId = customId.toLowerCase()
-            .replace(/[^a-zа-яё0-9\u4e00-\u9fff\u0600-\u06FF\u3040-\u309F\u30A0-\u30FF]/g, '_')
-            .replace(/_+/g, '_')
-            .replace(/^_|_$/g, '');
+          sectionId = cleanSectionId(customId);
+          console.log('Установлен ID секции отзывов:', sectionId);
         }
         isHeaderSection = true;
         continue;
@@ -715,10 +749,8 @@ export const parseFaq = (content) => {
       if (line.toLowerCase().match(/^id[:\s]/i)) {
         const customId = line.split(/[:]/)[1].trim();
         if (customId) {
-          sectionId = customId.toLowerCase()
-            .replace(/[^a-zа-яё0-9\u4e00-\u9fff\u0600-\u06FF\u3040-\u309F\u30A0-\u30FF]/g, '_')
-            .replace(/_+/g, '_')
-            .replace(/^_|_$/g, '');
+          sectionId = cleanSectionId(customId);
+          console.log('Установлен ID секции вопросов и ответов:', sectionId);
         }
         isHeaderSection = true;
         continue;
@@ -833,11 +865,7 @@ export const parseNews = (content) => {
       if (line.toLowerCase().match(/^id[:\s]/i)) {
         const customId = line.split(/[:]/)[1].trim();
         if (customId) {
-          sectionId = customId.toLowerCase()
-            .replace(/[^a-zа-яё0-9\u4e00-\u9fff\u0600-\u06FF\u3040-\u309F\u30A0-\u30FF]/g, '_')
-            .replace(/_+/g, '_')
-            .replace(/^_|_$/g, '');
-          
+          sectionId = cleanSectionId(customId);
           console.log('Найден ID секции новостей:', sectionId);
         }
         isHeaderSection = true;

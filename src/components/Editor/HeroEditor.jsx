@@ -79,9 +79,9 @@ const HeroEditor = ({ heroData = {}, onHeroChange, expanded, onToggle }) => {
     subtitleColor: '#666666',
     animationType: 'none',
     enableOverlay: false,
-    overlayOpacity: 50,
+    overlayOpacity: 0.1,
     enableBlur: false,
-    blurAmount: 0
+    blurAmount: 0.1
   };
 
   const fileInputRef = useRef(null);
@@ -107,7 +107,7 @@ const HeroEditor = ({ heroData = {}, onHeroChange, expanded, onToggle }) => {
       const heroOverlay = previewHero.querySelector('.hero-overlay');
       if (heroOverlay) {
         if (field === 'enableBlur') {
-          heroOverlay.style.backdropFilter = value ? `blur(${heroData.blurAmount || 5}px)` : 'none';
+          heroOverlay.style.backdropFilter = value ? `blur(${heroData.blurAmount || 0.1}px)` : 'none';
         } else if (field === 'blurAmount') {
           heroOverlay.style.backdropFilter = heroData.enableBlur ? `blur(${value}px)` : 'none';
         }
@@ -238,7 +238,7 @@ const HeroEditor = ({ heroData = {}, onHeroChange, expanded, onToggle }) => {
 
         // Применяем размытие и оверлей
         if (heroData.enableBlur) {
-          heroOverlay.style.backdropFilter = `blur(${heroData.blurAmount || 5}px)`;
+          heroOverlay.style.backdropFilter = `blur(${heroData.blurAmount || 0.1}px)`;
         } else {
           heroOverlay.style.backdropFilter = 'none';
         }
@@ -460,11 +460,45 @@ const HeroEditor = ({ heroData = {}, onHeroChange, expanded, onToggle }) => {
               <Box sx={{ mb: 2 }}>
                 <Typography gutterBottom>Прозрачность наложения</Typography>
                 <Slider
-                  value={heroData.overlayOpacity || defaultHeroData.overlayOpacity}
+                  value={heroData.overlayOpacity || 0.1}
                   onChange={(e, value) => handleChange('overlayOpacity', value)}
-                  min={0}
+                  min={0.1}
                   max={100}
+                  step={0.1}
+                  marks={[
+                    { value: 0.1, label: '0.1%' },
+                    { value: 20, label: '20%' },
+                    { value: 40, label: '40%' },
+                    { value: 60, label: '60%' },
+                    { value: 80, label: '80%' },
+                    { value: 100, label: '100%' }
+                  ]}
                   valueLabelDisplay="auto"
+                  valueLabelFormat={(value) => `${value}%`}
+                  sx={{
+                    mt: 2,
+                    mb: 3,
+                    '& .MuiSlider-mark': {
+                      height: 8,
+                      width: 2,
+                      backgroundColor: '#1976d2',
+                    },
+                    '& .MuiSlider-markLabel': {
+                      fontSize: '12px',
+                      color: '#666',
+                      fontWeight: 500,
+                      marginTop: '8px',
+                      transform: 'translateX(-50%)',
+                      whiteSpace: 'nowrap',
+                      width: 'auto',
+                      textAlign: 'center',
+                    },
+                    '& .MuiSlider-valueLabel': {
+                      fontSize: '12px',
+                      fontWeight: 500,
+                      backgroundColor: '#1976d2',
+                    }
+                  }}
                 />
               </Box>
             )}
@@ -487,11 +521,44 @@ const HeroEditor = ({ heroData = {}, onHeroChange, expanded, onToggle }) => {
               <Box>
                 <Typography gutterBottom>Интенсивность размытия</Typography>
                 <Slider
-                  value={heroData.blurAmount || defaultHeroData.blurAmount}
+                  value={heroData.blurAmount || 0.1}
                   onChange={(e, value) => handleChange('blurAmount', value)}
-                  min={0}
-                  max={20}
+                  min={0.1}
+                  max={10}
+                  step={0.1}
+                  marks={[
+                    { value: 0.1, label: '0.1' },
+                    { value: 1, label: '1' },
+                    { value: 3, label: '3' },
+                    { value: 6, label: '6' },
+                    { value: 10, label: '10' }
+                  ]}
                   valueLabelDisplay="auto"
+                  valueLabelFormat={(value) => `${value}px`}
+                  sx={{
+                    mt: 2,
+                    mb: 3,
+                    '& .MuiSlider-mark': {
+                      height: 8,
+                      width: 2,
+                      backgroundColor: '#1976d2',
+                    },
+                    '& .MuiSlider-markLabel': {
+                      fontSize: '12px',
+                      color: '#666',
+                      fontWeight: 500,
+                      marginTop: '8px',
+                      transform: 'translateX(-50%)',
+                      whiteSpace: 'nowrap',
+                      width: 'auto',
+                      textAlign: 'center',
+                    },
+                    '& .MuiSlider-valueLabel': {
+                      fontSize: '12px',
+                      fontWeight: 500,
+                      backgroundColor: '#1976d2',
+                    }
+                  }}
                 />
               </Box>
             )}

@@ -279,7 +279,37 @@ const generateIndexHtml = (siteData) => {
   const heroData = siteData.heroData || {};
   const liveChatData = siteData.liveChatData || {};
   const siteName = headerData.siteName || 'My Site';
-  const languageCode = headerData.language || 'ru';
+  
+  // Безопасное извлечение языка - проверяем что это строка
+  let languageCode = 'ru';
+  if (typeof headerData.language === 'string' && headerData.language.length > 0) {
+    languageCode = headerData.language;
+  } else if (typeof headerData.language === 'object' && headerData.language) {
+    // Проверяем различные возможные структуры объекта
+    if (headerData.language.value) {
+      languageCode = headerData.language.value;
+    } else if (headerData.language.code) {
+      languageCode = headerData.language.code;
+    } else if (headerData.language.id) {
+      languageCode = headerData.language.id;
+    } else {
+      // Если это объект с неизвестной структурой, используем первое строковое значение
+      const keys = Object.keys(headerData.language);
+      for (const key of keys) {
+        if (typeof headerData.language[key] === 'string' && headerData.language[key].length > 0) {
+          languageCode = headerData.language[key];
+          break;
+        }
+      }
+    }
+  }
+  
+  // Дополнительная проверка на валидность языкового кода
+  if (typeof languageCode !== 'string' || languageCode.length === 0) {
+    languageCode = 'ru';
+  }
+  
+  console.log('🌐 Language extracted:', languageCode, 'from:', headerData.language);
   
   // Use description from headerData (already synchronized with heroData.subtitle in HeaderEditor)
   const metaDescription = headerData.description || 'Our site offers the best solutions';
@@ -451,6 +481,350 @@ const generateStyles = () => {
       }
       .section-nocards > p {
         font-size: 1.1rem;
+      }
+    }
+
+    /* Contact section styles */
+    .contact-section {
+      padding: 4rem 2rem;
+      width: 100%;
+      margin: 0;
+      position: relative;
+      z-index: 2;
+    }
+    
+    .contact-container {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+    
+    .contact-header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+    
+    .contact-title {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      position: relative;
+      display: inline-block;
+    }
+    
+    .contact-title::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 50px;
+      height: 3px;
+      background-color: currentColor;
+    }
+    
+    .contact-description {
+      font-size: 1.1rem;
+      max-width: 800px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+    
+    .contact-content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-bottom: 3rem;
+    }
+    
+    .contact-form-container {
+      padding: 2.5rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      border: 1px solid #ddd;
+    }
+    
+    .contact-form .form-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    .contact-form label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+    }
+    
+    .contact-form input,
+    .contact-form textarea {
+      width: 100%;
+      padding: 0.85rem 1rem;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 1rem;
+      box-sizing: border-box;
+      font-family: inherit;
+    }
+    
+    .contact-form textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+    
+    .contact-form button {
+      width: 100%;
+      padding: 0.9rem 1.5rem;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 500;
+      font-size: 1rem;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .contact-form button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    
+    .contact-info-container {
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      border: 1px solid #ddd;
+    }
+    
+    .info-title {
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+    
+    .contact-info p {
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+    }
+    
+    .contact-info strong {
+      margin-right: 0.5rem;
+    }
+    
+    .contact-map {
+      margin-top: 2rem;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    
+    .contact-map iframe {
+      width: 100%;
+      height: 300px;
+      border: 0;
+    }
+    
+    @media (max-width: 768px) {
+      .contact-content {
+        grid-template-columns: 1fr;
+      }
+      
+      .contact-form-container,
+      .contact-info-container {
+        padding: 1.5rem;
+      }
+      
+      .contact-title {
+        font-size: 2rem;
+      }
+    }
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    }
+
+    .contact-form-container h3,
+    .contact-info-container h3 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    .contact-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .form-group label {
+      font-weight: 500;
+      font-size: 0.9rem;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    .form-group input,
+    .form-group textarea {
+      padding: 0.75rem;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-family: 'Montserrat', sans-serif;
+      transition: border-color 0.3s;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #1976d2;
+    }
+
+    .contact-form button {
+      padding: 0.75rem 2rem;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    .contact-form button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    .contact-info {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .contact-info p {
+      margin: 0;
+      font-size: 1rem;
+      line-height: 1.5;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    .contact-map {
+      margin-top: 2rem;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    }
+
+    .contact-map iframe {
+      border-radius: 12px;
+    }
+
+    /* Mobile responsive */
+    @media (max-width: 768px) {
+      .contact-section {
+        padding: 2rem 1rem;
+      }
+
+      .contact-title {
+        font-size: 2rem;
+      }
+
+      .contact-description {
+        font-size: 1.1rem;
+      }
+
+      .contact-content {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+      }
+
+      .contact-form-container,
+      .contact-info-container {
+        padding: 1.5rem;
+      }
+
+      .contact-map iframe {
+        height: 250px;
+      }
+    }
+
+    /* Footer styles */
+    .site-footer {
+      background-color: #2c3e50;
+      color: #ecf0f1;
+      padding: 3rem 2rem 1rem;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    .footer-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .footer-content {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .footer-info h3,
+    .footer-links h4,
+    .footer-contact h4 {
+      margin-bottom: 1rem;
+      color: #3498db;
+      font-weight: 600;
+    }
+
+    .footer-info p {
+      line-height: 1.6;
+      margin-bottom: 1rem;
+    }
+
+    .footer-links ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .footer-links li {
+      margin-bottom: 0.5rem;
+    }
+
+    .footer-links a {
+      color: #ecf0f1;
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+
+    .footer-links a:hover {
+      color: #3498db;
+    }
+
+    .footer-contact p {
+      margin-bottom: 0.5rem;
+    }
+
+    .footer-bottom {
+      border-top: 1px solid #34495e;
+      padding-top: 1rem;
+      text-align: center;
+    }
+
+    .footer-bottom p {
+      margin: 0;
+      color: #95a5a6;
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 768px) {
+      .site-footer {
+        padding: 2rem 1rem 1rem;
+      }
+
+      .footer-content {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
       }
     }
   `;
@@ -695,6 +1069,7 @@ const generateMainContent = (siteData) => {
   return cleanHTML(`
     <main>
       ${generateSections(siteData)}
+      ${generateContactSection(siteData)}
     </main>
   `);
 };
@@ -705,6 +1080,72 @@ const generateFooter = (siteData) => {
       ${generateFooterContent(siteData)}
     </footer>
   `);
+};
+
+const generateNavigation = (siteData) => {
+  const headerData = siteData.headerData || {};
+  return `
+    <div class="nav-container">
+      <div class="site-branding" style="display: flex; flex-direction: column; margin-right: 2rem;">
+        <div class="logo">${headerData.siteName || 'My Site'}</div>
+        <div class="domain" style="display: none;">${headerData.domain || ''}</div>
+      </div>
+      <button class="menu-toggle" aria-label="Menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <ul class="nav-menu">
+        ${(headerData.menuItems || []).map(item => `
+          <li>
+            <a href="${item.url || '#'}">${item.text || item.title}</a>
+          </li>
+        `).join('')}
+        <li>
+          <a href="#contact">Contact Us</a>
+        </li>
+      </ul>
+    </div>
+  `;
+};
+
+const generateFooterContent = (siteData) => {
+  const footerData = siteData.footerData || {};
+  const headerData = siteData.headerData || {};
+  const currentYear = new Date().getFullYear();
+  
+  return `
+    <div class="site-footer">
+      <div class="footer-container">
+        <div class="footer-content">
+          <div class="footer-info">
+            <h3>${headerData.siteName || 'My Site'}</h3>
+            ${footerData.description ? `<p>${footerData.description}</p>` : ''}
+          </div>
+          ${footerData.showLinks !== false ? `
+            <div class="footer-links">
+              <h4>Ссылки</h4>
+              <ul>
+                ${(headerData.menuItems || []).map(item => `
+                  <li><a href="${item.url || '#'}">${item.text || item.title}</a></li>
+                `).join('')}
+              </ul>
+            </div>
+          ` : ''}
+          ${footerData.showContact !== false ? `
+            <div class="footer-contact">
+              <h4>Контакты</h4>
+              ${siteData.contactData?.phone ? `<p>Телефон: ${siteData.contactData.phone}</p>` : ''}
+              ${siteData.contactData?.email ? `<p>Email: ${siteData.contactData.email}</p>` : ''}
+            </div>
+          ` : ''}
+        </div>
+        <div class="footer-bottom">
+          <p>&copy; ${currentYear} ${headerData.siteName || 'My Site'}. Все права защищены.</p>
+        </div>
+      </div>
+    </div>
+  `;
 };
 
 const generatePrivacyPolicy = (siteData) => {
@@ -860,7 +1301,24 @@ const generateSitemapPHP = (siteData) => {
 };
 
 const generateSections = (siteData) => {
-  return siteData.sectionsData.map(section => generateSectionHTML(section)).join('');
+  // Исключаем контактную секцию из обычных секций - она обрабатывается отдельно
+  console.log('🔍 All sections before filtering:', siteData.sectionsData?.map(s => ({id: s.id, title: s.title})));
+  
+  const regularSections = siteData.sectionsData.filter(section => {
+    const isContact = section.id === 'contact' || 
+                     section.title === 'Contact Us' || 
+                     section.title?.toLowerCase().includes('contact') ||
+                     section.title?.toLowerCase().includes('контакт') ||
+                     section.id === 'contacts';
+    
+    if (isContact) {
+      console.log('🚫 Excluding contact section:', section.id, section.title);
+    }
+    return !isContact;
+  });
+  
+  console.log('✅ Regular sections after filtering:', regularSections.map(s => ({id: s.id, title: s.title})));
+  return regularSections.map(section => generateSectionHTML(section)).join('');
 };
 
 function generateSectionHTML(section) {
@@ -937,6 +1395,169 @@ function generateCardHTML(card, cardType, index) {
     </div>
   `;
 }
+
+const generateContactSection = (siteData) => {
+  let contactData = siteData.contactData;
+  console.log('🔍 generateContactSection called with siteData keys:', Object.keys(siteData));
+  console.log('🔍 Full contactData structure:', JSON.stringify(contactData, null, 2));
+  
+  if (!contactData || !contactData.title) {
+    console.log('❌ No contact data or title found, checking alternative locations...');
+    
+    // Проверяем альтернативные места где могут храниться данные контактов
+    if (siteData.contact) {
+      console.log('🔍 Found contact data in siteData.contact:', siteData.contact);
+      contactData = siteData.contact;
+    } else if (siteData.contactSection) {
+      console.log('🔍 Found contact data in siteData.contactSection:', siteData.contactSection);
+      contactData = siteData.contactSection;
+    }
+    
+    if (!contactData || !contactData.title) {
+      console.log('❌ Still no contact data found, returning empty string');
+      return '';
+    }
+  }
+
+  // Создаем inline стили для контактной секции на основе contactData
+  const sectionStyles = [];
+  
+  console.log('🎨 Checking background styles in contactData...');
+  console.log('🔍 backgroundType:', contactData.backgroundType);
+  console.log('🔍 gradientColor1:', contactData.gradientColor1);
+  console.log('🔍 gradientColor2:', contactData.gradientColor2);
+  console.log('🔍 backgroundColor:', contactData.backgroundColor);
+  
+  // Улучшенная логика для фонов - проверяем разные варианты хранения данных
+  if (contactData.backgroundType === 'gradient') {
+    if (contactData.gradientColor1 && contactData.gradientColor2) {
+      sectionStyles.push(`background: linear-gradient(${contactData.gradientDirection || 'to bottom'}, ${contactData.gradientColor1}, ${contactData.gradientColor2})`);
+      console.log('✅ Applied gradient background:', contactData.gradientColor1, contactData.gradientColor2);
+    }
+  } else if (contactData.backgroundColor) {
+    sectionStyles.push(`background-color: ${contactData.backgroundColor}`);
+    console.log('✅ Applied solid background:', contactData.backgroundColor);
+  }
+  
+  // Проверяем альтернативные названия полей для фонов
+  if (!sectionStyles.length) {
+    console.log('❌ No primary background found, checking alternatives...');
+    
+    const possibleBgFields = [
+      'sectionBackgroundColor', 'bgColor', 'background', 'bg',
+      'primaryColor', 'mainColor', 'themeColor'
+    ];
+    
+    for (const field of possibleBgFields) {
+      if (contactData[field]) {
+        sectionStyles.push(`background-color: ${contactData[field]}`);
+        console.log(`✅ Applied ${field}:`, contactData[field]);
+        break;
+      }
+    }
+    
+    // Проверяем градиенты в альтернативных полях
+    const possibleGradientFields = [
+      ['gradientStart', 'gradientEnd'],
+      ['gradient1', 'gradient2'],
+      ['color1', 'color2'],
+      ['startColor', 'endColor']
+    ];
+    
+    for (const [field1, field2] of possibleGradientFields) {
+      if (contactData[field1] && contactData[field2]) {
+        sectionStyles.push(`background: linear-gradient(to bottom, ${contactData[field1]}, ${contactData[field2]})`);
+        console.log(`✅ Applied gradient ${field1}/${field2}:`, contactData[field1], contactData[field2]);
+        break;
+      }
+    }
+  }
+  
+  // Принудительно применяем хотя бы какой-то фон для тестирования
+  if (!sectionStyles.length) {
+    console.log('⚠️  No background found anywhere, applying test background');
+    sectionStyles.push(`background: linear-gradient(45deg, #ff0000, #00ff00)`);
+    sectionStyles.push(`border: 5px solid yellow`);
+    sectionStyles.push(`padding: 20px`);
+  }
+  
+  // Стили для форм и информационных блоков
+  const formStyles = [];
+  const infoStyles = [];
+  
+  if (contactData.formBackgroundColor) {
+    formStyles.push(`background-color: ${contactData.formBackgroundColor}`);
+  }
+  if (contactData.formBorderColor) {
+    formStyles.push(`border: 1px solid ${contactData.formBorderColor}`);
+  }
+  
+  if (contactData.infoBackgroundColor) {
+    infoStyles.push(`background-color: ${contactData.infoBackgroundColor}`);
+  }
+  if (contactData.infoBorderColor) {
+    infoStyles.push(`border: 1px solid ${contactData.infoBorderColor}`);
+  }
+
+  console.log('🎨 Final section styles:', sectionStyles);
+  console.log('📋 Form styles:', formStyles);
+  console.log('ℹ️ Info styles:', infoStyles);
+
+  return `
+    <section id="contact" class="contact-section" style="${sectionStyles.join('; ')}">
+      <div class="contact-container">
+        <div class="contact-header">
+          <h2 class="contact-title" style="color: ${contactData.titleColor || '#1976d2'}">${contactData.title}</h2>
+          ${contactData.description ? `<p class="contact-description" style="color: ${contactData.descriptionColor || '#666666'}">${contactData.description}</p>` : ''}
+        </div>
+        
+        <div class="contact-content">
+          ${contactData.showContactForm !== false ? `
+            <div class="contact-form-container" style="${formStyles.join('; ')}">
+              <h3 style="color: ${contactData.titleColor || '#1976d2'}">Свяжитесь с нами</h3>
+              <form class="contact-form" action="merci.html" method="post">
+                <div class="form-group">
+                  <label style="color: ${contactData.labelColor || '#333333'}">Имя</label>
+                  <input type="text" name="name" required style="background-color: ${contactData.inputBackgroundColor || '#f5f9ff'}; color: ${contactData.inputTextColor || '#1a1a1a'};">
+                </div>
+                <div class="form-group">
+                  <label style="color: ${contactData.labelColor || '#333333'}">Email</label>
+                  <input type="email" name="email" required style="background-color: ${contactData.inputBackgroundColor || '#f5f9ff'}; color: ${contactData.inputTextColor || '#1a1a1a'};">
+                </div>
+                <div class="form-group">
+                  <label style="color: ${contactData.labelColor || '#333333'}">Сообщение</label>
+                  <textarea name="message" required style="background-color: ${contactData.inputBackgroundColor || '#f5f9ff'}; color: ${contactData.inputTextColor || '#1a1a1a'}; min-height: 100px;"></textarea>
+                </div>
+                <button type="submit" style="background-color: ${contactData.buttonColor || '#1976d2'}; color: ${contactData.buttonTextColor || '#ffffff'};">
+                  Отправить
+                </button>
+              </form>
+            </div>
+          ` : ''}
+          
+          ${contactData.showCompanyInfo !== false ? `
+            <div class="contact-info-container" style="${infoStyles.join('; ')}">
+              <h3 class="info-title" style="color: ${contactData.infoTitleColor || contactData.titleColor || '#1976d2'}">Контактная информация</h3>
+              <div class="contact-info">
+                ${contactData.companyName ? `<p style="color: ${contactData.companyInfoColor || '#333333'}"><strong>Компания:</strong> ${contactData.companyName}</p>` : ''}
+                ${contactData.phone ? `<p style="color: ${contactData.companyInfoColor || '#333333'}"><strong>Телефон:</strong> ${contactData.phone}</p>` : ''}
+                ${contactData.email ? `<p style="color: ${contactData.companyInfoColor || '#333333'}"><strong>Email:</strong> ${contactData.email}</p>` : ''}
+                ${contactData.address ? `<p style="color: ${contactData.companyInfoColor || '#333333'}"><strong>Адрес:</strong> ${contactData.address}</p>` : ''}
+                ${contactData.workingHours ? `<p style="color: ${contactData.companyInfoColor || '#333333'}"><strong>Часы работы:</strong> ${contactData.workingHours}</p>` : ''}
+              </div>
+            </div>
+          ` : ''}
+        </div>
+        
+        ${contactData.showMap && contactData.mapUrl ? `
+          <div class="contact-map">
+            <iframe src="${contactData.mapUrl}" style="width: 100%; height: 300px; border: 0;" allowfullscreen loading="lazy"></iframe>
+          </div>
+        ` : ''}
+      </div>
+    </section>
+  `;
+};
 
 
 

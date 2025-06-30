@@ -101,9 +101,9 @@ const initialHeroData = {
   subtitleColor: '#64b5f6',
   animationType: 'zoom',
   enableOverlay: true,
-  overlayOpacity: 20,
+  overlayOpacity: 0.1,
   enableBlur: true,
-  blurAmount: 1
+  blurAmount: 0.1
 };
 
 const initialSectionsData = [];

@@ -431,6 +431,14 @@ const SiteStyleManager = ({
       
       onContactChange({
         ...contactData,
+        // 🎨 ФОНОВЫЕ НАСТРОЙКИ - ВАЖНО ДОБАВИТЬ!
+        showBackground: contactPreset.showBackground,
+        backgroundType: contactPreset.backgroundType,
+        backgroundColor: contactPreset.backgroundColor,
+        gradientColor1: contactPreset.gradientColor1,
+        gradientColor2: contactPreset.gradientColor2,
+        gradientDirection: contactPreset.gradientDirection,
+        // Остальные настройки
         titleColor: contactPreset.titleColor,
         descriptionColor: contactPreset.descriptionColor,
         companyInfoColor: contactPreset.companyInfoColor,
@@ -453,9 +461,16 @@ const SiteStyleManager = ({
       // Если не передан пресет для контактов, используем основной стиль
       onContactChange({
         ...contactData,
+        // 🎨 ФОНОВЫЕ НАСТРОЙКИ на основе основного стиля
+        showBackground: true,
+        backgroundType: 'solid',
+        backgroundColor: mainStylePreset.backgroundColor || '#f8f9fa',
+        gradientColor1: mainStylePreset.backgroundColor || '#ffffff',
+        gradientColor2: mainStylePreset.cardBackgroundColor || '#f5f5f5',
+        gradientDirection: 'to bottom',
+        // Остальные настройки
         titleColor: mainStylePreset.titleColor,
         descriptionColor: mainStylePreset.descriptionColor,
-        backgroundColor: mainStylePreset.backgroundColor,
         borderColor: mainStylePreset.borderColor,
       });
     }

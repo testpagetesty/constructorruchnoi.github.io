@@ -24,8 +24,10 @@ import { imageCacheService } from '../../utils/imageCacheService';
 import imageCompression from 'browser-image-compression';
 import AuthPanel from '../Auth/AuthPanel';
 import SectionImageGallery from './SectionImageGallery';
+import { STYLE_PRESETS } from '../../utils/editorStylePresets';
 
-const STYLE_PRESETS = {
+// Локальные стили больше не нужны - используем импорт
+const UNUSED_LOCAL_STYLE_PRESETS = {
   CORPORATE: {
     titleColor: '#1a237e',
     descriptionColor: '#455a64',
@@ -629,8 +631,639 @@ const STYLE_PRESETS = {
       shadow: '0 2px 4px rgba(0,0,0,0.1)',
       borderRadius: '8px'
     }
+  },
+  OCEAN_WAVE: {
+    titleColor: '#ffffff',
+    descriptionColor: '#e0f2f1',
+    cardType: 'gradient',
+    backgroundColor: '#006064',
+    borderColor: '#00838f',
+    cardBackgroundColor: '#006064',
+    cardBorderColor: '#00acc1',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#e0f7fa',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#006064',
+    cardGradientColor2: '#00838f',
+    cardGradientDirection: '45deg',
+    style: {
+      shadow: '0 6px 12px rgba(0,96,100,0.4)',
+      borderRadius: '16px',
+      padding: '20px'
+    }
+  },
+  MAGENTA_GLOW: {
+    titleColor: '#880e4f',
+    descriptionColor: '#ad1457',
+    cardType: 'gradient',
+    backgroundColor: '#fce4ec',
+    borderColor: '#f8bbd0',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#f48fb1',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#fce4ec',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#e91e63',
+    cardGradientColor2: '#f06292',
+    cardGradientDirection: '135deg',
+    style: {
+      shadow: '0 4px 8px rgba(233,30,99,0.3)',
+      borderRadius: '14px',
+      padding: '18px'
+    }
+  },
+  STEEL_BLUE: {
+    titleColor: '#102027',
+    descriptionColor: '#263238',
+    cardType: 'elevated',
+    backgroundColor: '#eceff1',
+    borderColor: '#cfd8dc',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#90a4ae',
+    cardTitleColor: '#102027',
+    cardContentColor: '#263238',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#eceff1',
+    cardGradientColor2: '#cfd8dc',
+    cardGradientDirection: 'to bottom',
+    style: {
+      shadow: '0 3px 6px rgba(0,0,0,0.15)',
+      borderRadius: '10px'
+    }
+  },
+  FIRE_BURST: {
+    titleColor: '#ffffff',
+    descriptionColor: '#fff3e0',
+    cardType: 'gradient',
+    backgroundColor: '#e65100',
+    borderColor: '#f57c00',
+    cardBackgroundColor: '#e65100',
+    cardBorderColor: '#ff9800',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#fff3e0',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#ff3d00',
+    cardGradientColor2: '#ff6d00',
+    cardGradientDirection: '45deg',
+    style: {
+      shadow: '0 6px 12px rgba(255,61,0,0.4)',
+      borderRadius: '16px',
+      padding: '20px'
+    }
+  },
+  MINT_CHOCOLATE: {
+    titleColor: '#1b5e20',
+    descriptionColor: '#2e7d32',
+    cardType: 'gradient',
+    backgroundColor: '#e8f5e8',
+    borderColor: '#c8e6c9',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#a5d6a7',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#e8f5e8',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#4caf50',
+    cardGradientColor2: '#66bb6a',
+    cardGradientDirection: '135deg',
+    style: {
+      shadow: '0 4px 8px rgba(76,175,80,0.3)',
+      borderRadius: '14px',
+      padding: '18px'
+    }
+  },
+  VIOLET_STORM: {
+    titleColor: '#ffffff',
+    descriptionColor: '#ede7f6',
+    cardType: 'gradient',
+    backgroundColor: '#4a148c',
+    borderColor: '#6a1b9a',
+    cardBackgroundColor: '#4a148c',
+    cardBorderColor: '#8e24aa',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#ede7f6',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#6a1b9a',
+    cardGradientColor2: '#9c27b0',
+    cardGradientDirection: '45deg',
+    style: {
+      shadow: '0 6px 12px rgba(106,27,154,0.4)',
+      borderRadius: '16px',
+      padding: '20px'
+    }
+  },
+  BRONZE_ELEGANCE: {
+    titleColor: '#3e2723',
+    descriptionColor: '#5d4037',
+    cardType: 'elevated',
+    backgroundColor: '#efebe9',
+    borderColor: '#d7ccc8',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#bcaaa4',
+    cardTitleColor: '#3e2723',
+    cardContentColor: '#5d4037',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#efebe9',
+    cardGradientColor2: '#d7ccc8',
+    cardGradientDirection: 'to right',
+    style: {
+      shadow: '0 3px 6px rgba(0,0,0,0.12)',
+      borderRadius: '10px'
+    }
+  },
+  ELECTRIC_LIME: {
+    titleColor: '#33691e',
+    descriptionColor: '#558b2f',
+    cardType: 'gradient',
+    backgroundColor: '#f1f8e9',
+    borderColor: '#dcedc8',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#aed581',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#f1f8e9',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#689f38',
+    cardGradientColor2: '#8bc34a',
+    cardGradientDirection: '135deg',
+    style: {
+      shadow: '0 4px 8px rgba(104,159,56,0.3)',
+      borderRadius: '14px',
+      padding: '18px'
+    }
+  },
+  DEEP_OCEAN: {
+    titleColor: '#ffffff',
+    descriptionColor: '#b3e5fc',
+    cardType: 'gradient',
+    backgroundColor: '#01579b',
+    borderColor: '#0277bd',
+    cardBackgroundColor: '#01579b',
+    cardBorderColor: '#0288d1',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#b3e5fc',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#0277bd',
+    cardGradientColor2: '#03a9f4',
+    cardGradientDirection: '45deg',
+    style: {
+      shadow: '0 6px 12px rgba(2,119,189,0.4)',
+      borderRadius: '16px',
+      padding: '20px'
+    }
+  },
+  ROSE_GOLD: {
+    titleColor: '#ad1457',
+    descriptionColor: '#c2185b',
+    cardType: 'gradient',
+    backgroundColor: '#fce4ec',
+    borderColor: '#f8bbd0',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#f48fb1',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#fce4ec',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#ec407a',
+    cardGradientColor2: '#f06292',
+    cardGradientDirection: '45deg',
+    style: {
+      shadow: '0 4px 8px rgba(236,64,122,0.3)',
+      borderRadius: '14px',
+      padding: '18px'
+    }
+  },
+  ARCTIC_BLUE: {
+    titleColor: '#0d47a1',
+    descriptionColor: '#1565c0',
+    cardType: 'elevated',
+    backgroundColor: '#e3f2fd',
+    borderColor: '#bbdefb',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#64b5f6',
+    cardTitleColor: '#0d47a1',
+    cardContentColor: '#1565c0',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#e3f2fd',
+    cardGradientColor2: '#bbdefb',
+    cardGradientDirection: 'to bottom',
+    style: {
+      shadow: '0 3px 6px rgba(0,0,0,0.12)',
+      borderRadius: '10px'
+    }
+  },
+  SUNSET_ORANGE: {
+    titleColor: '#ffffff',
+    descriptionColor: '#fff3e0',
+    cardType: 'gradient',
+    backgroundColor: '#e65100',
+    borderColor: '#f57c00',
+    cardBackgroundColor: '#e65100',
+    cardBorderColor: '#ff9800',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#fff3e0',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#ff5722',
+    cardGradientColor2: '#ff7043',
+    cardGradientDirection: '135deg',
+    style: {
+      shadow: '0 6px 12px rgba(255,87,34,0.4)',
+      borderRadius: '16px',
+      padding: '20px'
+    }
+  },
+  JADE_TEMPLE: {
+    titleColor: '#1b5e20',
+    descriptionColor: '#2e7d32',
+    cardType: 'elevated',
+    backgroundColor: '#e8f5e8',
+    borderColor: '#c8e6c9',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#81c784',
+    cardTitleColor: '#1b5e20',
+    cardContentColor: '#2e7d32',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#e8f5e8',
+    cardGradientColor2: '#c8e6c9',
+    cardGradientDirection: 'to right',
+    style: {
+      shadow: '0 3px 6px rgba(0,0,0,0.12)',
+      borderRadius: '10px'
+    }
+  },
+  ROYAL_PURPLE: {
+    titleColor: '#ffffff',
+    descriptionColor: '#ede7f6',
+    cardType: 'gradient',
+    backgroundColor: '#311b92',
+    borderColor: '#512da8',
+    cardBackgroundColor: '#311b92',
+    cardBorderColor: '#673ab7',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#ede7f6',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#512da8',
+    cardGradientColor2: '#7986cb',
+    cardGradientDirection: '45deg',
+    style: {
+      shadow: '0 6px 12px rgba(81,45,168,0.4)',
+      borderRadius: '16px',
+      padding: '20px'
+    }
+  },
+  GOLDEN_HOUR: {
+    titleColor: '#e65100',
+    descriptionColor: '#f57c00',
+    cardType: 'gradient',
+    backgroundColor: '#fff8e1',
+    borderColor: '#ffecb3',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#ffe082',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#fff8e1',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#ffc107',
+    cardGradientColor2: '#ffeb3b',
+    cardGradientDirection: '135deg',
+    style: {
+      shadow: '0 4px 8px rgba(255,193,7,0.3)',
+      borderRadius: '14px',
+      padding: '18px'
+    }
+  },
+  MIDNIGHT_FOREST: {
+    titleColor: '#ffffff',
+    descriptionColor: '#e8f5e8',
+    cardType: 'gradient',
+    backgroundColor: '#1b5e20',
+    borderColor: '#2e7d32',
+    cardBackgroundColor: '#1b5e20',
+    cardBorderColor: '#388e3c',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#e8f5e8',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#2e7d32',
+    cardGradientColor2: '#4caf50',
+    cardGradientDirection: '45deg',
+    style: {
+      shadow: '0 6px 12px rgba(46,125,50,0.4)',
+      borderRadius: '16px',
+      padding: '20px'
+    }
+  },
+  CORAL_SUNSET: {
+    titleColor: '#bf360c',
+    descriptionColor: '#d84315',
+    cardType: 'elevated',
+    backgroundColor: '#fff3e0',
+    borderColor: '#ffe0b2',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#ffab91',
+    cardTitleColor: '#bf360c',
+    cardContentColor: '#d84315',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#fff3e0',
+    cardGradientColor2: '#ffe0b2',
+    cardGradientDirection: 'to bottom',
+    style: {
+      shadow: '0 3px 6px rgba(0,0,0,0.12)',
+      borderRadius: '10px'
+    }
+  },
+  SPACE_NEBULA: {
+    titleColor: '#e1bee7',
+    descriptionColor: '#ce93d8',
+    cardType: 'gradient',
+    backgroundColor: '#1a0033',
+    borderColor: '#2d0052',
+    cardBackgroundColor: '#1a0033',
+    cardBorderColor: '#4a0e7a',
+    cardTitleColor: '#e1bee7',
+    cardContentColor: '#ce93d8',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#2d0052',
+    cardGradientColor2: '#4a0e7a',
+    cardGradientDirection: '135deg',
+    style: {
+      shadow: '0 6px 12px rgba(74,14,122,0.5)',
+      borderRadius: '16px',
+      padding: '20px'
+    }
+  },
+  CRIMSON_FLAME: {
+    titleColor: '#ffffff',
+    descriptionColor: '#ffebee',
+    cardType: 'gradient',
+    backgroundColor: '#b71c1c',
+    borderColor: '#c62828',
+    cardBackgroundColor: '#b71c1c',
+    cardBorderColor: '#d32f2f',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#ffebee',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#d32f2f',
+    cardGradientColor2: '#f44336',
+    cardGradientDirection: '45deg',
+    style: {
+      shadow: '0 6px 12px rgba(211,47,47,0.4)',
+      borderRadius: '16px',
+      padding: '20px'
+    }
+  },
+  EMERALD_SHINE: {
+    titleColor: '#1b5e20',
+    descriptionColor: '#2e7d32',
+    cardType: 'elevated',
+    backgroundColor: '#e8f5e8',
+    borderColor: '#c8e6c9',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#66bb6a',
+    cardTitleColor: '#1b5e20',
+    cardContentColor: '#2e7d32',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#e8f5e8',
+    cardGradientColor2: '#c8e6c9',
+    cardGradientDirection: '45deg',
+    style: {
+      shadow: '0 4px 8px rgba(27,94,32,0.2)',
+      borderRadius: '12px'
+    }
+  },
+  SILVER_MIST: {
+    titleColor: '#263238',
+    descriptionColor: '#37474f',
+    cardType: 'gradient',
+    backgroundColor: '#eceff1',
+    borderColor: '#cfd8dc',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#90a4ae',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#eceff1',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#607d8b',
+    cardGradientColor2: '#78909c',
+    cardGradientDirection: '135deg',
+    style: {
+      shadow: '0 4px 8px rgba(96,125,139,0.3)',
+      borderRadius: '14px',
+      padding: '18px'
+    }
+  },
+  TROPICAL_PARADISE: {
+    titleColor: '#004d40',
+    descriptionColor: '#00695c',
+    cardType: 'gradient',
+    backgroundColor: '#e0f2f1',
+    borderColor: '#b2dfdb',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#4db6ac',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#e0f2f1',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#00897b',
+    cardGradientColor2: '#26a69a',
+    cardGradientDirection: '45deg',
+    style: {
+      shadow: '0 4px 8px rgba(0,137,123,0.3)',
+      borderRadius: '14px',
+      padding: '18px'
+    }
+  },
+  NEON_CYAN: {
+    titleColor: '#ffffff',
+    descriptionColor: '#e0f7fa',
+    cardType: 'gradient',
+    backgroundColor: '#006064',
+    borderColor: '#00838f',
+    cardBackgroundColor: '#006064',
+    cardBorderColor: '#00acc1',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#e0f7fa',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#00acc1',
+    cardGradientColor2: '#00e5ff',
+    cardGradientDirection: '135deg',
+    style: {
+      shadow: '0 6px 12px rgba(0,229,255,0.4)',
+      borderRadius: '16px',
+      padding: '20px'
+    }
+  },
+  AUTUMN_LEAVES: {
+    titleColor: '#bf360c',
+    descriptionColor: '#d84315',
+    cardType: 'elevated',
+    backgroundColor: '#fff3e0',
+    borderColor: '#ffe0b2',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#ffb74d',
+    cardTitleColor: '#bf360c',
+    cardContentColor: '#d84315',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#fff3e0',
+    cardGradientColor2: '#ffe0b2',
+    cardGradientDirection: 'to right',
+    style: {
+      shadow: '0 3px 6px rgba(0,0,0,0.12)',
+      borderRadius: '10px'
+    }
+  },
+  LAVENDER_FIELD: {
+    titleColor: '#4527a0',
+    descriptionColor: '#512da8',
+    cardType: 'gradient',
+    backgroundColor: '#f3e5f5',
+    borderColor: '#e1bee7',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#ba68c8',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#f3e5f5',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#7b1fa2',
+    cardGradientColor2: '#ab47bc',
+    cardGradientDirection: '45deg',
+    style: {
+      shadow: '0 4px 8px rgba(123,31,162,0.3)',
+      borderRadius: '14px',
+      padding: '18px'
+    }
+  },
+  COSMIC_BLUE: {
+    titleColor: '#ffffff',
+    descriptionColor: '#e3f2fd',
+    cardType: 'gradient',
+    backgroundColor: '#0d47a1',
+    borderColor: '#1565c0',
+    cardBackgroundColor: '#0d47a1',
+    cardBorderColor: '#1976d2',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#e3f2fd',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#1976d2',
+    cardGradientColor2: '#42a5f5',
+    cardGradientDirection: '135deg',
+    style: {
+      shadow: '0 6px 12px rgba(25,118,210,0.4)',
+      borderRadius: '16px',
+      padding: '20px'
+    }
+  },
+  HONEY_GOLD: {
+    titleColor: '#e65100',
+    descriptionColor: '#f57c00',
+    cardType: 'elevated',
+    backgroundColor: '#fff8e1',
+    borderColor: '#ffecb3',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#ffc107',
+    cardTitleColor: '#e65100',
+    cardContentColor: '#f57c00',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#fff8e1',
+    cardGradientColor2: '#ffecb3',
+    cardGradientDirection: 'to bottom',
+    style: {
+      shadow: '0 3px 6px rgba(0,0,0,0.12)',
+      borderRadius: '10px'
+    }
+  },
+  RUBY_RED: {
+    titleColor: '#ffffff',
+    descriptionColor: '#ffebee',
+    cardType: 'gradient',
+    backgroundColor: '#ad1457',
+    borderColor: '#c2185b',
+    cardBackgroundColor: '#ad1457',
+    cardBorderColor: '#e91e63',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#ffebee',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#e91e63',
+    cardGradientColor2: '#ec407a',
+    cardGradientDirection: '45deg',
+    style: {
+      shadow: '0 6px 12px rgba(233,30,99,0.4)',
+      borderRadius: '16px',
+      padding: '20px'
+    }
+  },
+  FOREST_MIST: {
+    titleColor: '#1b5e20',
+    descriptionColor: '#2e7d32',
+    cardType: 'elevated',
+    backgroundColor: '#e8f5e8',
+    borderColor: '#c8e6c9',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#81c784',
+    cardTitleColor: '#1b5e20',
+    cardContentColor: '#2e7d32',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#e8f5e8',
+    cardGradientColor2: '#c8e6c9',
+    cardGradientDirection: '135deg',
+    style: {
+      shadow: '0 3px 6px rgba(0,0,0,0.1)',
+      borderRadius: '12px'
+    }
+  },
+  SAPPHIRE_DREAM: {
+    titleColor: '#ffffff',
+    descriptionColor: '#e8eaf6',
+    cardType: 'gradient',
+    backgroundColor: '#283593',
+    borderColor: '#3f51b5',
+    cardBackgroundColor: '#283593',
+    cardBorderColor: '#5c6bc0',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#e8eaf6',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#3f51b5',
+    cardGradientColor2: '#7986cb',
+    cardGradientDirection: '45deg',
+    style: {
+      shadow: '0 6px 12px rgba(63,81,181,0.4)',
+      borderRadius: '16px',
+      padding: '20px'
+    }
+  },
+  PEACH_SUNSET: {
+    titleColor: '#bf360c',
+    descriptionColor: '#d84315',
+    cardType: 'gradient',
+    backgroundColor: '#fff3e0',
+    borderColor: '#ffe0b2',
+    cardBackgroundColor: '#ffffff',
+    cardBorderColor: '#ffab91',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#fff3e0',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#ff7043',
+    cardGradientColor2: '#ffab91',
+    cardGradientDirection: '135deg',
+    style: {
+      shadow: '0 4px 8px rgba(255,112,67,0.3)',
+      borderRadius: '14px',
+      padding: '18px'
+    }
+  },
+  ELECTRIC_PURPLE: {
+    titleColor: '#ffffff',
+    descriptionColor: '#f3e5f5',
+    cardType: 'gradient',
+    backgroundColor: '#6a1b9a',
+    borderColor: '#8e24aa',
+    cardBackgroundColor: '#6a1b9a',
+    cardBorderColor: '#ab47bc',
+    cardTitleColor: '#ffffff',
+    cardContentColor: '#f3e5f5',
+    cardBackgroundType: 'gradient',
+    cardGradientColor1: '#8e24aa',
+    cardGradientColor2: '#ba68c8',
+    cardGradientDirection: '135deg',
+    style: {
+      shadow: '0 6px 12px rgba(142,36,170,0.4)',
+      borderRadius: '16px',
+      padding: '20px'
+    }
   }
-};
+}; // UNUSED_LOCAL_STYLE_PRESETS - заменен на импорт из editorStylePresets.js
 
 // Define image handling functions before the main component
 const handleReorderImages = (sectionsData, sectionId, startIndex, endIndex) => {
@@ -1235,6 +1868,30 @@ const EditorPanel = ({
     console.log('🚀 liveChatData.enabled:', data.liveChatData?.enabled);
     console.log('🚀 liveChatData.apiKey:', data.liveChatData?.apiKey ? 'Present' : 'Missing');
     
+    // Применяем значения по умолчанию для contactData
+    const contactData = {
+      showBackground: true,
+      backgroundType: 'solid',
+      backgroundColor: '#f8f9fa',
+      gradientColor1: '#ffffff',
+      gradientColor2: '#f5f5f5',
+      gradientDirection: 'to bottom',
+      titleColor: '#1565c0',
+      descriptionColor: '#424242',
+      buttonColor: '#1976d2',
+      ...data.contactData
+    };
+    
+    console.log('🎨 CONTACT BACKGROUND DEBUG:');
+    console.log('📊 Original contactData:', data.contactData);
+    console.log('🔧 Final contactData:', contactData);
+    console.log('👁️ showBackground:', contactData.showBackground);
+    console.log('🎭 backgroundType:', contactData.backgroundType);
+    console.log('🌈 backgroundColor:', contactData.backgroundColor);
+    console.log('🎨 gradientColor1:', contactData.gradientColor1);
+    console.log('🎨 gradientColor2:', contactData.gradientColor2);
+    console.log('📐 gradientDirection:', contactData.gradientDirection);
+    
     return `<!DOCTYPE html>
 <html lang="${data.headerData.language || 'en'}">
 <head>
@@ -1329,7 +1986,7 @@ const EditorPanel = ({
               font-size: ${data.headerData.styles?.menuItemFontSize || '16px'};
               font-weight: ${data.headerData.styles?.menuItemFontWeight || '500'};
               transition: ${data.headerData.styles?.menuItemTransition || '0.3s'};
-            ">${data.contactData.title || 'Contact Us'}</a>
+            ">${contactData.title || 'Contact Us'}</a>
           </li>
         </ul>
       </div>
@@ -1347,28 +2004,70 @@ const EditorPanel = ({
       ${data.heroData.enableOverlay ? `
         <div class="hero-overlay" style="
           background: linear-gradient(rgba(0,0,0,${data.heroData.overlayOpacity / 100 || 0.5}), rgba(0,0,0,${data.heroData.overlayOpacity / 100 || 0.5}));
-          backdrop-filter: ${data.heroData.enableBlur ? `blur(${data.heroData.blurAmount || 5}px)` : 'none'};
+          backdrop-filter: ${data.heroData.enableBlur ? `blur(${data.heroData.blurAmount || 0.1}px)` : 'none'};
         "></div>
       ` : ''}
       <div class="hero-content">
-        <h1 style="color: ${data.heroData.titleColor || '#ffffff'}">${data.heroData.title || ''}</h1>
-        <p style="color: ${data.heroData.subtitleColor || '#ffffff'}">${data.heroData.subtitle || ''}</p>
-        <div style="display: flex; gap: 1rem; justify-content: center; align-items: center;">
-          ${data.heroData.buttonText ? `
-            <button style="
-              background-color: ${data.heroData.buttonColor || '#1976d2'};
+        <div class="hero-text-wrapper" style="
+          background: rgba(0, 0, 0, 0.4);
+          backdrop-filter: blur(0.1px);
+          padding: 2rem 3rem;
+          border-radius: 20px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+          max-width: 800px;
+          margin: 0 auto;
+        ">
+          <h1 style="
+            color: ${data.heroData.titleColor || '#ffffff'};
+            text-shadow: 
+              2px 2px 4px rgba(0, 0, 0, 0.9),
+              -1px -1px 2px rgba(255, 255, 255, 0.8),
+              1px 1px 2px rgba(255, 255, 255, 0.6),
+              0 0 20px rgba(0, 0, 0, 0.5),
+              0 0 40px rgba(255, 255, 255, 0.3);
+            -webkit-text-stroke: 1px rgba(255, 255, 255, 0.3);
+            filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.8));
+            margin-bottom: 1.5rem;
+          ">${data.heroData.title || ''}</h1>
+          <p style="
+            color: ${data.heroData.subtitleColor || '#ffffff'};
+            text-shadow: 
+              1px 1px 3px rgba(0, 0, 0, 0.9),
+              -1px -1px 1px rgba(255, 255, 255, 0.7),
+              0 0 15px rgba(0, 0, 0, 0.5),
+              0 0 25px rgba(255, 255, 255, 0.2);
+            -webkit-text-stroke: 0.5px rgba(255, 255, 255, 0.2);
+            filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.7));
+            margin-bottom: 2rem;
+          ">${data.heroData.subtitle || ''}</p>
+          
+          <div style="display: flex; gap: 1rem; justify-content: center; align-items: center;">
+            ${data.heroData.buttonText ? `
+              <button style="
+                background-color: ${data.heroData.buttonColor || '#1976d2'};  
+                color: ${data.heroData.buttonTextColor || '#ffffff'};
+                padding: 0.75rem 1.5rem;
+                border: none;
+                border-radius: 6px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+              ">${data.heroData.buttonText}</button>
+            ` : ''}
+            <a href="#contact" style="
               color: ${data.heroData.buttonTextColor || '#ffffff'};
-            ">${data.heroData.buttonText}</button>
-          ` : ''}
-          <a href="#contact" style="
-            color: ${data.heroData.buttonTextColor || '#ffffff'};
-            text-decoration: none;
-            padding: 0.75rem 1.5rem;
-            border: 2px solid ${data.heroData.buttonTextColor || '#ffffff'};
-            border-radius: 4px;
-            transition: all 0.3s ease;
-            font-weight: 500;
-          ">${data.contactData.title || 'Contact Us'}</a>
+              text-decoration: none;
+              padding: 0.75rem 1.5rem;
+              border: 2px solid ${data.heroData.buttonTextColor || '#ffffff'};
+              border-radius: 6px;
+              transition: all 0.3s ease;
+              font-weight: 500;
+              background: rgba(255, 255, 255, 0.1);
+              backdrop-filter: blur(0.1px);
+            ">${contactData.title || 'Contact Us'}</a>
+          </div>
         </div>
       </div>
     </section>
@@ -1906,7 +2605,18 @@ const EditorPanel = ({
       `;
     }).join('')}
 
-    <section id="contact" class="contact">
+    <section id="contact" class="section"
+      style="
+        padding: 4rem 0;
+        position: relative;
+        z-index: 2;
+        border-radius: 20px;
+        overflow: hidden;
+        ${contactData.showBackground !== false && contactData.backgroundType === 'gradient' ? 
+          `background: linear-gradient(${contactData.gradientDirection || 'to bottom'}, ${contactData.gradientColor1 || '#ffffff'}, ${contactData.gradientColor2 || '#f5f5f5'});` :
+          contactData.showBackground !== false && contactData.backgroundColor ? 
+          `background-color: ${contactData.backgroundColor};` : ''}
+      ">
       <div class="container">
         <div class="section-header" style="text-align: center; margin-bottom: 3rem;">
           <h2 style="
@@ -2990,6 +3700,7 @@ const EditorPanel = ({
         position: relative;
         overflow: hidden;
         background-color: var(--section-background-color, transparent);
+        z-index: 1;
       }
 
       .section[data-show-background="false"] {
@@ -3390,6 +4101,19 @@ const EditorPanel = ({
         margin-top: 1rem;
         display: flex;
         justify-content: flex-start;
+      }
+
+
+
+      @keyframes fadeInSection {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
       .upload-button {
@@ -5929,6 +6653,32 @@ ${mainHtml}
         />
   );
 
+  // Обертка для логирования изменений contactData
+  const handleContactChangeWithLogging = (newContactData) => {
+    console.log('📡 EDITOR PANEL: Contact data change received');
+    console.log('📊 Previous contactData:', contactData);
+    console.log('✨ New contactData:', newContactData);
+    
+    // Сравнение фоновых настроек
+    const backgroundFields = ['showBackground', 'backgroundType', 'backgroundColor', 'gradientColor1', 'gradientColor2', 'gradientDirection'];
+    const backgroundChanges = {};
+    
+    backgroundFields.forEach(field => {
+      if (contactData[field] !== newContactData[field]) {
+        backgroundChanges[field] = {
+          from: contactData[field],
+          to: newContactData[field]
+        };
+      }
+    });
+    
+    if (Object.keys(backgroundChanges).length > 0) {
+      console.log('🎨 BACKGROUND CHANGES DETECTED:', backgroundChanges);
+    }
+    
+    onContactChange(newContactData);
+  };
+
   // Добавляем блок с AI парсером
   const aiParserBlock = (
     <Box sx={{ mb: 4 }}>
@@ -5938,11 +6688,67 @@ ${mainHtml}
         headerData={headerData}
         onHeaderChange={onHeaderChange}
         contactData={contactData}
-        onContactChange={onContactChange}
+        onContactChange={handleContactChangeWithLogging}
         legalDocuments={legalDocuments}
         onLegalDocumentsChange={onLegalDocumentsChange}
         heroData={heroData}
         onHeroChange={onHeroChange}
+        aboutData={sectionsData.about}
+        onAboutChange={(aboutData) => {
+          console.log('onAboutChange called with:', aboutData);
+          onSectionsChange({
+            ...sectionsData,
+            about: aboutData
+          });
+        }}
+        servicesData={sectionsData.services}
+        onServicesChange={(servicesData) => {
+          console.log('onServicesChange called with:', servicesData);
+          onSectionsChange({
+            ...sectionsData,
+            services: servicesData
+          });
+        }}
+        featuresData={sectionsData.features}
+        onFeaturesChange={(featuresData) => {
+          console.log('onFeaturesChange called with:', featuresData);
+          onSectionsChange({
+            ...sectionsData,
+            features: featuresData
+          });
+        }}
+        testimonialsData={sectionsData.testimonials}
+        onTestimonialsChange={(testimonialsData) => {
+          console.log('onTestimonialsChange called with:', testimonialsData);
+          onSectionsChange({
+            ...sectionsData,
+            testimonials: testimonialsData
+          });
+        }}
+        faqData={sectionsData.faq}
+        onFaqChange={(faqData) => {
+          console.log('onFaqChange called with:', faqData);
+          onSectionsChange({
+            ...sectionsData,
+            faq: faqData
+          });
+        }}
+        newsData={sectionsData.news}
+        onNewsChange={(newsData) => {
+          console.log('onNewsChange called with:', newsData);
+          onSectionsChange({
+            ...sectionsData,
+            news: newsData
+          });
+        }}
+        merciData={sectionsData.merci}
+        onMerciChange={(merciData) => {
+          console.log('onMerciChange called with:', merciData);
+          onSectionsChange({
+            ...sectionsData,
+            merci: merciData
+          });
+        }}
       />
     </Box>
   );
@@ -5950,7 +6756,7 @@ ${mainHtml}
   const contactEditorBlock = (
     <ContactEditor 
       contactData={contactData} 
-      onContactChange={onContactChange}
+      onContactChange={handleContactChangeWithLogging}
       expanded={expandedSections.contact}
       onToggle={() => toggleSection('contact')}
       id="contact"

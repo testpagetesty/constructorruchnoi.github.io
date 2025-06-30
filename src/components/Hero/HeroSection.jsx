@@ -169,30 +169,59 @@ const HeroSection = ({
         />
       )}
       <HeroContent>
-        <Typography
-          variant="h2"
-          component="h1"
-          gutterBottom
+        <Box
           sx={{
-            color: titleColor,
-            fontWeight: 700,
-            marginBottom: theme.spacing(0.5),
-            textShadow: '2px 2px 4px rgba(0,0,0,0.3)'
+            background: 'rgba(0, 0, 0, 0.4)',
+            backdropFilter: 'blur(0.1px)',
+            padding: '2rem 3rem',
+            borderRadius: '20px',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+            maxWidth: '800px',
+            margin: '0 auto',
           }}
         >
-          {title}
-        </Typography>
-        <Typography
-          variant="h5"
-          component="p"
-          sx={{
-            color: subtitleColor,
-            fontWeight: 400,
-            textShadow: '1px 1px 2px rgba(0,0,0,0.3)'
-          }}
-        >
-          {subtitle}
-        </Typography>
+          <Typography
+            variant="h2"
+            component="h1"
+            gutterBottom
+            sx={{
+              color: titleColor,
+              fontWeight: 700,
+              marginBottom: theme.spacing(2),
+              textShadow: `
+                2px 2px 4px rgba(0, 0, 0, 0.9),
+                -1px -1px 2px rgba(255, 255, 255, 0.8),
+                1px 1px 2px rgba(255, 255, 255, 0.6),
+                0 0 20px rgba(0, 0, 0, 0.5),
+                0 0 40px rgba(255, 255, 255, 0.3)
+              `,
+              WebkitTextStroke: '1px rgba(255, 255, 255, 0.3)',
+              filter: 'drop-shadow(0 0 8px rgba(0, 0, 0, 0.8))'
+            }}
+          >
+            {title}
+          </Typography>
+          <Typography
+            variant="h5"
+            component="p"
+            sx={{
+              color: subtitleColor,
+              fontWeight: 400,
+              textShadow: `
+                1px 1px 3px rgba(0, 0, 0, 0.9),
+                -1px -1px 1px rgba(255, 255, 255, 0.7),
+                0 0 15px rgba(0, 0, 0, 0.5),
+                0 0 25px rgba(255, 255, 255, 0.2)
+              `,
+              WebkitTextStroke: '0.5px rgba(255, 255, 255, 0.2)',
+              filter: 'drop-shadow(0 0 6px rgba(0, 0, 0, 0.7))',
+              marginBottom: theme.spacing(2)
+            }}
+          >
+            {subtitle}
+          </Typography>
+        </Box>
       </HeroContent>
     </HeroContainer>
   );
