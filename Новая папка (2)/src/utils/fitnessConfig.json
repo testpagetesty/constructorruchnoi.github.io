@@ -1,0 +1,237 @@
+{
+  "meta": {
+    "title": "FitRevolution — Эффективные тренировки для похудения",
+    "description": "Персональные программы, питание и советы от экспертов",
+    "lang": "ru"
+  },
+  "colors": {
+    "primary": "#4A90E2",
+    "secondary": "#FF6B6B",
+    "background": "#F8F9FA",
+    "text": "#2D3436",
+    "accent": "#00B894"
+  },
+  "header": {
+    "siteName": "FitRevolution",
+    "titleColor": "#000000",
+    "backgroundColor": "#ffffff",
+    "linksColor": "#000000",
+    "menuItems": [
+      {
+        "id": 1,
+        "title": "Главная"
+      },
+      {
+        "id": 2,
+        "title": "Тренировки"
+      },
+      {
+        "id": 3,
+        "title": "Питание"
+      },
+      {
+        "id": 4,
+        "title": "Отзывы"
+      },
+      {
+        "id": 5,
+        "title": "Контакты"
+      }
+    ]
+  },
+  "hero": {
+    "title": "FitRevolution - Твой путь к идеальному телу",
+    "subtitle": "Профессиональные тренировки и индивидуальный подход",
+    "backgroundType": "gradient",
+    "backgroundColor": "#ffffff",
+    "gradientColor1": "#ff6b6b",
+    "gradientColor2": "#4ecdc4",
+    "gradientDirection": "to right",
+    "backgroundImage": "",
+    "titleColor": "#ffffff",
+    "subtitleColor": "#e0e0e0"
+  },
+  "sections": [
+    {
+      "id": 1,
+      "title": "Главная",
+      "description": "Добро пожаловать в FitRevolution",
+      "cardType": "none",
+      "content": "FitRevolution - это современный фитнес-клуб, где каждый найдет подходящую программу тренировок. Наши профессиональные тренеры помогут вам достичь поставленных целей.",
+      "titleColor": "#000000",
+      "descriptionColor": "#666666",
+      "contentColor": "#333333",
+      "backgroundType": "solid",
+      "backgroundColor": "#ffffff",
+      "cards": []
+    },
+    {
+      "id": 2,
+      "title": "Тренировки",
+      "description": "Наши программы тренировок",
+      "cardType": "elevated",
+      "titleColor": "#000000",
+      "descriptionColor": "#666666",
+      "backgroundType": "solid",
+      "backgroundColor": "#f5f5f5",
+      "cards": [
+        {
+          "id": 1,
+          "title": "Силовые тренировки",
+          "content": "Программа для набора мышечной массы и увеличения силы. Включает работу с весами и собственным весом.",
+          "showTitle": true,
+          "titleColor": "#ff6b6b",
+          "contentColor": "#333333"
+        },
+        {
+          "id": 2,
+          "title": "Кардио тренировки",
+          "content": "Интенсивные кардио тренировки для сжигания жира и улучшения выносливости.",
+          "showTitle": true,
+          "titleColor": "#ff6b6b",
+          "contentColor": "#333333"
+        },
+        {
+          "id": 3,
+          "title": "Функциональный тренинг",
+          "content": "Тренировки, направленные на развитие силы, выносливости и координации движений.",
+          "showTitle": true,
+          "titleColor": "#ff6b6b",
+          "contentColor": "#333333"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Питание",
+      "description": "Программы питания",
+      "cardType": "elevated",
+      "titleColor": "#000000",
+      "descriptionColor": "#666666",
+      "backgroundType": "gradient",
+      "gradientColor1": "#ffffff",
+      "gradientColor2": "#f5f5f5",
+      "gradientDirection": "to right",
+      "cards": [
+        {
+          "id": 1,
+          "title": "Набор массы",
+          "content": "Индивидуальная программа питания для набора мышечной массы с учетом ваших особенностей.",
+          "showTitle": true,
+          "titleColor": "#4ecdc4",
+          "contentColor": "#333333"
+        },
+        {
+          "id": 2,
+          "title": "Сушка",
+          "content": "Программа питания для снижения процента жира в организме с сохранением мышечной массы.",
+          "showTitle": true,
+          "titleColor": "#4ecdc4",
+          "contentColor": "#333333"
+        },
+        {
+          "id": 3,
+          "title": "Поддержание формы",
+          "content": "Сбалансированное питание для поддержания достигнутых результатов.",
+          "showTitle": true,
+          "titleColor": "#4ecdc4",
+          "contentColor": "#333333"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Отзывы",
+      "description": "Истории успеха наших клиентов",
+      "cardType": "testimonial",
+      "titleColor": "#000000",
+      "descriptionColor": "#666666",
+      "backgroundType": "solid",
+      "backgroundColor": "#ffffff",
+      "cards": [
+        {
+          "id": 1,
+          "title": "История успеха 1",
+          "content": "За 3 месяца занятий сбросила 12 кг! Тренер подобрал идеальную программу, которая учитывала мои особенности здоровья. Теперь чувствую себя намного лучше и энергичнее.",
+          "showTitle": true,
+          "titleColor": "#1976d2",
+          "contentColor": "#666666",
+          "backgroundType": "solid",
+          "backgroundColor": "#F7F9F9",
+          "style": {
+            "borderRadius": "15px",
+            "shadow": "0 4px 15px rgba(0, 0, 0, 0.1)"
+          }
+        },
+        {
+          "id": 2,
+          "title": "История успеха 2",
+          "content": "После 6 месяцев тренировок вернул форму 20-летней давности. Программа питания помогла нормализовать вес и улучшить самочувствие. Теперь могу бегать по утрам без одышки!",
+          "showTitle": true,
+          "titleColor": "#1976d2",
+          "contentColor": "#666666",
+          "backgroundType": "solid",
+          "backgroundColor": "#F7F9F9",
+          "style": {
+            "borderRadius": "15px",
+            "shadow": "0 4px 15px rgba(0, 0, 0, 0.1)"
+          }
+        },
+        {
+          "id": 3,
+          "title": "История успеха 3",
+          "content": "Индивидуальный подход тренера помог мне достичь результатов, о которых я и не мечтала. Теперь рекомендую FitRevolution всем друзьям! Особенно понравились групповые занятия.",
+          "showTitle": true,
+          "titleColor": "#1976d2",
+          "contentColor": "#666666",
+          "backgroundType": "solid",
+          "backgroundColor": "#F7F9F9",
+          "style": {
+            "borderRadius": "15px",
+            "shadow": "0 4px 15px rgba(0, 0, 0, 0.1)"
+          }
+        },
+        {
+          "id": 4,
+          "title": "История успеха 4",
+          "content": "Пришел с проблемами со спиной. После курса восстановительных тренировок боли ушли, осанка улучшилась. Тренеры действительно знают свое дело!",
+          "showTitle": true,
+          "titleColor": "#1976d2",
+          "contentColor": "#666666",
+          "backgroundType": "solid",
+          "backgroundColor": "#F7F9F9",
+          "style": {
+            "borderRadius": "15px",
+            "shadow": "0 4px 15px rgba(0, 0, 0, 0.1)"
+          }
+        },
+        {
+          "id": 5,
+          "title": "История успеха 5",
+          "content": "Занимаюсь уже год. Начала с нуля, сейчас могу делать сложные упражнения. Тренеры поддерживают и мотивируют. Атмосфера в зале потрясающая!",
+          "showTitle": true,
+          "titleColor": "#1976d2",
+          "contentColor": "#666666",
+          "backgroundType": "solid",
+          "backgroundColor": "#F7F9F9",
+          "style": {
+            "borderRadius": "15px",
+            "shadow": "0 4px 15px rgba(0, 0, 0, 0.1)"
+          }
+        }
+      ]
+    }
+  ],
+  "contact": {
+    "title": "Свяжитесь с нами",
+    "description": "Запишитесь на первую тренировку",
+    "companyName": "FitRevolution",
+    "address": "г. Москва, ул. Спортивная, 42",
+    "phone": "+7 (495) 123-45-67",
+    "email": "info@fitrevolution.ru",
+    "mapCoordinates": {
+      "lat": 55.7558,
+      "lng": 37.6173
+    }
+  }
+}

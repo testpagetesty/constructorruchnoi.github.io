@@ -3,6 +3,7 @@ import { saveAs } from 'file-saver';
 import { exportCookieConsentData } from './cookieConsentExporter';
 import { cleanHTML, cleanCSS, cleanJavaScript } from './codeCleanup';
 import { generateLiveChatHTML, generateLiveChatCSS, generateLiveChatJS } from './liveChatExporter';
+import { exportCachedImages } from './imageConverter';
 
 // Function to remove all comments from code
 const removeComments = (code) => {
@@ -266,6 +267,15 @@ export const exportSite = async (siteData) => {
     console.log('sitemap.xml successfully added to export zip with domain:', siteData.headerData?.domain);
   } catch (error) {
     console.error('Error generating sitemap.xml for export:', error);
+  }
+
+  // Export cached images
+  try {
+    console.log('🖼️ Exporting cached images...');
+    const exportedImagesCount = await exportCachedImages(zip, assetsDir);
+    console.log(`✅ Exported ${exportedImagesCount} cached images`);
+  } catch (error) {
+    console.error('❌ Error exporting cached images:', error);
   }
   
   // Generate and download zip
@@ -827,6 +837,379 @@ const generateStyles = () => {
         gap: 1.5rem;
       }
     }
+
+    /* Анимации для карточек */
+    .animate-on-scroll {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: all 0.6s ease-out;
+    }
+
+    .animate-on-scroll.animate {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Специфичные анимации для карточек */
+    .card[data-animation="fadeIn"] {
+      animation: cardFadeIn 0.8s ease-out forwards;
+    }
+
+    .card[data-animation="fadeInUp"] {
+      animation: cardFadeInUp 0.8s ease-out forwards;
+    }
+
+    .card[data-animation="fadeInDown"] {
+      animation: cardFadeInDown 0.8s ease-out forwards;
+    }
+
+    .card[data-animation="slideInLeft"] {
+      animation: cardSlideInLeft 0.8s ease-out forwards;
+    }
+
+    .card[data-animation="slideInRight"] {
+      animation: cardSlideInRight 0.8s ease-out forwards;
+    }
+
+    .card[data-animation="slideInUp"] {
+      animation: cardSlideInUp 0.8s ease-out forwards;
+    }
+
+    .card[data-animation="slideInDown"] {
+      animation: cardSlideInDown 0.8s ease-out forwards;
+    }
+
+    .card[data-animation="scaleIn"] {
+      animation: cardScaleIn 0.8s ease-out forwards;
+    }
+
+    .card[data-animation="zoomIn"] {
+      animation: cardZoomIn 0.8s ease-out forwards;
+    }
+
+    .card[data-animation="bounceIn"] {
+      animation: cardBounceIn 0.8s ease-out forwards;
+    }
+
+    .card[data-animation="rotateIn"] {
+      animation: cardRotateIn 0.8s ease-out forwards;
+    }
+
+    .card[data-animation="flipIn"] {
+      animation: cardFlipIn 0.8s ease-out forwards;
+    }
+
+    .card[data-animation="elastic"] {
+      animation: cardElastic 0.8s ease-out forwards;
+    }
+
+    .card[data-animation="wobble"] {
+      animation: cardWobble 0.8s ease-out forwards;
+    }
+
+    .card[data-animation="pulse"] {
+      animation: cardPulse 0.8s ease-out forwards;
+    }
+
+    .card[data-animation="shakeX"] {
+      animation: cardShakeX 0.8s ease-out forwards;
+    }
+
+    .card[data-animation="tada"] {
+      animation: cardTada 0.8s ease-out forwards;
+    }
+
+    /* Keyframes для анимаций карточек */
+    @keyframes cardFadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes cardFadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes cardFadeInDown {
+      from { opacity: 0; transform: translateY(-30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes cardSlideInLeft {
+      from { opacity: 0; transform: translateX(-50px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes cardSlideInRight {
+      from { opacity: 0; transform: translateX(50px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes cardSlideInUp {
+      from { opacity: 0; transform: translateY(50px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes cardSlideInDown {
+      from { opacity: 0; transform: translateY(-50px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes cardScaleIn {
+      from { opacity: 0; transform: scale(0.5); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes cardZoomIn {
+      from { opacity: 0; transform: scale(0.3); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes cardBounceIn {
+      0% { opacity: 0; transform: scale(0.3); }
+      50% { opacity: 1; transform: scale(1.05); }
+      70% { transform: scale(0.9); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes cardRotateIn {
+      from { opacity: 0; transform: rotate(-200deg) scale(0.5); }
+      to { opacity: 1; transform: rotate(0deg) scale(1); }
+    }
+
+    @keyframes cardFlipIn {
+      0% { opacity: 0; transform: perspective(400px) rotateY(90deg); }
+      40% { transform: perspective(400px) rotateY(-20deg); }
+      60% { transform: perspective(400px) rotateY(10deg); }
+      80% { transform: perspective(400px) rotateY(-5deg); }
+      100% { opacity: 1; transform: perspective(400px) rotateY(0deg); }
+    }
+
+    @keyframes cardElastic {
+      0% { opacity: 0; transform: scale(0.3); }
+      50% { opacity: 1; transform: scale(1.05); }
+      70% { transform: scale(0.9); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes cardWobble {
+      0% { opacity: 0; transform: translateX(-50px) rotate(0deg); }
+      15% { transform: translateX(10px) rotate(-5deg); }
+      30% { transform: translateX(-10px) rotate(3deg); }
+      45% { transform: translateX(10px) rotate(-3deg); }
+      60% { transform: translateX(-10px) rotate(2deg); }
+      75% { transform: translateX(5px) rotate(-1deg); }
+      100% { opacity: 1; transform: translateX(0) rotate(0deg); }
+    }
+
+    @keyframes cardPulse {
+      0% { opacity: 0; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.05); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes cardShakeX {
+      0%, 100% { opacity: 1; transform: translateX(0); }
+      10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
+      20%, 40%, 60%, 80% { transform: translateX(10px); }
+    }
+
+    @keyframes cardTada {
+      0% { opacity: 0; transform: scale(1); }
+      10%, 20% { transform: scale(0.9) rotate(-3deg); }
+      30%, 50%, 70%, 90% { transform: scale(1.1) rotate(3deg); }
+      40%, 60%, 80% { transform: scale(1.1) rotate(-3deg); }
+      100% { opacity: 1; transform: scale(1) rotate(0deg); }
+    }
+
+    /* Стили для сетки карточек */
+    .cards-grid {
+      display: grid;
+      gap: 20px;
+      width: 100%;
+    }
+
+    /* Адаптивная сетка по умолчанию */
+    .cards-grid {
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    }
+
+    /* Размеры карточек в сетке */
+    .card-grid-xs {
+      grid-column: span 1;
+    }
+
+    .card-grid-small {
+      grid-column: span 1;
+    }
+
+    .card-grid-medium {
+      grid-column: span 1;
+    }
+
+    .card-grid-large {
+      grid-column: span 1;
+    }
+
+    .card-grid-xl {
+      grid-column: span 1;
+    }
+
+    .card-grid-full {
+      grid-column: 1 / -1;
+    }
+
+    /* Мобильные устройства (до 768px) */
+    @media (max-width: 768px) {
+      .cards-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .card-grid-xs,
+      .card-grid-small,
+      .card-grid-medium,
+      .card-grid-large,
+      .card-grid-xl {
+        grid-column: span 1;
+      }
+    }
+
+    /* Планшеты (768px - 1024px) */
+    @media (min-width: 769px) and (max-width: 1024px) {
+      .cards-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      
+      .card-grid-xl,
+      .card-grid-full {
+        grid-column: span 2;
+      }
+    }
+
+    /* Десктоп (1025px - 1440px) */
+    @media (min-width: 1025px) and (max-width: 1440px) {
+      .cards-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      
+      .card-grid-large,
+      .card-grid-xl,
+      .card-grid-full {
+        grid-column: span 2;
+      }
+      
+      .card-grid-full {
+        grid-column: span 3;
+      }
+    }
+
+    /* Большие экраны (1441px+) */
+    @media (min-width: 1441px) {
+      .cards-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+      
+      .card-grid-medium {
+        grid-column: span 1;
+      }
+      
+      .card-grid-large {
+        grid-column: span 2;
+      }
+      
+      .card-grid-xl {
+        grid-column: span 3;
+      }
+      
+      .card-grid-full {
+        grid-column: span 4;
+      }
+    }
+
+    /* Специальные сетки для определенного количества карточек */
+    .cards-grid-2 {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .cards-grid-3 {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .cards-grid-4 {
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    .cards-grid-6 {
+      grid-template-columns: repeat(6, 1fr);
+    }
+
+    /* Анимации для карточек */
+    .image-card {
+      transition: all 0.3s ease;
+    }
+
+    .image-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+
+    /* Стили для карточек разных размеров */
+    .card-xs {
+      font-size: 12px;
+    }
+
+    .card-small {
+      font-size: 14px;
+    }
+
+    .card-medium {
+      font-size: 16px;
+    }
+
+    .card-large {
+      font-size: 18px;
+    }
+
+    .card-xl {
+      font-size: 20px;
+    }
+
+    /* Адаптивные отступы */
+    @media (max-width: 768px) {
+      .cards-grid {
+        gap: 15px;
+      }
+    }
+
+    @media (min-width: 1441px) {
+      .cards-grid {
+        gap: 30px;
+      }
+    }
+    
+    /* Стили для элементов typewriter */
+    .typewriter-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    
+    .typewriter-text-content {
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    .typewriter-cursor {
+      animation: blink 1s infinite;
+      margin-left: 2px;
+      user-select: none;
+    }
+
+    @keyframes blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0; }
+    }
   `;
 };
 
@@ -843,6 +1226,7 @@ const generateAppJs = (siteData) => {
       
       initializeScripts();
       initializeAnimations();
+      initContentElements();
       
       // Add a small delay to ensure DOM is fully loaded
       setTimeout(() => {
@@ -909,6 +1293,38 @@ const generateAppJs = (siteData) => {
         }
       );
 
+      // Create intersection observer for animated cards
+      const cardObserver = new IntersectionObserver(
+        (entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              const card = entry.target;
+              const animationType = card.getAttribute('data-animation');
+              const delay = parseFloat(card.getAttribute('data-delay') || 0);
+              
+              // Apply animation with delay
+              setTimeout(() => {
+                card.classList.add('animate');
+                
+                // Add animation class based on type
+                if (animationType && animationType !== 'none') {
+                  card.style.animationDelay = delay + 's';
+                }
+              }, delay * 1000);
+              
+              // Unobserve after animation
+              setTimeout(() => {
+                cardObserver.unobserve(card);
+              }, (delay + 1) * 1000);
+            }
+          });
+        },
+        {
+          threshold: 0.1,
+          rootMargin: '0px 0px -20% 0px'
+        }
+      );
+
       // Observe all sections except no-cards sections (they have their own animations)
       document.querySelectorAll('.section:not([data-nocards="true"])').forEach(section => {
         // Reset any existing animations
@@ -936,6 +1352,11 @@ const generateAppJs = (siteData) => {
             }
           });
         }
+      });
+
+      // Observe animated cards
+      document.querySelectorAll('.card[data-animation]').forEach(card => {
+        cardObserver.observe(card);
       });
     }
 
@@ -1018,6 +1439,121 @@ const generateAppJs = (siteData) => {
           if (text !== newText) element.textContent = newText;
         }
       });
+    }
+
+    // Function to initialize content elements
+    function initContentElements() {
+      // Initialize animated counters
+      const counters = document.querySelectorAll('.counter');
+      const counterObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const counter = entry.target;
+            const start = parseInt(counter.dataset.start) || 0;
+            const end = parseInt(counter.dataset.end) || 100;
+            const duration = parseInt(counter.dataset.duration) || 2000;
+            
+            animateCounter(counter, start, end, duration);
+            counterObserver.unobserve(counter);
+          }
+        });
+      }, { threshold: 0.5 });
+      
+      counters.forEach(counter => counterObserver.observe(counter));
+      
+      // Initialize typewriter text
+      const typewriters = document.querySelectorAll('.typewriter');
+      typewriters.forEach(initTypewriter);
+    }
+
+    // Function to animate counters
+    function animateCounter(element, start, end, duration) {
+      const startTime = performance.now();
+      const difference = end - start;
+      
+      function updateCounter(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        // Easing function (ease-out)
+        const easeOut = 1 - Math.pow(1 - progress, 3);
+        const current = Math.round(start + (difference * easeOut));
+        
+        element.textContent = current;
+        
+        if (progress < 1) {
+          requestAnimationFrame(updateCounter);
+        }
+      }
+      
+      requestAnimationFrame(updateCounter);
+    }
+
+    // Function to initialize typewriter effect
+    function initTypewriter(element) {
+      const texts = JSON.parse(element.dataset.texts || '["Default text"]');
+      const speed = parseInt(element.dataset.speed) || 150;
+      const pauseTime = parseInt(element.dataset.pause) || 2000;
+      const repeat = element.dataset.repeat !== 'false';
+      
+      // Find the text content span
+      const textContentSpan = element.querySelector('.typewriter-text-content');
+      if (!textContentSpan) {
+        console.error('Typewriter text content span not found');
+        return;
+      }
+      
+      let textIndex = 0;
+      let charIndex = 0;
+      let isDeleting = false;
+      
+      function typeText() {
+        const fullText = texts[textIndex];
+        let displayText = '';
+        
+        if (isDeleting) {
+          displayText = fullText.substring(0, charIndex - 1);
+          charIndex--;
+        } else {
+          displayText = fullText.substring(0, charIndex + 1);
+          charIndex++;
+        }
+        
+        // Update only the text content, cursor stays separate
+        textContentSpan.textContent = displayText;
+        
+        let typeSpeed = speed;
+        
+        if (isDeleting) {
+          typeSpeed = speed / 2;
+        }
+        
+        if (!isDeleting && charIndex === fullText.length) {
+          // Finished typing, pause before deleting
+          typeSpeed = pauseTime;
+          isDeleting = true;
+        } else if (isDeleting && charIndex === 0) {
+          // Finished deleting, move to next text
+          isDeleting = false;
+          textIndex = (textIndex + 1) % texts.length;
+          
+          // If not repeating and we've gone through all texts, stop
+          if (!repeat && textIndex === 0) {
+            // Show final text and dim cursor
+            textContentSpan.textContent = texts[0];
+            const cursor = element.querySelector('.typewriter-cursor');
+            if (cursor) cursor.style.opacity = '0.3';
+            return;
+          }
+          
+          typeSpeed = speed;
+        }
+        
+        setTimeout(typeText, typeSpeed);
+      }
+      
+      // Start the typewriter effect
+      typeText();
     }
   `);
 };
@@ -1349,7 +1885,7 @@ function generateSectionHTML(section) {
         ${section.description ? `
           <p class="section-description">${section.description}</p>
         ` : ''}
-        <div class="cards-container">
+        <div class="cards-container cards-grid">
           ${section.cards.map((card, index) => generateCardHTML(card, section.cardType, index)).join('')}
         </div>
       </div>
@@ -1376,18 +1912,67 @@ function generateCardHTML(card, cardType, index) {
 
   cardStyles.push(`--index: ${index}`);
 
+  // Обработка изображений - проверяем разные варианты
+  let imageSrc = '';
+  let imageAlt = '';
+  
+  if (card.imageUrl) {
+    // Если это blob URL (кешированное изображение), используем имя файла
+    if (card.imageUrl.startsWith('blob:')) {
+      // Извлекаем имя файла из метаданных или генерируем
+      const fileName = card.fileName || `image-${index}.jpg`;
+      imageSrc = `assets/images/${fileName}`;
+    } else {
+      // Внешний URL
+      imageSrc = card.imageUrl;
+    }
+    imageAlt = card.imageAlt || card.title || '';
+  } else if (card.imagePath) {
+    imageSrc = card.imagePath;
+    imageAlt = card.title || '';
+  }
+
+  // Обработка анимаций
+  let animationClasses = '';
+  let animationData = '';
+  
+  if (card.animationSettings && card.animationSettings.animationType && card.animationSettings.animationType !== 'none') {
+    animationClasses = 'animate-on-scroll';
+    animationData = `data-animation="${card.animationSettings.animationType}" data-delay="${card.animationSettings.delay || 0}"`;
+  }
+
+  // Обработка ссылок кнопки
+  let buttonLink = card.buttonLink || '#';
+  let buttonTarget = '_self';
+  
+  // Если это внешняя ссылка, открываем в новой вкладке
+  if (card.linkType === 'external' && buttonLink && !buttonLink.startsWith('#')) {
+    buttonTarget = '_blank';
+  }
+  
+  // Обработка специальных ссылок
+  if (buttonLink.startsWith('tel:') || buttonLink.startsWith('mailto:')) {
+    buttonTarget = '_self';
+  }
+
+  // Обработка размеров сетки
+  let gridClasses = '';
+  if (card.gridSize) {
+    gridClasses = `card-grid-${card.gridSize}`;
+  }
+
   return `
-    <div class="card" data-card-id="${card.id || ''}" style="${cardStyles.join('; ')}">
-      ${card.imagePath ? `
+    <div class="card image-card ${animationClasses} ${gridClasses}" data-card-id="${card.id || ''}" style="${cardStyles.join('; ')}" ${animationData}>
+      ${imageSrc ? `
         <div class="card-image">
-          <img src="${card.imagePath}" alt="${card.title || ''}" loading="lazy">
+          <img src="${imageSrc}" alt="${imageAlt}" loading="lazy">
         </div>
       ` : ''}
       <div class="card-content">
         ${card.title ? `<h3 class="card-title">${card.title}</h3>` : ''}
         ${card.text ? `<p class="card-text">${card.text}</p>` : ''}
         ${card.buttonText ? `
-          <a href="${card.buttonLink || '#'}" class="card-button">
+          <a href="${buttonLink}" class="card-button" target="${buttonTarget}" rel="${buttonTarget === '_blank' ? 'noopener noreferrer' : ''}">
             ${card.buttonText}
           </a>
         ` : ''}

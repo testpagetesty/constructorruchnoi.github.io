@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Box, 
   Button, 
@@ -28,6 +28,7 @@ import {
   Chip,
   FormControlLabel,
   Checkbox,
+  FormGroup,
   Grid,
   Slider,
   Switch,
@@ -45,6 +46,7 @@ import ShuffleIcon from '@mui/icons-material/Shuffle';
 import { CARD_TYPES } from '../../utils/configUtils';
 import GlobalSettings, { WEBSITE_THEMES, LANGUAGES, CONTENT_STYLES } from './GlobalSettings';
 import SiteStyleManager from '../SiteStyleSettings/SiteStyleManager';
+import ElementPromptsSection, { ELEMENT_PROMPTS } from './ElementPromptsSection';
 import * as parsers from './parsingFunctions';
 import { STYLE_PRESETS } from '../../utils/editorStylePresets';
 import { contactPresets } from '../../utils/contactPresets';
@@ -83,9 +85,93 @@ const DEFAULT_PROMPTS = {
 6. Разделители должны быть точно: === РАЗДЕЛ: ИМЯ === и === КОНЕЦ РАЗДЕЛА ===
 
 ВАЖНО: Не добавляйте обратные слеши (\) перед символами ===. Используйте точно такой формат:
-=== РАЗДЕЛ: HERO ===
+=== РАЗДЕЛ: О НАС ===
 (контент раздела)
 === КОНЕЦ РАЗДЕЛА ===\n\n`,
+
+  GRADIENT_TEXT: `Создайте описание текстового контента для сайта. Строго следуйте формату ниже.
+
+Требуемый формат:
+1. Первая строка ОБЯЗАТЕЛЬНО должна быть "ID: продвинутые-текстовые"
+2. Вторая строка - заголовок раздела (4-7 слов, должен быть информативным)
+3. Третья строка - общее описание раздела (20-30 слов)
+4. Четвертая строка - название секции для меню
+5. Далее - элементы контента в формате:
+   ТИП: gradient-text
+   СОДЕРЖИМОЕ: [текст для отображения]
+
+Где:
+- [текст] - короткий эффектный текст или заголовок (1-5 слов)
+
+Пример:
+ID: продвинутые-текстовые
+Современные текстовые элементы для сайта
+Набор эффективных текстовых элементов для создания привлекательного и информативного контента на вашем сайте
+Текстовые элементы
+
+ТИП: gradient-text
+СОДЕРЖИМОЕ: Инновационные решения
+
+ТИП: gradient-text
+СОДЕРЖИМОЕ: Ваш успех
+
+ТИП: gradient-text
+СОДЕРЖИМОЕ: Качество и надежность
+
+ТИП: gradient-text
+СОДЕРЖИМОЕ: Профессиональный подход
+
+ТИП: gradient-text
+СОДЕРЖИМОЕ: Результат гарантирован
+
+ВАЖНО: 
+1. Указывайте ТОЛЬКО текст в строке СОДЕРЖИМОЕ
+2. НЕ добавляйте ТЕКСТ, НАПРАВЛЕНИЕ, ЦВЕТ1, ЦВЕТ2, РАЗМЕР_ШРИФТА, ТОЛЩИНА_ШРИФТА
+3. НЕ используйте дополнительные параметры - только ТИП и СОДЕРЖИМОЕ
+4. Используйте короткие эффектные фразы
+5. Каждый элемент должен быть отделен пустой строкой\n\n`,
+
+  SOLID_COLOR_TEXT: `Создайте описание текстового контента с чистым цветом для сайта. Строго следуйте формату ниже.
+
+Требуемый формат:
+1. Первая строка ОБЯЗАТЕЛЬНО должна быть "ID: цветной-текст"
+2. Вторая строка - заголовок раздела (4-7 слов, должен быть информативным)
+3. Третья строка - общее описание раздела (20-30 слов)
+4. Четвертая строка - название секции для меню
+5. Далее - элементы контента в формате:
+   ТИП: solid-text
+   СОДЕРЖИМОЕ: [текст для отображения]
+
+Где:
+- [текст] - короткий эффектный текст или заголовок (1-5 слов)
+
+Пример:
+ID: цветной-текст
+Яркие акценты и заголовки
+Привлекательные цветные тексты для выделения важной информации и создания ярких акцентов на сайте
+Цветные акценты
+
+ТИП: solid-text
+СОДЕРЖИМОЕ: Наши преимущества
+
+ТИП: solid-text
+СОДЕРЖИМОЕ: Лучший выбор
+
+ТИП: solid-text
+СОДЕРЖИМОЕ: Гарантия качества
+
+ТИП: solid-text
+СОДЕРЖИМОЕ: Доверие клиентов
+
+ТИП: solid-text
+СОДЕРЖИМОЕ: Экспертное качество
+
+ВАЖНО: 
+1. Указывайте ТОЛЬКО текст в строке СОДЕРЖИМОЕ
+2. НЕ добавляйте ЦВЕТ, РАЗМЕР_ШРИФТА, ТОЛЩИНА_ШРИФТА или другие параметры
+3. НЕ используйте дополнительные параметры - только ТИП и СОДЕРЖИМОЕ
+4. Используйте короткие эффектные фразы
+5. Каждый элемент должен быть отделен пустой строкой\n\n`,
 
   HERO: `Создайте контент для сайта. Строго следуйте формату ниже.
 
@@ -152,10 +238,24 @@ ID: о_нас
 2. Вторая строка - заголовок раздела (4-7 слов, должен быть информативным и отличаться от ID)
 3. Третья строка - общее описание раздела (20-30 слов)
 4. Четвертая строка - название секции для меню на том же языке
-5. Далее - карточки услуг, где:
-   - Каждая карточка начинается с заголовка
-   - После заголовка идет описание услуги
-   - Между карточками ОДНА пустая строка
+5. Далее - элементы услуг в формате:
+   ТИП: [тип элемента: typography, list, blockquote, table, chart, accordion, testimonial, imageCard]
+   ЗАГОЛОВОК: [заголовок элемента]
+   СОДЕРЖИМОЕ: [содержимое элемента]
+   
+   - Используйте разнообразные типы элементов
+   - Между элементами ОДНА пустая строка
+
+ОСОБЫЕ ТРЕБОВАНИЯ ДЛЯ АККОРДЕОНА (accordion):
+Для элемента типа "accordion" используйте строго следующий формат:
+ТИП: accordion
+ЗАГОЛОВОК: [Заголовок аккордеона]
+СОДЕРЖИМОЕ: [Заголовок панели 1]? [Содержимое панели 1] * [Заголовок панели 2]? [Содержимое панели 2] * [Заголовок панели 3]? [Содержимое панели 3]
+
+Пример аккордеона:
+ТИП: accordion
+ЗАГОЛОВОК: Часто задаваемые вопросы
+СОДЕРЖИМОЕ: Как начать работу с вашей компанией? Для начала работы достаточно оставить заявку через форму на сайте или позвонить по указанному номеру телефона. Наш менеджер свяжется с вами в течение рабочего дня для обсуждения деталей сотрудничества. * Какие гарантии вы предоставляете? Мы гарантируем высокое качество наших услуг и строго соблюдаем все договорные обязательства. Каждый проект сопровождается официальным договором. * Сколько времени занимает выполнение заказа? Сроки выполнения зависят от сложности проекта и составляют от 1 до 30 дней. Точные сроки оговариваются индивидуально с каждым клиентом.
 
 Пример на русском:
 ID: услуги
@@ -163,13 +263,15 @@ ID: услуги
 Профессиональная поддержка для вашего бизнеса и частных лиц
 Услуги
 
-Консультации
-Предоставляем профессиональные консультации по всем вопросам. Наши специалисты помогут найти оптимальное решение для вашей ситуации.
+ТИП: list
+ЗАГОЛОВОК: Основные услуги
+СОДЕРЖИМОЕ: Консультации по бизнесу * Разработка стратегий * Автоматизация процессов * Техническая поддержка
 
-Сопровождение
-Полное сопровождение проектов от начала до успешного завершения. Берем на себя все организационные вопросы.
+ТИП: accordion
+ЗАГОЛОВОК: Часто задаваемые вопросы
+СОДЕРЖИМОЕ: Как начать работу с вашей компанией? Для начала работы достаточно оставить заявку через форму на сайте или позвонить по указанному номеру телефона. Наш менеджер свяжется с вами в течение рабочего дня для обсуждения деталей сотрудничества. * Какие гарантии вы предоставляете? Мы гарантируем высокое качество наших услуг и строго соблюдаем все договорные обязательства. Каждый проект сопровождается официальным договором. * Сколько времени занимает выполнение заказа? Сроки выполнения зависят от сложности проекта и составляют от 1 до 30 дней. Точные сроки оговариваются индивидуально с каждым клиентом.
 
-Рекомендуемое количество услуг: 4-6`,
+Рекомендуемое количество элементов: 4-6`,
 
   FEATURES: `Создайте описание преимуществ для сайта. Строго следуйте формату ниже.
 
@@ -523,10 +625,125 @@ const WordRangeEditor = ({ section, ranges, onChange }) => {
   );
 };
 
+
+
 // Добавляем компонент настройки промпта полного сайта
-const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings }) => {
+const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, currentStep, setCurrentStep, completedSteps, setCompletedSteps }) => {
   const [settings, setSettings] = useState(initialSettings);
   const [promptType, setPromptType] = useState('optimized');
+  const [selectedElements, setSelectedElements] = useState({});
+  const [customPrompts, setCustomPrompts] = useState({});
+  
+  // Инициализируем разделы первого этапа при открытии диалога
+  useEffect(() => {
+    if (open && currentStep === 1) {
+      const firstStepSections = STEP_SECTIONS[1];
+      setSettings(prev => ({
+        ...prev,
+        includedSections: Object.keys(prev.includedSections).reduce((acc, section) => {
+          acc[section] = firstStepSections.includes(section);
+          return acc;
+        }, {})
+      }));
+    }
+  }, [open, currentStep]);
+  
+  // Функция для активации разделов текущего этапа
+  const activateCurrentStepSections = () => {
+    const currentStepSections = STEP_SECTIONS[currentStep];
+    const allSections = Object.keys(settings.includedSections);
+    
+    setSettings(prev => ({
+      ...prev,
+      includedSections: allSections.reduce((acc, section) => {
+        // Включаем только разделы текущего этапа
+        acc[section] = currentStepSections.includes(section);
+        return acc;
+      }, {})
+    }));
+  };
+  
+  // Константы для этапов
+  const STEP_SECTIONS = {
+    1: ['HERO', 'ABOUT', 'FEATURES'],
+    2: ['NEWS', 'SERVICES'],
+    3: ['FAQ', 'CONTACTS', 'TESTIMONIALS'],
+    4: ['LEGAL_DOCUMENTS', 'MERCI', 'UNIVERSAL']
+  };
+  
+  const STEP_LABELS = {
+    1: 'Этап 1: Главная + О нас + Преимущества',
+    2: 'Этап 2: Новости + Услуги',
+    3: 'Этап 3: FAQ + Контакты + Отзывы',
+    4: 'Этап 4: Документы + Благодарность + Универсальная'
+  };
+  
+  // Функция для получения значений по умолчанию для elementSettings
+  const getDefaultElementSettings = () => {
+    return {
+      // Текстовые элементы
+      'typography': { minContent: 70 },
+      'rich-text': { minTitle: 30, minContent: 70 },
+      'blockquote': { minTitle: 20, minContent: 70 },
+      'list': { minContent: 70 },
+      'callout': { minTitle: 30, minContent: 70 },
+      'gradient-text': { minContent: 60 },
+      'animated-counter': { minTitle: 60 },
+      'typewriter-text': { minContent: 70 },
+      'highlight-text': { minContent: 50 },
+      'testimonial-card': { minContent: 60 },
+      
+      // Интерактивные элементы
+      'faq-section': { minTitle: 40, minContent: 40, minQuestions: 5 },
+      'accordion': { minTitle: 20, minContent: 40, minQuestions: 8 },
+      'qr-code': { minTitle: 15 },
+      'color-picker': { minTitle: 20, minContent: 40 },
+      'share-buttons': { minContent: 40 },
+      'rating': { minTitle: 30, minContent: 40 },
+      'progress-bars': { minTitle: 30, minContent: 40 },
+      'timeline-component': { minTitle: 20, minContent: 40, minDataPoints: 5 },
+      'data-table': { minTitle: 20, minContent: 40, minRows: 5, minColumns: 7 },
+      'image-gallery': { minTitle: 35, minContent: 60 },
+      
+      // Карточки
+      'basic-card': { minTitle: 18, minContent: 60 },
+      'image-card': { minTitle: 20, minContent: 70 },
+      'multiple-cards': { minTitle: 20, minContent: 70, minCards: 4 },
+      
+      // Диаграммы и графики
+      'bar-chart': { minTitle: 20, minContent: 50, minColumns: 8, minDataPoints: 8 },
+      'advanced-line-chart': { minTitle: 20, minContent: 40, minColumns: 7, minDataPoints: 5 },
+      'advanced-pie-chart': { minTitle: 20, minContent: 30, minDataPoints: 5 },
+      'advanced-area-chart': { minTitle: 20, minContent: 40, minColumns: 7, minDataPoints: 5 },
+      'chartjs-bar': { minTitle: 20, minContent: 50, minColumns: 8, minDataPoints: 8 },
+      'chartjs-line': { minTitle: 20, minContent: 40, minColumns: 7, minDataPoints: 5 },
+      'chartjs-pie': { minTitle: 20, minContent: 30, minDataPoints: 5 },
+      'chartjs-doughnut': { minTitle: 20, minContent: 30, minDataPoints: 5 },
+      'chartjs-area': { minTitle: 20, minContent: 40, minColumns: 7, minDataPoints: 5 },
+      'apex-line': { minTitle: 20, minContent: 40, minColumns: 7, minDataPoints: 5 },
+      'apex-chart': { minTitle: 20, minContent: 40, minColumns: 7, minDataPoints: 5 },
+      'apex-area-chart': { minTitle: 20, minContent: 40, minColumns: 7, minDataPoints: 5 },
+      'apex-bar-chart': { minTitle: 20, minContent: 40, minColumns: 8, minDataPoints: 8 },
+      'apex-line-chart': { minTitle: 20, minContent: 40, minColumns: 7, minDataPoints: 5 },
+      'apex-pie-chart': { minTitle: 20, minContent: 30, minDataPoints: 5 },
+      'apex-donut-chart': { minTitle: 20, minContent: 30, minDataPoints: 5 },
+      'apex-radar-chart': { minTitle: 20, minContent: 40, minColumns: 7, minDataPoints: 5 },
+      'apex-polar-chart': { minTitle: 20, minContent: 40, minColumns: 7, minDataPoints: 5 },
+      'apex-candlestick-chart': { minTitle: 20, minContent: 40, minColumns: 7, minDataPoints: 5 },
+      'apex-heatmap-chart': { minTitle: 20, minContent: 40, minColumns: 7, minDataPoints: 5 },
+      'apex-treemap-chart': { minTitle: 20, minContent: 40, minColumns: 7, minDataPoints: 5 },
+      'apex-bubble-chart': { minTitle: 20, minContent: 40, minColumns: 7, minDataPoints: 5 },
+      'apex-scatter-chart': { minTitle: 20, minContent: 40, minColumns: 7, minDataPoints: 5 },
+      'apex-mixed-chart': { minTitle: 20, minContent: 40, minColumns: 7, minDataPoints: 5 },
+      
+      // Формы и другие элементы
+      'advanced-contact-form': { minTitle: 20, minContent: 40 },
+      'cta-section': { minTitle: 20, minContent: 40 },
+      'full-multipage-site': { minTitle: 20, minContent: 40 }
+    };
+  };
+
+  const [elementSettings, setElementSettings] = useState(getDefaultElementSettings());
 
   const handleSectionToggle = (section) => {
     setSettings(prev => ({
@@ -561,9 +778,193 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings }) => {
     }));
   };
 
+
+
+  const handleElementToggle = (section, elementKey) => {
+    setSelectedElements(prev => {
+      const newElements = { ...prev };
+      if (!newElements[section]) {
+        newElements[section] = new Set();
+      }
+      
+      const sectionElements = new Set(newElements[section]);
+      if (sectionElements.has(elementKey)) {
+        sectionElements.delete(elementKey);
+      } else {
+        sectionElements.add(elementKey);
+      }
+      
+      newElements[section] = sectionElements;
+      return newElements;
+    });
+  };
+
+  // Полный список всех доступных элементов
+  const ALL_ELEMENTS = [
+    'typography', 'rich-text', 'blockquote', 'list', 'callout', 
+    'gradient-text', 'animated-counter', 'typewriter-text', 'highlight-text',
+    'testimonial-card', 'faq-section', 'timeline-component', 'image-gallery',
+    'basic-card', 'image-card', 'multiple-cards', 'accordion', 'qr-code',
+    'rating', 'progress-bars', 'data-table', 'bar-chart', 'advanced-line-chart',
+    'advanced-pie-chart', 'advanced-area-chart', 'chartjs-bar', 'chartjs-doughnut',
+    'apex-line', 'advanced-contact-form', 'cta-section'
+  ];
+
+  // Функция для случайного выбора элементов в разделе
+  const handleRandomSelection = (section, elements) => {
+    if (!elements || elements.length === 0) return;
+
+    // Определяем количество элементов для выбора (3-5)
+    const minElements = 3;
+    const maxElements = Math.min(5, elements.length);
+    const elementsToSelect = Math.floor(Math.random() * (maxElements - minElements + 1)) + minElements;
+
+    // Перемешиваем элементы и выбираем случайные
+    const shuffled = [...elements].sort(() => 0.5 - Math.random());
+    const selectedKeys = shuffled.slice(0, elementsToSelect);
+
+    // Применяем выбор
+    setSelectedElements(prev => {
+      const newElements = { ...prev };
+      if (!newElements[section]) {
+        newElements[section] = new Set();
+      }
+      
+      // Сначала очищаем текущий выбор для этого раздела
+      newElements[section] = new Set();
+      
+      // Добавляем случайно выбранные элементы
+      selectedKeys.forEach(elementKey => {
+        newElements[section].add(elementKey);
+      });
+      
+      return newElements;
+    });
+  };
+
+  // Функция для обычного режима (без разделов)
+  const handleElementToggleLegacy = (elementKey) => {
+    setSelectedElements(prev => {
+      const newElements = { ...prev };
+      if (!newElements['GLOBAL']) {
+        newElements['GLOBAL'] = new Set();
+      }
+      
+      const globalElements = new Set(newElements['GLOBAL']);
+      if (globalElements.has(elementKey)) {
+        globalElements.delete(elementKey);
+      } else {
+        globalElements.add(elementKey);
+      }
+      
+      newElements['GLOBAL'] = globalElements;
+      return newElements;
+    });
+  };
+
+  const handlePromptChange = (elementKey, newPrompt) => {
+    setCustomPrompts(prev => ({
+      ...prev,
+      [elementKey]: newPrompt || undefined // undefined удаляет ключ (сброс к оригиналу)
+    }));
+  };
+
+  const handleElementSettingsChange = (newElementSettings) => {
+    // Объединяем с значениями по умолчанию для новых элементов
+    const defaultSettings = getDefaultElementSettings();
+    const mergedSettings = { ...defaultSettings, ...newElementSettings };
+    setElementSettings(mergedSettings);
+  };
+
+  // Функция для обработки изменений настроек конкретного элемента
+  const handleElementSettingChange = (elementKey, field, value) => {
+    setElementSettings(prev => ({
+      ...prev,
+      [elementKey]: {
+        ...prev[elementKey],
+        [field]: value
+      }
+    }));
+  };
+
+  // Функция для получения всех выбранных элементов
+  const getAllSelectedElements = () => {
+    const selected = new Set();
+    Object.keys(selectedElements).forEach(section => {
+      if (selectedElements[section]) {
+        selectedElements[section].forEach(element => {
+          selected.add(element);
+        });
+      }
+    });
+    return Array.from(selected);
+  };
+
   const handleSave = () => {
-    onSave(settings, promptType);
+    // Генерируем промпт только для текущего этапа
+    const currentStepSections = STEP_SECTIONS[currentStep];
+    const filteredSettings = {
+      ...settings,
+      includedSections: Object.keys(settings.includedSections).reduce((acc, section) => {
+        acc[section] = currentStepSections.includes(section) ? settings.includedSections[section] : false;
+        return acc;
+      }, {})
+    };
+    
+    const filteredSelectedElements = {};
+    currentStepSections.forEach(section => {
+      if (selectedElements[section]) {
+        filteredSelectedElements[section] = selectedElements[section];
+      }
+    });
+    
+    onSave(filteredSettings, promptType, filteredSelectedElements, customPrompts, elementSettings, currentStep);
     onClose();
+  };
+  
+  const handleStepComplete = () => {
+    setCompletedSteps(prev => [...prev, currentStep]);
+    if (currentStep < 4) {
+      const nextStep = currentStep + 1;
+      setCurrentStep(nextStep);
+      
+      // Автоматически активируем разделы следующего этапа
+      setTimeout(() => {
+        const nextStepSections = STEP_SECTIONS[nextStep];
+        setSettings(prev => ({
+          ...prev,
+          includedSections: Object.keys(prev.includedSections).reduce((acc, section) => {
+            acc[section] = nextStepSections.includes(section);
+            return acc;
+          }, {})
+        }));
+      }, 100);
+    }
+  };
+  
+  const handleStepBack = () => {
+    if (currentStep > 1) {
+      const prevStep = currentStep - 1;
+      setCurrentStep(prevStep);
+      
+      // Автоматически активируем разделы предыдущего этапа
+      setTimeout(() => {
+        const prevStepSections = STEP_SECTIONS[prevStep];
+        setSettings(prev => ({
+          ...prev,
+          includedSections: Object.keys(prev.includedSections).reduce((acc, section) => {
+            acc[section] = prevStepSections.includes(section);
+            return acc;
+          }, {})
+        }));
+      }, 100);
+    }
+  };
+  
+  const getStepStatus = (step) => {
+    if (completedSteps.includes(step)) return 'completed';
+    if (step === currentStep) return 'current';
+    return 'pending';
   };
 
   const sectionLabels = {
@@ -576,7 +977,8 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings }) => {
     TESTIMONIALS: 'Отзывы',
     CONTACTS: 'Контакты',
     MERCI: 'Сообщение благодарности',
-    LEGAL: 'Правовые документы'
+    LEGAL: 'Правовые документы',
+    UNIVERSAL: 'Универсальная секция'
   };
 
   const randomizeAllSettings = () => {
@@ -830,11 +1232,25 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings }) => {
                   </Box>
                 }
               />
+              <FormControlLabel 
+                value="manual_elements" 
+                control={<Radio />} 
+                label={
+                  <Box>
+                    <Typography variant="body1" component="div">
+                      <strong>Ручной выбор элементов</strong>
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary">
+                      Выберите элементы для каждого раздела вручную. Для контактов, благодарности и правовых документов используются стандартные промпты.
+                    </Typography>
+                  </Box>
+                }
+              />
             </RadioGroup>
           </FormControl>
         </Box>
         
-        {promptType !== 'legal_only' && (
+        {promptType !== 'legal_only' && promptType !== 'manual_elements' && (
           <>
             <Divider sx={{ mb: 3 }} />
             <Box sx={{ mb: 3 }}>
@@ -857,6 +1273,29 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings }) => {
               </Grid>
             ))}
           </Grid>
+        </Box>
+        
+        <Divider sx={{ my: 2 }} />
+        
+        {/* Раздел выбора элементов из ElementPromptsSection */}
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="subtitle1" gutterBottom>
+            Промпты элементов ({Object.keys(ELEMENT_PROMPTS).length}):
+          </Typography>
+          <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+            Выберите элементы, которые должны быть включены в промпт полного сайта
+          </Typography>
+          
+          {/* Компонент выбора элементов с галочками */}
+          <ElementPromptsSection 
+            selectionMode={true}
+            selectedElements={selectedElements}
+            onElementToggle={handleElementToggleLegacy}
+            customPrompts={customPrompts}
+            onPromptChange={handlePromptChange}
+            elementSettings={elementSettings}
+            onElementSettingsChange={handleElementSettingsChange}
+          />
         </Box>
         
         <Divider sx={{ my: 2 }} />
@@ -899,7 +1338,7 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings }) => {
               Настройте количество слов для каждого элемента
             </Typography>
           </Box>
-          <Accordion defaultExpanded>
+          <Accordion defaultExpanded={false}>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
               <Typography>Настройки диапазонов</Typography>
             </AccordionSummary>
@@ -914,14 +1353,621 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings }) => {
               ))}
             </AccordionDetails>
               </Accordion>
+          
+
             </Box>
+          </>
+        )}
+        
+        {promptType === 'manual_elements' && (
+          <>
+            <Divider sx={{ mb: 3 }} />
+            
+            {/* Индикаторы этапов */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Этапы обработки:
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+                {[1, 2, 3, 4].map((step) => {
+                  const stepSections = STEP_SECTIONS[step];
+                  const selectedSections = stepSections.filter(section => settings.includedSections[section]);
+                  const totalSections = stepSections.length;
+                  const selectedCount = selectedSections.length;
+                  
+                  return (
+                    <Box
+                      key={step}
+                      sx={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        p: 2,
+                        borderRadius: 2,
+                        border: '2px solid',
+                        minWidth: 140,
+                        backgroundColor: getStepStatus(step) === 'completed' ? '#4caf50' : 
+                                       getStepStatus(step) === 'current' ? '#ff9800' : '#f5f5f5',
+                        borderColor: getStepStatus(step) === 'completed' ? '#4caf50' : 
+                                    getStepStatus(step) === 'current' ? '#ff9800' : '#ddd',
+                        color: getStepStatus(step) === 'completed' ? 'white' : 
+                               getStepStatus(step) === 'current' ? 'white' : '#666'
+                      }}
+                    >
+                      <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
+                        {step}
+                      </Typography>
+                      <Typography variant="caption" sx={{ textAlign: 'center', fontSize: '0.7rem', mb: 1 }}>
+                        {STEP_LABELS[step]}
+                      </Typography>
+                      
+                      {/* Индикатор выбранных разделов */}
+                      <Box sx={{ 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        alignItems: 'center',
+                        fontSize: '0.6rem',
+                        opacity: 0.8
+                      }}>
+                        <Typography variant="caption" sx={{ mb: 0.5 }}>
+                          Разделы: {selectedCount}/{totalSections}
+                        </Typography>
+                        {selectedSections.length > 0 && (
+                          <Box sx={{ 
+                            display: 'flex', 
+                            flexWrap: 'wrap', 
+                            gap: 0.5, 
+                            justifyContent: 'center',
+                            maxWidth: 120
+                          }}>
+                            {selectedSections.map(section => (
+                              <Box
+                                key={section}
+                                sx={{
+                                  backgroundColor: 'rgba(255,255,255,0.2)',
+                                  px: 0.5,
+                                  py: 0.2,
+                                  borderRadius: 1,
+                                  fontSize: '0.5rem',
+                                  whiteSpace: 'nowrap'
+                                }}
+                              >
+                                {sectionLabels[section]}
+                              </Box>
+                            ))}
+                          </Box>
+                        )}
+                      </Box>
+                    </Box>
+                  );
+                })}
+              </Box>
+              
+              <Alert severity="info" sx={{ mb: 2 }}>
+                <Typography variant="body2">
+                  <strong>Текущий этап {currentStep}:</strong> {STEP_LABELS[currentStep]}
+                  {completedSteps.length > 0 && (
+                    <span> • Завершено этапов: {completedSteps.length}</span>
+                  )}
+                </Typography>
+              </Alert>
+              
+              <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                <Button 
+                  variant="outlined" 
+                  size="small"
+                  onClick={activateCurrentStepSections}
+                  sx={{ fontSize: '0.75rem' }}
+                >
+                  Активировать разделы этапа {currentStep}
+                </Button>
+              </Box>
+            </Box>
+            
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="subtitle1" gutterBottom>
+                Ручной выбор элементов по разделам:
+              </Typography>
+              <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                Выберите элементы для каждого раздела. Для разделов "Контакты", "Сообщение благодарности" и "Правовые документы" используются стандартные промпты.
+              </Typography>
+              <Alert severity="info" sx={{ mb: 2 }}>
+                <Typography variant="body2">
+                  <strong>Примечание:</strong> Разделы "Контакты", "Сообщение благодарности" и "Правовые документы" будут использовать стандартные промпты без выбора элементов.
+                </Typography>
+              </Alert>
+            </Box>
+            
+            <Divider sx={{ my: 2 }} />
+            
+            {/* Переключатели секций */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="subtitle1" gutterBottom>
+                Выберите разделы для включения в промпт:
+              </Typography>
+              <Grid container spacing={2}>
+                {Object.keys(settings.includedSections).map((section) => (
+                  <Grid item xs={6} sm={4} key={section}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={settings.includedSections[section]}
+                          onChange={() => handleSectionToggle(section)}
+                          disabled={section === 'HERO'} // Hero секция всегда включена
+                        />
+                      }
+                      label={sectionLabels[section]}
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
+            
+            <Divider sx={{ my: 2 }} />
+            
+            {/* Выбор элементов для каждого раздела */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="subtitle1" gutterBottom>
+                Выбор элементов по разделам:
+              </Typography>
+              
+
+              
+              {/* О НАС */}
+              {settings.includedSections.ABOUT && (
+                <Box sx={{ mb: 3, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="h6">
+                      ℹ️ О нас
+                    </Typography>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => handleRandomSelection('ABOUT', ALL_ELEMENTS)}
+                      sx={{ fontSize: '0.75rem' }}
+                    >
+                      Рандом
+                    </Button>
+                  </Box>
+                  <FormGroup row>
+                    {ALL_ELEMENTS.map(element => (
+                      <FormControlLabel
+                        key={element}
+                        control={
+                          <Checkbox
+                            checked={selectedElements.ABOUT?.has(element) || false}
+                            onChange={() => handleElementToggle('ABOUT', element)}
+                          />
+                        }
+                        label={ELEMENT_PROMPTS[element]?.name || element}
+                      />
+                    ))}
+                  </FormGroup>
+                </Box>
+              )}
+              
+              {/* УСЛУГИ */}
+              {settings.includedSections.SERVICES && (
+                <Box sx={{ mb: 3, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="h6">
+                      🛠️ Услуги
+                    </Typography>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => handleRandomSelection('SERVICES', ALL_ELEMENTS)}
+                      sx={{ fontSize: '0.75rem' }}
+                    >
+                      Рандом
+                    </Button>
+                  </Box>
+                  <FormGroup row>
+                    {ALL_ELEMENTS.map(element => (
+                      <FormControlLabel
+                        key={element}
+                        control={
+                          <Checkbox
+                            checked={selectedElements.SERVICES?.has(element) || false}
+                            onChange={() => handleElementToggle('SERVICES', element)}
+                          />
+                        }
+                        label={ELEMENT_PROMPTS[element]?.name || element}
+                      />
+                    ))}
+                  </FormGroup>
+                </Box>
+              )}
+              
+              {/* ПРЕИМУЩЕСТВА */}
+              {settings.includedSections.FEATURES && (
+                <Box sx={{ mb: 3, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="h6">
+                      ⭐ Преимущества
+                    </Typography>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => handleRandomSelection('FEATURES', ALL_ELEMENTS)}
+                      sx={{ fontSize: '0.75rem' }}
+                    >
+                      Рандом
+                    </Button>
+                  </Box>
+                  <FormGroup row>
+                    {ALL_ELEMENTS.map(element => (
+                      <FormControlLabel
+                        key={element}
+                        control={
+                          <Checkbox
+                            checked={selectedElements.FEATURES?.has(element) || false}
+                            onChange={() => handleElementToggle('FEATURES', element)}
+                          />
+                        }
+                        label={ELEMENT_PROMPTS[element]?.name || element}
+                      />
+                    ))}
+                  </FormGroup>
+                </Box>
+              )}
+              
+              {/* НОВОСТИ */}
+              {settings.includedSections.NEWS && (
+                <Box sx={{ mb: 3, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="h6">
+                      📰 Новости
+                    </Typography>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => handleRandomSelection('NEWS', ALL_ELEMENTS)}
+                      sx={{ fontSize: '0.75rem' }}
+                    >
+                      Рандом
+                    </Button>
+                  </Box>
+                  <FormGroup row>
+                    {ALL_ELEMENTS.map(element => (
+                      <FormControlLabel
+                        key={element}
+                        control={
+                          <Checkbox
+                            checked={selectedElements.NEWS?.has(element) || false}
+                            onChange={() => handleElementToggle('NEWS', element)}
+                          />
+                        }
+                        label={ELEMENT_PROMPTS[element]?.name || element}
+                      />
+                    ))}
+                  </FormGroup>
+                </Box>
+              )}
+              
+              {/* ВОПРОСЫ */}
+              {settings.includedSections.FAQ && (
+                <Box sx={{ mb: 3, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="h6">
+                      ❓ Вопросы и ответы
+                    </Typography>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => handleRandomSelection('FAQ', ALL_ELEMENTS)}
+                      sx={{ fontSize: '0.75rem' }}
+                    >
+                      Рандом
+                    </Button>
+                  </Box>
+                  <FormGroup row>
+                    {ALL_ELEMENTS.map(element => (
+                      <FormControlLabel
+                        key={element}
+                        control={
+                          <Checkbox
+                            checked={selectedElements.FAQ?.has(element) || false}
+                            onChange={() => handleElementToggle('FAQ', element)}
+                          />
+                        }
+                        label={ELEMENT_PROMPTS[element]?.name || element}
+                      />
+                    ))}
+                  </FormGroup>
+                </Box>
+              )}
+              
+              {/* ОТЗЫВЫ */}
+              {settings.includedSections.TESTIMONIALS && (
+                <Box sx={{ mb: 3, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="h6">
+                      💬 Отзывы
+                    </Typography>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => handleRandomSelection('TESTIMONIALS', ALL_ELEMENTS)}
+                      sx={{ fontSize: '0.75rem' }}
+                    >
+                      Рандом
+                    </Button>
+                  </Box>
+                  <FormGroup row>
+                    {ALL_ELEMENTS.map(element => (
+                      <FormControlLabel
+                        key={element}
+                        control={
+                          <Checkbox
+                            checked={selectedElements.TESTIMONIALS?.has(element) || false}
+                            onChange={() => handleElementToggle('TESTIMONIALS', element)}
+                          />
+                        }
+                        label={ELEMENT_PROMPTS[element]?.name || element}
+                      />
+                    ))}
+                  </FormGroup>
+                </Box>
+              )}
+              
+              {/* УНИВЕРСАЛЬНАЯ СЕКЦИЯ */}
+              {settings.includedSections.UNIVERSAL && (
+                <Box sx={{ mb: 3, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="h6">
+                      🌟 Универсальная секция
+                    </Typography>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => handleRandomSelection('UNIVERSAL', ALL_ELEMENTS)}
+                      sx={{ fontSize: '0.75rem' }}
+                    >
+                      Рандом
+                    </Button>
+                  </Box>
+                  <FormGroup row>
+                    {ALL_ELEMENTS.map(element => (
+                      <FormControlLabel
+                        key={element}
+                        control={
+                          <Checkbox
+                            checked={selectedElements.UNIVERSAL?.has(element) || false}
+                            onChange={() => handleElementToggle('UNIVERSAL', element)}
+                          />
+                        }
+                        label={ELEMENT_PROMPTS[element]?.name || element}
+                      />
+                    ))}
+                  </FormGroup>
+                </Box>
+              )}
+            </Box>
+
+            {/* Настройки минимального количества слов для выбранных элементов */}
+            {promptType === 'manual_elements' && (
+              <Box sx={{ mt: 3 }}>
+                <Typography variant="subtitle1" gutterBottom>
+                  Настройки минимального количества слов для выбранных элементов:
+                </Typography>
+                
+                <Box sx={{ maxHeight: 300, overflowY: 'auto', border: '1px solid #e0e0e0', borderRadius: 1, p: 2 }}>
+                  {getAllSelectedElements().length > 0 ? (
+                    <Grid container spacing={2}>
+                      {getAllSelectedElements().map(elementKey => {
+                        const element = ELEMENT_PROMPTS[elementKey];
+                        const settings = elementSettings[elementKey] || {};
+                        
+                        return (
+                          <Grid item xs={12} sm={6} md={4} key={elementKey}>
+                            <Box sx={{ p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#fafafa' }}>
+                              <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600, color: '#1976d2' }}>
+                                {element?.name || elementKey}
+                              </Typography>
+                              
+                              {/* Настройки для заголовка */}
+                              {element?.hasTitle !== false && (
+                                <Box sx={{ mb: 1 }}>
+                                  <Typography variant="caption" color="textSecondary">
+                                    Мин. слов в заголовке:
+                                  </Typography>
+                                  <TextField
+                                    size="small"
+                                    type="number"
+                                    value={settings.minTitle || 10}
+                                    onChange={(e) => handleElementSettingChange(elementKey, 'minTitle', parseInt(e.target.value) || 0)}
+                                    inputProps={{ min: 0, max: 1000 }}
+                                    sx={{ width: '100%', mt: 0.5 }}
+                                  />
+                                </Box>
+                              )}
+                              
+                              {/* Настройки для содержимого */}
+                              {element?.hasContent !== false && (
+                                <Box sx={{ mb: 1 }}>
+                                  <Typography variant="caption" color="textSecondary">
+                                    Мин. слов в содержимом:
+                                  </Typography>
+                                  <TextField
+                                    size="small"
+                                    type="number"
+                                    value={settings.minContent || 20}
+                                    onChange={(e) => handleElementSettingChange(elementKey, 'minContent', parseInt(e.target.value) || 0)}
+                                    inputProps={{ min: 0, max: 2000 }}
+                                    sx={{ width: '100%', mt: 0.5 }}
+                                  />
+                                </Box>
+                              )}
+                              
+                              {/* Дополнительные настройки для специфических элементов */}
+                              {elementKey === 'faq-section' && (
+                                <Box sx={{ mb: 1 }}>
+                                  <Typography variant="caption" color="textSecondary">
+                                    Мин. количество вопросов:
+                                  </Typography>
+                                  <TextField
+                                    size="small"
+                                    type="number"
+                                    value={settings.minQuestions || 5}
+                                    onChange={(e) => handleElementSettingChange(elementKey, 'minQuestions', parseInt(e.target.value) || 0)}
+                                    inputProps={{ min: 1, max: 20 }}
+                                    sx={{ width: '100%', mt: 0.5 }}
+                                  />
+                                </Box>
+                              )}
+                              
+                              {elementKey === 'accordion' && (
+                                <Box sx={{ mb: 1 }}>
+                                  <Typography variant="caption" color="textSecondary">
+                                    Мин. количество пунктов:
+                                  </Typography>
+                                  <TextField
+                                    size="small"
+                                    type="number"
+                                    value={settings.minQuestions || 8}
+                                    onChange={(e) => handleElementSettingChange(elementKey, 'minQuestions', parseInt(e.target.value) || 0)}
+                                    inputProps={{ min: 1, max: 20 }}
+                                    sx={{ width: '100%', mt: 0.5 }}
+                                  />
+                                </Box>
+                              )}
+                              
+                              {elementKey === 'multiple-cards' && (
+                                <Box sx={{ mb: 1 }}>
+                                  <Typography variant="caption" color="textSecondary">
+                                    Мин. количество карточек:
+                                  </Typography>
+                                  <TextField
+                                    size="small"
+                                    type="number"
+                                    value={settings.minCards || 4}
+                                    onChange={(e) => handleElementSettingChange(elementKey, 'minCards', parseInt(e.target.value) || 0)}
+                                    inputProps={{ min: 2, max: 20 }}
+                                    sx={{ width: '100%', mt: 0.5 }}
+                                  />
+                                </Box>
+                              )}
+                              
+                              {elementKey === 'timeline-component' && (
+                                <Box sx={{ mb: 1 }}>
+                                  <Typography variant="caption" color="textSecondary">
+                                    Мин. количество точек:
+                                  </Typography>
+                                  <TextField
+                                    size="small"
+                                    type="number"
+                                    value={settings.minDataPoints || 5}
+                                    onChange={(e) => handleElementSettingChange(elementKey, 'minDataPoints', parseInt(e.target.value) || 0)}
+                                    inputProps={{ min: 2, max: 20 }}
+                                    sx={{ width: '100%', mt: 0.5 }}
+                                  />
+                                </Box>
+                              )}
+                              
+                              {elementKey === 'data-table' && (
+                                <>
+                                  <Box sx={{ mb: 1 }}>
+                                    <Typography variant="caption" color="textSecondary">
+                                      Мин. строк:
+                                    </Typography>
+                                    <TextField
+                                      size="small"
+                                      type="number"
+                                      value={settings.minRows || 5}
+                                      onChange={(e) => handleElementSettingChange(elementKey, 'minRows', parseInt(e.target.value) || 0)}
+                                      inputProps={{ min: 2, max: 20 }}
+                                      sx={{ width: '100%', mt: 0.5 }}
+                                    />
+                                  </Box>
+                                  <Box sx={{ mb: 1 }}>
+                                    <Typography variant="caption" color="textSecondary">
+                                      Мин. колонок:
+                                    </Typography>
+                                    <TextField
+                                      size="small"
+                                      type="number"
+                                      value={settings.minColumns || 4}
+                                      onChange={(e) => handleElementSettingChange(elementKey, 'minColumns', parseInt(e.target.value) || 0)}
+                                      inputProps={{ min: 2, max: 10 }}
+                                      sx={{ width: '100%', mt: 0.5 }}
+                                    />
+                                  </Box>
+                                </>
+                              )}
+                              
+                              {/* Настройки для диаграмм */}
+                              {['bar-chart', 'advanced-line-chart', 'advanced-pie-chart', 'advanced-area-chart', 'chartjs-bar', 'chartjs-line', 'chartjs-pie', 'chartjs-doughnut', 'chartjs-area', 'apex-line', 'apex-chart', 'apex-area-chart', 'apex-bar-chart', 'apex-line-chart', 'apex-pie-chart', 'apex-donut-chart'].includes(elementKey) && (
+                                <>
+                                  <Box sx={{ mb: 1 }}>
+                                    <Typography variant="caption" color="textSecondary">
+                                      Мин. колонок:
+                                    </Typography>
+                                    <TextField
+                                      size="small"
+                                      type="number"
+                                      value={settings.minColumns || 4}
+                                      onChange={(e) => handleElementSettingChange(elementKey, 'minColumns', parseInt(e.target.value) || 0)}
+                                      inputProps={{ min: 2, max: 10 }}
+                                      sx={{ width: '100%', mt: 0.5 }}
+                                    />
+                                  </Box>
+                                  <Box sx={{ mb: 1 }}>
+                                    <Typography variant="caption" color="textSecondary">
+                                      Мин. точек данных:
+                                    </Typography>
+                                    <TextField
+                                      size="small"
+                                      type="number"
+                                      value={settings.minDataPoints || 5}
+                                      onChange={(e) => handleElementSettingChange(elementKey, 'minDataPoints', parseInt(e.target.value) || 0)}
+                                      inputProps={{ min: 2, max: 20 }}
+                                      sx={{ width: '100%', mt: 0.5 }}
+                                    />
+                                  </Box>
+                                </>
+                              )}
+                            </Box>
+                          </Grid>
+                        );
+                      })}
+                    </Grid>
+                  ) : (
+                    <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', py: 2 }}>
+                      Выберите элементы выше, чтобы настроить минимальное количество слов
+                    </Typography>
+                  )}
+                </Box>
+              </Box>
+            )}
           </>
         )}
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Отмена</Button>
+        
+        {promptType === 'manual_elements' && (
+          <>
+            <Button 
+              onClick={handleStepBack} 
+              disabled={currentStep === 1}
+              variant="outlined"
+            >
+              ← Назад
+            </Button>
+            <Button 
+              onClick={handleStepComplete} 
+              disabled={currentStep === 4}
+              variant="outlined"
+              color="secondary"
+            >
+              Завершить этап →
+            </Button>
+          </>
+        )}
+        
         <Button onClick={handleSave} variant="contained" color="primary">
-          Применить настройки
+          {promptType === 'manual_elements' ? `Применить этап ${currentStep}` : 'Применить настройки'}
         </Button>
       </DialogActions>
     </Dialog>
@@ -938,7 +1984,9 @@ const AiParser = ({
   legalDocuments, 
   onLegalDocumentsChange, 
   heroData, 
-  onHeroChange 
+  onHeroChange,
+  constructorMode = true,
+  onConstructorModeChange
 }) => {
   // Добавляем ref для текстового поля
   const textareaRef = useRef(null);
@@ -976,6 +2024,8 @@ const AiParser = ({
   
   // Добавляем состояние для настроек промпта полного сайта
   const [showFullSiteSettings, setShowFullSiteSettings] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
+  const [completedSteps, setCompletedSteps] = useState([]);
   const [fullSiteSettings, setFullSiteSettings] = useState({
     includedSections: {
       HERO: true, // Hero секция всегда включена
@@ -987,7 +2037,8 @@ const AiParser = ({
       TESTIMONIALS: true,
       CONTACTS: true,
       MERCI: true, // Включаем сообщение благодарности по умолчанию
-      LEGAL: true // Добавляем правовые документы в настройки
+      LEGAL: true, // Добавляем правовые документы в настройки
+      UNIVERSAL: true // Универсальная секция по умолчанию включена
     },
     cardCounts: {
       ABOUT: 4,
@@ -995,7 +2046,8 @@ const AiParser = ({
       FEATURES: 4,
       NEWS: 3,
       FAQ: 4,
-      TESTIMONIALS: 3
+      TESTIMONIALS: 3,
+      UNIVERSAL: 3
     },
     wordRanges: {
       HERO: {
@@ -1031,6 +2083,11 @@ const AiParser = ({
         sectionTitle: { min: 2, max: 10 },
         sectionDescription: { min: 10, max: 45 },
         cardContent: { min: 55, max: 130 }
+      },
+      UNIVERSAL: {
+        sectionTitle: { min: 2, max: 10 },
+        sectionDescription: { min: 10, max: 45 },
+        cardContent: { min: 55, max: 130 }
       }
     }
   });
@@ -1040,6 +2097,253 @@ const AiParser = ({
   
   // Добавляем состояние для переключателя стилей
   const [singleStyleMode, setSingleStyleMode] = useState(true);
+  
+  // Используем состояние из EditorPanel через пропсы
+  // const [constructorMode, setConstructorMode] = useState(true); // Удалено - используем пропсы
+  
+  // Функция для генерации строки с минимальными требованиями для элемента
+  const generateElementRequirements = (elementKey, elementSettings) => {
+    const settings = elementSettings[elementKey];
+    
+    // Импортируем функцию getElementConfig из ElementPromptsSection
+    const getElementConfig = (elementKey) => {
+      const configs = {
+        // Только содержимое
+        'typography': { hasContent: true },
+        'list': { hasContent: true },
+        'gradient-text': { hasContent: true },
+        'typewriter-text': { hasContent: true },
+        'highlight-text': { hasContent: true },
+        'testimonial-card': { hasContent: true },
+        'share-buttons': { hasContent: true },
+        
+        // Заголовок + содержимое
+        'rich-text': { hasTitle: true, hasContent: true },
+        'blockquote': { hasTitle: true, hasContent: true },
+        'callout': { hasTitle: true, hasContent: true },
+        'animated-counter': { hasTitle: true }, // Убираем hasContent - у него специфическая структура
+        'faq-section': { 
+          hasTitle: true, 
+          hasContent: true, 
+          hasQuestions: true  // Количество вопросов
+        },
+        'timeline-component': { hasTitle: true, hasContent: true, hasDataPoints: true },
+        'image-gallery': { hasTitle: true, hasContent: true },
+        'basic-card': { hasTitle: true, hasContent: true },
+        'image-card': { hasTitle: true, hasContent: true },
+        'accordion': { hasTitle: true, hasContent: true },
+        'qr-code': { hasTitle: true },
+        'color-picker': { hasTitle: true, hasContent: true },
+        'rating': { hasTitle: true, hasContent: true },
+        'progress-bars': { hasTitle: true, hasContent: true },
+        'cta-section': { hasTitle: true, hasContent: true },
+        
+        // Таблицы - строки и столбцы
+        'data-table': { hasTitle: true, hasContent: true, hasRows: true, hasColumns: true },
+        
+        // Графики - данные и столбцы/категории
+        'bar-chart': { hasTitle: true, hasContent: true, hasDataPoints: true, hasColumns: true },
+        'advanced-line-chart': { hasTitle: true, hasContent: true, hasDataPoints: true, hasColumns: true },
+        'advanced-pie-chart': { hasTitle: true, hasContent: true, hasDataPoints: true },
+        'advanced-area-chart': { hasTitle: true, hasContent: true, hasDataPoints: true, hasColumns: true },
+        'chartjs-bar': { hasTitle: true, hasContent: true, hasDataPoints: true, hasColumns: true },
+        'chartjs-doughnut': { hasTitle: true, hasContent: true, hasDataPoints: true },
+        'apex-line': { hasTitle: true, hasContent: true, hasDataPoints: true, hasColumns: true },
+        
+        // Множественные карточки
+        'multiple-cards': { hasTitle: true, hasContent: true, hasCards: true },
+        
+        // Формы
+        'advanced-contact-form': { hasTitle: true, hasContent: true },
+        
+        // Полный сайт
+        'full-multipage-site': { hasTitle: true, hasContent: true }
+      };
+      
+      return configs[elementKey] || { hasTitle: true, hasContent: true };
+    };
+    
+    const elementConfig = getElementConfig(elementKey);
+    
+    if (!settings) {
+      let defaultReq = [];
+      if (elementConfig.hasTitle) defaultReq.push('ЗАГОЛОВОК: [заголовок элемента]');
+      if (elementConfig.hasContent) {
+        if (elementKey === 'testimonial-card') {
+          defaultReq.push('СОДЕРЖИМОЕ: [Имя клиента] * [Должность] * [Компания] * [Текст отзыва] * [Рейтинг]');
+        } else if (elementKey === 'faq-section') {
+          defaultReq.push('СОДЕРЖИМОЕ: [Вопрос 1] | [Ответ 1] * [Вопрос 2] | [Ответ 2] * [Вопрос 3] | [Ответ 3]');
+        } else {
+          defaultReq.push('СОДЕРЖИМОЕ: [содержимое элемента]');
+        }
+      }
+      return defaultReq.join('\n');
+    }
+    
+    let requirements = [];
+    let additionalRequirements = [];
+    
+    // Для графиков не заменяем структуру СОДЕРЖИМОЕ, а добавляем требования отдельно
+    const isChart = elementKey.includes('chart') || elementKey.includes('bar') || 
+                   elementKey.includes('line') || elementKey.includes('area') || 
+                   elementKey.includes('apex') || elementKey.includes('pie') || 
+                   elementKey.includes('doughnut');
+    
+    // Основные поля
+    if (elementConfig.hasTitle) {
+              if (settings.minTitle > 0) {
+          requirements.push(`ЗАГОЛОВОК: [заголовок элемента] НЕ МЕНЕЕ ${settings.minTitle} слов`);
+          additionalRequirements.push(`ТРЕБОВАНИЕ: Заголовок должен содержать НЕ МЕНЕЕ ${settings.minTitle} слов - проверяйте по количеству слов`);
+        } else {
+          requirements.push(`ЗАГОЛОВОК: [заголовок элемента]`);
+        }
+    }
+    
+          if (elementConfig.hasContent) {
+        if (isChart) {
+          // Для графиков сохраняем исходную структуру СОДЕРЖИМОЕ
+          requirements.push(`СОДЕРЖИМОЕ: [содержимое элемента]`);
+          // А требования к минимальному количеству слов добавляем как отдельное требование
+          if (settings.minContent > 0) {
+            additionalRequirements.push(`ТРЕБОВАНИЕ: Описание графика должно содержать минимум ${settings.minContent} слов`);
+          }
+        } else if (elementKey === 'testimonial-card') {
+          // Специальная обработка для testimonial-card
+          requirements.push(`СОДЕРЖИМОЕ: [Имя клиента] * [Должность] * [Компания] * [Текст отзыва] * [Рейтинг]`);
+          if (settings.minContent > 0) {
+            additionalRequirements.push(`ТРЕБОВАНИЕ: Текст отзыва должен содержать НЕ МЕНЕЕ ${settings.minContent} слов - проверяйте по количеству слов, а не символов или строк`);
+            additionalRequirements.push(`ВАЖНО: Тексты отзывов, содержащие ${settings.minContent - 1} слов и менее, считаются НЕВЕРНЫМИ`);
+            additionalRequirements.push(`ПОДСКАЗКА: Словом считается любое отдельное слово, включая артикли, предлоги, союзы и числительные`);
+          }
+                  } else if (elementKey === 'faq-section') {
+            // Специальная обработка для faq-section
+            if (settings.minTitle > 0) {
+              requirements.push(`ЗАГОЛОВОК: [заголовок секции] НЕ МЕНЕЕ ${settings.minTitle} слов`);
+              additionalRequirements.push(`ТРЕБОВАНИЕ: Заголовок секции должен содержать НЕ МЕНЕЕ ${settings.minTitle} слов - проверяйте по количеству слов`);
+            } else {
+              requirements.push(`ЗАГОЛОВОК: [заголовок секции]`);
+            }
+            
+            requirements.push(`СОДЕРЖИМОЕ: [Вопрос 1] | [Ответ 1] * [Вопрос 2] | [Ответ 2] * [Вопрос 3] | [Ответ 3]`);
+            
+            if (settings.minContent > 0) {
+              additionalRequirements.push(`ТРЕБОВАНИЕ: Каждый ответ должен содержать НЕ МЕНЕЕ ${settings.minContent} слов - проверяйте по количеству слов, а не символов или строк`);
+              additionalRequirements.push(`ВАЖНО: Ответы, содержащие ${settings.minContent - 1} слов и менее, считаются НЕВЕРНЫМИ`);
+              additionalRequirements.push(`ПОДСКАЗКА: Словом считается любое отдельное слово, включая артикли, предлоги, союзы и числительные`);
+            }
+            
+            if (settings.minQuestions > 0) {
+              additionalRequirements.push(`ТРЕБОВАНИЕ: Минимум ${settings.minQuestions} вопросов в секции`);
+            }
+          } else if (elementKey === 'accordion') {
+            // Специальная обработка для accordion
+            if (settings.minTitle > 0) {
+              requirements.push(`ЗАГОЛОВОК: [заголовок аккордеона] НЕ МЕНЕЕ ${settings.minTitle} слов`);
+              additionalRequirements.push(`ТРЕБОВАНИЕ: Заголовок аккордеона должен содержать НЕ МЕНЕЕ ${settings.minTitle} слов - проверяйте по количеству слов`);
+            } else {
+              requirements.push(`ЗАГОЛОВОК: [заголовок аккордеона]`);
+            }
+            
+            requirements.push(`СОДЕРЖИМОЕ: [Вопрос 1]? [Ответ 1] * [Вопрос 2]? [Ответ 2] * [Вопрос 3]? [Ответ 3]`);
+            
+            if (settings.minContent > 0) {
+              additionalRequirements.push(`ТРЕБОВАНИЕ: Каждый ответ должен содержать НЕ МЕНЕЕ ${settings.minContent} слов - проверяйте по количеству слов, а не символов или строк`);
+              additionalRequirements.push(`ВАЖНО: Ответы, содержащие ${settings.minContent - 1} слов и менее, считаются НЕВЕРНЫМИ`);
+              additionalRequirements.push(`ПОДСКАЗКА: Словом считается любое отдельное слово, включая артикли, предлоги, союзы и числительные`);
+            }
+            
+                        if (settings.minQuestions > 0) {
+              additionalRequirements.push(`ТРЕБОВАНИЕ: Минимум ${settings.minQuestions} вопросов в аккордеоне`);
+            }
+          } else if (elementKey === 'rating') {
+            // Специальная обработка для rating
+            if (settings.minTitle > 0) {
+              requirements.push(`ЗАГОЛОВОК: [что оценивается] НЕ МЕНЕЕ ${settings.minTitle} слов`);
+              additionalRequirements.push(`ТРЕБОВАНИЕ: Заголовок должен содержать НЕ МЕНЕЕ ${settings.minTitle} слов - проверяйте по количеству слов`);
+            } else {
+              requirements.push(`ЗАГОЛОВОК: [что оценивается]`);
+            }
+            
+            requirements.push(`СОДЕРЖИМОЕ: [текущая оценка] * [подпись/описание]`);
+            
+            if (settings.minContent > 0) {
+              additionalRequirements.push(`ТРЕБОВАНИЕ: Подпись должна содержать НЕ МЕНЕЕ ${settings.minContent} слов - проверяйте по количеству слов, а не символов или строк`);
+              additionalRequirements.push(`ВАЖНО: Подписи, содержащие ${settings.minContent - 1} слов и менее, считаются НЕВЕРНЫМИ`);
+              additionalRequirements.push(`ПОДСКАЗКА: Словом считается любое отдельное слово, включая артикли, предлоги, союзы и числительные`);
+            }
+          } else if (elementKey === 'multiple-cards') {
+            // Специальная обработка для multiple-cards
+            if (settings.minTitle > 0) {
+              requirements.push(`ЗАГОЛОВОК: [заголовок секции] НЕ МЕНЕЕ ${settings.minTitle} слов`);
+              additionalRequirements.push(`ТРЕБОВАНИЕ: Заголовок секции должен содержать НЕ МЕНЕЕ ${settings.minTitle} слов - проверяйте по количеству слов`);
+            } else {
+              requirements.push(`ЗАГОЛОВОК: [заголовок секции]`);
+            }
+            
+            // Генерируем формат с нужным количеством карточек
+            const cardCount = settings.minCards > 0 ? settings.minCards : 3;
+            const cardTemplate = Array.from({length: cardCount}, (_, i) => `[заголовок карточки ${i + 1}] * [содержимое карточки ${i + 1}]`).join(' * ');
+            requirements.push(`СОДЕРЖИМОЕ: ${cardTemplate}`);
+            
+            if (settings.minContent > 0) {
+              additionalRequirements.push(`ТРЕБОВАНИЕ: Каждое содержимое карточки должно содержать НЕ МЕНЕЕ ${settings.minContent} слов - проверяйте по количеству слов, а не символов или строк`);
+              additionalRequirements.push(`ВАЖНО: Содержимое карточек, содержащее ${settings.minContent - 1} слов и менее, считается НЕВЕРНЫМ`);
+              additionalRequirements.push(`ПОДСКАЗКА: Словом считается любое отдельное слово, включая артикли, предлоги, союзы и числительные`);
+            }
+            
+            if (settings.minCards > 0) {
+              additionalRequirements.push(`ТРЕБОВАНИЕ: Создайте ТОЧНО ${settings.minCards} карточек, не больше и не меньше`);
+              additionalRequirements.push(`ТРЕБОВАНИЕ: Минимум ${settings.minCards} карточек`);
+            }
+            
+            // Добавляем специальные требования для формата
+            additionalRequirements.push(`ТРЕБОВАНИЕ: НЕ указывайте текст "карточка 1:", "карточка 2:", "карточка 3:" и т.д.`);
+            additionalRequirements.push(`ТРЕБОВАНИЕ: Просто создавайте заголовок и содержимое каждой карточки без нумерации`);
+            additionalRequirements.push(`ТРЕБОВАНИЕ: Каждая карточка должна иметь ОТДЕЛЬНЫЙ заголовок и ОТДЕЛЬНОЕ содержимое`);
+          } else {
+            // Для остальных элементов заменяем как обычно
+          if (settings.minContent > 0) {
+            requirements.push(`СОДЕРЖИМОЕ: [содержимое элемента] НЕ МЕНЕЕ ${settings.minContent} слов`);
+            additionalRequirements.push(`ТРЕБОВАНИЕ: Содержимое должно содержать НЕ МЕНЕЕ ${settings.minContent} слов - проверяйте по количеству слов, а не символов или строк`);
+            additionalRequirements.push(`ВАЖНО: Содержимое, содержащее ${settings.minContent - 1} слов и менее, считается НЕВЕРНЫМ`);
+          } else {
+            requirements.push(`СОДЕРЖИМОЕ: [содержимое элемента]`);
+          }
+        }
+      }
+    
+    // Дополнительные требования как отдельные строки
+    if (settings.minRows > 0) {
+      additionalRequirements.push(`ТРЕБОВАНИЕ: Минимум ${settings.minRows} строк в таблице`);
+    }
+    
+    if (settings.minColumns > 0) {
+      if (isChart) {
+        additionalRequirements.push(`ТРЕБОВАНИЕ: Минимум ${settings.minColumns} категорий на графике (например: Янв, Фев, Мар, Апр, Май...)`);
+      } else {
+        additionalRequirements.push(`ТРЕБОВАНИЕ: Минимум ${settings.minColumns} столбцов в таблице`);
+      }
+    }
+    
+    if (settings.minCards > 0) {
+      additionalRequirements.push(`ТРЕБОВАНИЕ: Минимум ${settings.minCards} карточек`);
+    }
+    
+    if (settings.minDataPoints > 0) {
+      if (elementKey.includes('timeline')) {
+        additionalRequirements.push(`ТРЕБОВАНИЕ: Минимум ${settings.minDataPoints} событий на временной шкале`);
+      } else {
+        additionalRequirements.push(`ТРЕБОВАНИЕ: Минимум ${settings.minDataPoints} точек данных для отображения`);
+      }
+    }
+    
+    if (settings.minQuestions > 0) {
+      additionalRequirements.push(`ТРЕБОВАНИЕ: Минимум ${settings.minQuestions} вопросов`);
+    }
+    
+    // Объединяем основные поля и дополнительные требования
+    return [...requirements, ...additionalRequirements].join('\n');
+  };
   
   // Функция для генерации промпта полного сайта с учетом настроек
   const generateFullSitePrompt = (settings) => {
@@ -1073,6 +2377,7 @@ const AiParser = ({
 5. НЕ ИСПОЛЬЗУЙТЕ символы экранирования (\) перед разделителями === 
 6. Разделители должны быть точно: === РАЗДЕЛ: ИМЯ === и === КОНЕЦ РАЗДЕЛА ===
 7. ОБЯЗАТЕЛЬНО: Каждый раздел должен иметь закрывающий разделитель "=== КОНЕЦ РАЗДЕЛА ===" - это критически важно для корректной обработки
+8. ОБЯЗАТЕЛЬНО указывайте ключевое слово "ТИП:" перед каждым AI элементом!
 
 ВАЖНО: Не добавляйте обратные слеши (\) перед символами ===. Используйте точно такой формат:
 === РАЗДЕЛ: HERO ===
@@ -1095,13 +2400,16 @@ const AiParser = ({
 
     if (settings.includedSections.ABOUT) {
       sectionsPrompt += `=== РАЗДЕЛ: О НАС ===
-ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
 [Заголовок раздела ${getWordRange('ABOUT', 'sectionTitle')}]
 [Описание раздела ${getWordRange('ABOUT', 'sectionDescription')}]
 
-[${settings.cardCounts.ABOUT} карточек в формате:]
-Заголовок карточки
-Описание ${getWordRange('ABOUT', 'cardContent')}
+ТИП: typography
+ЗАГОЛОВОК: О нашей компании
+СОДЕРЖИМОЕ: Краткое описание компании и её деятельности
+
+ТИП: multiple-cards
+ЗАГОЛОВОК: Наши направления
+СОДЕРЖИМОЕ: Направление 1 * Описание направления * Направление 2 * Описание направления * Направление 3 * Описание направления
 === КОНЕЦ РАЗДЕЛА ===\n\n`;
     }
 
@@ -1111,9 +2419,22 @@ ID: [название секции на ${languageName}, при этом бук�
 [Заголовок раздела ${getWordRange('SERVICES', 'sectionTitle')}]
 [Описание раздела ${getWordRange('SERVICES', 'sectionDescription')}]
 
-[${settings.cardCounts.SERVICES} карточек услуг в формате:]
-Название услуги
-Описание услуги ${getWordRange('SERVICES', 'cardContent')}
+ТИП: typography
+ЗАГОЛОВОК: Наши основные услуги
+СОДЕРЖИМОЕ: Краткое описание направления деятельности компании
+
+ТИП: accordion
+ЗАГОЛОВОК: Подробная информация
+СОДЕРЖИМОЕ: Услуга 1? Описание первой услуги * Услуга 2? Описание второй услуги * Услуга 3? Описание третьей услуги
+
+ТИП: callout
+ЗАГОЛОВОК: Консультация бесплатно
+СОДЕРЖИМОЕ: Получите профессиональную консультацию по вашему вопросу
+
+ТИП: multiple-cards
+ЗАГОЛОВОК: Дополнительные услуги
+СОДЕРЖИМОЕ: Услуга А * Краткое описание * Услуга Б * Краткое описание * Услуга В * Краткое описание
+
 === КОНЕЦ РАЗДЕЛА ===\n\n`;
     }
 
@@ -1123,9 +2444,18 @@ ID: [название секции на ${languageName}, при этом бук�
 [Заголовок раздела ${getWordRange('FEATURES', 'sectionTitle')}]
 [Описание раздела ${getWordRange('FEATURES', 'sectionDescription')}]
 
-[${settings.cardCounts.FEATURES} преимуществ в формате:]
-Заголовок преимущества
-Описание преимущества ${getWordRange('FEATURES', 'cardContent')}
+ТИП: callout
+ЗАГОЛОВОК: Профессиональная команда
+СОДЕРЖИМОЕ: В нашем штате сертифицированные специалисты
+
+ТИП: animated-counter
+ЗАГОЛОВОК: Наша статистика
+СОДЕРЖИМОЕ: 100 * довольных клиентов * За время работы мы помогли сотням клиентов
+
+ТИП: multiple-cards
+ЗАГОЛОВОК: Наши преимущества
+СОДЕРЖИМОЕ: Качество * Высокие стандарты работы * Скорость * Быстрое решение задач * Надежность * Проверенные решения * Поддержка * Помощь на всех этапах
+
 === КОНЕЦ РАЗДЕЛА ===\n\n`;
     }
 
@@ -1135,9 +2465,18 @@ ID: [название секции на ${languageName}, при этом бук�
 [Заголовок раздела ${getWordRange('NEWS', 'sectionTitle')}]
 [Описание раздела ${getWordRange('NEWS', 'sectionDescription')}]
 
-[${settings.cardCounts.NEWS} новостей в формате:]
-Заголовок новости
-Текст новости ${getWordRange('NEWS', 'cardContent')}
+ТИП: typography
+ЗАГОЛОВОК: Последние события
+СОДЕРЖИМОЕ: Мы регулярно публикуем новости о нашей работе и достижениях
+
+ТИП: multiple-cards
+ЗАГОЛОВОК: Новости компании
+СОДЕРЖИМОЕ: Новая услуга * Мы запустили новую услугу для клиентов * Расширение команды * Пополнение штата специалистами * Новые технологии * Внедрение современных решений
+
+ТИП: timeline-component
+ЗАГОЛОВОК: События года
+СОДЕРЖИМОЕ: Январь * Запуск нового направления * Апрель * Открытие офиса * Сентябрь * Получение сертификата качества
+
 === КОНЕЦ РАЗДЕЛА ===\n\n`;
     }
 
@@ -1147,9 +2486,14 @@ ID: [название секции на ${languageName}, при этом бук�
 [Заголовок раздела ${getWordRange('FAQ', 'sectionTitle')}]
 [Описание раздела ${getWordRange('FAQ', 'sectionDescription')}]
 
-[${settings.cardCounts.FAQ} вопросов в формате:]
-Вопрос?
-Ответ ${getWordRange('FAQ', 'cardContent')}
+ТИП: faq-section
+ЗАГОЛОВОК: Часто задаваемые вопросы
+СОДЕРЖИМОЕ: Как заказать услугу? | Свяжитесь с нами по телефону или email
+
+ТИП: callout
+ЗАГОЛОВОК: Не нашли ответ?
+СОДЕРЖИМОЕ: Задайте ваш вопрос напрямую нашим специалистам
+
 === КОНЕЦ РАЗДЕЛА ===\n\n`;
     }
 
@@ -1159,9 +2503,43 @@ ID: [название секции на ${languageName}, при этом бук�
 [Заголовок раздела ${getWordRange('TESTIMONIALS', 'sectionTitle')}]
 [Описание раздела ${getWordRange('TESTIMONIALS', 'sectionDescription')}]
 
-[${settings.cardCounts.TESTIMONIALS} отзывов в формате:]
-Имя автора
-Текст отзыва ${getWordRange('TESTIMONIALS', 'cardContent')}
+ТИП: testimonial-card
+СОДЕРЖИМОЕ: [Имя клиента] * [Должность] * [Компания] * [Текст отзыва] * [Рейтинг]
+
+КРИТИЧЕСКИ ВАЖНО для testimonial-card:
+ОБЯЗАТЕЛЬНО используйте ВСЕ 5 ключей в строгом порядке, разделенных звездочками:
+[Имя клиента] * [Должность] * [Компания] * [Текст отзыва] * [Рейтинг]
+НЕ пропускайте ни одного ключа, даже если информация неизвестна!
+
+Пример:
+ТИП: testimonial-card
+СОДЕРЖИМОЕ: Иван Петров * Директор * ООО "Рога и копыта" * Отличная компания, помогли решить все вопросы быстро и профессионально. Рекомендую! * 5
+
+ТИП: animated-counter
+ЗАГОЛОВОК: Наши достижения
+СОДЕРЖИМОЕ: 500 * довольных клиентов * За время работы мы помогли сотням компаний
+
+=== КОНЕЦ РАЗДЕЛА ===\n\n`;
+    }
+
+    if (settings.includedSections.UNIVERSAL) {
+      sectionsPrompt += `=== РАЗДЕЛ: УНИВЕРСАЛЬНАЯ СЕКЦИЯ ===
+ID: [короткое название секции на ${languageName}, желательно одно слово, при этом буквы "ID" всегда на английском]
+[Заголовок раздела ${getWordRange('UNIVERSAL', 'sectionTitle')}]
+[Описание раздела ${getWordRange('UNIVERSAL', 'sectionDescription')}]
+
+ТИП: typography
+ЗАГОЛОВОК: Дополнительная информация
+СОДЕРЖИМОЕ: Полезная информация, которая дополняет основной контент сайта
+
+ТИП: basic-card
+ЗАГОЛОВОК: Полезные материалы
+СОДЕРЖИМОЕ: Дополнительные материалы и ресурсы для наших клиентов
+
+ТИП: animated-counter
+ЗАГОЛОВОК: Дополнительные показатели
+СОДЕРЖИМОЕ: 100 * дополнительных проектов * Мы реализовали множество успешных проектов
+
 === КОНЕЦ РАЗДЕЛА ===\n\n`;
     }
 
@@ -1436,7 +2814,9 @@ info@company.com
 (контент раздела)
 === КОНЕЦ РАЗДЕЛА ===
 
-ВАЖНО: Каждый раздел ОБЯЗАТЕЛЬНО должен заканчиваться "=== КОНЕЦ РАЗДЕЛА ==="
+ВАЖНО: 
+1. Каждый раздел ОБЯЗАТЕЛЬНО должен заканчиваться "=== КОНЕЦ РАЗДЕЛА ==="
+2. ОБЯЗАТЕЛЬНО указывайте ключевое слово "ТИП:" перед каждым AI элементом!
 
 `;
 
@@ -1449,16 +2829,19 @@ info@company.com
 
 `;
 
-    // Добавляем остальные секции
+    // Добавляем остальные секции с новым форматом AI элементов
     if (settings.includedSections.ABOUT) {
       sectionsPrompt += `=== РАЗДЕЛ: О НАС ===
-ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
 [Заголовок ${getWordRange('ABOUT', 'sectionTitle')}]
 [Описание ${getWordRange('ABOUT', 'sectionDescription')}]
 
-[${settings.cardCounts.ABOUT} карточек:]
-Заголовок карточки
-Описание ${getWordRange('ABOUT', 'cardContent')}
+ТИП: typography
+ЗАГОЛОВОК: О нашей компании
+СОДЕРЖИМОЕ: Краткое описание
+
+ТИП: multiple-cards
+ЗАГОЛОВОК: Наши направления
+СОДЕРЖИМОЕ: Направление 1 | Описание направления и его особенности
 === КОНЕЦ РАЗДЕЛА ===
 
 `;
@@ -1470,9 +2853,16 @@ ID: [название секции на ${languageName}, при этом бук�
 [Заголовок ${getWordRange('SERVICES', 'sectionTitle')}]
 [Описание ${getWordRange('SERVICES', 'sectionDescription')}]
 
-[${settings.cardCounts.SERVICES} услуг:]
-Название услуги
-Описание ${getWordRange('SERVICES', 'cardContent')}
+ТИП: [тип элемента: typography, list, blockquote, table, chart, accordion, testimonial, imageCard]
+ЗАГОЛОВОК: [заголовок элемента]
+СОДЕРЖИМОЕ: [содержимое элемента]
+
+ОСОБЫЕ ТРЕБОВАНИЯ ДЛЯ АККОРДЕОНА (accordion):
+Для элемента типа "accordion" используйте строго следующий формат:
+ТИП: accordion
+ЗАГОЛОВОК: [Заголовок аккордеона]
+СОДЕРЖИМОЕ: [Заголовок панели 1]? [Содержимое панели 1] * [Заголовок панели 2]? [Содержимое панели 2] * [Заголовок панели 3]? [Содержимое панели 3]
+
 === КОНЕЦ РАЗДЕЛА ===
 
 `;
@@ -1484,7 +2874,6 @@ ID: [название секции на ${languageName}, при этом бук�
 [Заголовок ${getWordRange('FEATURES', 'sectionTitle')}]
 [Описание ${getWordRange('FEATURES', 'sectionDescription')}]
 
-[${settings.cardCounts.FEATURES} преимуществ:]
 Заголовок преимущества
 Описание ${getWordRange('FEATURES', 'cardContent')}
 === КОНЕЦ РАЗДЕЛА ===
@@ -1498,7 +2887,6 @@ ID: [название секции на ${languageName}, при этом бук�
 [Заголовок ${getWordRange('NEWS', 'sectionTitle')}]
 [Описание ${getWordRange('NEWS', 'sectionDescription')}]
 
-[${settings.cardCounts.NEWS} новостей:]
 Заголовок новости
 Текст новости ${getWordRange('NEWS', 'cardContent')}
 === КОНЕЦ РАЗДЕЛА ===
@@ -1512,7 +2900,6 @@ ID: [название секции на ${languageName}, при этом бук�
 [Заголовок ${getWordRange('FAQ', 'sectionTitle')}]
 [Описание ${getWordRange('FAQ', 'sectionDescription')}]
 
-[${settings.cardCounts.FAQ} вопросов:]
 Вопрос?
 Ответ ${getWordRange('FAQ', 'cardContent')}
 === КОНЕЦ РАЗДЕЛА ===
@@ -1526,9 +2913,21 @@ ID: [название секции на ${languageName}, при этом бук�
 [Заголовок ${getWordRange('TESTIMONIALS', 'sectionTitle')}]
 [Описание ${getWordRange('TESTIMONIALS', 'sectionDescription')}]
 
-[${settings.cardCounts.TESTIMONIALS} отзывов:]
 Имя автора
 Текст отзыва ${getWordRange('TESTIMONIALS', 'cardContent')}
+=== КОНЕЦ РАЗДЕЛА ===
+
+`;
+    }
+
+    if (settings.includedSections.UNIVERSAL) {
+      sectionsPrompt += `=== РАЗДЕЛ: УНИВЕРСАЛЬНАЯ СЕКЦИЯ ===
+ID: [короткое название секции на ${languageName}, желательно одно слово, при этом буквы "ID" всегда на английском]
+[Заголовок ${getWordRange('UNIVERSAL', 'sectionTitle')}]
+[Описание ${getWordRange('UNIVERSAL', 'sectionDescription')}]
+
+Дополнительная информация
+Полезный контент ${getWordRange('UNIVERSAL', 'cardContent')}
 === КОНЕЦ РАЗДЕЛА ===
 
 `;
@@ -1573,6 +2972,19 @@ ID: [название секции на ${languageName}, при этом бук�
 `;
     }
 
+    if (settings.includedSections.UNIVERSAL) {
+      sectionsPrompt += `=== РАЗДЕЛ: УНИВЕРСАЛЬНАЯ СЕКЦИЯ ===
+ID: [короткое название секции на ${languageName}, желательно одно слово, при этом буквы "ID" всегда на английском]
+[Заголовок ${getWordRange('UNIVERSAL', 'sectionTitle')}]
+[Описание ${getWordRange('UNIVERSAL', 'sectionDescription')}]
+
+Дополнительная информация
+Полезный контент ${getWordRange('UNIVERSAL', 'cardContent')}
+=== КОНЕЦ РАЗДЕЛА ===
+
+`;
+    }
+
     sectionsPrompt += `ТРЕБОВАНИЯ:
 1. Весь контент на одном языке (указанном в настройках)
 2. ID секций: буквы "ID" всегда на английском, название секции после двоеточия - на ${languageName}
@@ -1582,6 +2994,760 @@ ID: [название секции на ${languageName}, при этом бук�
 6. КРИТИЧЕСКИ ВАЖНО ДЛЯ АДРЕСОВ: Использовать только РЕАЛЬНЫЕ адреса, которые существуют на Google Maps. НЕ использовать: известные улицы/места (Тверская, Арбат, Oxford Street, Times Square, Broadway, Champs-Élysées), правительственные здания, достопримечательности. Использовать адреса обычных бизнес-центров, офисных зданий, торговых центров`;
 
     return sectionsPrompt;
+  };
+
+  // Функция генерации базового промпта БЕЗ предустановленных элементов
+  const generateBasicFullSitePrompt = (settings) => {
+    const getWordRange = (section, field) => {
+      const range = settings.wordRanges[section]?.[field];
+      if (!range) return '';
+      return `(${range.min}-${range.max} слов)`;
+    };
+
+    // Получаем информацию о выбранном языке из глобальных настроек
+    let languageName = 'русском языке';
+    
+    if (globalSettings.language === 'CUSTOM' && globalSettings.customLanguage) {
+      languageName = `языке с кодом ${globalSettings.customLanguage}`;
+    } else if (globalSettings.language) {
+      const langObj = LANGUAGES.find(lang => lang.code === globalSettings.language);
+      if (langObj) {
+        languageName = langObj.label.split(' - ')[0];
+      }
+    }
+
+    let sectionsPrompt = `Создайте полный контент для сайта. Строго следуйте формату ниже.
+
+КРИТИЧЕСКИ ВАЖНО: 
+1. Весь контент, включая ID секций, ДОЛЖЕН быть на одном языке (который указан в настройках)
+2. ID секций: буквы "ID" всегда на английском языке, название секции после двоеточия - на ${languageName}
+3. Не использовать смешанные языки или транслитерацию
+4. КАЖДЫЙ раздел ОБЯЗАТЕЛЬНО должен начинаться с "=== РАЗДЕЛ: ИМЯ ===" и ОБЯЗАТЕЛЬНО заканчиваться "=== КОНЕЦ РАЗДЕЛА ==="
+5. НЕ ИСПОЛЬЗУЙТЕ символы экранирования (\) перед разделителями === 
+6. ОБЯЗАТЕЛЬНО указывайте ключевое слово "ТИП:" перед каждым AI элементом!
+
+AI ЭЛЕМЕНТЫ - ИСПОЛЬЗУЙТЕ ТОЛЬКО ВЫБРАННЫЕ:
+
+ВАЖНО: Каждый AI элемент ДОЛЖЕН начинаться с "ТИП: [название_элемента]"
+
+\n\n`;
+
+    // Добавляем Hero секцию в начало
+    sectionsPrompt += `=== РАЗДЕЛ: HERO ===
+1. Первая строка - название сайта (1-2 слова)
+2. Вторая строка - заголовок hero секции ${getWordRange('HERO', 'title')}
+3. Третья строка - описание ${getWordRange('HERO', 'description')}
+=== КОНЕЦ РАЗДЕЛА ===\n\n`;
+
+    if (settings.includedSections.ABOUT) {
+      sectionsPrompt += `=== РАЗДЕЛ: О НАС ===
+[Заголовок раздела ${getWordRange('ABOUT', 'sectionTitle')}]
+[Описание раздела ${getWordRange('ABOUT', 'sectionDescription')}]
+
+[Используйте подходящие выбранные AI элементы для данного раздела]
+=== КОНЕЦ РАЗДЕЛА ===\n\n`;
+    }
+
+    if (settings.includedSections.SERVICES) {
+      sectionsPrompt += `=== РАЗДЕЛ: УСЛУГИ ===
+ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
+[Заголовок раздела ${getWordRange('SERVICES', 'sectionTitle')}]
+[Описание раздела ${getWordRange('SERVICES', 'sectionDescription')}]
+
+[Используйте подходящие выбранные AI элементы для данного раздела]
+=== КОНЕЦ РАЗДЕЛА ===\n\n`;
+    }
+
+    if (settings.includedSections.FEATURES) {
+      sectionsPrompt += `=== РАЗДЕЛ: ПРЕИМУЩЕСТВА ===
+ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
+[Заголовок раздела ${getWordRange('FEATURES', 'sectionTitle')}]
+[Описание раздела ${getWordRange('FEATURES', 'sectionDescription')}]
+
+[Используйте подходящие выбранные AI элементы для данного раздела]
+=== КОНЕЦ РАЗДЕЛА ===\n\n`;
+    }
+
+    if (settings.includedSections.NEWS) {
+      sectionsPrompt += `=== РАЗДЕЛ: НОВОСТИ ===
+ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
+[Заголовок раздела ${getWordRange('NEWS', 'sectionTitle')}]
+[Описание раздела ${getWordRange('NEWS', 'sectionDescription')}]
+
+[Используйте подходящие выбранные AI элементы для данного раздела]
+=== КОНЕЦ РАЗДЕЛА ===\n\n`;
+    }
+
+    if (settings.includedSections.UNIVERSAL) {
+      sectionsPrompt += `=== РАЗДЕЛ: УНИВЕРСАЛЬНАЯ СЕКЦИЯ ===
+ID: [короткое название секции на ${languageName}, желательно одно слово, при этом буквы "ID" всегда на английском]
+[Заголовок раздела ${getWordRange('UNIVERSAL', 'sectionTitle')}]
+[Описание раздела ${getWordRange('UNIVERSAL', 'sectionDescription')}]
+
+[Используйте подходящие выбранные AI элементы для данного раздела]
+=== КОНЕЦ РАЗДЕЛА ===\n\n`;
+    }
+
+    if (settings.includedSections.FAQ) {
+      sectionsPrompt += `=== РАЗДЕЛ: ВОПРОСЫ ===
+ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
+[Заголовок раздела ${getWordRange('FAQ', 'sectionTitle')}]
+[Описание раздела ${getWordRange('FAQ', 'sectionDescription')}]
+
+[Используйте подходящие выбранные AI элементы для данного раздела]
+=== КОНЕЦ РАЗДЕЛА ===\n\n`;
+    }
+
+    if (settings.includedSections.TESTIMONIALS) {
+      sectionsPrompt += `=== РАЗДЕЛ: ОТЗЫВЫ ===
+ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
+[Заголовок раздела ${getWordRange('TESTIMONIALS', 'sectionTitle')}]
+[Описание раздела ${getWordRange('TESTIMONIALS', 'sectionDescription')}]
+
+[Используйте подходящие выбранные AI элементы для данного раздела]
+=== КОНЕЦ РАЗДЕЛА ===\n\n`;
+    }
+
+    if (settings.includedSections.CONTACTS) {
+      sectionsPrompt += `=== РАЗДЕЛ: КОНТАКТЫ ===
+[Заголовок раздела на выбранном языке]
+([Описание на выбранном языке, 15-20 слов])
+[Полный адрес в стандартном формате страны]
+[Телефон в местном формате с кодом страны]
+[Email]
+=== КОНЕЦ РАЗДЕЛА ===\n\n`;
+    }
+
+    if (settings.includedSections.MERCI) {
+      sectionsPrompt += `=== РАЗДЕЛ: MERCI ===
+[Текст сообщения на выбранном языке]
+[Текст кнопки на выбранном языке]
+=== КОНЕЦ РАЗДЕЛА ===\n\n`;
+    }
+
+    return sectionsPrompt;
+  };
+
+  // Функция для проверки выбранных элементов в глобальном режиме
+  const isElementSelectedGlobal = (selectedElements, elementKey) => {
+    if (selectedElements.GLOBAL && selectedElements.GLOBAL.has) {
+      return selectedElements.GLOBAL.has(elementKey);
+    }
+    return false;
+  };
+
+  // Функция генерации промпта с выбранными элементами для полного сайта  
+  const generateFullSitePromptWithElements = (settings, selectedElements, customPrompts = {}, elementSettings = {}) => {
+    console.log('[generateFullSitePromptWithElements] Called with selectedElements:', selectedElements);
+    console.log('[generateFullSitePromptWithElements] Custom prompts count:', Object.keys(customPrompts).length);
+    console.log('[generateFullSitePromptWithElements] Element settings:', elementSettings);
+    
+    if (selectedElements.GLOBAL && selectedElements.GLOBAL.size > 0) {
+      // Если элементы выбраны, используем базовый промпт БЕЗ предустановленных элементов
+      console.log('[generateFullSitePromptWithElements] Using custom elements, generating basic prompt');
+      let basePrompt = generateBasicFullSitePrompt(settings);
+      
+      basePrompt += 'AI ЭЛЕМЕНТЫ:\n';
+      basePrompt += 'Используйте ВСЕ выбранные элементы минимум 1 раз каждый.\n\n';
+      
+      basePrompt += 'КРИТИЧЕСКИ ВАЖНО:\n';
+      basePrompt += 'ОБЯЗАТЕЛЬНО указывайте ключевое слово "ТИП:" перед каждым элементом!\n';
+      basePrompt += 'Каждый элемент ДОЛЖЕН начинаться с "ТИП: [название_элемента]"\n\n';
+      
+      basePrompt += 'СТРОГИЕ ТРЕБОВАНИЯ К КОЛИЧЕСТВУ СЛОВ:\n';
+      basePrompt += '- Проверяйте количество слов, а НЕ символов или строк\n';
+      basePrompt += '- Словом считается любое отдельное слово, включая артикли, предлоги, союзы\n';
+      basePrompt += '- Тексты с меньшим количеством слов считаются НЕВЕРНЫМИ\n\n';
+      
+      // Добавляем специальные требования для testimonial-card, если он выбран
+      if (isElementSelectedGlobal(selectedElements, 'testimonial-card')) {
+        basePrompt += 'КРИТИЧЕСКИ ВАЖНО для testimonial-card:\n';
+        basePrompt += 'ОБЯЗАТЕЛЬНО используйте ВСЕ 5 ключей в строгом порядке, разделенных звездочками:\n';
+        basePrompt += '[Имя клиента] * [Должность] * [Компания] * [Текст отзыва] * [Рейтинг]\n';
+        basePrompt += 'НЕ пропускайте ни одного ключа, даже если информация неизвестна!\n\n';
+      }
+      
+      // Добавляем специальные требования для multiple-cards, если он выбран
+      if (isElementSelectedGlobal(selectedElements, 'multiple-cards')) {
+        basePrompt += 'КРИТИЧЕСКИ ВАЖНО для multiple-cards:\n';
+        basePrompt += 'СОЗДАЙТЕ ТОЧНОЕ количество карточек, указанное в требованиях!\n';
+        basePrompt += 'Если указано "5 карточек" - создайте РОВНО 5 карточек\n';
+        basePrompt += 'Если указано "3 карточки" - создайте РОВНО 3 карточки\n';
+        basePrompt += 'НЕ создавайте больше или меньше карточек!\n';
+        basePrompt += 'ФОРМАТ: [заголовок карточки 1] * [содержимое карточки 1] * [заголовок карточки 2] * [содержимое карточки 2] * ...\n';
+        basePrompt += 'НЕ указывайте текст "карточка 1:", "карточка 2:", "карточка 3:" и т.д.!\n';
+        basePrompt += 'Просто создавайте заголовок и содержимое каждой карточки без нумерации!\n\n';
+      }
+      
+      const selectedElementsArray = Array.from(selectedElements.GLOBAL);
+      selectedElementsArray.forEach(elementKey => {
+        const element = ELEMENT_PROMPTS[elementKey];
+        if (element) {
+          // Извлекаем пример из промпта элемента
+          const sourcePrompt = customPrompts[elementKey] || element.fullSitePrompt || element.prompt;
+          const promptLines = sourcePrompt.split('\n');
+          let example = '';
+          let foundExample = false;
+          
+          for (let line of promptLines) {
+            line = line.trim();
+            
+            // Ищем начало примера
+            if (line.includes('ТИП:') && line.includes(elementKey)) {
+              foundExample = true;
+              example += line + '\n';
+              continue;
+            }
+            
+            // Если нашли начало, продолжаем собирать пример
+            if (foundExample) {
+              if (line.includes('ЗАГОЛОВОК:') || line.includes('СОДЕРЖИМОЕ:') || 
+                  line.includes('ФОРМАТ:') || line.includes('НАБОР_ДАННЫХ') ||
+                  line.includes('МЕТКИ_ОСИ') || line.includes('ТИП_ВЫНОСКИ:') ||
+                  line.includes('ЛИНИЯ_1:') || line.includes('ЛИНИЯ_2:') ||
+                  line.includes('СЕРИЯ_1:') || line.includes('СЕРИЯ_2:')) {
+                example += line + '\n';
+              } else if (line.length === 0) {
+                // Пустая строка - конец примера
+                break;
+              } else if (line.includes('Пример:') || line.includes('ID:')) {
+                // Начался новый блок - останавливаемся
+                break;
+              }
+            }
+          }
+          
+          // Если не нашли пример, создаем базовый с учетом настроек
+          if (!example.trim()) {
+            example = `ТИП: ${elementKey}\n${generateElementRequirements(elementKey, elementSettings)}\n`;
+          } else {
+            // Если нашли пример, дополняем его требованиями из настроек
+            const requirements = generateElementRequirements(elementKey, elementSettings);
+            if (requirements) {
+              const requirementLines = requirements.split('\n');
+              
+              // Заменяем только основные поля ЗАГОЛОВОК и СОДЕРЖИМОЕ, сохраняя структуру
+              requirementLines.forEach(req => {
+                if (req.startsWith('ЗАГОЛОВОК:') && req.includes('минимум')) {
+                  example = example.replace(/^ЗАГОЛОВОК: \[.*?\]$/gm, req);
+                } else if (req.startsWith('СОДЕРЖИМОЕ:') && req.includes('минимум')) {
+                  example = example.replace(/^СОДЕРЖИМОЕ: \[.*?\]$/gm, req);
+                }
+              });
+              
+              // Добавляем дополнительные требования в конец
+              const additionalReqs = requirementLines.filter(req => req.startsWith('ТРЕБОВАНИЕ:'));
+              if (additionalReqs.length > 0) {
+                example += '\n' + additionalReqs.join('\n');
+              }
+            }
+          }
+          
+          basePrompt += example + '\n';
+        }
+      });
+      
+      // Функция для получения диапазона слов
+      const getWordRange = (section, field) => {
+        const range = settings.wordRanges[section]?.[field];
+        if (!range) return '';
+        return `(${range.min}-${range.max} слов)`;
+      };
+
+      // Простой список элементов для использования
+      basePrompt += 'Выбранные элементы: ' + selectedElementsArray.join(', ') + '\n\n';
+      
+
+      
+      return basePrompt;
+    } else {
+      // Если элементы не выбраны, используем стандартный промпт с предустановленными элементами
+      return generateFullSitePrompt(settings);
+    }
+    
+    return basePrompt;
+  };
+
+  // Функция генерации оптимизированного промпта с выбранными элементами
+  const generateManualElementsPrompt = (settings, selectedElements, customPrompts = {}, elementSettings = {}) => {
+    const getWordRange = (section, field) => {
+      const range = settings.wordRanges[section]?.[field];
+      if (!range) return '';
+      return `(${range.min}-${range.max} слов)`;
+    };
+
+    // Функция для генерации полного промпта элемента
+    const generateElementPrompt = (elementKey) => {
+      const element = ELEMENT_PROMPTS[elementKey];
+      if (!element) {
+        console.warn(`[generateElementPrompt] Element not found: ${elementKey}`);
+        return '';
+      }
+
+      // Используем кастомный промпт если есть, иначе fullSitePrompt (если доступен), иначе обычный промпт
+      const sourcePrompt = customPrompts[elementKey] || element.fullSitePrompt || element.prompt;
+      
+      // Извлекаем только пример использования из промпта
+      const promptLines = sourcePrompt.split('\n');
+      let example = '';
+      let foundExample = false;
+      
+      for (let line of promptLines) {
+        line = line.trim();
+        
+        // Ищем начало примера - более гибкий поиск
+        if (line.startsWith('ТИП:') && (line.includes(elementKey) || line.includes(`ТИП: ${elementKey}`))) {
+          foundExample = true;
+          example += line + '\n';
+          continue;
+        }
+        
+        // Если нашли начало, продолжаем собирать пример
+        if (foundExample) {
+          if (line.includes('ЗАГОЛОВОК:') || line.includes('СОДЕРЖИМОЕ:') || 
+              line.includes('ФОРМАТ:') || line.includes('НАБОР_ДАННЫХ') ||
+              line.includes('МЕТКИ_ОСИ') || line.includes('ТИП_ВЫНОСКИ:') ||
+              line.includes('ЛИНИЯ_1:') || line.includes('ЛИНИЯ_2:') ||
+              line.includes('СЕРИЯ_1:') || line.includes('СЕРИЯ_2:')) {
+            example += line + '\n';
+          } else if (line.length === 0) {
+            // Пустая строка - конец примера
+            break;
+          } else if (line.includes('Пример:') || line.includes('ID:') || line.includes('ВАЖНО:')) {
+            // Начался новый блок - останавливаемся
+            break;
+          }
+        }
+      }
+      
+      // Если не нашли пример, создаем базовый с учетом настроек
+      if (!example.trim()) {
+        console.warn(`[generateElementPrompt] No example found for ${elementKey}, creating basic prompt`);
+        example = `ТИП: ${elementKey}\n${generateElementRequirements(elementKey, elementSettings)}\n`;
+      } else {
+        console.log(`[generateElementPrompt] Found example for ${elementKey}`);
+        // Если нашли пример, дополняем его требованиями из настроек
+        const requirements = generateElementRequirements(elementKey, elementSettings);
+        if (requirements) {
+          const requirementLines = requirements.split('\n');
+          
+          // Заменяем только основные поля ЗАГОЛОВОК и СОДЕРЖИМОЕ, сохраняя структуру
+          requirementLines.forEach(req => {
+            if (req.startsWith('ЗАГОЛОВОК:') && req.includes('минимум')) {
+              example = example.replace(/^ЗАГОЛОВОК: \[.*?\]$/gm, req);
+            } else if (req.startsWith('СОДЕРЖИМОЕ:') && req.includes('минимум')) {
+              example = example.replace(/^СОДЕРЖИМОЕ: \[.*?\]$/gm, req);
+            }
+          });
+          
+          // Добавляем дополнительные требования в конец
+          const additionalReqs = requirementLines.filter(req => req.startsWith('ТРЕБОВАНИЕ:'));
+          if (additionalReqs.length > 0) {
+            example += '\n' + additionalReqs.join('\n');
+          }
+        }
+      }
+      
+      return example.trim();
+    };
+
+    // Получаем информацию о выбранном языке
+    let languageName = 'русском языке';
+    
+    if (globalSettings.language === 'CUSTOM' && globalSettings.customLanguage) {
+      languageName = `языке с кодом ${globalSettings.customLanguage}`;
+    } else if (globalSettings.language) {
+      const langObj = LANGUAGES.find(lang => lang.code === globalSettings.language);
+      if (langObj) {
+        languageName = langObj.label.split(' - ')[0];
+      }
+    }
+
+    let sectionsPrompt = `Создайте полный контент для сайта с РУЧНЫМ ВЫБОРОМ ЭЛЕМЕНТОВ. Строго следуйте формату ниже.
+
+ОБЯЗАТЕЛЬНО СОЗДАЙТЕ ВСЕ УКАЗАННЫЕ РАЗДЕЛЫ!
+
+КРИТИЧЕСКИ ВАЖНО: 
+1. Весь контент, включая ID секций, ДОЛЖЕН быть на одном языке (который указан в настройках)
+2. ID секции должен быть написан на том же языке, что и весь контент
+3. Не использовать смешанные языки или транслитерацию
+4. Каждый раздел должен начинаться с "=== РАЗДЕЛ: ИМЯ ===" и заканчиваться "=== КОНЕЦ РАЗДЕЛА ==="
+5. НЕ ИСПОЛЬЗУЙТЕ символы экранирования (\) перед разделителями ===
+6. Разделители должны быть точно: === РАЗДЕЛ: ИМЯ === и === КОНЕЦ РАЗДЕЛА ===
+
+ВАЖНО: Не добавляйте обратные слеши (\) перед символами ===. Используйте точно такой формат:
+=== РАЗДЕЛ: О НАС ===
+(контент раздела)
+=== КОНЕЦ РАЗДЕЛА ===
+
+РУЧНОЙ ВЫБОР ЭЛЕМЕНТОВ:
+Каждый элемент должен начинаться с "ТИП: [название_элемента]"
+
+`;
+
+    // Генерируем разделы с ручным выбором элементов (исключая стандартные)
+    if (settings.includedSections.HERO) {
+      sectionsPrompt += `=== РАЗДЕЛ: HERO ===
+Требуемый формат:
+1. Первая строка - название сайта
+- Максимум 2 слова
+- Связано с тематикой нашего сайта
+- Легко запоминается
+- Без специальных символов и форматирования
+- Можно использовать слитное написание слов
+
+2. Вторая строка - заголовок hero секции
+- Должен быть убедительным и внушать доверие
+- 4-7 слов
+- Не должен повторять название сайта
+
+3. Третья строка - описание для hero секции
+- 15-25 слов
+- Подчеркнуть выгоды для клиента
+- Избегать юридических терминов
+
+Пример структуры:
+ПравоЩит
+
+Надежная защита ваших интересов
+
+Профессиональная юридическая поддержка для бизнеса и частных лиц. Решаем сложные правовые вопросы, гарантируя результат.
+
+Важно:
+- Не используйте форматирование или специальные символы
+- Каждая часть должна начинаться с новой строки
+- Текст должен быть понятным для всех клиентов
+
+=== КОНЕЦ РАЗДЕЛА ===\n\n`;
+    }
+
+    if (settings.includedSections.ABOUT) {
+      const aboutElements = Array.from(selectedElements.ABOUT || []);
+      console.log(`[generateManualElementsPrompt] ABOUT section elements:`, aboutElements);
+      
+      sectionsPrompt += `=== РАЗДЕЛ: О НАС ===
+ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
+[Заголовок раздела ${getWordRange('ABOUT', 'sectionTitle')}]
+[Описание раздела ${getWordRange('ABOUT', 'sectionDescription')}]
+
+${aboutElements.map(element => generateElementPrompt(element)).join('\n\n')}
+
+=== КОНЕЦ РАЗДЕЛА ===\n\n`;
+    }
+
+    if (settings.includedSections.SERVICES) {
+      const servicesElements = Array.from(selectedElements.SERVICES || []);
+      
+      sectionsPrompt += `=== РАЗДЕЛ: УСЛУГИ ===
+ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
+[Заголовок раздела ${getWordRange('SERVICES', 'sectionTitle')}]
+[Описание раздела ${getWordRange('SERVICES', 'sectionDescription')}]
+
+${servicesElements.map(element => generateElementPrompt(element)).join('\n\n')}
+
+=== КОНЕЦ РАЗДЕЛА ===\n\n`;
+    }
+
+    if (settings.includedSections.FEATURES) {
+      const featuresElements = Array.from(selectedElements.FEATURES || []);
+      
+      sectionsPrompt += `=== РАЗДЕЛ: ПРЕИМУЩЕСТВА ===
+ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
+[Заголовок раздела ${getWordRange('FEATURES', 'sectionTitle')}]
+[Описание раздела ${getWordRange('FEATURES', 'sectionDescription')}]
+
+${featuresElements.map(element => generateElementPrompt(element)).join('\n\n')}
+
+=== КОНЕЦ РАЗДЕЛА ===\n\n`;
+    }
+
+    if (settings.includedSections.NEWS) {
+      const newsElements = Array.from(selectedElements.NEWS || []);
+      
+      sectionsPrompt += `=== РАЗДЕЛ: НОВОСТИ ===
+ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
+[Заголовок раздела ${getWordRange('NEWS', 'sectionTitle')}]
+[Описание раздела ${getWordRange('NEWS', 'sectionDescription')}]
+
+${newsElements.map(element => generateElementPrompt(element)).join('\n\n')}
+
+=== КОНЕЦ РАЗДЕЛА ===\n\n`;
+    }
+
+    if (settings.includedSections.FAQ) {
+      const faqElements = Array.from(selectedElements.FAQ || []);
+      
+      sectionsPrompt += `=== РАЗДЕЛ: ВОПРОСЫ ===
+ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
+[Заголовок раздела ${getWordRange('FAQ', 'sectionTitle')}]
+[Описание раздела ${getWordRange('FAQ', 'sectionDescription')}]
+
+${faqElements.map(element => generateElementPrompt(element)).join('\n\n')}
+
+=== КОНЕЦ РАЗДЕЛА ===\n\n`;
+    }
+
+    if (settings.includedSections.TESTIMONIALS) {
+      const testimonialsElements = Array.from(selectedElements.TESTIMONIALS || []);
+      
+      sectionsPrompt += `=== РАЗДЕЛ: ОТЗЫВЫ ===
+ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
+[Заголовок раздела ${getWordRange('TESTIMONIALS', 'sectionTitle')}]
+[Описание раздела ${getWordRange('TESTIMONIALS', 'sectionDescription')}]
+
+ВАЖНО: Создайте минимум 5 отзывов для данного раздела.
+
+${testimonialsElements.map(element => generateElementPrompt(element)).join('\n\n')}
+
+=== КОНЕЦ РАЗДЕЛА ===\n\n`;
+    }
+
+    if (settings.includedSections.UNIVERSAL) {
+      const universalElements = Array.from(selectedElements.UNIVERSAL || []);
+      
+      sectionsPrompt += `=== РАЗДЕЛ: УНИВЕРСАЛЬНАЯ СЕКЦИЯ ===
+ID: [короткое название секции на ${languageName}, желательно одно слово, при этом буквы "ID" всегда на английском]
+[Заголовок раздела ${getWordRange('UNIVERSAL', 'sectionTitle')}]
+[Описание раздела ${getWordRange('UNIVERSAL', 'sectionDescription')}]
+
+ВАЖНО: Создайте универсальную секцию, которая будет релевантна тематике сайта. Эта секция должна дополнять основной контент и быть полезной для посетителей сайта.
+
+${universalElements.map(element => generateElementPrompt(element)).join('\n\n')}
+
+=== КОНЕЦ РАЗДЕЛА ===\n\n`;
+    }
+
+    // Стандартные разделы без выбора элементов
+    if (settings.includedSections.CONTACTS) {
+      sectionsPrompt += `=== РАЗДЕЛ: КОНТАКТЫ ===
+Требуемый формат:
+1. Первая строка - заголовок "Контакты" (используется язык основного контента)
+2. Вторая строка - пустая
+3. Третья строка - описание в скобках (должно содержать призыв оставить заявку или связаться, например: "Свяжитесь с нами для получения консультации" или "Оставьте заявку, и мы свяжемся с вами в ближайшее время")
+4. Четвертая строка - пустая
+5. Далее контактные данные в строгом порядке:
+   - Адрес (ОЧЕНЬ ВАЖНО: формат адреса должен строго соответствовать международным стандартам для выбранной страны)
+   - Пустая строка
+   - Телефон (используйте правильный формат номера для выбранной страны)
+   - Пустая строка
+   - Email
+
+КРИТИЧНО ВАЖНО О ФОРМАТЕ АДРЕСА:
+- Используйте ТОЛЬКО международный формат адреса, принятый в конкретной стране
+- Указывайте адрес в формате, который принимают Google Maps для данной страны
+- Адрес должен содержать: название улицы, номер дома, район (если применимо), город, индекс (почтовый код)
+- Обязательно укажите район города и почтовый индекс
+- Формат адреса и порядок элементов ДОЛЖЕН соответствовать стандартам выбранной страны
+- Не используйте сокращения (пр. ул., д., кв.) - пишите полностью (улица, дом, квартира)
+
+Примеры правильных форматов адресов для разных стран:
+- Россия: 119435, Москва, Большой Саввинский переулок, 12 строение 6
+- США: 350 5th Ave, New York, NY 10118, USA
+- Великобритания: 10 Downing Street, London, SW1A 2AA, UK 
+- Германия: Friedrichstraße 123, 10117 Berlin, Germany
+- Турция: Bağdat Caddesi 123, Kadıköy, 34710 İstanbul, Turkey
+- Франция: 8 Avenue des Champs-Élysées, 75008 Paris, France
+- Испания: Calle de Alcalá 20, 28014 Madrid, España
+- Италия: Via del Corso 12, 00186 Roma, Italia
+- Китай: 100006, 北京市东城区王府井大街1号, Beijing, China
+- Япония: 〒100-0005 東京都千代田区丸の内1-1-1, Tokyo, Japan
+- ОАЭ: Al Maktoum Street, Deira, P.O. Box 12345, Dubai, UAE
+- Канада: 150 Bloor Street West, Toronto, ON M5S 1M4, Canada
+- Австралия: 200 George Street, Sydney NSW 2000, Australia
+- Бразилия: Avenida Paulista 1000, Bela Vista, São Paulo - SP, 01310-100, Brasil
+- Индия: Plot No.1, Sector 42, Gurugram, Haryana 122002, India
+- Нидерланды: Prinsengracht 263-267, 1016 GV Amsterdam, Netherlands
+- Швеция: Drottninggatan 71A, 111 36 Stockholm, Sweden
+- Южная Корея: 29 Seolleung-ro 152-gil, Gangnam-gu, Seoul 06792, South Korea
+- Мексика: Paseo de la Reforma 222, Juárez, 06600 Ciudad de México, CDMX, Mexico
+- Польша: ul. Nowy Świat 6/12, 00-400 Warszawa, Poland
+- Израиль: HaYarkon Street 99, Tel Aviv-Yafo, 6340133, Israel
+
+Пример структуры:
+Контакты
+
+(Мы ценим каждого клиента и готовы оказать профессиональную поддержку. Свяжитесь с нами для получения консультации или оставьте заявку, и наши специалисты оперативно ответят на все ваши вопросы)
+
+107023, Москва, ул. Большая Семёновская, д. 40, оф. 304
+
++7 (495) 123-45-67
+
+info@your-law.com
+
+Примечание: 
+- Название компании будет автоматически синхронизировано с названием сайта из настроек шапки.
+- Email адрес будет автоматически сформирован как info@[название-сайта].com, где [название-сайта] - это транслитерированное название сайта из настроек шапки.
+
+=== КОНЕЦ РАЗДЕЛА ===\n\n`;
+    }
+
+    if (settings.includedSections.MERCI) {
+      sectionsPrompt += `=== РАЗДЕЛ: MERCI ===
+[Текст сообщения на выбранном языке]
+[Текст кнопки на выбранном языке]
+
+Используйте стандартные элементы для сообщения благодарности.
+
+=== КОНЕЦ РАЗДЕЛА ===\n\n`;
+    }
+
+    if (settings.includedSections.LEGAL) {
+      sectionsPrompt += `=== РАЗДЕЛ: ПРАВОВЫЕ ДОКУМЕНТЫ ===
+ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
+
+Создайте следующие документы:
+1. Политика конфиденциальности (1200-2000 слов)
+2. Условия использования (1200-2000 слов)
+3. Политика использования файлов cookie (800-1200 слов)
+
+Каждый документ должен быть полным и соответствовать международным стандартам.
+
+=== КОНЕЦ РАЗДЕЛА ===\n\n`;
+    }
+
+    sectionsPrompt += `ТРЕБОВАНИЯ:
+1. Весь контент на одном языке (указанном в настройках)
+2. ID секций: буквы "ID" всегда на английском, название секции после двоеточия - на ${languageName}
+3. Не использовать форматирование Markdown/HTML
+4. Каждый раздел должен заканчиваться "=== КОНЕЦ РАЗДЕЛА ==="
+5. Не пропускать указанные разделы
+6. Использовать указанные элементы для каждого раздела
+7. Каждый элемент должен начинаться с "ТИП: [название_элемента]"
+8. Соблюдать требования к количеству слов для каждого элемента`;
+    if (currentStep === 3) {
+      sectionsPrompt += `\n\nВАЖНО: Для разделов "Контакты", "Сообщение благодарности" и "Правовые документы" используйте стандартные промпты без выбора элементов.`;
+    }
+
+    return sectionsPrompt;
+  };
+
+  const generateOptimizedFullSitePromptWithElements = (settings, selectedElements, customPrompts = {}, elementSettings = {}) => {
+    console.log('[generateOptimizedFullSitePromptWithElements] Called with selectedElements:', selectedElements);
+    console.log('[generateOptimizedFullSitePromptWithElements] Custom prompts count:', Object.keys(customPrompts).length);
+    console.log('[generateOptimizedFullSitePromptWithElements] Element settings:', elementSettings);
+    
+    if (selectedElements.GLOBAL && selectedElements.GLOBAL.size > 0) {
+      // Если элементы выбраны, используем базовый промпт БЕЗ предустановленных элементов
+      console.log('[generateOptimizedFullSitePromptWithElements] Using custom elements, generating basic prompt');
+      let basePrompt = generateBasicFullSitePrompt(settings);
+      
+      basePrompt += 'AI ЭЛЕМЕНТЫ (ОПТИМИЗИРОВАННЫЙ):\n';
+      basePrompt += 'Используйте ВСЕ выбранные элементы минимум 1 раз каждый.\n\n';
+      
+      basePrompt += 'КРИТИЧЕСКИ ВАЖНО:\n';
+      basePrompt += 'ОБЯЗАТЕЛЬНО указывайте ключевое слово "ТИП:" перед каждым элементом!\n';
+      basePrompt += 'Каждый элемент ДОЛЖЕН начинаться с "ТИП: [название_элемента]"\n\n';
+      
+      basePrompt += 'СТРОГИЕ ТРЕБОВАНИЯ К КОЛИЧЕСТВУ СЛОВ:\n';
+      basePrompt += '- Проверяйте количество слов, а НЕ символов или строк\n';
+      basePrompt += '- Словом считается любое отдельное слово, включая артикли, предлоги, союзы\n';
+      basePrompt += '- Тексты с меньшим количеством слов считаются НЕВЕРНЫМИ\n\n';
+      
+      // Добавляем специальные требования для testimonial-card, если он выбран
+      if (isElementSelectedGlobal(selectedElements, 'testimonial-card')) {
+        basePrompt += 'КРИТИЧЕСКИ ВАЖНО для testimonial-card:\n';
+        basePrompt += 'ОБЯЗАТЕЛЬНО используйте ВСЕ 5 ключей в строгом порядке, разделенных звездочками:\n';
+        basePrompt += '[Имя клиента] * [Должность] * [Компания] * [Текст отзыва] * [Рейтинг]\n';
+        basePrompt += 'НЕ пропускайте ни одного ключа, даже если информация неизвестна!\n\n';
+      }
+      
+      // Добавляем специальные требования для multiple-cards, если он выбран
+      if (isElementSelectedGlobal(selectedElements, 'multiple-cards')) {
+        basePrompt += 'КРИТИЧЕСКИ ВАЖНО для multiple-cards:\n';
+        basePrompt += 'СОЗДАЙТЕ ТОЧНОЕ количество карточек, указанное в требованиях!\n';
+        basePrompt += 'Если указано "5 карточек" - создайте РОВНО 5 карточек\n';
+        basePrompt += 'Если указано "3 карточки" - создайте РОВНО 3 карточки\n';
+        basePrompt += 'НЕ создавайте больше или меньше карточек!\n';
+        basePrompt += 'ФОРМАТ: [заголовок карточки 1] * [содержимое карточки 1] * [заголовок карточки 2] * [содержимое карточки 2] * ...\n';
+        basePrompt += 'НЕ указывайте текст "карточка 1:", "карточка 2:", "карточка 3:" и т.д.!\n';
+        basePrompt += 'Просто создавайте заголовок и содержимое каждой карточки без нумерации!\n\n';
+      }
+      
+      const selectedElementsArray = Array.from(selectedElements.GLOBAL);
+      selectedElementsArray.forEach(elementKey => {
+        const element = ELEMENT_PROMPTS[elementKey];
+        if (element) {
+          // Извлекаем пример из промпта элемента (оптимизированная версия)
+          const sourcePrompt = customPrompts[elementKey] || element.fullSitePrompt || element.prompt;
+          const promptLines = sourcePrompt.split('\n');
+          let example = '';
+          let foundExample = false;
+          
+          for (let line of promptLines) {
+            line = line.trim();
+            
+            // Ищем начало примера
+            if (line.includes('ТИП:') && line.includes(elementKey)) {
+              foundExample = true;
+              example += line + '\n';
+              continue;
+            }
+            
+            // Если нашли начало, продолжаем собирать пример
+            if (foundExample) {
+              if (line.includes('ЗАГОЛОВОК:') || line.includes('СОДЕРЖИМОЕ:') || 
+                  line.includes('ФОРМАТ:') || line.includes('НАБОР_ДАННЫХ') ||
+                  line.includes('МЕТКИ_ОСИ') || line.includes('ТИП_ВЫНОСКИ:') ||
+                  line.includes('ЛИНИЯ_1:') || line.includes('ЛИНИЯ_2:') ||
+                  line.includes('СЕРИЯ_1:') || line.includes('СЕРИЯ_2:')) {
+                example += line + '\n';
+              } else if (line.length === 0) {
+                // Пустая строка - конец примера
+                break;
+              } else if (line.includes('Пример:') || line.includes('ID:')) {
+                // Начался новый блок - останавливаемся
+                break;
+              }
+            }
+          }
+          
+          // Если не нашли пример, создаем базовый с учетом настроек
+          if (!example.trim()) {
+            example = `ТИП: ${elementKey}\n${generateElementRequirements(elementKey, elementSettings)}\n`;
+          } else {
+            // Если нашли пример, дополняем его требованиями из настроек
+            const requirements = generateElementRequirements(elementKey, elementSettings);
+            if (requirements) {
+              const requirementLines = requirements.split('\n');
+              
+              // Заменяем только основные поля ЗАГОЛОВОК и СОДЕРЖИМОЕ, сохраняя структуру
+              requirementLines.forEach(req => {
+                if (req.startsWith('ЗАГОЛОВОК:') && req.includes('минимум')) {
+                  example = example.replace(/^ЗАГОЛОВОК: \[.*?\]$/gm, req);
+                } else if (req.startsWith('СОДЕРЖИМОЕ:') && req.includes('минимум')) {
+                  example = example.replace(/^СОДЕРЖИМОЕ: \[.*?\]$/gm, req);
+                }
+              });
+              
+              // Добавляем дополнительные требования в конец
+              const additionalReqs = requirementLines.filter(req => req.startsWith('ТРЕБОВАНИЕ:'));
+              if (additionalReqs.length > 0) {
+                example += '\n' + additionalReqs.join('\n');
+              }
+            }
+          }
+          
+          basePrompt += example + '\n';
+        }
+      });
+      
+      // Функция для получения диапазона слов
+      const getWordRange = (section, field) => {
+        const range = settings.wordRanges[section]?.[field];
+        if (!range) return '';
+        return `(${range.min}-${range.max} слов)`;
+      };
+
+      // Функция для получения диапазона слов для элементов
+      // Список элементов для использования (оптимизированный)
+      basePrompt += 'Выбранные элементы: ' + selectedElementsArray.join(', ') + '\n';
+
+      
+      return basePrompt;
+    } else {
+      // Если элементы не выбраны, используем стандартный оптимизированный промпт
+      return generateOptimizedFullSitePrompt(settings);
+    }
   };
 
   // Модифицируем функцию копирования промпта
@@ -1611,7 +3777,12 @@ ID: [название секции на ${languageName}, при этом бук�
   };
   
   // Функция для обработки сохранения настроек промпта полного сайта
-  const handleFullSiteSettingsSave = (settings, promptType = 'full') => {
+  const handleFullSiteSettingsSave = (settings, promptType = 'full', selectedElements = {}, customPrompts = {}, elementSettings = {}, currentStep = 1) => {
+    console.log('[handleFullSiteSettingsSave] Received selectedElements:', selectedElements);
+    console.log('[handleFullSiteSettingsSave] promptType:', promptType);
+    console.log('[handleFullSiteSettingsSave] customPrompts:', customPrompts);
+    console.log('[handleFullSiteSettingsSave] elementSettings:', elementSettings);
+    
     setFullSiteSettings(settings);
     
     let finalPrompt = '';
@@ -1621,15 +3792,33 @@ ID: [название секции на ${languageName}, при этом бук�
       finalPrompt = applyGlobalSettings(generateLegalDocumentsPrompt());
       setParserMessage('Специализированный промпт для правовых документов скопирован в буфер обмена.');
     } else if (promptType === 'optimized') {
-      // Генерируем оптимизированный промпт без правовых документов
-      const optimizedPrompt = generateOptimizedFullSitePrompt(settings);
+      // Генерируем оптимизированный промпт без правовых документов с учетом выбранных элементов
+      console.log('[handleFullSiteSettingsSave] Calling generateOptimizedFullSitePromptWithElements with elements:', Array.from(selectedElements));
+      const optimizedPrompt = generateOptimizedFullSitePromptWithElements(settings, selectedElements, customPrompts, elementSettings);
       finalPrompt = applyGlobalSettings(optimizedPrompt);
-      setParserMessage('Оптимизированный промпт полного сайта (без правовых документов) скопирован в буфер обмена.');
+      const totalElements = Object.values(selectedElements).reduce((sum, sectionElements) => sum + (sectionElements?.size || 0), 0);
+      setParserMessage(`Оптимизированный промпт полного сайта с ${totalElements} элементами скопирован в буфер обмена.`);
+    } else if (promptType === 'manual_elements') {
+      // Генерируем промпт с ручным выбором элементов, исключая стандартные разделы
+      console.log('[handleFullSiteSettingsSave] Calling generateManualElementsPrompt with elements:', Array.from(selectedElements));
+      const manualPrompt = generateManualElementsPrompt(settings, selectedElements, customPrompts, elementSettings);
+      finalPrompt = applyGlobalSettings(manualPrompt);
+      
+      const stepLabels = {
+        1: 'Главная + О нас + Преимущества',
+        2: 'Новости + Услуги',
+        3: 'FAQ + Контакты + Отзывы',
+        4: 'Документы + Благодарность + Универсальная'
+      };
+      
+      setParserMessage(`Промпт этапа ${currentStep} (${stepLabels[currentStep]}) скопирован в буфер обмена.`);
     } else {
-      // Оригинальный полный промпт (по умолчанию)
-      const fullSitePrompt = generateFullSitePrompt(settings);
+      // Оригинальный полный промпт (по умолчанию) с учетом выбранных элементов
+      console.log('[handleFullSiteSettingsSave] Calling generateFullSitePromptWithElements with elements:', Array.from(selectedElements));
+      const fullSitePrompt = generateFullSitePromptWithElements(settings, selectedElements, customPrompts, elementSettings);
       finalPrompt = applyGlobalSettings(fullSitePrompt);
-      setParserMessage('Полный промпт сайта скопирован в буфер обмена.');
+      const totalElements = Object.values(selectedElements).reduce((sum, sectionElements) => sum + (sectionElements?.size || 0), 0);
+      setParserMessage(`Полный промпт сайта с ${totalElements} элементами скопирован в буфер обмена.`);
     }
     
     // Копируем промпт в буфер обмена
@@ -1871,15 +4060,16 @@ ID: [название секции на ${languageName}, при этом бук�
                 }
               }
               
-              // Определяем порядок секций для меню: О нас, Услуги, Преимущества, Новости, FAQ, Отзывы
-              const sectionOrder = ['about', 'services', 'features', 'news', 'faq', 'testimonials'];
+              // Определяем порядок секций для меню: О нас, Услуги, Преимущества, Новости, FAQ, Отзывы, Универсальная
+              const sectionOrder = ['about', 'services', 'features', 'news', 'faq', 'testimonials', 'universal'];
 
               // Создаем список пунктов меню, сохраняя нужный порядок
               const processOrderedSections = () => {
-                // Создаем список секций в нужном порядке
-                const orderedMenuItems = [];
+                // Создаем список секций в нужном порядке, начиная с существующих пунктов меню
+                const orderedMenuItems = [...headerData.menuItems];
                 
                 console.log('Доступные секции в parsedData:', Object.keys(parsedData));
+                console.log('Существующие пункты меню:', headerData.menuItems.map(item => item.id));
                 
                 // Обрабатываем каждую секцию
                 for (const sectionId of sectionOrder) {
@@ -1908,6 +4098,9 @@ ID: [название секции на ${languageName}, при этом бук�
                     case 'testimonials':
                       section = parsedData.testimonials;
                       break;
+                    case 'universal':
+                      section = parsedData.universal;
+                      break;
                   }
                   
                   if (section) {
@@ -1916,12 +4109,15 @@ ID: [название секции на ${languageName}, при этом бук�
                     // ВАЖНОЕ ИЗМЕНЕНИЕ: 
                     // 1. Сохраняем секцию по её ID, а не по ключу массива
                     // 2. Явно указываем все важные поля, включая заголовок и описание 
+                    // 3. КРИТИЧЕСКИ ВАЖНО: добавляем поля elements и contentElements!
                     updatedSections[section.id] = {
                       id: section.id,
                       title: section.title,
                       description: section.description,
                       cardType: section.cardType || 'ELEVATED',
                       cards: section.cards || [],
+                      elements: section.elements || [], // ДОБАВЛЕНО: поле elements
+                      contentElements: section.contentElements || [], // ДОБАВЛЕНО: поле contentElements
                       titleColor: section.titleColor || '#1976d2',
                       descriptionColor: section.descriptionColor || '#666666'
                     };
@@ -1936,16 +4132,16 @@ ID: [название секции на ${languageName}, при этом бук�
                       console.log('Обрабатываем раздел новостей, ID из контента:', section.id);
                     }
                     
-                    // Проверяем существование пункта меню
-                    const existingMenuItem = headerData.menuItems.find(item => item.id === menuId);
+                    // Проверяем существование пункта меню в уже созданном массиве
+                    const existingMenuItemIndex = orderedMenuItems.findIndex(item => item.id === menuId);
                     
-                    if (existingMenuItem) {
+                    if (existingMenuItemIndex !== -1) {
                       // Обновляем существующий пункт меню
-                      orderedMenuItems.push({
-                        ...existingMenuItem,
+                      orderedMenuItems[existingMenuItemIndex] = {
+                        ...orderedMenuItems[existingMenuItemIndex],
                         text: menuText,
                         link: `#${menuId}`
-                      });
+                      };
                     } else {
                       // Добавляем новый пункт меню
                       orderedMenuItems.push({
@@ -2120,6 +4316,8 @@ ID: [название секции на ${languageName}, при этом бук�
               description: parsedData.description,
               cardType: parsedData.cardType,
               cards: parsedData.cards,
+              elements: parsedData.elements || [], // Добавляем поддержку элементов
+              contentElements: parsedData.contentElements || [], // Добавляем поддержку contentElements
               titleColor: '#1976d2',
               descriptionColor: '#666666'
             };
@@ -2173,10 +4371,14 @@ ID: [название секции на ${languageName}, при этом бук�
               });
             }
                     
-            // Сохраняем обновленные данные
+            // Сохраняем обновленные данные с полной структурой
             onSectionsChange({
               ...sectionsData,
-              [parsedData.id]: parsedData
+              [parsedData.id]: {
+                ...parsedData,
+                elements: parsedData.elements || [],
+                contentElements: parsedData.contentElements || []
+              }
             });
                     
             setParserMessage('Данные раздела "Преимущества" успешно обновлены.');
@@ -2234,6 +4436,8 @@ ID: [название секции на ${languageName}, при этом бук�
               description: parsedData.description,
               cardType: parsedData.cardType,
               cards: parsedData.cards,
+              elements: parsedData.elements || [], // Добавляем поддержку элементов
+              contentElements: parsedData.contentElements || [], // Добавляем поддержку contentElements
               titleColor: '#1976d2',
               descriptionColor: '#666666'
             };
@@ -2300,6 +4504,8 @@ ID: [название секции на ${languageName}, при этом бук�
               description: parsedData.description,
               cardType: parsedData.cardType,
               cards: parsedData.cards,
+              elements: parsedData.elements || [], // Добавляем поддержку элементов
+              contentElements: parsedData.contentElements || [], // Добавляем поддержку contentElements
               titleColor: '#1976d2',
               descriptionColor: '#666666'
             };
@@ -2366,6 +4572,8 @@ ID: [название секции на ${languageName}, при этом бук�
               description: parsedData.description,
               cardType: parsedData.cardType,
               cards: parsedData.cards,
+              elements: parsedData.elements || [], // Добавляем поддержку элементов
+              contentElements: parsedData.contentElements || [], // Добавляем поддержку contentElements
               titleColor: '#1976d2',
               descriptionColor: '#666666'
             };
@@ -2434,6 +4642,8 @@ ID: [название секции на ${languageName}, при этом бук�
               description: parsedData.description,
               cardType: 'ELEVATED',
               cards: parsedData.cards,
+              elements: parsedData.elements || [], // Добавляем поддержку элементов
+              contentElements: parsedData.contentElements || [], // Добавляем поддержку contentElements
               titleColor: '#1976d2',
               descriptionColor: '#666666'
             };
@@ -2479,6 +4689,165 @@ ID: [название секции на ${languageName}, при этом бук�
               subtitle: parsedData.description
             });
             setParserMessage('Данные для главной секции успешно обновлены.');
+          }
+          break;
+        case 'AI_ELEMENTS':
+          // Универсальный парсер для AI элементов с автоматическим определением типа секции
+          parsedData = parsers.parseUniversalSection(content);
+          if (parsedData) {
+            console.log('Результат универсального парсера:', parsedData);
+            
+            // Проверяем, существует ли уже пункт меню с таким ID
+            const menuItemExists = headerData.menuItems.some(item => item.id === parsedData.id);
+            
+            // Если пункт меню существует, то обновляем его параметры вместо добавления нового
+            let updatedMenuItems;
+            if (menuItemExists) {
+              updatedMenuItems = headerData.menuItems.map(item => 
+                item.id === parsedData.id 
+                  ? {
+                      ...item,
+                      text: parsedData.title || parsedData.id,
+                      link: parsedData.link || `#${parsedData.id}`,
+                      backgroundColor: parsedData.backgroundColor || '#ffffff',
+                      textColor: parsedData.textColor || '#000000',
+                      borderColor: parsedData.borderColor || '#e0e0e0',
+                      shadowColor: parsedData.shadowColor || 'rgba(0,0,0,0.1)',
+                      gradientStart: parsedData.gradientStart || '#ffffff',
+                      gradientEnd: parsedData.gradientEnd || '#f5f5f5',
+                      gradientDirection: parsedData.gradientDirection || 'to right'
+                    }
+                  : item
+              );
+            } else {
+              // Create new menu item
+              const menuItem = {
+                id: parsedData.id,
+                text: parsedData.title || parsedData.id,
+                link: parsedData.link || `#${parsedData.id}`,
+                backgroundColor: parsedData.backgroundColor || '#ffffff',
+                textColor: parsedData.textColor || '#000000',
+                borderColor: parsedData.borderColor || '#e0e0e0',
+                shadowColor: parsedData.shadowColor || 'rgba(0,0,0,0.1)',
+                gradientStart: parsedData.gradientStart || '#ffffff',
+                gradientEnd: parsedData.gradientEnd || '#f5f5f5',
+                gradientDirection: parsedData.gradientDirection || 'to right'
+              };
+              updatedMenuItems = [...headerData.menuItems, menuItem];
+            }
+            
+            // Update headerData with new or updated menu item
+            onHeaderChange({ ...headerData, menuItems: updatedMenuItems });
+            
+                         // Create or update section
+             const newSection = {
+               id: parsedData.id,
+               title: parsedData.title,
+               description: parsedData.description,
+               cardType: parsedData.cardType || 'ELEVATED',
+               cards: parsedData.cards || [],
+               elements: parsedData.elements || [], // Поддержка элементов (старая система)
+               contentElements: parsedData.contentElements || parsedData.elements || [], // Поддержка элементов (новая система)
+               link: parsedData.link || `#${parsedData.id}`,
+               backgroundColor: parsedData.backgroundColor || '#ffffff',
+               textColor: parsedData.textColor || '#000000',
+               borderColor: parsedData.borderColor || '#e0e0e0',
+               shadowColor: parsedData.shadowColor || 'rgba(0,0,0,0.1)',
+               gradientStart: parsedData.gradientStart || '#ffffff',
+               gradientEnd: parsedData.gradientEnd || '#f5f5f5',
+               gradientDirection: parsedData.gradientDirection || 'to right',
+               titleColor: '#1976d2',
+               descriptionColor: '#666666'
+             };
+            
+            // Update sectionsData
+            onSectionsChange({ ...sectionsData, [parsedData.id]: newSection });
+            
+            if (menuItemExists) {
+              setParserMessage(`Секция "${parsedData.title}" успешно обновлена.`);
+            } else {
+              setParserMessage(`Секция "${parsedData.title}" успешно добавлена.`);
+            }
+          }
+          break;
+        case 'AUTO':
+          // Попробуем универсальный парсер для контента с элементами
+          parsedData = parsers.parseUniversalSection(content);
+          if (parsedData) {
+            console.log('Универсальный парсер AUTO обработал контент:', parsedData);
+            
+            // Проверяем, существует ли уже пункт меню с таким ID
+            const menuItemExists = headerData.menuItems.some(item => item.id === parsedData.id);
+            
+            // Создаем или обновляем пункт меню
+            let updatedMenuItems;
+            if (menuItemExists) {
+              updatedMenuItems = headerData.menuItems.map(item => 
+                item.id === parsedData.id 
+                  ? {
+                      ...item,
+                      text: parsedData.title || parsedData.id,
+                      link: parsedData.link || `#${parsedData.id}`,
+                      backgroundColor: parsedData.backgroundColor || '#ffffff',
+                      textColor: parsedData.textColor || '#000000',
+                      borderColor: parsedData.borderColor || '#e0e0e0',
+                      shadowColor: parsedData.shadowColor || 'rgba(0,0,0,0.1)',
+                      gradientStart: parsedData.gradientStart || '#ffffff',
+                      gradientEnd: parsedData.gradientEnd || '#f5f5f5',
+                      gradientDirection: parsedData.gradientDirection || 'to right'
+                    }
+                  : item
+              );
+            } else {
+              const menuItem = {
+                id: parsedData.id,
+                text: parsedData.title || parsedData.id,
+                link: parsedData.link || `#${parsedData.id}`,
+                backgroundColor: parsedData.backgroundColor || '#ffffff',
+                textColor: parsedData.textColor || '#000000',
+                borderColor: parsedData.borderColor || '#e0e0e0',
+                shadowColor: parsedData.shadowColor || 'rgba(0,0,0,0.1)',
+                gradientStart: parsedData.gradientStart || '#ffffff',
+                gradientEnd: parsedData.gradientEnd || '#f5f5f5',
+                gradientDirection: parsedData.gradientDirection || 'to right'
+              };
+              updatedMenuItems = [...headerData.menuItems, menuItem];
+            }
+            
+            // Обновляем headerData
+            onHeaderChange({ ...headerData, menuItems: updatedMenuItems });
+            
+            // Создаем или обновляем секцию с элементами
+            const newSection = {
+              id: parsedData.id,
+              title: parsedData.title,
+              description: parsedData.description,
+              cardType: parsedData.cardType || 'ELEVATED',
+              cards: parsedData.cards || [],
+              elements: parsedData.elements || [], // Массив AI элементов
+              contentElements: parsedData.contentElements || parsedData.elements || [], // Альтернативное поле для элементов
+              link: parsedData.link || `#${parsedData.id}`,
+              backgroundColor: parsedData.backgroundColor || '#ffffff',
+              textColor: parsedData.textColor || '#000000',
+              borderColor: parsedData.borderColor || '#e0e0e0',
+              shadowColor: parsedData.shadowColor || 'rgba(0,0,0,0.1)',
+              gradientStart: parsedData.gradientStart || '#ffffff',
+              gradientEnd: parsedData.gradientEnd || '#f5f5f5',
+              gradientDirection: parsedData.gradientDirection || 'to right',
+              titleColor: '#1976d2',
+              descriptionColor: '#666666'
+            };
+            
+            // Обновляем sectionsData
+            onSectionsChange({ ...sectionsData, [parsedData.id]: newSection });
+            
+            if (menuItemExists) {
+              setParserMessage(`Универсальная секция "${parsedData.title}" успешно обновлена с ${parsedData.elements?.length || 0} элементами.`);
+            } else {
+              setParserMessage(`Универсальная секция "${parsedData.title}" успешно добавлена с ${parsedData.elements?.length || 0} элементами.`);
+            }
+          } else {
+            setParserMessage('Не удалось автоматически определить тип контента. Пожалуйста, выберите раздел вручную.');
           }
           break;
         default:
@@ -2855,15 +5224,95 @@ ID: [название секции на ${languageName}, при этом бук�
   };
 
   return (
-    <Accordion defaultExpanded={false} sx={{ mb: 2 }}>
-      <AccordionSummary 
-        expandIcon={<ExpandMoreIcon />} 
-        sx={{ borderBottom: '1px solid rgba(0, 0, 0, 0.12)' }}
-      >
-        <Typography variant="h6" sx={{ color: '#e53935' }}>
-          AI Парсер контента
-        </Typography>
-      </AccordionSummary>
+    <Box>
+      {/* Переключатель режимов конструктора */}
+      <Box sx={{ 
+        mb: 1, 
+        p: 2, 
+        bgcolor: 'rgba(0, 0, 0, 0.02)', 
+        borderRadius: '8px', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        border: '1px solid rgba(0, 0, 0, 0.06)'
+      }}>
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 1,
+          p: 1,
+          bgcolor: 'white',
+          borderRadius: '12px',
+          border: '1px solid rgba(0, 0, 0, 0.08)',
+          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)'
+        }}>
+          <Typography 
+            variant="body2" 
+            sx={{ 
+              color: constructorMode ? '#1976d2' : 'rgba(0, 0, 0, 0.6)',
+              fontWeight: constructorMode ? 600 : 400,
+              fontSize: '0.85rem',
+              minWidth: '120px',
+              textAlign: 'center'
+            }}
+          >
+            Конструктор
+          </Typography>
+          <Switch
+            checked={!constructorMode}
+            onChange={(e) => onConstructorModeChange && onConstructorModeChange(!e.target.checked)}
+            size="small"
+            sx={{
+              '& .MuiSwitch-switchBase.Mui-checked': {
+                color: '#ff9800',
+              },
+              '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                backgroundColor: '#ff9800',
+              },
+              '& .MuiSwitch-track': {
+                backgroundColor: '#1976d2',
+              }
+            }}
+          />
+          <Typography 
+            variant="body2" 
+            sx={{ 
+              color: !constructorMode ? '#ff9800' : 'rgba(0, 0, 0, 0.6)',
+              fontWeight: !constructorMode ? 600 : 400,
+              fontSize: '0.85rem',
+              minWidth: '120px',
+              textAlign: 'center'
+            }}
+          >
+            Ручной режим
+          </Typography>
+        </Box>
+      </Box>
+      
+      {/* Новый раздел: Промпты для элементов */}
+      <Accordion defaultExpanded={false} sx={{ mb: 2 }}>
+        <AccordionSummary 
+          expandIcon={<ExpandMoreIcon />} 
+          sx={{ borderBottom: '1px solid rgba(0, 0, 0, 0.12)' }}
+        >
+          <Typography variant="h6" sx={{ color: '#4caf50' }}>
+            Промпты для элементов
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails sx={{ p: 0 }}>
+          <ElementPromptsSection />
+        </AccordionDetails>
+      </Accordion>
+      
+      <Accordion defaultExpanded={false} sx={{ mb: 2 }}>
+        <AccordionSummary 
+          expandIcon={<ExpandMoreIcon />} 
+          sx={{ borderBottom: '1px solid rgba(0, 0, 0, 0.12)' }}
+        >
+          <Typography variant="h6" sx={{ color: '#e53935' }}>
+            AI Парсер контента
+          </Typography>
+        </AccordionSummary>
       <AccordionDetails sx={{ p: 0 }}>
         <Paper sx={{ boxShadow: 'none' }}>
           <Box sx={{ p: 2, borderBottom: '1px solid rgba(0, 0, 0, 0.12)' }}>  
@@ -3023,6 +5472,10 @@ ID: [название секции на ${languageName}, при этом бук�
             onClose={() => setShowFullSiteSettings(false)}
             onSave={handleFullSiteSettingsSave}
             initialSettings={fullSiteSettings}
+            currentStep={currentStep}
+            setCurrentStep={setCurrentStep}
+            completedSteps={completedSteps}
+            setCompletedSteps={setCompletedSteps}
           />
             
           <Box sx={{ p: 2 }}>
@@ -3036,6 +5489,7 @@ ID: [название секции на ${languageName}, при этом бук�
               >
                 <MenuItem value="FULL_SITE">Полный сайт</MenuItem>
                 <MenuItem value="HERO">Hero секция</MenuItem>
+                <MenuItem value="AI_ELEMENTS">🤖 AI Элементы (универсальный)</MenuItem>
                 <MenuItem value="ABOUT">О нас</MenuItem>
                 <MenuItem value="FEATURES">Преимущества</MenuItem>
                 <MenuItem value="SERVICES">Услуги</MenuItem>
@@ -3134,8 +5588,7 @@ ID: [название секции на ${languageName}, при этом бук�
                       Промпт Legal
                     </Button>
                   </span>
-                </Tooltip>
-              )}
+                </Tooltip>              )}
               </Box>
               
               <TextField
@@ -3268,6 +5721,7 @@ ID: [название секции на ${languageName}, при этом бук�
         </Paper>
       </AccordionDetails>
     </Accordion>
+    </Box>
   );
 };
 

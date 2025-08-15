@@ -16,6 +16,7 @@ import { CARD_TYPES } from '../../utils/configUtils';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { exportSite } from '../../utils/siteExporter';
+import { exportMultiPageSite } from '../../utils/multiPageSiteExporter';
 import { generateLiveChatHTML, generateLiveChatCSS, generateLiveChatJS } from '../../utils/liveChatExporter';
 
 import LiveChatEditor from './LiveChatEditor';
@@ -24,6 +25,7 @@ import { imageCacheService } from '../../utils/imageCacheService';
 import imageCompression from 'browser-image-compression';
 import AuthPanel from '../Auth/AuthPanel';
 import SectionImageGallery from './SectionImageGallery';
+import EnhancedSectionEditor from './EnhancedSectionEditor';
 import { STYLE_PRESETS } from '../../utils/editorStylePresets';
 
 // Локальные стили больше не нужны - используем импорт
@@ -1282,7 +1284,64 @@ const handleReorderImages = (sectionsData, sectionId, startIndex, endIndex) => {
     }
   };
 };
-
+// Предустановленные секции
+const PREDEFINED_SECTIONS = {
+  about: {
+    text: '📋 О нас',
+    title: 'О нас',
+    description: 'Узнайте больше о нашей компании, миссии и ценностях'
+  },
+  services: {
+    text: '🔧 Услуги',
+    title: 'Наши услуги',
+    description: 'Полный спектр услуг для решения ваших задач'
+  },
+  features: {
+    text: '⭐ Преимущества',
+    title: 'Наши преимущества',
+    description: 'Что делает нас лучшими в своей области'
+  },
+  testimonials: {
+    text: '💬 Отзывы',
+    title: 'Отзывы клиентов',
+    description: 'Что говорят о нас наши довольные клиенты'
+  },
+  faq: {
+    text: '❓ FAQ',
+    title: 'Часто задаваемые вопросы',
+    description: 'Ответы на самые популярные вопросы'
+  },
+  news: {
+    text: '📰 Новости',
+    title: 'Новости и события',
+    description: 'Последние новости и обновления'
+  },
+  portfolio: {
+    text: '💼 Портфолио',
+    title: 'Наши работы',
+    description: 'Примеры успешно реализованных проектов'
+  },
+  blog: {
+    text: '📝 Блог',
+    title: 'Блог',
+    description: 'Полезные статьи и советы от экспертов'
+  },
+  team: {
+    text: '👥 Команда',
+    title: 'Наша команда',
+    description: 'Познакомьтесь с нашими специалистами'
+  },
+  gallery: {
+    text: '🖼️ Галерея',
+    title: 'Галерея',
+    description: 'Фотографии наших работ и мероприятий'
+  },
+  pricing: {
+    text: '💰 Цены',
+    title: 'Цены и тарифы',
+    description: 'Прозрачные цены на все наши услуги'
+  }
+};
 const EditorPanel = ({
   headerData = {
     siteName: 'My Site',
@@ -1309,8 +1368,14 @@ const EditorPanel = ({
   legalDocuments,
   onLegalDocumentsChange,
   liveChatData = { enabled: false, apiKey: '' },
-  onLiveChatChange
+  onLiveChatChange,
+  constructorMode = true,
+  onConstructorModeChange,
+  selectedElement = null,
+  onElementDeselect = () => {},
+  onElementUpdate = () => {}
 }) => {
+  console.log('🎯🎯🎯 EditorPanel COMPONENT LOADED! Time:', new Date().toISOString());
   console.log('EditorPanel received props:', {
     headerData,
     heroData,
@@ -1334,6 +1399,45 @@ const EditorPanel = ({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [sectionToDelete, setSectionToDelete] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  
+  // Используем переданное состояние режима конструктора или локальное по умолчанию
+  const [localConstructorMode, setLocalConstructorMode] = useState(constructorMode);
+  
+  // Обработчик изменения режима конструктора
+  const handleConstructorModeChange = (newMode) => {
+    setLocalConstructorMode(newMode);
+    if (onConstructorModeChange) {
+      onConstructorModeChange(newMode);
+    }
+    console.log('Constructor mode changed to:', newMode ? 'Constructor' : 'Manual');
+  };
+
+  // Используем переданный режим или локальный
+  const currentConstructorMode = onConstructorModeChange ? constructorMode : localConstructorMode;
+
+  // Effect для обработки выбранного элемента
+  useEffect(() => {
+    if (selectedElement) {
+      console.log('Selected element changed:', selectedElement);
+      // Автоматически открываем секцию с выбранным элементом
+      const sectionKey = `menuItem_${selectedElement.sectionId}`;
+      setExpandedSections(prev => ({
+        ...prev,
+        [sectionKey]: true,
+        // Закрываем другие секции
+        ...Object.keys(prev).reduce((acc, key) => {
+          if (key !== sectionKey && key !== 'menuItems') {
+            acc[key] = false;
+          }
+          return acc;
+        }, {}),
+        // Закрываем другие пункты меню
+        menuItems: {
+          [selectedElement.sectionId]: true
+        }
+      }));
+    }
+  }, [selectedElement]);
 
   // Combined useEffect for all checks and tracking
   useEffect(() => {
@@ -1354,15 +1458,7 @@ const EditorPanel = ({
 
           // Navigation prevention handler
     const handlePreventNavigation = (event) => {
-              // If language is not specified, prevent navigation
-      if (!headerData.language || (typeof headerData.language === 'string' && headerData.language.trim() === '')) {
-        event.preventDefault();
-                  // Return header section to expanded state
-        setExpandedSections(prev => ({
-          ...prev,
-          header: true
-        }));
-      }
+      // Navigation is always allowed now
     };
 
     window.addEventListener('preventNavigation', handlePreventNavigation);
@@ -1378,6 +1474,62 @@ const EditorPanel = ({
     };
   }, [headerData.language, sectionsData]);
 
+  // Автоматическая инициализация секций отключена - пользователь может добавлять секции вручную
+  // useEffect(() => {
+  //   // Проверяем, есть ли уже секции в меню
+  //   const hasExistingMenuItems = headerData.menuItems && headerData.menuItems.length > 0;
+  //   
+  //   // Если меню пустое, автоматически добавляем все предустановленные секции
+  //   if (!hasExistingMenuItems) {
+  //     console.log('Меню пустое, автоматически добавляем все предустановленные секции...');
+  //     
+  //     const newMenuItems = [];
+  //     const newSections = { ...sectionsData }; // Сохраняем существующие секции
+
+  //     Object.entries(PREDEFINED_SECTIONS).forEach(([sectionKey, sectionTemplate]) => {
+  //       const newMenuItem = {
+  //         id: sectionKey,
+  //         text: sectionTemplate.text,
+  //         title: sectionTemplate.title,
+  //         description: sectionTemplate.description,
+  //         image: '',
+  //         link: `#${sectionKey}`,
+  //         cardType: CARD_TYPES.SIMPLE,
+  //         backgroundColor: '#ffffff',
+  //         textColor: '#000000',
+  //         borderColor: '#e0e0e0',
+  //         shadowColor: 'rgba(0,0,0,0.1)',
+  //         gradientStart: '#ffffff',
+  //         gradientEnd: '#f5f5f5',
+  //         gradientDirection: 'to right'
+  //       };
+
+  //       newMenuItems.push(newMenuItem);
+
+  //       // Создаем новую секцию только если её ещё нет
+  //       if (!newSections[sectionKey]) {
+  //         const newSection = {
+  //           id: sectionKey,
+  //           title: sectionTemplate.title,
+  //           description: sectionTemplate.description,
+  //           cardType: CARD_TYPES.SIMPLE,
+  //           cards: [],
+  //           titleColor: '#1a237e',
+  //           descriptionColor: '#455a64'
+  //         };
+  //         newSections[sectionKey] = newSection;
+  //       }
+  //     });
+
+  //     // Обновляем данные только если есть что добавить
+  //     if (newMenuItems.length > 0) {
+  //       onHeaderChange({ ...headerData, menuItems: newMenuItems });
+  //       onSectionsChange(newSections);
+  //       console.log(`Автоматически инициализировано ${newMenuItems.length} предустановленных секций`);
+  //     }
+  //   }
+  // }, [headerData.menuItems, sectionsData, onHeaderChange, onSectionsChange]);
+
   const handleAuth = (success) => {
     if (success) {
       setIsAuthenticated(true);
@@ -1391,16 +1543,6 @@ const EditorPanel = ({
   }
 
   const toggleSection = (section) => {
-    // Check language before switching section
-    if (section !== 'header' && (!headerData.language || (typeof headerData.language === 'string' && headerData.language.trim() === ''))) {
-              // If language is not specified, keep header section expanded
-      setExpandedSections(prev => ({
-        ...prev,
-        header: true
-      }));
-      return;
-    }
-
     setExpandedSections(prev => {
       const newState = { ...prev };
       
@@ -1528,13 +1670,1305 @@ const EditorPanel = ({
     }));
   };
 
+
+
+  // Функция для добавления предустановленной секции
+  const handleAddPredefinedSection = (sectionKey) => {
+    const sectionTemplate = PREDEFINED_SECTIONS[sectionKey];
+    if (!sectionTemplate) return;
+
+    // Проверяем, не существует ли уже такая секция
+    const existingSection = headerData.menuItems.find(item => item.id === sectionKey);
+    if (existingSection) {
+      alert(`Секция "${sectionTemplate.text}" уже существует!`);
+      return;
+    }
+
+    const newMenuItem = {
+      id: sectionKey,
+      text: sectionTemplate.text,
+      title: sectionTemplate.title,
+      description: sectionTemplate.description,
+      image: '',
+      link: `#${sectionKey}`,
+      cardType: CARD_TYPES.SIMPLE,
+      backgroundColor: '#ffffff',
+      textColor: '#000000',
+      borderColor: '#e0e0e0',
+      shadowColor: 'rgba(0,0,0,0.1)',
+      gradientStart: '#ffffff',
+      gradientEnd: '#f5f5f5',
+      gradientDirection: 'to right'
+    };
+
+    // Add new menu item to headerData
+    const updatedMenuItems = [...headerData.menuItems, newMenuItem];
+    onHeaderChange({ ...headerData, menuItems: updatedMenuItems });
+
+    // Create new section with the same ID
+    const newSection = {
+      id: sectionKey,
+      title: sectionTemplate.title,
+      description: sectionTemplate.description,
+      cardType: CARD_TYPES.SIMPLE,
+      cards: [],
+      titleColor: '#1a237e',
+      descriptionColor: '#455a64'
+    };
+
+    // Update sectionsData as object
+    onSectionsChange({ ...sectionsData, [sectionKey]: newSection });
+
+    // Open new section in editor
+    setExpandedSections(prev => ({
+      ...prev,
+      menuItems: {
+        ...prev.menuItems,
+        [sectionKey]: true
+      }
+    }));
+
+    console.log(`Добавлена предустановленная секция: ${sectionTemplate.text}`);
+  };
+  // Функция для создания детального сайта по тематике мобильных платежей в ОАЭ
+  const handleCreateUAEPaymentsSite = () => {
+    // Переключаемся в ручной режим для многостраничного сайта
+    if (constructorMode) {
+      setCurrentConstructorMode(false);
+      onConstructorModeChange(false);
+    }
+
+    // Настраиваем заголовок сайта
+    onHeaderChange({
+      ...headerData,
+      siteName: 'UAE Mobile Payments',
+      title: 'UAE Mobile Payments - Мобильные платежи в ОАЭ',
+      description: 'Лучшие решения для мобильных платежей в Объединенных Арабских Эмиратах',
+      language: 'ru',
+      backgroundColor: '#1e3a8a',
+      titleColor: '#ffffff',
+      linksColor: '#fbbf24',
+      siteBackgroundColor: '#f8fafc',
+      menuItems: []
+    });
+
+    // Настраиваем Hero секцию
+    onHeroChange({
+      ...heroData,
+      title: 'Мобильные платежи в ОАЭ',
+      subtitle: 'Быстрые, безопасные и удобные платежные решения для всех жителей и бизнеса в Объединенных Арабских Эмиратах',
+      description: 'Присоединяйтесь к революции цифровых платежей в ОАЭ',
+      buttonText: 'Начать использовать',
+      buttonLink: '#about',
+      backgroundType: 'gradient',
+      backgroundColor: '#1e3a8a',
+      gradientColor1: '#1e3a8a',
+      gradientColor2: '#3b82f6',
+      gradientDirection: 'to right',
+      titleColor: '#ffffff',
+      subtitleColor: '#e2e8f0',
+      showButton: true,
+      animationType: 'fadeIn'
+    });
+
+    // Создаем детальные секции с множеством элементов
+    const newSections = {};
+    
+    // Секция "О нас" - расширенная версия
+    newSections.about = {
+      id: 'about',
+      title: 'О нас',
+      description: 'Мы - ведущий провайдер мобильных платежных решений в ОАЭ',
+      titleColor: '#1e3a8a',
+      descriptionColor: '#6b7280',
+      backgroundColor: '#ffffff',
+      showBackground: true,
+      cards: [],
+      aiElements: [],
+      contentElements: [
+        {
+          id: 'about-title',
+          type: 'typography',
+          text: 'Лидер мобильных платежей в ОАЭ',
+          elementType: 'h2',
+          color: '#1e3a8a',
+          alignment: 'center',
+          animationSettings: {
+            animationType: 'fadeIn',
+            delay: 0,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'about-description',
+          type: 'rich-text',
+          title: 'Наша компания',
+          content: 'UAE Mobile Payments революционизирует цифровые транзакции в Эмиратах. Мы предоставляем **надежные**, *быстрые* и ***безопасные*** мобильные платежные решения для:\n\n• Физических лиц\n• Малого и среднего бизнеса\n• Крупных корпораций\n• Государственных учреждений\n\n### Наши достижения:\n- 🏆 Лучшая финтех-компания ОАЭ 2023\n- 🛡️ Сертификация ISO 27001\n- 📱 Более 1 млн скачиваний приложения\n- 🌟 Рейтинг 4.9/5 в App Store\n\n[Узнать больше о наших услугах](#services)',
+          showTitle: true,
+          titleColor: '#1e3a8a',
+          textColor: '#333333',
+          animationSettings: {
+            animationType: 'slideInLeft',
+            delay: 0.2,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'user-counter',
+          type: 'animated-counter',
+          title: 'Активных пользователей',
+          startValue: 0,
+          endValue: 750000,
+          suffix: '+',
+          duration: 2000,
+          titleColor: '#1e3a8a',
+          countColor: '#059669',
+          animationSettings: {
+            animationType: 'zoomIn',
+            delay: 0.6,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'transactions-counter',
+          type: 'animated-counter',
+          title: 'Транзакций в месяц',
+          startValue: 0,
+          endValue: 5000000,
+          suffix: '+',
+          duration: 2500,
+          titleColor: '#1e3a8a',
+          countColor: '#3b82f6',
+          animationSettings: {
+            animationType: 'zoomIn',
+            delay: 0.8,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'volume-counter',
+          type: 'animated-counter',
+          title: 'Млрд AED оборот',
+          startValue: 0,
+          endValue: 12,
+          suffix: '+',
+          duration: 1800,
+          titleColor: '#1e3a8a',
+          countColor: '#f59e0b',
+          animationSettings: {
+            animationType: 'zoomIn',
+            delay: 1.0,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'compliance-callout',
+          type: 'callout',
+          title: 'Регулятивное соответствие',
+          content: 'UAE Mobile Payments полностью соответствует требованиям Центрального банка ОАЭ (CBUAE), регулированию Emirates ID и международным стандартам безопасности финансовых операций. Мы регулярно проходим аудит и сертификацию.',
+          type: 'success',
+          showIcon: true,
+          backgroundColor: '#dcfce7',
+          borderColor: '#16a34a',
+          textColor: '#15803d',
+          animationSettings: {
+            animationType: 'slideInRight',
+            delay: 0.7,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'about-testimonial',
+          type: 'testimonial-card',
+          name: 'Ахмед Аль-Мактум',
+          role: 'Предприниматель',
+          company: 'Dubai Business Hub',
+          content: 'UAE Mobile Payments изменили мой подход к финансам. Теперь все операции занимают секунды, а безопасность на высшем уровне. Рекомендую всем!',
+          rating: 5,
+          avatar: '',
+          animationSettings: {
+            animationType: 'slideInUp',
+            delay: 0.5,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        }
+      ]
+    };
+
+    // Секция "Услуги" - значительно расширенная
+    newSections.services = {
+      id: 'services',
+      title: 'Наши услуги',
+      description: 'Полный спектр мобильных платежных решений и финансовых услуг',
+      titleColor: '#1e3a8a',
+      descriptionColor: '#6b7280',
+      backgroundColor: '#f8fafc',
+      showBackground: true,
+      cards: [],
+      aiElements: [],
+      contentElements: [
+        {
+          id: 'services-title',
+          type: 'typography',
+          text: 'Комплексные платежные решения для всех',
+          elementType: 'h2',
+          color: '#1e3a8a',
+          alignment: 'center',
+          animationSettings: {
+            animationType: 'fadeIn',
+            delay: 0,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'services-description',
+          type: 'rich-text',
+          title: 'Наши основные направления',
+          content: '### 💸 P2P Переводы\n- Мгновенные переводы между пользователями\n- Поддержка всех банков ОАЭ\n- Минимальные комиссии\n- Международные переводы\n\n### 🧾 Оплата счетов\n- Коммунальные услуги\n- Интернет и телефония\n- Страхование\n- Государственные услуги\n\n### 🏢 Бизнес-решения\n- Корпоративные счета\n- Массовые выплаты\n- API интеграция\n- Аналитика и отчеты\n\n### 📈 Инвестиции\n- Торговля акциями\n- Криптовалюты\n- Взаимные фонды\n- Роботы-советники',
+          showTitle: true,
+          titleColor: '#1e3a8a',
+          textColor: '#333333',
+          animationSettings: {
+            animationType: 'slideInLeft',
+            delay: 0.2,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'services-chart',
+          type: 'advanced-pie-chart',
+          title: 'Распределение использования услуг',
+          data: [
+            { name: 'P2P переводы', value: 35, fill: '#1e3a8a' },
+            { name: 'Оплата счетов', value: 28, fill: '#3b82f6' },
+            { name: 'Бизнес-решения', value: 15, fill: '#60a5fa' },
+            { name: 'Инвестиции', value: 12, fill: '#8b5cf6' },
+            { name: 'Страхование', value: 6, fill: '#ef4444' },
+            { name: 'Кредиты', value: 4, fill: '#06b6d4' }
+          ],
+          showLabels: true,
+          animationSettings: {
+            animationType: 'zoomIn',
+            delay: 0.5,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'services-timeline',
+          type: 'timeline-component',
+          title: 'Этапы развития наших услуг',
+          events: [
+            {
+              year: '2019',
+              title: 'Запуск P2P переводов',
+              description: 'Начали с базовых переводов между пользователями в ОАЭ'
+            },
+            {
+              year: '2020',
+              title: 'Оплата счетов',
+              description: 'Добавили возможность оплаты коммунальных услуг и телефонии'
+            },
+            {
+              year: '2021',
+              title: 'Бизнес-решения',
+              description: 'Запустили корпоративные функции и API для бизнеса'
+            },
+            {
+              year: '2022',
+              title: 'Инвестиционные продукты',
+              description: 'Интегрировали торговлю акциями и криптовалютами'
+            },
+            {
+              year: '2023',
+              title: 'Полная экосистема',
+              description: 'Добавили страхование, кредиты и AI-консультанта'
+            }
+          ],
+          animationSettings: {
+            animationType: 'slideInRight',
+            delay: 0.3,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'services-testimonial',
+          type: 'testimonial-card',
+          name: 'Фатима Аль-Заhra',
+          role: 'Финансовый директор',
+          company: 'Abu Dhabi Trading LLC',
+          content: 'Благодаря UAE Mobile Payments наш бизнес стал более эффективным. Особенно впечатляет скорость обработки массовых выплат сотрудникам.',
+          rating: 5,
+          avatar: '',
+          animationSettings: {
+            animationType: 'slideInUp',
+            delay: 0.4,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        }
+      ]
+    };
+
+    // Секция "Безопасность" - детальная
+    newSections.security = {
+      id: 'security',
+      title: 'Безопасность и защита',
+      description: 'Многоуровневая система защиты ваших средств и персональных данных',
+      titleColor: '#1e3a8a',
+      descriptionColor: '#6b7280',
+      backgroundColor: '#ffffff',
+      showBackground: true,
+      cards: [],
+      aiElements: [],
+      contentElements: [
+        {
+          id: 'security-title',
+          type: 'typography',
+          text: 'Ваша безопасность - наш приоритет',
+          elementType: 'h2',
+          color: '#1e3a8a',
+          alignment: 'center',
+          animationSettings: {
+            animationType: 'fadeIn',
+            delay: 0,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'security-description',
+          type: 'rich-text',
+          title: 'Технологии защиты',
+          content: '### 🔐 Многофакторная аутентификация\n- Биометрическое распознавание (отпечаток пальца, Face ID)\n- SMS и push-уведомления\n- Голосовое распознавание\n- Аппаратные токены для VIP-клиентов\n\n### 🛡️ Шифрование данных\n- 256-битное AES шифрование\n- End-to-end шифрование сообщений\n- Квантовое шифрование для крупных транзакций\n- Secure Element на устройстве\n\n### 🔍 Мониторинг и анализ\n- AI-система обнаружения мошенничества\n- Поведенческий анализ пользователей\n- Геолокационная проверка\n- Мониторинг темной сети',
+          showTitle: true,
+          titleColor: '#1e3a8a',
+          textColor: '#333333',
+          animationSettings: {
+            animationType: 'slideInLeft',
+            delay: 0.2,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'security-timeline',
+          type: 'timeline-component',
+          title: 'Уровни защиты',
+          events: [
+            {
+              year: 'Уровень 1',
+              title: 'Базовая защита',
+              description: 'PIN-код, SMS-подтверждение, базовое шифрование для всех пользователей'
+            },
+            {
+              year: 'Уровень 2',
+              title: 'Усиленная защита',
+              description: 'Биометрия, двухфакторная аутентификация, мониторинг транзакций'
+            },
+            {
+              year: 'Уровень 3',
+              title: 'Максимальная защита',
+              description: 'Аппаратная защита, квантовое шифрование, AI-анализ поведения'
+            },
+            {
+              year: 'Уровень 4',
+              title: 'Корпоративная защита',
+              description: 'Выделенная инфраструктура, персональные HSM, 24/7 мониторинг'
+            }
+          ],
+          animationSettings: {
+            animationType: 'slideInRight',
+            delay: 0.3,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'security-stats',
+          type: 'animated-counter',
+          title: '% времени безотказной работы',
+          startValue: 0,
+          endValue: 99.99,
+          suffix: '%',
+          duration: 2000,
+          titleColor: '#1e3a8a',
+          countColor: '#059669',
+          animationSettings: {
+            animationType: 'zoomIn',
+            delay: 0.6,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'incidents-counter',
+          type: 'animated-counter',
+          title: 'Успешных взломов за все время',
+          startValue: 0,
+          endValue: 0,
+          suffix: '',
+          duration: 1000,
+          titleColor: '#1e3a8a',
+          countColor: '#ef4444',
+          animationSettings: {
+            animationType: 'zoomIn',
+            delay: 0.8,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'security-warning',
+          type: 'alert-component',
+          content: 'Важно: Никогда не делитесь своим PIN-кодом, OTP или биометрическими данными с кем-либо. UAE Mobile Payments никогда не будет запрашивать эти данные по телефону или электронной почте.',
+          type: 'warning',
+          showIcon: true,
+          backgroundColor: '#fef3c7',
+          borderColor: '#f59e0b',
+          textColor: '#92400e',
+          animationSettings: {
+            animationType: 'slideInUp',
+            delay: 0.4,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'security-callout',
+          type: 'callout',
+          title: 'Сертификация безопасности',
+          content: 'Наша платформа прошла независимый аудит безопасности от ведущих международных компаний и получила сертификаты ISO 27001, PCI DSS Level 1 и SOC 2 Type II.',
+          type: 'success',
+          showIcon: true,
+          backgroundColor: '#d1fae5',
+          borderColor: '#059669',
+          textColor: '#065f46',
+          animationSettings: {
+            animationType: 'slideInUp',
+            delay: 0.5,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        }
+      ]
+    };
+
+    // Секция "Тарифы" - детальная с множеством элементов
+    newSections.pricing = {
+      id: 'pricing',
+      title: 'Прозрачные тарифы',
+      description: 'Выберите подходящий план для ваших потребностей без скрытых комиссий',
+      titleColor: '#1e3a8a',
+      descriptionColor: '#6b7280',
+      backgroundColor: '#f8fafc',
+      showBackground: true,
+      cards: [],
+      aiElements: [],
+      contentElements: [
+        {
+          id: 'pricing-title',
+          type: 'typography',
+          text: 'Выберите идеальный план',
+          elementType: 'h2',
+          color: '#1e3a8a',
+          alignment: 'center',
+          animationSettings: {
+            animationType: 'fadeIn',
+            delay: 0,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'pricing-description',
+          type: 'rich-text',
+          title: 'Тарифные планы',
+          content: '### 🆓 Базовый план - БЕСПЛАТНО\n- До 20 переводов в месяц\n- Комиссия 0.5% за перевод\n- Оплата счетов без комиссии\n- Поддержка 24/7\n- Лимит 10,000 AED за операцию\n\n### ⭐ Премиум план - 99 AED/месяц\n- Безлимитные переводы\n- Комиссия 0.3% за перевод\n- Приоритетная поддержка\n- Инвестиционные продукты\n- Лимит 50,000 AED за операцию\n\n### 🏢 Бизнес план - 499 AED/месяц\n- Корпоративные функции\n- Комиссия 0.2% за перевод\n- Массовые выплаты\n- API интеграция\n- Лимит 500,000 AED за операцию\n\n### 🏆 Корпоративный план - По запросу\n- Индивидуальные условия\n- Выделенная инфраструктура\n- Персональный менеджер\n- Без лимитов',
+          showTitle: true,
+          titleColor: '#1e3a8a',
+          textColor: '#333333',
+          animationSettings: {
+            animationType: 'slideInLeft',
+            delay: 0.2,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'pricing-table',
+          type: 'data-table',
+          title: 'Подробное сравнение функций',
+          columns: [
+            { id: 'feature', label: 'Функция' },
+            { id: 'basic', label: 'Базовый' },
+            { id: 'premium', label: 'Премиум' },
+            { id: 'business', label: 'Бизнес' },
+            { id: 'enterprise', label: 'Корпоративный' }
+          ],
+          rows: [
+            { id: 1, feature: 'P2P переводы', basic: 'До 20/месяц', premium: 'Безлимит', business: 'Безлимит', enterprise: 'Безлимит' },
+            { id: 2, feature: 'Комиссия', basic: '0.5%', premium: '0.3%', business: '0.2%', enterprise: 'Договорная' },
+            { id: 3, feature: 'Оплата счетов', basic: 'Бесплатно', premium: 'Бесплатно', business: 'Бесплатно', enterprise: 'Бесплатно' },
+            { id: 4, feature: 'Поддержка', basic: '24/7', premium: 'Приоритетная', business: 'Персональная', enterprise: 'Выделенная' },
+            { id: 5, feature: 'API доступ', basic: 'Нет', premium: 'Базовый', business: 'Полный', enterprise: 'Расширенный' },
+            { id: 6, feature: 'Лимит операции', basic: '10,000 AED', premium: '50,000 AED', business: '500,000 AED', enterprise: 'Без лимита' },
+            { id: 7, feature: 'Международные переводы', basic: 'Нет', premium: 'Есть', business: 'Есть', enterprise: 'Есть' },
+            { id: 8, feature: 'Аналитика', basic: 'Базовая', premium: 'Расширенная', business: 'Полная', enterprise: 'Кастомная' }
+          ],
+          animationSettings: {
+            animationType: 'slideInUp',
+            delay: 0.5,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'pricing-bar-chart',
+          type: 'bar-chart',
+          title: 'Популярность тарифов среди пользователей',
+          data: [
+            { label: 'Базовый', value: 45, color: '#10b981' },
+            { label: 'Премиум', value: 35, color: '#3b82f6' },
+            { label: 'Бизнес', value: 15, color: '#f59e0b' },
+            { label: 'Корпоративный', value: 5, color: '#8b5cf6' }
+          ],
+          showValues: true,
+          showGrid: true,
+          animate: true,
+          orientation: 'vertical',
+          animationSettings: {
+            animationType: 'slideInRight',
+            delay: 0.3,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'savings-counter',
+          type: 'animated-counter',
+          title: 'AED экономии клиентов в месяц',
+          startValue: 0,
+          endValue: 150000,
+          suffix: '+',
+          duration: 3000,
+          titleColor: '#1e3a8a',
+          countColor: '#059669',
+          animationSettings: {
+            animationType: 'zoomIn',
+            delay: 0.6,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'pricing-callout',
+          type: 'callout',
+          title: 'Специальное предложение',
+          content: 'Новые пользователи получают 3 месяца премиум-плана бесплатно при регистрации до конца месяца. Без обязательств и автопродления.',
+          type: 'success',
+          showIcon: true,
+          backgroundColor: '#d1fae5',
+          borderColor: '#059669',
+          textColor: '#065f46',
+          animationSettings: {
+            animationType: 'slideInUp',
+            delay: 0.4,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        }
+      ]
+    };
+    // Секция "Дополнительные возможности"
+    newSections.features = {
+      id: 'features',
+      title: 'Дополнительные возможности',
+      description: 'Инновационные функции для максимального удобства пользователей',
+      titleColor: '#1e3a8a',
+      descriptionColor: '#6b7280',
+      backgroundColor: '#ffffff',
+      showBackground: true,
+      cards: [],
+      aiElements: [],
+      contentElements: [
+        {
+          id: 'features-title',
+          type: 'typography',
+          text: 'Инновационные функции',
+          elementType: 'h2',
+          color: '#1e3a8a',
+          alignment: 'center',
+          animationSettings: {
+            animationType: 'fadeIn',
+            delay: 0,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'features-description',
+          type: 'rich-text',
+          title: 'Уникальные возможности',
+          content: '### 📱 QR-платежи\n- Мгновенная оплата в магазинах\n- Генерация персональных QR-кодов\n- Поддержка динамических QR-кодов\n- Интеграция с кассовыми системами\n\n### 📡 Бесконтактные платежи\n- NFC-технология\n- Поддержка Apple Pay и Google Pay\n- Оплата транспорта\n- Интеграция с умными часами\n\n### 🗣️ Голосовые команды\n- Управление на арабском и английском\n- Голосовые переводы\n- Проверка баланса голосом\n- Настройка голосовых уведомлений\n\n### 🤖 AI-помощник\n- Персональный финансовый консультант\n- Анализ трат и рекомендации\n- Прогнозирование расходов\n- Автоматическая категоризация',
+          showTitle: true,
+          titleColor: '#1e3a8a',
+          textColor: '#333333',
+          animationSettings: {
+            animationType: 'slideInLeft',
+            delay: 0.2,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'features-testimonial',
+          type: 'testimonial-card',
+          name: 'Мария Петрова',
+          role: 'Менеджер по маркетингу',
+          company: 'Dubai Marketing Solutions',
+          content: 'QR-платежи изменили мою жизнь! Теперь я не ношу с собой кошелек - все платежи через телефон. Особенно удобно в торговых центрах.',
+          rating: 5,
+          avatar: '',
+          animationSettings: {
+            animationType: 'slideInUp',
+            delay: 0.3,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        }
+      ]
+    };
+    // Секция "Отзывы клиентов" - новая страница
+    newSections.reviews = {
+      id: 'reviews',
+      title: 'Отзывы клиентов',
+      description: 'Что говорят наши клиенты о UAE Mobile Payments',
+      titleColor: '#1e3a8a',
+      descriptionColor: '#6b7280',
+      backgroundColor: '#ffffff',
+      showBackground: true,
+      cards: [],
+      aiElements: [],
+      contentElements: [
+        {
+          id: 'reviews-title',
+          type: 'typography',
+          text: 'Более 750,000 довольных клиентов',
+          elementType: 'h2',
+          color: '#1e3a8a',
+          alignment: 'center',
+          animationSettings: {
+            animationType: 'fadeIn',
+            delay: 0,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'reviews-description',
+          type: 'rich-text',
+          title: 'Доверие клиентов',
+          content: 'Наши клиенты - это наша главная ценность. Мы гордимся тем, что помогаем людям и бизнесу в ОАЭ управлять своими финансами быстро, безопасно и удобно.\n\n### 📊 Статистика отзывов:\n- **4.9/5** - средняя оценка в App Store\n- **4.8/5** - средняя оценка в Google Play\n- **98%** - уровень удовлетворенности клиентов\n- **95%** - клиенты рекомендуют нас друзьям\n\n### 🏆 Награды и признание:\n- Лучшее финтех-приложение ОАЭ 2023\n- Премия за инновации в области платежей\n- Сертификат качества обслуживания клиентов',
+          showTitle: true,
+          titleColor: '#1e3a8a',
+          textColor: '#333333',
+          animationSettings: {
+            animationType: 'slideInLeft',
+            delay: 0.2,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'rating-counter',
+          type: 'animated-counter',
+          title: 'Средняя оценка пользователей',
+          startValue: 0,
+          endValue: 4.9,
+          suffix: '/5',
+          duration: 2000,
+          titleColor: '#1e3a8a',
+          countColor: '#f59e0b',
+          animationSettings: {
+            animationType: 'zoomIn',
+            delay: 0.4,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'satisfaction-counter',
+          type: 'animated-counter',
+          title: '% довольных клиентов',
+          startValue: 0,
+          endValue: 98,
+          suffix: '%',
+          duration: 2500,
+          titleColor: '#1e3a8a',
+          countColor: '#10b981',
+          animationSettings: {
+            animationType: 'zoomIn',
+            delay: 0.6,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'recommendation-counter',
+          type: 'animated-counter',
+          title: '% рекомендуют друзьям',
+          startValue: 0,
+          endValue: 95,
+          suffix: '%',
+          duration: 2200,
+          titleColor: '#1e3a8a',
+          countColor: '#8b5cf6',
+          animationSettings: {
+            animationType: 'zoomIn',
+            delay: 0.8,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'review-1',
+          type: 'testimonial-card',
+          name: 'Ахмед Аль-Мансури',
+          role: 'Предприниматель',
+          company: 'Dubai Business Solutions',
+          content: 'UAE Mobile Payments революционизировали мой бизнес! Теперь я могу мгновенно переводить зарплату сотрудникам и оплачивать поставщиков. Безопасность на высшем уровне, а поддержка клиентов просто фантастическая. Рекомендую всем!',
+          rating: 5,
+          avatar: '',
+          animationSettings: {
+            animationType: 'slideInUp',
+            delay: 0.3,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'review-2',
+          type: 'testimonial-card',
+          name: 'Сара Аль-Заhra',
+          role: 'Менеджер по продажам',
+          company: 'Emirates Retail Group',
+          content: 'Пользуюсь UAE Mobile Payments уже 2 года. Это лучшее приложение для платежей в ОАЭ! Особенно нравится функция QR-платежей - больше не нужно носить с собой наличные. Все быстро, удобно и безопасно.',
+          rating: 5,
+          avatar: '',
+          animationSettings: {
+            animationType: 'slideInUp',
+            delay: 0.5,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'review-3',
+          type: 'testimonial-card',
+          name: 'Михаил Петров',
+          role: 'IT-директор',
+          company: 'Abu Dhabi Tech Hub',
+          content: 'Интегрировали API UAE Mobile Payments в нашу систему зарплат. Процесс интеграции был простым, документация отличная, а техническая поддержка помогла на каждом этапе. Сэкономили массу времени и денег!',
+          rating: 5,
+          avatar: '',
+          animationSettings: {
+            animationType: 'slideInUp',
+            delay: 0.7,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'review-4',
+          type: 'testimonial-card',
+          name: 'Фатима Аль-Нахян',
+          role: 'Домохозяйка',
+          company: 'Дубай',
+          content: 'Как мама троих детей, я ценю удобство UAE Mobile Payments. Оплачиваю школьные взносы, коммунальные услуги, покупки в супермаркете - все через одно приложение. Даже мой муж теперь пользуется только этим приложением!',
+          rating: 5,
+          avatar: '',
+          animationSettings: {
+            animationType: 'slideInUp',
+            delay: 0.9,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'review-5',
+          type: 'testimonial-card',
+          name: 'Джон Смит',
+          role: 'Экспат',
+          company: 'British Council UAE',
+          content: 'Переехал в Дубай год назад, и UAE Mobile Payments стали моим спасением. Переводы в Великобританию быстрые и недорогие, а местные платежи вообще без комиссии. Поддержка на английском языке отличная!',
+          rating: 5,
+          avatar: '',
+          animationSettings: {
+            animationType: 'slideInUp',
+            delay: 1.1,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'review-6',
+          type: 'testimonial-card',
+          name: 'Амина Хасан',
+          role: 'Студентка',
+          company: 'American University of Sharjah',
+          content: 'Будучи студенткой, я очень ценю низкие комиссии и удобство UAE Mobile Payments. Родители легко переводят мне деньги на учебу, а я могу оплачивать все необходимое. Приложение простое и понятное!',
+          rating: 5,
+          avatar: '',
+          animationSettings: {
+            animationType: 'slideInUp',
+            delay: 1.3,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'reviews-callout',
+          type: 'callout',
+          title: 'Присоединяйтесь к нашему сообществу',
+          content: 'Каждый день тысячи новых пользователей выбирают UAE Mobile Payments для своих финансовых потребностей. Станьте частью нашего растущего сообщества довольных клиентов!',
+          type: 'success',
+          showIcon: true,
+          backgroundColor: '#d1fae5',
+          borderColor: '#059669',
+          textColor: '#065f46',
+          animationSettings: {
+            animationType: 'slideInUp',
+            delay: 1.0,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'reviews-chart',
+          type: 'advanced-pie-chart',
+          title: 'Распределение пользователей по типам',
+          data: [
+            { name: 'Физические лица', value: 65, fill: '#3b82f6' },
+            { name: 'Малый бизнес', value: 20, fill: '#10b981' },
+            { name: 'Корпорации', value: 10, fill: '#f59e0b' },
+            { name: 'Студенты', value: 5, fill: '#8b5cf6' }
+          ],
+          showLabels: true,
+          animationSettings: {
+            animationType: 'zoomIn',
+            delay: 0.6,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'reviews-timeline',
+          type: 'timeline-component',
+          title: 'Рост доверия клиентов',
+          events: [
+            {
+              year: '2019',
+              title: 'Первые 1,000 пользователей',
+              description: 'Запуск с фокусом на качество и безопасность'
+            },
+            {
+              year: '2020',
+              title: '50,000 активных пользователей',
+              description: 'Рост доверия благодаря надежности сервиса'
+            },
+            {
+              year: '2021',
+              title: '200,000 довольных клиентов',
+              description: 'Расширение функций и улучшение UX'
+            },
+            {
+              year: '2022',
+              title: '500,000 пользователей',
+              description: 'Лидерство в сфере мобильных платежей'
+            },
+            {
+              year: '2023',
+              title: '750,000+ активных клиентов',
+              description: 'Признание как лучшая финтех-платформа ОАЭ'
+            }
+          ],
+          animationSettings: {
+            animationType: 'slideInLeft',
+            delay: 0.8,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        }
+      ]
+    };
+
+    // Секция "FAQ" - расширенная
+    newSections.faq = {
+      id: 'faq',
+      title: 'Часто задаваемые вопросы',
+      description: 'Ответы на самые популярные вопросы о наших услугах и платформе',
+      titleColor: '#1e3a8a',
+      descriptionColor: '#6b7280',
+      backgroundColor: '#f8fafc',
+      showBackground: true,
+      cards: [],
+      aiElements: [],
+      contentElements: [
+        {
+          id: 'faq-title',
+          type: 'typography',
+          text: 'Есть вопросы? У нас есть ответы!',
+          elementType: 'h2',
+          color: '#1e3a8a',
+          alignment: 'center',
+          animationSettings: {
+            animationType: 'fadeIn',
+            delay: 0,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'faq-accordion',
+          type: 'accordion',
+          title: 'Популярные вопросы',
+          items: [
+            {
+              id: 1,
+              title: 'Как зарегистрироваться в UAE Mobile Payments?',
+              content: 'Скачайте наше приложение из App Store или Google Play, затем следуйте процессу регистрации, используя ваш Emirates ID и номер мобильного телефона. Верификация обычно занимает 2-3 минуты и включает биометрическую проверку.'
+            },
+            {
+              id: 2,
+              title: 'Какие банки поддерживаются?',
+              content: 'Мы поддерживаем все основные банки ОАЭ: Emirates NBD, ADCB, FAB, RAKBANK, CBD, ENBD, Mashreq Bank, HSBC UAE, Citibank UAE, Standard Chartered UAE и многие другие лицензированные банки.'
+            },
+            {
+              id: 3,
+              title: 'Есть ли комиссия за транзакции?',
+              content: 'Базовые P2P переводы до 20 операций в месяц с комиссией 0.5%. Премиум планы предлагают неограниченные переводы с комиссией 0.3%. Бизнес планы имеют комиссию 0.2%. Первые 5 переводов каждый месяц бесплатны для всех.'
+            },
+            {
+              id: 4,
+              title: 'Насколько безопасны мои транзакции?',
+              content: 'Все транзакции используют банковское 256-битное шифрование, биометрическую аутентификацию и мониторинг мошенничества в реальном времени. Мы соблюдаем все требования безопасности CBUAE и международные стандарты. Средства застрахованы до 100,000 AED.'
+            },
+            {
+              id: 5,
+              title: 'Могут ли бизнесы использовать этот сервис?',
+              content: 'Да! Мы предлагаем комплексные бизнес-решения: массовые платежи, интеграцию с API, персональную поддержку, расширенную отчетность и соответствие корпоративным стандартам безопасности.'
+            },
+            {
+              id: 6,
+              title: 'Поддерживаются ли международные переводы?',
+              content: 'Да, мы поддерживаем переводы в более чем 50 стран мира через партнерскую сеть. Доступны переводы в USD, EUR, GBP, INR и другие валюты с конкурентными курсами.'
+            },
+            {
+              id: 7,
+              title: 'Как работает техническая поддержка?',
+              content: 'Наша поддержка работает 24/7 на арабском и английском языках. Доступны: чат в приложении, телефонная линия, email-поддержка и видеоконсультации для премиум-пользователей.'
+            },
+            {
+              id: 8,
+              title: 'Есть ли лимиты на операции?',
+              content: 'Лимиты зависят от тарифа: базовый план - 10,000 AED за операцию, премиум - 50,000 AED, бизнес - 500,000 AED. Суточные лимиты можно увеличить через дополнительную верификацию.'
+            }
+          ],
+          allowMultiple: false,
+          variant: 'outlined',
+          size: 'medium',
+          spacing: 'normal',
+          showIcons: true,
+          animationSettings: {
+            animationType: 'slideInUp',
+            delay: 0.2,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'support-stats',
+          type: 'animated-counter',
+          title: 'Средняя оценка поддержки',
+          startValue: 0,
+          endValue: 4.9,
+          suffix: '/5',
+          duration: 2000,
+          titleColor: '#1e3a8a',
+          countColor: '#f59e0b',
+          animationSettings: {
+            animationType: 'zoomIn',
+            delay: 0.4,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'response-time',
+          type: 'animated-counter',
+          title: 'Секунд среднее время ответа',
+          startValue: 0,
+          endValue: 30,
+          suffix: 'сек',
+          duration: 1500,
+          titleColor: '#1e3a8a',
+          countColor: '#10b981',
+          animationSettings: {
+            animationType: 'zoomIn',
+            delay: 0.6,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        },
+        {
+          id: 'cta-section',
+          type: 'cta-section',
+          title: 'Готовы начать?',
+          description: 'Присоединяйтесь к тысячам довольных клиентов, использующих UAE Mobile Payments для безопасных и быстрых платежей',
+          buttonText: 'Скачать приложение',
+          targetPage: 'contact',
+          alignment: 'center',
+          backgroundColor: '#1e3a8a',
+          textColor: '#ffffff',
+          buttonColor: '#fbbf24',
+          buttonTextColor: '#000000',
+          animationSettings: {
+            animationType: 'zoomIn',
+            delay: 0.8,
+            triggerOnView: true,
+            triggerOnce: true,
+            threshold: 0.1,
+            disabled: false
+          }
+        }
+      ]
+    };
+
+    // Создаем расширенные пункты меню (добавляем к существующим)
+    const newMenuItems = [
+      ...headerData.menuItems,
+      { id: 'about', text: '🏢 О нас', title: 'О нас', description: 'Мы - ведущий провайдер мобильных платежных решений в ОАЭ', link: '#about' },
+      { id: 'services', text: '💳 Услуги', title: 'Наши услуги', description: 'Полный спектр мобильных платежных решений', link: '#services' },
+      { id: 'security', text: '🔒 Безопасность', title: 'Безопасность', description: 'Максимальная защита ваших средств и данных', link: '#security' },
+      { id: 'pricing', text: '💰 Тарифы', title: 'Тарифы', description: 'Прозрачные и выгодные тарифы', link: '#pricing' },
+      { id: 'features', text: '⚡ Возможности', title: 'Возможности', description: 'Инновационные функции для удобства', link: '#features' },
+      { id: 'reviews', text: '⭐ Отзывы', title: 'Отзывы клиентов', description: 'Что говорят наши довольные клиенты', link: '#reviews' },
+      { id: 'faq', text: '❓ FAQ', title: 'FAQ', description: 'Ответы на популярные вопросы', link: '#faq' }
+    ];
+
+    // Обновляем данные
+    onHeaderChange({
+      ...headerData,
+      siteName: 'UAE Mobile Payments',
+      title: 'UAE Mobile Payments - Мобильные платежи в ОАЭ',
+      description: 'Лучшие решения для мобильных платежей в Объединенных Арабских Эмиратах',
+      language: 'ru',
+      backgroundColor: '#1e3a8a',
+      titleColor: '#ffffff',
+      linksColor: '#fbbf24',
+      siteBackgroundColor: '#f8fafc',
+      menuItems: newMenuItems
+    });
+
+    onSectionsChange(newSections);
+
+    // Настраиваем расширенную контактную информацию
+    onContactChange({
+      ...contactData,
+      title: 'Свяжитесь с нами',
+      description: 'Мы готовы ответить на все ваши вопросы о мобильных платежах в ОАЭ 24/7 на арабском и английском языках',
+      phone: '+971 4 123 4567',
+      email: 'info@uaemobilepayments.ae',
+      address: 'Dubai International Financial Centre, Gate Village 10, Level 2, Dubai, UAE',
+      backgroundColor: '#1e3a8a',
+      titleColor: '#ffffff',
+      descriptionColor: '#e2e8f0',
+      showBackground: true,
+      backgroundType: 'solid'
+    });
+
+    // Настраиваем расширенный футер
+    onFooterChange({
+      ...footerData,
+      siteName: 'UAE Mobile Payments',
+      description: 'Надежные мобильные платежи в Объединенных Арабских Эмиратах',
+      backgroundColor: '#1e3a8a',
+      textColor: '#ffffff',
+      linkColor: '#fbbf24',
+      showSocialLinks: true,
+      showLegalLinks: true,
+      contacts: 'Dubai, UAE | +971 4 123 4567 | info@uaemobilepayments.ae',
+      copyright: '© 2024 UAE Mobile Payments. Все права защищены. Лицензия CBUAE #12345.'
+    });
+
+    console.log('Создан расширенный сайт UAE Mobile Payments с множеством элементов и детальным содержанием');
+    alert('Расширенный сайт "UAE Mobile Payments" создан! Добавлены детализированные разделы с множеством элементов и богатым содержанием. Переключен в ручной режим для многостраничного превью.');
+  };
+
+  // Функция для автоматического добавления всех предустановленных секций
+  const handleAddAllPredefinedSections = () => {
+    const newMenuItems = [...headerData.menuItems];
+    const newSections = { ...sectionsData };
+    let addedCount = 0;
+
+    Object.entries(PREDEFINED_SECTIONS).forEach(([sectionKey, sectionTemplate]) => {
+      // Проверяем, не существует ли уже такая секция
+      const existingSection = headerData.menuItems.find(item => item.id === sectionKey);
+      if (existingSection) return;
+
+      const newMenuItem = {
+        id: sectionKey,
+        text: sectionTemplate.text,
+        title: sectionTemplate.title,
+        description: sectionTemplate.description,
+        image: '',
+        link: `#${sectionKey}`,
+        cardType: CARD_TYPES.SIMPLE,
+        backgroundColor: '#ffffff',
+        textColor: '#000000',
+        borderColor: '#e0e0e0',
+        shadowColor: 'rgba(0,0,0,0.1)',
+        gradientStart: '#ffffff',
+        gradientEnd: '#f5f5f5',
+        gradientDirection: 'to right'
+      };
+
+      newMenuItems.push(newMenuItem);
+
+      // Create new section with the same ID
+      const newSection = {
+        id: sectionKey,
+        title: sectionTemplate.title,
+        description: sectionTemplate.description,
+        cardType: CARD_TYPES.SIMPLE,
+        cards: [],
+        titleColor: '#1a237e',
+        descriptionColor: '#455a64'
+      };
+
+      newSections[sectionKey] = newSection;
+      addedCount++;
+    });
+
+    if (addedCount > 0) {
+      onHeaderChange({ ...headerData, menuItems: newMenuItems });
+      onSectionsChange(newSections);
+      console.log(`Автоматически добавлено ${addedCount} предустановленных секций`);
+      alert(`Добавлено ${addedCount} новых секций в меню!`);
+    } else {
+      alert('Все предустановленные секции уже добавлены!');
+    }
+  };
   const handleMenuItemChange = (id, field, value) => {
     console.log('handleMenuItemChange called:', { id, field, value });
     console.log('Current headerData:', headerData);
     
     // Update menu item
-    const updatedMenuItems = headerData.menuItems.map(item => {
-      if (item.id === id) {
+      const updatedMenuItems = headerData.menuItems.map(item => {
+        if (item.id === id) {
         // If ID changes, update link as well
         if (field === 'id') {
           return { ...item, [field]: value, link: `#${value}` };
@@ -1612,6 +3046,8 @@ const EditorPanel = ({
       return;
     }
 
+    console.log(`[EditorPanel] handleSectionChange - sectionId: ${sectionId}, field: ${field}, value:`, value);
+
     const updatedSections = {
       ...sectionsData,
       [sectionId]: {
@@ -1619,6 +3055,8 @@ const EditorPanel = ({
         [field]: value
       }
     };
+    
+    console.log('[EditorPanel] Updated sections data:', updatedSections);
     
     onSectionsChange(updatedSections);
   };
@@ -1760,7 +3198,6 @@ const EditorPanel = ({
       alert('Error loading images: ' + error.message);
     }
   };
-
   const handleCardChange = (sectionId, cardId, field, value) => {
     const section = sectionsData[sectionId];
     if (!section) return;
@@ -1859,6 +3296,3488 @@ const EditorPanel = ({
     console.log('Saving legal documents:', documents);
     if (onLegalDocumentsChange) {
       onLegalDocumentsChange(documents);
+    }
+  };
+  // Функция для генерации HTML элементов контента
+  const generateContentElementHTML = (element) => {
+    const elementId = `element-${element.id}`;
+    
+    // Извлекаем данные элемента
+    const elementData = element.data || element;
+    
+    // Функция для применения стилей из данных элемента
+    const getElementStyles = (data) => {
+      const styles = {};
+      
+      // Цвета
+      if (data.titleColor) styles.color = data.titleColor;
+      if (data.textColor) styles.color = data.textColor;
+      if (data.countColor) styles.color = data.countColor;
+      if (data.backgroundColor) styles.backgroundColor = data.backgroundColor;
+      if (data.borderColor) styles.borderColor = data.borderColor;
+      
+      // Размеры шрифта
+      if (data.fontSize) styles.fontSize = `${data.fontSize}px`;
+      if (data.fontWeight) styles.fontWeight = data.fontWeight;
+      if (data.fontFamily) styles.fontFamily = data.fontFamily;
+      
+      // Выравнивание
+      if (data.textAlign) styles.textAlign = data.textAlign;
+      
+      // Отступы и границы
+      if (data.padding) styles.padding = `${data.padding}px`;
+      if (data.borderRadius) styles.borderRadius = `${data.borderRadius}px`;
+      
+      return styles;
+    };
+    
+    // Функция для создания inline стилей
+    const createInlineStyles = (styles) => {
+      return Object.entries(styles)
+        .map(([key, value]) => `${key}: ${value}`)
+        .join('; ');
+    };
+    
+    switch (element.type) {
+      case 'gradient-text':
+      // Применяем colorSettings если они есть
+      const gradientColorSettings = element.colorSettings || element.data?.colorSettings || {};
+      
+      // Получаем цвета градиента из ColorSettings или fallback на старые значения
+      const gradientColor1 = gradientColorSettings.textFields?.gradient1 || elementData.color1 || '#ff6b6b';
+      const gradientColor2 = gradientColorSettings.textFields?.gradient2 || elementData.color2 || '#4ecdc4';
+      
+      // Стили контейнера с фоном
+      let gradientContainerStyles = `margin: 1rem 0; text-align: center; padding: ${elementData.padding || 16}px; border-radius: ${elementData.borderRadius || 8}px;`;
+      
+      if (gradientColorSettings.sectionBackground?.enabled) {
+        const { sectionBackground } = gradientColorSettings;
+        if (sectionBackground.useGradient) {
+          gradientContainerStyles += ` background: linear-gradient(${sectionBackground.gradientDirection}, ${sectionBackground.gradientColor1}, ${sectionBackground.gradientColor2});`;
+        } else {
+          gradientContainerStyles += ` background-color: ${sectionBackground.solidColor};`;
+        }
+        gradientContainerStyles += ` opacity: ${sectionBackground.opacity || 1};`;
+      }
+      
+      // Применяем дополнительные настройки
+      if (gradientColorSettings.borderColor) {
+        gradientContainerStyles += ` border: ${gradientColorSettings.borderWidth || 1}px solid ${gradientColorSettings.borderColor};`;
+      }
+      if (gradientColorSettings.borderRadius !== undefined) {
+        gradientContainerStyles += ` border-radius: ${gradientColorSettings.borderRadius}px;`;
+      }
+      if (gradientColorSettings.padding !== undefined) {
+        gradientContainerStyles += ` padding: ${gradientColorSettings.padding}px;`;
+      }
+      if (gradientColorSettings.boxShadow) {
+        gradientContainerStyles += ` box-shadow: 0 2px 8px rgba(0,0,0,0.1);`;
+      }
+      
+        return `
+        <div id="${elementId}" class="content-element gradient-text" style="${gradientContainerStyles}">
+            <h2 style="
+            background: linear-gradient(${elementData.direction || 'to right'}, ${gradientColor1}, ${gradientColor2});
+              -webkit-background-clip: text;
+              -webkit-text-fill-color: transparent;
+              background-clip: text;
+              font-size: ${elementData.fontSize || 24}px;
+              font-weight: ${elementData.fontWeight || 'bold'};
+              margin: 0;
+              display: inline-block;
+            ">${elementData.text || 'Градиентный текст'}</h2>
+          </div>
+        `;
+
+      case 'animated-counter':
+        // Применяем colorSettings если они есть
+        const animatedCounterColorSettings = element.colorSettings || element.data?.colorSettings || {};
+        const animatedCounterTitleColor = animatedCounterColorSettings.textFields?.title || elementData.titleColor || '#333333';
+        const animatedCounterCountColor = animatedCounterColorSettings.textFields?.content || elementData.countColor || '#1976d2';
+        const animatedCounterDescriptionColor = animatedCounterColorSettings.textFields?.author || elementData.descriptionColor || '#666666';
+        
+        // Стили контейнера с фоном
+        let animatedCounterContainerStyles = `margin: 2rem 0; text-align: center; padding: 2rem;`;
+        
+        if (animatedCounterColorSettings.sectionBackground?.enabled) {
+          const { sectionBackground } = animatedCounterColorSettings;
+          if (sectionBackground.useGradient) {
+            animatedCounterContainerStyles += ` background: linear-gradient(${sectionBackground.gradientDirection}, ${sectionBackground.gradientColor1}, ${sectionBackground.gradientColor2});`;
+          } else {
+            animatedCounterContainerStyles += ` background-color: ${sectionBackground.solidColor};`;
+          }
+          animatedCounterContainerStyles += ` opacity: ${sectionBackground.opacity || 1};`;
+        } else {
+          animatedCounterContainerStyles += ` background: rgba(255,255,255,0.1);`;
+        }
+        
+        // Применяем дополнительные настройки
+        if (animatedCounterColorSettings.borderColor) {
+          animatedCounterContainerStyles += ` border: ${animatedCounterColorSettings.borderWidth || 1}px solid ${animatedCounterColorSettings.borderColor};`;
+        }
+        if (animatedCounterColorSettings.borderRadius !== undefined) {
+          animatedCounterContainerStyles += ` border-radius: ${animatedCounterColorSettings.borderRadius}px;`;
+        } else {
+          animatedCounterContainerStyles += ` border-radius: 12px;`;
+        }
+        if (animatedCounterColorSettings.padding !== undefined) {
+          animatedCounterContainerStyles += ` padding: ${animatedCounterColorSettings.padding}px;`;
+        }
+        if (animatedCounterColorSettings.boxShadow) {
+          animatedCounterContainerStyles += ` box-shadow: 0 2px 8px rgba(0,0,0,0.1);`;
+        }
+        
+        return `
+          <div id="${elementId}" class="content-element animated-counter" style="${animatedCounterContainerStyles}">
+            <h3 style="
+              color: ${animatedCounterTitleColor};
+              margin-bottom: 1rem;
+              font-size: 1.5rem;
+            ">${elementData.title || 'Статистика'}</h3>
+            <div style="
+              font-size: 3rem;
+              font-weight: bold;
+              color: ${animatedCounterCountColor};
+              margin-bottom: 0.5rem;
+            ">
+              <span class="counter" 
+                    data-start="${elementData.startValue || 0}" 
+                    data-end="${elementData.endValue || 100}"
+                    data-duration="${elementData.duration || 2000}">
+                ${elementData.startValue || 0}
+              </span>
+              <span> ${elementData.suffix || ''}</span>
+            </div>
+            ${elementData.description ? `
+              <p style="
+                color: ${animatedCounterDescriptionColor};
+                font-size: 1rem;
+                margin-top: 0.5rem;
+              ">${elementData.description}</p>
+            ` : ''}
+          </div>
+        `;
+
+      case 'typewriter-text':
+        const texts = Array.isArray(elementData.texts) ? elementData.texts : ['Привет, мир!', 'Добро пожаловать', 'На наш сайт'];
+        
+        // Применяем colorSettings если они есть
+        const typewriterColorSettings = element.colorSettings || element.data?.colorSettings || {};
+        const typewriterTextColor = typewriterColorSettings.textFields?.content || elementData.textColor || '#333333';
+        
+        // Стили контейнера с фоном
+        let typewriterContainerStyles = `margin: 2rem 0; text-align: center; min-height: 60px; display: flex; align-items: center; justify-content: center;`;
+        
+        if (typewriterColorSettings.sectionBackground?.enabled) {
+          const { sectionBackground } = typewriterColorSettings;
+          if (sectionBackground.useGradient) {
+            typewriterContainerStyles += ` background: linear-gradient(${sectionBackground.gradientDirection}, ${sectionBackground.gradientColor1}, ${sectionBackground.gradientColor2});`;
+          } else {
+            typewriterContainerStyles += ` background-color: ${sectionBackground.solidColor};`;
+          }
+          typewriterContainerStyles += ` opacity: ${sectionBackground.opacity || 1};`;
+        }
+        
+        // Применяем дополнительные настройки
+        if (typewriterColorSettings.borderColor) {
+          typewriterContainerStyles += ` border: ${typewriterColorSettings.borderWidth || 1}px solid ${typewriterColorSettings.borderColor};`;
+        }
+        if (typewriterColorSettings.borderRadius !== undefined) {
+          typewriterContainerStyles += ` border-radius: ${typewriterColorSettings.borderRadius}px;`;
+        }
+        if (typewriterColorSettings.padding !== undefined) {
+          typewriterContainerStyles += ` padding: ${typewriterColorSettings.padding}px;`;
+        }
+        if (typewriterColorSettings.boxShadow) {
+          typewriterContainerStyles += ` box-shadow: 0 2px 8px rgba(0,0,0,0.1);`;
+        }
+        
+        return `
+          <style>
+            .typewriter-container {
+              min-height: ${(elementData.fontSize || 32) * 1.2}px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+              position: relative;
+            }
+            
+            .typewriter-text-content {
+              font-family: ${elementData.fontFamily || 'Courier New, monospace'};
+              white-space: nowrap;
+              overflow: hidden;
+            }
+            
+            .typewriter-cursor {
+              animation: blink 1s infinite;
+              margin-left: 2px;
+              color: ${typewriterTextColor};
+              font-family: ${elementData.fontFamily || 'Courier New, monospace'};
+              user-select: none;
+            }
+            
+            @keyframes blink {
+              0%, 50% { opacity: 1; }
+              51%, 100% { opacity: 0; }
+            }
+          </style>
+          <div id="${elementId}" class="content-element typewriter-text" style="${typewriterContainerStyles}">
+            <div class="typewriter typewriter-container" 
+                data-texts='${JSON.stringify(texts)}'
+                data-speed="${elementData.speed || 150}"
+                data-pause="${elementData.pauseTime || 2000}"
+                data-repeat="${elementData.repeat !== false}"
+                style="
+                  color: ${typewriterTextColor};
+                  font-size: ${elementData.fontSize || 32}px;
+                  font-weight: ${elementData.fontWeight || 'normal'};
+                  font-family: ${elementData.fontFamily || 'Courier New, monospace'};
+                  margin: 0;
+                ">
+                <span class="typewriter-text-content"></span><span class="typewriter-cursor">|</span>
+            </div>
+          </div>
+        `;
+
+      case 'highlight-text':
+        // Применяем colorSettings если они есть
+        const highlightColorSettings = element.colorSettings || element.data?.colorSettings || {};
+        const highlightTextColor = highlightColorSettings.textFields?.content || elementData.textColor || '#333333';
+        const highlightBgColor = highlightColorSettings.textFields?.highlight || elementData.highlightColor || '#ffeb3b';
+        
+        // Стили контейнера с фоном
+        let highlightContainerStyles = `margin: 1.5rem 0; padding: 1rem; text-align: center;`;
+        
+        if (highlightColorSettings.sectionBackground?.enabled) {
+          const { sectionBackground } = highlightColorSettings;
+          if (sectionBackground.useGradient) {
+            highlightContainerStyles += ` background: linear-gradient(${sectionBackground.gradientDirection}, ${sectionBackground.gradientColor1}, ${sectionBackground.gradientColor2});`;
+          } else {
+            highlightContainerStyles += ` background-color: ${sectionBackground.solidColor};`;
+          }
+          highlightContainerStyles += ` opacity: ${sectionBackground.opacity || 1};`;
+        }
+        
+        // Применяем дополнительные настройки
+        if (highlightColorSettings.borderColor) {
+          highlightContainerStyles += ` border: ${highlightColorSettings.borderWidth || 1}px solid ${highlightColorSettings.borderColor};`;
+        }
+        if (highlightColorSettings.borderRadius !== undefined) {
+          highlightContainerStyles += ` border-radius: ${highlightColorSettings.borderRadius}px;`;
+        }
+        if (highlightColorSettings.padding !== undefined) {
+          highlightContainerStyles += ` padding: ${highlightColorSettings.padding}px;`;
+        }
+        if (highlightColorSettings.boxShadow) {
+          highlightContainerStyles += ` box-shadow: 0 2px 8px rgba(0,0,0,0.1);`;
+        }
+        
+        return `
+          <div id="${elementId}" class="content-element highlight-text" style="${highlightContainerStyles}">
+            <p style="
+              font-size: ${elementData.fontSize || 16}px;
+              color: ${highlightTextColor};
+              background: ${highlightBgColor};
+              padding: 0.5rem 1rem;
+              border-radius: 8px;
+              display: inline-block;
+              margin: 0;
+            ">${elementData.text || 'Это важный текст с выделением'}</p>
+          </div>
+        `;
+
+      case 'testimonial-card':
+        const stars = '★'.repeat(Math.floor(elementData.rating || 5)) + '☆'.repeat(5 - Math.floor(elementData.rating || 5));
+        
+        // Применяем colorSettings если они есть
+        const testimonialColorSettings = element.colorSettings || element.data?.colorSettings || {};
+        const testimonialNameColor = testimonialColorSettings.textFields?.name || elementData.nameColor || '#1976d2';
+        const testimonialRoleColor = testimonialColorSettings.textFields?.role || elementData.roleColor || '#666666';
+        const testimonialCompanyColor = testimonialColorSettings.textFields?.company || elementData.companyColor || '#888888';
+        const testimonialContentColor = testimonialColorSettings.textFields?.content || elementData.contentColor || '#333333';
+        const testimonialRatingColor = testimonialColorSettings.textFields?.rating || '#ffc107';
+        
+        // Базовые стили контейнера
+        let testimonialContainerStyles = `
+            margin: 2rem 0;
+          display: flex;
+          flex-direction: column;
+          width: 100%;
+        `;
+        
+        // Применяем настройки фона из sectionBackground
+        if (testimonialColorSettings.sectionBackground?.enabled) {
+          const { sectionBackground } = testimonialColorSettings;
+          if (sectionBackground.useGradient) {
+            testimonialContainerStyles += ` background: linear-gradient(${sectionBackground.gradientDirection}, ${sectionBackground.gradientColor1}, ${sectionBackground.gradientColor2});`;
+          } else {
+            testimonialContainerStyles += ` background-color: ${sectionBackground.solidColor};`;
+          }
+          testimonialContainerStyles += ` opacity: ${sectionBackground.opacity || 1};`;
+        } else {
+          testimonialContainerStyles += ` background: rgba(255,255,255,0.9);`;
+        }
+        
+        // Применяем настройки границы
+        if (testimonialColorSettings.borderColor) {
+          testimonialContainerStyles += ` border: ${testimonialColorSettings.borderWidth || 1}px solid ${testimonialColorSettings.borderColor};`;
+        }
+        
+        // Применяем радиус углов
+        if (testimonialColorSettings.borderRadius !== undefined) {
+          testimonialContainerStyles += ` border-radius: ${testimonialColorSettings.borderRadius}px;`;
+        } else {
+          testimonialContainerStyles += ` border-radius: 8px;`;
+        }
+        
+        // Применяем внутренние отступы
+        if (testimonialColorSettings.padding !== undefined) {
+          testimonialContainerStyles += ` padding: ${testimonialColorSettings.padding}px;`;
+        } else {
+          testimonialContainerStyles += ` padding: 16px;`;
+        }
+        
+        // Применяем тень
+        if (testimonialColorSettings.boxShadow) {
+          testimonialContainerStyles += ` box-shadow: 0 2px 8px rgba(0,0,0,0.1);`;
+        }
+        
+        return `
+          <div id="${elementId}" class="content-element testimonial-card" style="${testimonialContainerStyles}">
+            <div style="display: flex; align-items: center; margin-bottom: 1rem;">
+              ${elementData.avatar ? `
+                <img src="${elementData.avatar}" alt="${elementData.name}" style="
+                  width: 60px;
+                  height: 60px;
+                  border-radius: 50%;
+                  margin-right: 1rem;
+                  object-fit: cover;
+                ">
+              ` : `
+                <div style="
+                  width: 60px;
+                  height: 60px;
+                  border-radius: 50%;
+                  background: linear-gradient(45deg, #1976d2, #64b5f6);
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  color: white;
+                  font-weight: bold;
+                  font-size: 1.5rem;
+                  margin-right: 1rem;
+                ">
+                  ${(elementData.name || 'И').charAt(0).toUpperCase()}
+                </div>
+              `}
+              <div>
+                <h4 style="margin: 0; color: ${testimonialNameColor}; font-size: 1.2rem;">${elementData.name || 'Иван Иванов'}</h4>
+                <p style="margin: 0; color: ${testimonialRoleColor}; font-size: 0.9rem;">${elementData.role || 'Генеральный директор'}</p>
+                <p style="margin: 0; color: ${testimonialCompanyColor}; font-size: 0.8rem;">${elementData.company || 'ООО "Компания"'}</p>
+              </div>
+            </div>
+            <div style="color: ${testimonialRatingColor}; margin-bottom: 1rem; font-size: 1.2rem;">
+              ${stars}
+            </div>
+            <p style="
+              color: ${testimonialContentColor};
+              font-style: italic;
+              line-height: 1.6;
+              margin: 0;
+            ">"${elementData.content || 'Отличный сервис! Рекомендую всем.'}"</p>
+          </div>
+        `;
+
+      case 'alert-component':
+        const alertColors = {
+          info: { bg: '#e3f2fd', border: '#1976d2', icon: 'ℹ️' },
+          warning: { bg: '#fff3e0', border: '#f57c00', icon: '⚠️' },
+          error: { bg: '#ffebee', border: '#d32f2f', icon: '❌' },
+          success: { bg: '#e8f5e8', border: '#388e3c', icon: '✅' }
+        };
+        const alertType = alertColors[element.type] || alertColors.info;
+        
+        return `
+          <div id="${elementId}" class="content-element alert-component" style="
+            margin: 1.5rem 0;
+            padding: 1rem 1.5rem;
+            background: ${alertType.bg};
+            border: 1px solid ${alertType.border};
+            border-radius: 8px;
+            border-left: 4px solid ${alertType.border};
+          ">
+            <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+              ${element.showIcon !== false ? `
+                <span style="font-size: 1.2rem; margin-top: 0.1rem;">
+                  ${alertType.icon}
+                </span>
+              ` : ''}
+              <div style="flex: 1;">
+                <h4 style="
+                  margin: 0 0 0.5rem 0;
+                  color: ${alertType.border};
+                  font-size: 1.1rem;
+                  font-weight: 600;
+                ">${element.title || 'Внимание!'}</h4>
+                <p style="
+                  margin: 0;
+                  color: #333;
+                  line-height: 1.5;
+                ">${element.message || 'Это важное уведомление'}</p>
+              </div>
+            </div>
+          </div>
+        `;
+
+      // Базовые текстовые элементы
+      case 'typography':
+        const headingTag = element.headingType || 'h2';
+        // Применяем colorSettings если они есть
+        const typographyColorSettings = element.colorSettings || element.data?.colorSettings || {};
+        const typographyTextColor = typographyColorSettings.textFields?.text || element.textColor || '#333333';
+        
+        // Стили контейнера с фоном
+        let typographyContainerStyles = `margin: 1rem 0; text-align: ${element.textAlign || 'left'};`;
+        if (typographyColorSettings.sectionBackground?.enabled) {
+          const { sectionBackground } = typographyColorSettings;
+          if (sectionBackground.useGradient) {
+            typographyContainerStyles += ` background: linear-gradient(${sectionBackground.gradientDirection}, ${sectionBackground.gradientColor1}, ${sectionBackground.gradientColor2});`;
+          } else {
+            typographyContainerStyles += ` background-color: ${sectionBackground.solidColor};`;
+          }
+          typographyContainerStyles += ` opacity: ${sectionBackground.opacity || 1};`;
+          typographyContainerStyles += ` border: ${typographyColorSettings.borderWidth || 1}px solid ${typographyColorSettings.borderColor || '#e0e0e0'};`;
+          typographyContainerStyles += ` border-radius: ${typographyColorSettings.borderRadius || 8}px;`;
+          typographyContainerStyles += ` padding: ${typographyColorSettings.padding || 16}px;`;
+          if (typographyColorSettings.boxShadow) {
+            typographyContainerStyles += ` box-shadow: 0 2px 8px rgba(0,0,0,0.1);`;
+          }
+        }
+        
+        return `
+          <div id="${elementId}" class="content-element typography" style="${typographyContainerStyles}">
+            <${headingTag} style="
+              color: ${typographyTextColor};
+              margin: 0;
+              font-size: ${headingTag === 'h1' ? '2.5rem' : headingTag === 'h2' ? '2rem' : headingTag === 'h3' ? '1.5rem' : '1.2rem'};
+            ">${element.text || 'Заголовок или текст'}</${headingTag}>
+          </div>
+        `;
+
+      case 'rich-text':
+        const parseMarkdown = (text) => {
+          if (!text) return '';
+          return text
+            .replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>')
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+            .replace(/\`([^\`]+)\`/g, '<code style="background: #f4f4f4; padding: 2px 4px; border-radius: 3px; font-family: \'Courier New\', monospace; font-size: 0.9em;">$1</code>')
+            .replace(/\n\n/g, '</p><p>')
+            .replace(/\n/g, '<br>');
+        };
+        
+        // Применяем colorSettings если они есть
+        const richTextColorSettings = element.colorSettings || element.data?.colorSettings || {};
+        const richTextTitleColor = richTextColorSettings.textFields?.title || (element.data?.titleColor || element.titleColor || '#1976d2');
+        const richTextContentColor = richTextColorSettings.textFields?.content || (element.data?.textColor || element.textColor || '#333333');
+        const richTextBorderColor = richTextColorSettings.textFields?.border || (element.data?.borderColor || element.borderColor || '#1976d2');
+        
+        // Стили контейнера с фоном
+        let richTextContainerStyles = `margin: 1.5rem 0; padding: ${element.data?.padding || element.padding || 16}px; border-radius: ${element.data?.borderRadius || element.borderRadius || 8}px; border-left: 4px solid ${richTextBorderColor};`;
+        
+        if (richTextColorSettings.sectionBackground?.enabled) {
+          const { sectionBackground } = richTextColorSettings;
+          if (sectionBackground.useGradient) {
+            richTextContainerStyles += ` background: linear-gradient(${sectionBackground.gradientDirection}, ${sectionBackground.gradientColor1}, ${sectionBackground.gradientColor2});`;
+          } else {
+            richTextContainerStyles += ` background-color: ${sectionBackground.solidColor};`;
+          }
+          richTextContainerStyles += ` opacity: ${sectionBackground.opacity || 1};`;
+        } else {
+          richTextContainerStyles += ` background: ${element.data?.backgroundColor || element.backgroundColor || '#fafafa'};`;
+        }
+        
+        // Применяем дополнительные настройки
+        if (richTextColorSettings) {
+          if (richTextColorSettings.borderColor) {
+            richTextContainerStyles += ` border: ${richTextColorSettings.borderWidth || 1}px solid ${richTextColorSettings.borderColor};`;
+          }
+          if (richTextColorSettings.borderRadius !== undefined) {
+            richTextContainerStyles += ` border-radius: ${richTextColorSettings.borderRadius}px;`;
+          }
+          if (richTextColorSettings.padding !== undefined) {
+            richTextContainerStyles += ` padding: ${richTextColorSettings.padding}px;`;
+          }
+          if (richTextColorSettings.boxShadow) {
+            richTextContainerStyles += ` box-shadow: 0 2px 8px rgba(0,0,0,0.1);`;
+          }
+        } else if (element.boxShadow) {
+          richTextContainerStyles += ` box-shadow: 0 2px 8px rgba(0,0,0,0.1);`;
+        }
+        
+        return `
+          <div id="${elementId}" class="content-element rich-text" style="${richTextContainerStyles}">
+            ${(element.data?.showTitle !== undefined ? element.data.showTitle : element.showTitle) !== false ? `
+              <h3 style="
+                color: ${richTextTitleColor};
+                margin: 0 0 1rem 0;
+                font-size: ${element.data?.titleFontSize || element.titleFontSize || '1.25rem'};
+                font-family: ${element.data?.fontFamily || element.fontFamily || 'inherit'};
+                font-weight: ${element.data?.titleFontWeight || element.titleFontWeight || 'normal'};
+              ">${element.data?.title || element.title || 'Богатый текст'}</h3>
+            ` : ''}
+            <div class="rich-content" style="
+              color: ${richTextContentColor};
+              line-height: 1.6;
+              font-size: ${element.data?.fontSize || element.fontSize || '1rem'};
+              font-family: ${element.data?.fontFamily || element.fontFamily || 'inherit'};
+              text-align: ${element.data?.textAlign || element.textAlign || 'left'};
+            ">
+              <p>${parseMarkdown(element.data?.content || element.content || 'Текст с **жирным**, *курсивом*, ***жирным курсивом***\n\nВторой абзац с [ссылкой](https://example.com)')}</p>
+            </div>
+          </div>
+        `;
+
+      case 'code-block':
+        const codeLines = (element.data?.code || element.code || 'function hello() {\n  console.log("Hello, World!");\n}').split('\n');
+        const showLineNumbers = (element.data?.showLineNumbers !== undefined ? element.data.showLineNumbers : element.showLineNumbers) !== false;
+        
+        return `
+          <div id="${elementId}" class="content-element code-block" style="
+            margin: 1.5rem 0;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          ">
+            ${(element.data?.showTitle !== undefined ? element.data.showTitle : element.showTitle) !== false ? `
+              <div style="
+                background: #333333;
+                color: white;
+                padding: 0.75rem 1rem;
+                font-size: 0.9rem;
+                font-weight: 500;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+              ">
+                <span>📄</span>
+                ${element.data?.title || element.title || 'Блок кода'} (${element.data?.language || element.language || 'javascript'})
+              </div>
+            ` : ''}
+            <div style="
+              background: #2d2d2d;
+              color: #f8f8f2;
+              padding: 1rem;
+              font-family: 'Courier New', Monaco, monospace;
+              font-size: 0.9rem;
+              line-height: 1.5;
+              overflow-x: auto;
+              position: relative;
+            ">
+              ${showLineNumbers ? `
+                <div style="
+                  position: absolute;
+                  left: 0;
+                  top: 1rem;
+                  bottom: 1rem;
+                  width: 2.5rem;
+                  background: #1a1a1a;
+                  color: #666;
+                  padding: 0 0.5rem;
+                  font-size: 0.8rem;
+                  text-align: right;
+                  line-height: 1.5;
+                  border-right: 1px solid #444;
+                ">
+                  ${codeLines.map((_, i) => `<div>${i + 1}</div>`).join('')}
+                </div>
+              ` : ''}
+              <pre style="
+                margin: 0;
+                padding: 0;
+                ${showLineNumbers ? 'padding-left: 3rem;' : ''}
+                color: #f8f8f2;
+                background: transparent;
+              "><code>${codeLines.join('\n')}</code></pre>
+            </div>
+          </div>
+        `;
+
+      case 'callout':
+
+        const calloutTypes = {
+          info: { bg: '#e3f2fd', border: '#1976d2', icon: 'ℹ️', label: 'Информация' },
+          warning: { bg: '#fff3e0', border: '#f57c00', icon: '⚠️', label: 'Предупреждение' },
+          error: { bg: '#ffebee', border: '#d32f2f', icon: '❌', label: 'Ошибка' },
+          success: { bg: '#e8f5e8', border: '#388e3c', icon: '✅', label: 'Успех' },
+          note: { bg: '#f3e5f5', border: '#7b1fa2', icon: '📝', label: 'Заметка' },
+          tip: { bg: '#e8f8f5', border: '#00796b', icon: '💡', label: 'Совет' },
+          question: { bg: '#e3f2fd', border: '#1976d2', icon: '❓', label: 'Вопрос' },
+          important: { bg: '#fff3e0', border: '#f57c00', icon: '⭐', label: 'Важно' },
+          security: { bg: '#e8f5e8', border: '#388e3c', icon: '🔒', label: 'Безопасность' }
+        };
+        // Определяем тип выноски (учитываем пользовательский тип)
+        let calloutType;
+        if ((element.data?.type === 'custom' || element.type === 'custom' || 
+             element.data?.calloutType === 'custom' || element.calloutType === 'custom' || 
+             element.data?.isCustomType || element.isCustomType) && 
+            (element.data?.customTypeName || element.customTypeName)) {
+          // Пользовательский тип
+          calloutType = {
+            bg: element.data?.backgroundColor || element.backgroundColor || '#f5f5f5',
+            border: element.data?.borderColor || element.borderColor || '#999999', 
+            icon: 'ℹ️',
+            label: element.data?.customTypeName || element.customTypeName || 'Пользовательский'
+          };
+        } else {
+          // Стандартный тип
+          calloutType = calloutTypes[element.data?.type || element.type || element.data?.calloutType || element.calloutType] || calloutTypes.info;
+        }
+        
+                // Применяем colorSettings если они есть
+        const calloutColorSettings = element.colorSettings || element.data?.colorSettings || {};
+        const calloutTitleColor = calloutColorSettings.textFields?.title || 
+                                 (element.data?.textColor || element.textColor || (element.titleColor || calloutType.border));
+        const calloutContentColor = calloutColorSettings.textFields?.content || 
+                                   (element.data?.textColor || element.textColor || (element.contentColor || '#333333'));
+        const calloutBorderColor = calloutColorSettings.textFields?.border || 
+                                   (element.data?.borderColor || element.borderColor || calloutType.border);
+        const calloutIconColor = calloutColorSettings.textFields?.icon || calloutBorderColor;
+        const calloutTypeColor = calloutColorSettings.textFields?.type || calloutBorderColor;
+        
+        // Стили контейнера с фоном
+        let calloutContainerStyles = `margin: 1.5rem 0; padding: ${element.padding || 16}px ${element.padding || 24}px; border-radius: ${element.borderRadius || 8}px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); position: relative;`;
+        
+        if (calloutColorSettings.sectionBackground?.enabled) {
+          const { sectionBackground } = calloutColorSettings;
+          if (sectionBackground.useGradient) {
+            calloutContainerStyles += ` background: linear-gradient(${sectionBackground.gradientDirection}, ${sectionBackground.gradientColor1}, ${sectionBackground.gradientColor2});`;
+          } else {
+            calloutContainerStyles += ` background-color: ${sectionBackground.solidColor};`;
+          }
+          calloutContainerStyles += ` opacity: ${sectionBackground.opacity || 1};`;
+        } else {
+          const calloutBgColor = element.data?.backgroundColor || element.backgroundColor || calloutType.bg;
+          calloutContainerStyles += ` background: ${calloutBgColor};`;
+        }
+        
+        calloutContainerStyles += ` border: 1px solid ${calloutBorderColor}; border-left: 4px solid ${calloutBorderColor};`;
+        
+        // Применяем дополнительные настройки
+        if (calloutColorSettings) {
+          if (calloutColorSettings.borderColor) {
+            calloutContainerStyles += ` border: ${calloutColorSettings.borderWidth || 1}px solid ${calloutColorSettings.borderColor};`;
+          }
+          if (calloutColorSettings.borderRadius !== undefined) {
+            calloutContainerStyles += ` border-radius: ${calloutColorSettings.borderRadius}px;`;
+          }
+          if (calloutColorSettings.padding !== undefined) {
+            calloutContainerStyles += ` padding: ${calloutColorSettings.padding}px;`;
+          }
+          if (calloutColorSettings.boxShadow) {
+            calloutContainerStyles += ` box-shadow: 0 2px 8px rgba(0,0,0,0.1);`;
+          }
+        }
+        
+        return `
+          <div id="${elementId}" class="content-element callout callout-${element.type || element.calloutType || 'info'}" style="${calloutContainerStyles}">
+            <div class="callout-header" style="display: flex; align-items: flex-start; gap: 0.75rem;">
+              ${(element.data?.showIcon !== undefined ? element.data.showIcon : element.showIcon) !== false ? `
+                <span class="callout-icon" style="
+                  font-size: ${element.iconSize || 20}px;
+                  margin-top: 0.1rem;
+                  flex-shrink: 0;
+                  color: ${calloutIconColor};
+                ">
+                  ${calloutType.icon}
+                </span>
+              ` : ''}
+              <div class="callout-content" style="flex: 1;">
+                <h4 class="callout-title" style="
+                  margin: 0 0 0.5rem 0;
+                  color: ${calloutTitleColor};
+                  font-size: ${element.titleFontSize ? element.titleFontSize + 'px' : '1.1rem'};
+                  font-weight: ${element.titleFontWeight || 600};
+                  font-family: ${element.fontFamily || 'inherit'};
+                ">${element.data?.title || element.title || 'Важная информация'}</h4>
+                <p class="callout-text" style="
+                  margin: 0;
+                  color: ${calloutContentColor};
+                  line-height: 1.5;
+                  font-size: ${element.fontSize ? element.fontSize + 'px' : '0.95rem'};
+                  font-family: ${element.fontFamily || 'inherit'};
+                ">${element.data?.content || element.content || 'Это важная информация, которую пользователи должны заметить.'}</p>
+                ${(element.footnote || element.data?.footnote) ? `
+                  <p class="callout-footnote" style="
+                    margin: 0.5rem 0 0 0;
+                    color: ${calloutColorSettings.textFields?.footnote || '#888888'};
+                    font-size: 0.75rem;
+                    font-style: italic;
+                    opacity: 0.8;
+                    line-height: 1.4;
+                  ">${element.footnote || element.data?.footnote}</p>
+                ` : ''}
+              </div>
+            </div>
+            
+            <!-- Индикатор типа выноски -->
+            <div style="
+              position: absolute;
+              bottom: 8px;
+              right: 8px;
+            ">
+              <span style="
+                display: inline-block;
+                padding: 2px 6px;
+                font-size: 10px;
+                background-color: rgba(255,255,255,0.8);
+                border: 1px solid ${calloutTypeColor};
+                border-radius: 12px;
+                color: ${calloutTypeColor};
+                font-weight: 500;
+              ">${calloutType.label}</span>
+            </div>
+          </div>
+        `;
+
+      case 'blockquote':
+        const borderPosition = element.data?.borderPosition || element.borderPosition || 'left';
+        const borderClass = `border-${borderPosition}`;
+        
+        // Применяем colorSettings если они есть
+        const blockquoteColorSettings = element.colorSettings || element.data?.colorSettings || {};
+        const blockquoteTitleColor = blockquoteColorSettings.textFields?.title || (element.data?.titleColor || element.titleColor || element.data?.quoteColor || element.quoteColor || '#555555');
+        const blockquoteContentColor = blockquoteColorSettings.textFields?.content || (element.data?.quoteColor || element.quoteColor || '#555555');
+        const blockquoteAuthorColor = blockquoteColorSettings.textFields?.author || (element.data?.authorColor || element.authorColor || '#888888');
+        const blockquoteBorderColor = blockquoteColorSettings.textFields?.border || (element.data?.borderColor || element.borderColor || '#dee2e6');
+        
+        // Определяем стиль границы в зависимости от позиции
+        let borderStyle = '';
+        const borderWidth = element.data?.borderWidth || element.borderWidth || 4;
+        
+        switch (borderPosition) {
+          case 'left':
+            borderStyle = `border-left: ${borderWidth}px solid ${blockquoteBorderColor};`;
+            break;
+          case 'right':
+            borderStyle = `border-right: ${borderWidth}px solid ${blockquoteBorderColor};`;
+            break;
+          case 'top':
+            borderStyle = `border-top: ${borderWidth}px solid ${blockquoteBorderColor};`;
+            break;
+          case 'bottom':
+            borderStyle = `border-bottom: ${borderWidth}px solid ${blockquoteBorderColor};`;
+            break;
+          case 'around':
+            borderStyle = `border: ${borderWidth}px solid ${blockquoteBorderColor};`;
+            break;
+        }
+        
+        // Стили контейнера с фоном
+        let blockquoteContainerStyles = `margin: 1.5rem 0; padding: ${element.padding || 20}px; border-radius: ${element.borderRadius || 8}px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: ${element.textAlign || 'left'}; font-family: ${element.fontFamily || 'Georgia'};`;
+        
+        if (blockquoteColorSettings.sectionBackground?.enabled) {
+          const { sectionBackground } = blockquoteColorSettings;
+          if (sectionBackground.useGradient) {
+            blockquoteContainerStyles += ` background: linear-gradient(${sectionBackground.gradientDirection}, ${sectionBackground.gradientColor1}, ${sectionBackground.gradientColor2});`;
+          } else {
+            blockquoteContainerStyles += ` background-color: ${sectionBackground.solidColor};`;
+          }
+          blockquoteContainerStyles += ` opacity: ${sectionBackground.opacity || 1};`;
+        } else {
+        // Определяем фон (градиент или обычный)
+          const useGradient = element.data?.useGradient !== undefined ? element.data.useGradient : element.useGradient;
+          const backgroundStyle = useGradient ? 
+            `background: linear-gradient(${element.data?.gradientDirection || element.gradientDirection || 'to right'}, ${element.data?.gradientColor1 || element.gradientColor1 || '#f8f9fa'}, ${element.data?.gradientColor2 || element.gradientColor2 || '#ffffff'});` : 
+            `background: ${element.data?.backgroundColor || element.backgroundColor || '#f8f9fa'};`;
+          blockquoteContainerStyles += ` ${backgroundStyle}`;
+        }
+        
+        blockquoteContainerStyles += ` ${borderStyle}`;
+        
+        // Применяем дополнительные настройки
+        if (blockquoteColorSettings) {
+          if (blockquoteColorSettings.borderColor) {
+            blockquoteContainerStyles += ` border: ${blockquoteColorSettings.borderWidth || 1}px solid ${blockquoteColorSettings.borderColor};`;
+          }
+          if (blockquoteColorSettings.borderRadius !== undefined) {
+            blockquoteContainerStyles += ` border-radius: ${blockquoteColorSettings.borderRadius}px;`;
+          }
+          if (blockquoteColorSettings.padding !== undefined) {
+            blockquoteContainerStyles += ` padding: ${blockquoteColorSettings.padding}px;`;
+          }
+          if (blockquoteColorSettings.boxShadow) {
+            blockquoteContainerStyles += ` box-shadow: 0 2px 8px rgba(0,0,0,0.1);`;
+          }
+        }
+        
+        return `
+          <div id="${elementId}" class="content-element blockquote ${borderClass}" style="${blockquoteContainerStyles}">
+            <blockquote style="margin: 0; position: relative;">
+              ${(element.data?.showTitle !== undefined ? element.data.showTitle : element.showTitle) && (element.data?.title || element.title) ? `
+                <div class="quote-title" style="
+                  color: ${blockquoteTitleColor};
+                  font-weight: 600;
+                  margin-bottom: 0.5rem;
+                  font-size: ${element.data?.titleFontSize || element.titleFontSize || '1.1rem'};
+                ">${element.data?.title || element.title}</div>
+              ` : ''}
+              <p class="quote-text" style="
+                color: ${blockquoteContentColor};
+                font-size: ${element.data?.quoteFontSize || element.quoteFontSize || 18}px;
+                line-height: 1.6;
+                margin: 0 0 1rem 0;
+                font-style: ${(element.data?.italic !== undefined ? element.data.italic : element.italic) !== false ? 'italic' : 'normal'};
+                font-weight: ${element.data?.fontWeight || element.fontWeight || 'normal'};
+              ">"${element.data?.quote || element.quote || 'Это цитата для демонстрации'}"</p>
+              ${(element.data?.showAuthor !== undefined ? element.data.showAuthor : element.showAuthor) !== false && (element.data?.author || element.author) ? `
+                <footer class="quote-author" style="
+                  color: ${blockquoteAuthorColor};
+                  font-size: ${element.data?.authorFontSize || element.authorFontSize || 14}px;
+                  text-align: right;
+                  opacity: 0.8;
+                ">
+                  — ${element.data?.author || element.author}${(element.data?.showSource !== undefined ? element.data.showSource : element.showSource) !== false && (element.data?.source || element.source) ? ', ' + (element.data?.source || element.source) : ''}
+                </footer>
+              ` : ''}
+            </blockquote>
+          </div>
+        `;
+
+      case 'list':
+        const listType = element.data?.listType || element.listType || 'bulleted';
+        const listTag = listType === 'numbered' ? 'ol' : 'ul';
+        const items = element.data?.items || element.items || element.initialItems || ['Первый элемент', 'Второй элемент', 'Третий элемент'];
+        
+        // Применяем colorSettings если они есть
+        const listColorSettings = element.colorSettings || element.data?.colorSettings || {};
+        const listItemColor = listColorSettings.textFields?.item || (element.data?.itemColor || element.itemColor || '#333333');
+        const listMarkerColor = listColorSettings.textFields?.marker || (element.data?.accentColor || element.accentColor || '#1976d2');
+        
+        // Определяем классы для стилизации
+        const spacingClass = `spacing-${element.data?.spacing || element.spacing || 'normal'}`;
+        let typeClass = '';
+        
+        if (listType === 'bulleted') {
+          typeClass = `bullet-${element.data?.bulletStyle || element.bulletStyle || 'circle'}`;
+        } else if (listType === 'numbered') {
+          typeClass = `number-${element.data?.numberStyle || element.numberStyle || 'decimal'}`;
+        }
+        
+        // Определяем отступы для разных типов spacing
+        const spacingMap = {
+          compact: '0.25rem',
+          normal: '0.5rem',
+          relaxed: '1rem',
+          loose: '1.5rem'
+        };
+        const itemSpacing = spacingMap[element.data?.spacing || element.spacing] || '0.5rem';
+        
+        // Стили контейнера с фоном
+        let listContainerStyles = `margin: 1.5rem 0; padding: 0;`;
+        
+        if (listColorSettings.sectionBackground?.enabled) {
+          const { sectionBackground } = listColorSettings;
+          if (sectionBackground.useGradient) {
+            listContainerStyles += ` background: linear-gradient(${sectionBackground.gradientDirection}, ${sectionBackground.gradientColor1}, ${sectionBackground.gradientColor2});`;
+          } else {
+            listContainerStyles += ` background-color: ${sectionBackground.solidColor};`;
+          }
+          listContainerStyles += ` opacity: ${sectionBackground.opacity || 1};`;
+        }
+        
+        // Применяем дополнительные настройки
+        if (listColorSettings) {
+          if (listColorSettings.borderColor) {
+            listContainerStyles += ` border: ${listColorSettings.borderWidth || 1}px solid ${listColorSettings.borderColor};`;
+          }
+          if (listColorSettings.borderRadius !== undefined) {
+            listContainerStyles += ` border-radius: ${listColorSettings.borderRadius}px;`;
+          }
+          if (listColorSettings.padding !== undefined) {
+            listContainerStyles += ` padding: ${listColorSettings.padding}px;`;
+          }
+          if (listColorSettings.boxShadow) {
+            listContainerStyles += ` box-shadow: 0 2px 8px rgba(0,0,0,0.1);`;
+          }
+        }
+        
+        // Функции для получения маркеров (аналогично ListComponent)
+        const getBulletIcon = (style) => {
+          const bulletConfig = {
+            'circle': '●',
+            'square': '■', 
+            'arrow': '→',
+            'dash': '–',
+            'dot': '•'
+          };
+          return bulletConfig[style] || '●';
+        };
+
+        const getNumberPrefix = (index, style) => {
+          switch (style) {
+            case 'decimal':
+              return `${index + 1}.`;
+            case 'alpha-lower':
+              return `${String.fromCharCode(97 + index)}.`;
+            case 'alpha-upper':
+              return `${String.fromCharCode(65 + index)}.`;
+            case 'roman-lower':
+              return `${toRoman(index + 1).toLowerCase()}.`;
+            case 'roman-upper':
+              return `${toRoman(index + 1)}.`;
+            default:
+              return `${index + 1}.`;
+          }
+        };
+
+        const toRoman = (num) => {
+          const values = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
+          const symbols = ['M', 'CM', 'D', 'CD', 'C', 'XC', 'L', 'XL', 'X', 'IX', 'V', 'IV', 'I'];
+          let result = '';
+          for (let i = 0; i < values.length; i++) {
+            while (num >= values[i]) {
+              result += symbols[i];
+              num -= values[i];
+            }
+          }
+          return result;
+        };
+        
+        return `
+          <div id="${elementId}" class="content-element list ${spacingClass} ${typeClass}" style="${listContainerStyles}">
+            ${(element.data?.title || element.title) ? `
+              <h3 style="
+                margin: 0 0 1rem 0;
+                color: ${listColorSettings.textFields?.title || (element.data?.titleColor || element.titleColor || '#333333')};
+                font-size: ${element.data?.titleFontSize || element.titleFontSize || '1.25rem'};
+                font-weight: ${element.data?.titleFontWeight || element.titleFontWeight || 'bold'};
+              ">${element.data?.title || element.title}</h3>
+            ` : ''}
+            <div style="
+              color: ${listItemColor};
+              line-height: 1.6;
+              font-family: ${element.data?.fontFamily || element.fontFamily || 'inherit'};
+              font-size: ${element.data?.fontSize || element.fontSize || 'inherit'};
+            ">
+              ${items.map((item, index) => `
+                <div style="
+                  display: flex;
+                  align-items: flex-start;
+                margin-bottom: ${itemSpacing};
+                ">
+                  <span style="
+                    color: ${listMarkerColor};
+                    margin-right: 8px;
+                    font-weight: bold;
+                    min-width: 24px;
+                    font-size: ${listType === 'numbered' ? 'inherit' : '18px'};
+                    line-height: 1.6;
+                  ">
+                    ${listType === 'numbered' ? 
+                      getNumberPrefix(index, element.data?.numberStyle || element.numberStyle || 'decimal') : 
+                      getBulletIcon(element.data?.bulletStyle || element.bulletStyle || 'circle')}
+                  </span>
+                  <span style="
+                    color: ${listItemColor};
+                    line-height: 1.6;
+                    flex: 1;
+                  ">${item}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+
+      // Карточки
+      case 'basic-card':
+        // Получаем цвета из colorSettings
+        const basicCardColorSettings = element.data?.colorSettings || element.colorSettings || {};
+        const basicCardTitleColor = basicCardColorSettings.textFields?.title || element.titleColor || '#1976d2';
+        const basicCardContentColor = basicCardColorSettings.textFields?.text || element.contentColor || '#666666';
+        const basicCardBackgroundColor = basicCardColorSettings.textFields?.background || element.backgroundColor || '#ffffff';
+        const basicCardBorderColor = basicCardColorSettings.textFields?.border || '#e0e0e0';
+        
+        // Стили контейнера из colorSettings
+        let basicCardContainerStyles = `
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        `;
+        
+        // Добавляем стили фона если включены
+        if (basicCardColorSettings.sectionBackground?.enabled) {
+          if (basicCardColorSettings.sectionBackground.useGradient) {
+            basicCardContainerStyles += `
+              background: linear-gradient(${basicCardColorSettings.sectionBackground.gradientDirection}, ${basicCardColorSettings.sectionBackground.gradientColor1}, ${basicCardColorSettings.sectionBackground.gradientColor2});
+              opacity: ${basicCardColorSettings.sectionBackground.opacity || 1};
+            `;
+          } else {
+            basicCardContainerStyles += `
+              background-color: ${basicCardColorSettings.sectionBackground.solidColor};
+              opacity: ${basicCardColorSettings.sectionBackground.opacity || 1};
+            `;
+          }
+        } else {
+          basicCardContainerStyles += `background: ${basicCardBackgroundColor};`;
+        }
+        
+        // Добавляем стили границы и отступов
+        if (basicCardColorSettings.borderColor) {
+          basicCardContainerStyles += `
+            border: ${basicCardColorSettings.borderWidth || 1}px solid ${basicCardColorSettings.borderColor};
+            border-radius: ${basicCardColorSettings.borderRadius || 12}px;
+          `;
+        } else {
+          basicCardContainerStyles += `border: 1px solid ${basicCardBorderColor};`;
+        }
+        
+        if (basicCardColorSettings.padding) {
+          basicCardContainerStyles += `padding: ${basicCardColorSettings.padding}px;`;
+        }
+        
+        if (basicCardColorSettings.boxShadow) {
+          basicCardContainerStyles += `box-shadow: 0 2px 8px rgba(0,0,0,0.1);`;
+        }
+        
+        return `
+          <div id="${elementId}" class="content-element basic-card" style="${basicCardContainerStyles}">
+            <h3 style="
+              color: ${basicCardTitleColor};
+              margin: 0 0 1rem 0;
+              font-size: 1.25rem;
+              font-weight: bold;
+            ">${element.title || 'Заголовок карточки'}</h3>
+            <p style="
+              color: ${basicCardContentColor};
+              line-height: 1.5;
+              margin: 0;
+            ">${element.content || 'Содержание карточки'}</p>
+          </div>
+        `;
+
+      case 'image-card':
+        // Получаем цвета из colorSettings
+        const imageCardColorSettings = element.data?.colorSettings || element.colorSettings || {};
+        const imageCardTitleColor = imageCardColorSettings.textFields?.title || element.titleColor || '#1976d2';
+        const imageCardContentColor = imageCardColorSettings.textFields?.text || element.contentColor || '#666666';
+        const imageCardBackgroundColor = imageCardColorSettings.textFields?.background || 'white';
+        const imageCardBorderColor = imageCardColorSettings.textFields?.border || '#e0e0e0';
+        
+        // Стили контейнера из colorSettings
+        let imageCardContainerStyles = `
+            margin: 1.5rem 0;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            overflow: hidden;
+        `;
+        
+        // Добавляем стили фона если включены
+        if (imageCardColorSettings.sectionBackground?.enabled) {
+          if (imageCardColorSettings.sectionBackground.useGradient) {
+            imageCardContainerStyles += `
+              background: linear-gradient(${imageCardColorSettings.sectionBackground.gradientDirection}, ${imageCardColorSettings.sectionBackground.gradientColor1}, ${imageCardColorSettings.sectionBackground.gradientColor2});
+              opacity: ${imageCardColorSettings.sectionBackground.opacity || 1};
+            `;
+          } else {
+            imageCardContainerStyles += `
+              background-color: ${imageCardColorSettings.sectionBackground.solidColor};
+              opacity: ${imageCardColorSettings.sectionBackground.opacity || 1};
+            `;
+          }
+        } else {
+          imageCardContainerStyles += `background: ${imageCardBackgroundColor};`;
+        }
+        
+        // Добавляем стили границы и отступов
+        if (imageCardColorSettings.borderColor) {
+          imageCardContainerStyles += `
+            border: ${imageCardColorSettings.borderWidth || 1}px solid ${imageCardColorSettings.borderColor};
+            border-radius: ${imageCardColorSettings.borderRadius || 12}px;
+          `;
+        } else {
+          imageCardContainerStyles += `border: 1px solid ${imageCardBorderColor};`;
+        }
+        
+        if (imageCardColorSettings.padding) {
+          imageCardContainerStyles += `padding: ${imageCardColorSettings.padding}px;`;
+        }
+        
+        if (imageCardColorSettings.boxShadow) {
+          imageCardContainerStyles += `box-shadow: 0 2px 8px rgba(0,0,0,0.1);`;
+        }
+        
+        // Стили для изображения
+        const imageStyles = `
+          width: 100%;
+          height: 200px;
+          object-fit: cover;
+          filter: ${imageCardColorSettings.imageFilter || 'none'};
+          opacity: ${imageCardColorSettings.imageOpacity || 1};
+        `;
+        
+        return `
+          <div id="${elementId}" class="content-element image-card" style="${imageCardContainerStyles}">
+            ${element.imageUrl ? `
+              <img src="${element.imageUrl}" alt="${element.imageAlt || ''}" style="${imageStyles}">
+            ` : `
+              <div style="
+                width: 100%;
+                height: 200px;
+                background: linear-gradient(45deg, #f0f0f0, #e0e0e0);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #999;
+                font-size: 1.2rem;
+              ">
+                Изображение
+              </div>
+            `}
+            <div style="padding: ${imageCardColorSettings.padding || 24}px;">
+              <h3 style="
+                color: ${imageCardTitleColor};
+                margin: 0 0 1rem 0;
+                font-size: 1.25rem;
+                font-weight: bold;
+              ">${element.title || 'Заголовок карточки'}</h3>
+              <p style="
+                color: ${imageCardContentColor};
+                line-height: 1.5;
+                margin: 0;
+              ">${element.content || 'Описание изображения'}</p>
+            </div>
+          </div>
+        `;
+
+      // Интерактивные элементы
+      case 'video-player':
+        const videoId = element.videoUrl ? element.videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|vimeo\.com\/)([^&\n?#]+)/) : null;
+        const embedUrl = videoId ? 
+          (element.videoUrl.includes('youtube') ? `https://www.youtube.com/embed/${videoId[1]}` : 
+           element.videoUrl.includes('vimeo') ? `https://player.vimeo.com/video/${videoId[1]}` : element.videoUrl) : '';
+        
+        return `
+          <div id="${elementId}" class="content-element video-player" style="
+            margin: 2rem 0;
+            text-align: center;
+          ">
+            <h3 style="
+              color: #333333;
+              margin-bottom: 1rem;
+              font-size: 1.3rem;
+            ">${element.title || 'Видео'}</h3>
+            <div style="
+              position: relative;
+              padding-bottom: 56.25%;
+              height: 0;
+              overflow: hidden;
+              width: 100%;
+              max-width: ${element.width || 560}px;
+              margin: 0 auto;
+              background: #000;
+              border-radius: 8px;
+            ">
+              ${embedUrl ? `
+                <iframe src="${embedUrl}" style="
+                  position: absolute;
+                  top: 0;
+                  left: 0;
+                  width: 100%;
+                  height: 100%;
+                  border: 0;
+                  border-radius: 8px;
+                " allowfullscreen></iframe>
+              ` : `
+                <div style="
+                  position: absolute;
+                  top: 0;
+                  left: 0;
+                  width: 100%;
+                  height: 100%;
+                  background: linear-gradient(45deg, #333, #666);
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  color: white;
+                  font-size: 1.2rem;
+                  border-radius: 8px;
+                ">
+                  📹 Добавьте URL видео
+                </div>
+              `}
+            </div>
+          </div>
+        `;
+
+      case 'qr-code':
+        return `
+          <div id="${elementId}" class="content-element qr-code" style="
+            margin: 2rem 0;
+            text-align: center;
+          ">
+            <h3 style="
+              color: #333333;
+              margin-bottom: 1rem;
+              font-size: 1.3rem;
+            ">${element.title || 'Сканируйте QR код'}</h3>
+            <div style="
+              display: inline-block;
+              padding: 1rem;
+              background: ${element.backgroundColor || '#ffffff'};
+              border-radius: 12px;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            ">
+              <div style="
+                width: ${element.size || 200}px;
+                height: ${element.size || 200}px;
+                border: 2px solid ${element.foregroundColor || '#000000'};
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 0.8rem;
+                color: ${element.foregroundColor || '#000000'};
+                background: white;
+                position: relative;
+                overflow: hidden;
+              ">
+                <div style="
+                  position: absolute;
+                  top: 10px;
+                  left: 10px;
+                  right: 10px;
+                  bottom: 10px;
+                  background: repeating-linear-gradient(
+                    90deg,
+                    ${element.foregroundColor || '#000000'} 0px,
+                    ${element.foregroundColor || '#000000'} 2px,
+                    transparent 2px,
+                    transparent 4px
+                  );
+                  opacity: 0.3;
+                "></div>
+                <span style="
+                  position: relative;
+                  z-index: 1;
+                  background: white;
+                  padding: 5px;
+                  border-radius: 4px;
+                  font-size: 10px;
+                  text-align: center;
+                  max-width: 80%;
+                  word-break: break-all;
+                ">
+                  ${element.qrText || 'https://example.com'}
+                </span>
+              </div>
+            </div>
+          </div>
+        `;
+      case 'rating':
+        const maxRating = element.maxRating || 5;
+        const currentRating = element.rating || 5;
+        const ratingStars = Array(maxRating).fill(0).map((_, i) => {
+          const filled = i < currentRating;
+          return `<span style="color: ${filled ? (element.starColor || '#ffc107') : '#e0e0e0'}; font-size: 1.5rem; margin: 0 2px;">★</span>`;
+        }).join('');
+        
+        return `
+          <div id="${elementId}" class="content-element rating" style="
+            margin: 1.5rem 0;
+            text-align: center;
+            padding: 1rem;
+          ">
+            <h3 style="
+              color: #333333;
+              margin-bottom: 1rem;
+              font-size: 1.3rem;
+            ">${element.title || 'Рейтинг'}</h3>
+            <div style="margin-bottom: 0.5rem;">
+              ${ratingStars}
+            </div>
+            <div style="
+              color: #666666;
+              font-size: 0.9rem;
+            ">
+              ${currentRating} из ${maxRating}
+            </div>
+          </div>
+        `;
+      case 'progress-bars':
+        const isCircular = element.variant === 'circular';
+        const progressValue = element.value || 50;
+        const radius = 50;
+        const circumference = 2 * Math.PI * radius;
+        const offset = circumference - (progressValue / 100) * circumference;
+        
+        return `
+          <div id="${elementId}" class="content-element progress-bars" style="
+            margin: 2rem 0;
+            text-align: center;
+            padding: 1rem;
+          ">
+            <h3 style="
+              color: #333333;
+              margin-bottom: 1rem;
+              font-size: 1.3rem;
+            ">${element.title || 'Прогресс'}</h3>
+            <div style="
+              max-width: 300px;
+              margin: 0 auto;
+            ">
+              ${isCircular ? `
+                <div style="
+                  position: relative;
+                  width: 120px;
+                  height: 120px;
+                  margin: 0 auto;
+                ">
+                  <svg width="120" height="120" style="
+                    transform: rotate(-90deg);
+                  ">
+                    <circle cx="60" cy="60" r="50" fill="none" stroke="${element.backgroundColor || '#e0e0e0'}" stroke-width="8"/>
+                    <circle cx="60" cy="60" r="50" fill="none" stroke="${element.progressColor || '#1976d2'}" stroke-width="8" 
+                            stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" 
+                            style="transition: stroke-dashoffset 0.5s ease;"/>
+                  </svg>
+                  <div style="
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    font-size: 1.2rem;
+                    font-weight: bold;
+                    color: ${element.progressColor || '#1976d2'};
+                  ">
+                    ${progressValue}%
+                  </div>
+                </div>
+              ` : `
+                <div style="
+                  width: 100%;
+                  height: 12px;
+                  background: ${element.backgroundColor || '#e0e0e0'};
+                  border-radius: 6px;
+                  overflow: hidden;
+                  margin-bottom: 0.5rem;
+                ">
+                  <div style="
+                    width: ${progressValue}%;
+                    height: 100%;
+                    background: ${element.progressColor || '#1976d2'};
+                    border-radius: 6px;
+                    transition: width 0.5s ease;
+                  "></div>
+                </div>
+                <div style="
+                  color: #666666;
+                  font-size: 0.9rem;
+                  font-weight: 500;
+                ">
+                  ${progressValue}%
+                </div>
+              `}
+            </div>
+                     </div>
+         `;
+
+      // Дополнительные интерактивные элементы
+      case 'accordion':
+        const accordionItems = element.accordionItems || [
+          { 
+            title: '🎰 Безопасность и лицензии', 
+            content: '**Наша безопасность - ваша уверенность!**\n\n• **Лицензия Кюрасао** - официальное разрешение на проведение азартных игр\n• **SSL-шифрование** - защита всех финансовых операций\n• **Сертификация RNG** - честность всех игровых результатов\n• **Проверка третьими лицами** - регулярный аудит систем\n• **Защита данных** - соответствие стандартам GDPR\n\n**Мы гарантируем честную игру и полную конфиденциальность ваших данных!**' 
+          },
+          { 
+            title: '💰 Бонусы и акции', 
+            content: '**Щедрые бонусы для всех игроков!**\n\n• **Приветственный бонус** - 200% на первый депозит + 200 фриспинов\n• **Еженедельный кэшбэк** - возврат до 20% от проигранных средств\n• **Турниры** - призовые фонды до €100,000\n• **VIP-программа** - эксклюзивные привилегии\n• **Бонусы на день рождения** - персональные подарки\n\n**Играйте больше - получайте больше бонусов!**' 
+          }
+        ];
+        
+        return `
+          <div id="${elementId}" class="content-element accordion" style="
+            margin: 1.5rem 0;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+          ">
+            <h3 style="
+              color: #333333;
+              margin-bottom: 1rem;
+              font-size: 1.3rem;
+              text-align: center;
+            ">${element.title || 'Информация для игроков'}</h3>
+            <div class="accordion-container">
+              ${accordionItems.map((item, index) => `
+                <div class="accordion-item" style="
+                  margin-bottom: 0.5rem;
+                  border: 1px solid #e0e0e0;
+                  border-radius: 8px;
+                  overflow: hidden;
+                ">
+                  <div class="accordion-header" onclick="toggleAccordion(${index})" style="
+                    padding: 1rem;
+                    background: #f8f9fa;
+                    cursor: pointer;
+                    font-weight: 500;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    transition: background 0.3s ease;
+                  ">
+                    <span>${item.title}</span>
+                    <span class="accordion-toggle" style="
+                      font-size: 1.2rem;
+                      color: #666;
+                      transform: rotate(0deg);
+                      transition: transform 0.3s ease;
+                    ">+</span>
+                  </div>
+                  <div class="accordion-content" id="accordion-content-${index}" style="
+                    padding: 0 1rem;
+                    background: white;
+                    max-height: 0;
+                    overflow: hidden;
+                    transition: max-height 0.3s ease, padding 0.3s ease;
+                  ">
+                    <div style="padding: 1rem 0;">
+                      ${item.content}
+                    </div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+
+
+
+      case 'confetti':
+        return `
+          <div id="${elementId}" class="content-element confetti" style="
+            margin: 2rem 0;
+            text-align: center;
+            padding: 2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+          ">
+            <h3 style="
+              color: white;
+              margin-bottom: 1rem;
+              font-size: 1.5rem;
+            ">${element.title || 'Празднование!'}</h3>
+            <button onclick="launchConfetti()" style="
+              background: ${element.buttonColor || '#4caf50'};
+              color: ${element.textColor || '#ffffff'};
+              border: none;
+              padding: 1rem 2rem;
+              font-size: 1.1rem;
+              border-radius: 25px;
+              cursor: pointer;
+              font-weight: bold;
+              transition: all 0.3s ease;
+              box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+              ${element.buttonText || 'Запустить конфетти'} 🎉
+            </button>
+            <canvas id="confetti-canvas" style="
+              position: absolute;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 100%;
+              pointer-events: none;
+            "></canvas>
+          </div>
+        `;
+
+
+
+      case 'animated-box':
+        return `
+          <div id="${elementId}" class="content-element animated-box" style="
+            margin: 2rem 0;
+            text-align: center;
+            padding: 2rem;
+            background: ${element.backgroundColor || '#f5f5f5'};
+            color: ${element.textColor || '#333333'};
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            animation: ${element.animationType || 'fadeIn'} ${element.duration || 1000}ms ease-in-out ${element.loop ? 'infinite' : ''};
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+          ">
+            <h3 style="
+              margin-bottom: 1rem;
+              font-size: 1.3rem;
+              color: inherit;
+            ">${element.title || 'Анимированный блок'}</h3>
+            <p style="
+              margin: 0;
+              line-height: 1.6;
+              color: inherit;
+            ">${element.content || 'Этот блок имеет красивую анимацию'}</p>
+          </div>
+        `;
+
+      case 'faq-section':
+        const faqItems = element.items || [
+          { question: 'Часто задаваемый вопрос 1?', answer: 'Ответ на первый вопрос.' },
+          { question: 'Часто задаваемый вопрос 2?', answer: 'Ответ на второй вопрос.' }
+        ];
+        
+        // Получаем цвета из colorSettings
+        const faqColorSettings = element.data?.colorSettings || element.colorSettings || {};
+        const faqTitleColor = faqColorSettings.textFields?.title || '#333333';
+        const faqQuestionColor = faqColorSettings.textFields?.question || '#1976d2';
+        const faqAnswerColor = faqColorSettings.textFields?.answer || '#666666';
+        const faqAccordionBgColor = faqColorSettings.textFields?.accordionBg || '#fafafa';
+        const faqAccordionHoverColor = faqColorSettings.textFields?.accordionHover || '#f0f0f0';
+        const faqIconColor = faqColorSettings.textFields?.icon || '#1976d2';
+        
+        // Стили контейнера из colorSettings
+        let faqContainerStyles = `
+            margin: 2rem 0;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        `;
+        
+        // Добавляем стили фона если включены
+        if (faqColorSettings.sectionBackground?.enabled) {
+          if (faqColorSettings.sectionBackground.useGradient) {
+            faqContainerStyles += `
+              background: linear-gradient(${faqColorSettings.sectionBackground.gradientDirection}, ${faqColorSettings.sectionBackground.gradientColor1}, ${faqColorSettings.sectionBackground.gradientColor2});
+              opacity: ${faqColorSettings.sectionBackground.opacity || 1};
+            `;
+          } else {
+            faqContainerStyles += `
+              background-color: ${faqColorSettings.sectionBackground.solidColor};
+              opacity: ${faqColorSettings.sectionBackground.opacity || 1};
+            `;
+          }
+        }
+        
+        // Добавляем стили границы и отступов
+        if (faqColorSettings.borderColor) {
+          faqContainerStyles += `
+            border: ${faqColorSettings.borderWidth || 1}px solid ${faqColorSettings.borderColor};
+            border-radius: ${faqColorSettings.borderRadius || 8}px;
+          `;
+        }
+        
+        if (faqColorSettings.padding) {
+          faqContainerStyles += `padding: ${faqColorSettings.padding}px;`;
+        }
+        
+        if (faqColorSettings.boxShadow) {
+          faqContainerStyles += `box-shadow: 0 2px 8px rgba(0,0,0,0.1);`;
+        }
+        
+        return `
+          <div id="${elementId}" class="content-element faq-section" style="${faqContainerStyles}">
+            ${element.title ? `
+              <h3 style="
+                text-align: center;
+                color: ${faqTitleColor};
+                margin-bottom: 2rem;
+                font-size: 1.8rem;
+                font-weight: bold;
+              ">${element.title}</h3>
+            ` : ''}
+            ${faqItems.map((item, index) => `
+              <div style="
+                margin-bottom: 1rem;
+                border: 1px solid #e0e0e0;
+                border-radius: 8px;
+                overflow: hidden;
+                background-color: ${faqAccordionBgColor};
+                transition: background-color 0.3s ease;
+              " onmouseover="this.style.backgroundColor='${faqAccordionHoverColor}'" onmouseout="this.style.backgroundColor='${faqAccordionBgColor}'">
+                <div style="
+                  padding: 1rem;
+                  cursor: pointer;
+                  font-weight: 600;
+                  color: ${faqQuestionColor};
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                " onclick="toggleFAQ(${index})">
+                  ${item.question}
+                  <span style="color: ${faqIconColor}; font-size: 1.2rem;">▼</span>
+                </div>
+                <div id="faq-answer-${index}" style="
+                  padding: 1rem;
+                  background: white;
+                  display: none;
+                  color: ${faqAnswerColor};
+                  line-height: 1.6;
+                  border-top: 1px solid #e0e0e0;
+                ">
+                  ${item.answer}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+
+      case 'timeline-component':
+        // Получаем данные из element.data если есть, иначе из element
+        const timelineEvents = element.data?.events || element.events || element.data?.items || element.items || [
+          { date: '2024', title: 'Запуск проекта', description: 'Начало разработки', status: 'completed' },
+          { date: '2024', title: 'Тестирование', description: 'Проверка функций', status: 'in-progress' },
+          { date: '2024', title: 'Релиз', description: 'Публикация', status: 'pending' }
+        ];
+
+        // Получаем цвета из colorSettings
+        const timelineColorSettings = element.data?.colorSettings || element.colorSettings || {};
+        const timelineTitleColor = timelineColorSettings.textFields?.title || '#000000';
+        const timelineDateColor = timelineColorSettings.textFields?.date || '#666666';
+        const timelineTextColor = timelineColorSettings.textFields?.text || '#333333';
+        const timelineLineColor = timelineColorSettings.textFields?.line || '#e0e0e0';
+        const timelineCompletedColor = timelineColorSettings.textFields?.completed || '#4caf50';
+        const timelineInProgressColor = timelineColorSettings.textFields?.inProgress || '#ff9800';
+        const timelinePendingColor = timelineColorSettings.textFields?.pending || '#2196f3';
+
+        // Функция для получения цвета статуса
+        const getStatusColor = (status) => {
+          switch (status) {
+            case 'completed': return timelineCompletedColor;
+            case 'in-progress': return timelineInProgressColor;
+            case 'pending': return timelinePendingColor;
+            default: return timelinePendingColor;
+          }
+        };
+
+        // Функция для получения иконки статуса
+        const getStatusIcon = (status) => {
+          switch (status) {
+            case 'completed': return '✓';
+            case 'in-progress': return '⟳';
+            case 'pending': return '○';
+            default: return '○';
+          }
+        };
+
+        // Стили контейнера из colorSettings
+        let timelineContainerStyles = `
+            margin: 2rem 0;
+        `;
+
+        // Применяем настройки фона из sectionBackground
+        if (timelineColorSettings.sectionBackground?.enabled) {
+          const { sectionBackground } = timelineColorSettings;
+          if (sectionBackground.useGradient) {
+            timelineContainerStyles += ` background: linear-gradient(${sectionBackground.gradientDirection}, ${sectionBackground.gradientColor1}, ${sectionBackground.gradientColor2});`;
+          } else {
+            timelineContainerStyles += ` background-color: ${sectionBackground.solidColor};`;
+          }
+          timelineContainerStyles += ` opacity: ${sectionBackground.opacity || 1};`;
+        }
+
+        // Применяем настройки границы
+        if (timelineColorSettings.borderColor) {
+          timelineContainerStyles += ` border: ${timelineColorSettings.borderWidth || 1}px solid ${timelineColorSettings.borderColor};`;
+        }
+
+        // Применяем радиус углов
+        if (timelineColorSettings.borderRadius !== undefined) {
+          timelineContainerStyles += ` border-radius: ${timelineColorSettings.borderRadius}px;`;
+        } else {
+          timelineContainerStyles += ` border-radius: 8px;`;
+        }
+
+        // Применяем внутренние отступы
+        if (timelineColorSettings.padding !== undefined) {
+          timelineContainerStyles += ` padding: ${timelineColorSettings.padding}px;`;
+        } else {
+          timelineContainerStyles += ` padding: 16px;`;
+        }
+
+        // Применяем тень
+        if (timelineColorSettings.boxShadow) {
+          timelineContainerStyles += ` box-shadow: 0 2px 8px rgba(0,0,0,0.1);`;
+        }
+
+        return `
+          <div id="${elementId}" class="content-element timeline-component" style="${timelineContainerStyles}">
+            <h4 style="
+              margin-bottom: 24px;
+                text-align: center;
+              color: ${timelineTitleColor};
+              font-size: 2rem;
+            ">${element.data?.title || element.title || 'Временная шкала'}</h4>
+            <div style="position: relative;">
+              ${timelineEvents.map((event, index) => `
+            <div style="
+                  display: flex;
+                  margin-bottom: 24px;
+            ">
+              <div style="
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    margin-right: 16px;
+                ">
+                  <div style="
+                      width: 32px;
+                      height: 32px;
+                    border-radius: 50%;
+                      background-color: ${getStatusColor(event.status)};
+                      color: white;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      font-weight: bold;
+                      font-size: 16px;
+                    ">${getStatusIcon(event.status)}</div>
+                    ${index < timelineEvents.length - 1 ? `
+                      <div style="
+                        width: 2px;
+                        height: 40px;
+                        background-color: ${timelineLineColor};
+                        margin-top: 8px;
+                  "></div>
+                    ` : ''}
+                  </div>
+                  <div style="flex: 1;">
+                  <div style="
+                      display: flex;
+                      align-items: center;
+                      margin-bottom: 8px;
+                    ">
+                      <h6 style="
+                        margin: 0;
+                        margin-right: 8px;
+                        color: ${timelineTextColor};
+                        font-size: 1.25rem;
+                      ">${event.title}</h6>
+                      <span style="
+                        background-color: ${getStatusColor(event.status)};
+                        color: white;
+                        padding: 4px 8px;
+                        border-radius: 12px;
+                        font-size: 12px;
+                        font-weight: 500;
+                      ">${event.status}</span>
+                    </div>
+                    <p style="
+                      margin: 0 0 8px 0;
+                      color: ${timelineDateColor};
+                      font-size: 14px;
+                    ">${event.date}</p>
+                    <p style="
+                      margin: 0;
+                      color: ${timelineTextColor};
+                      line-height: 1.5;
+                    ">${event.description}</p>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+
+      case 'image-gallery':
+        const galleryImages = element.images || [
+          { src: 'https://via.placeholder.com/300x200', alt: 'Изображение 1' },
+          { src: 'https://via.placeholder.com/300x200', alt: 'Изображение 2' },
+          { src: 'https://via.placeholder.com/300x200', alt: 'Изображение 3' }
+        ];
+        
+        // Получаем цвета из colorSettings
+        const galleryColorSettings = element.data?.colorSettings || element.colorSettings || {};
+        const galleryTitleColor = galleryColorSettings.textFields?.title || '#333333';
+        const galleryDescriptionColor = galleryColorSettings.textFields?.description || '#666666';
+        const galleryBackgroundColor = galleryColorSettings.textFields?.background || '#ffffff';
+        const galleryBorderColor = galleryColorSettings.textFields?.border || '#e0e0e0';
+        
+        // Стили контейнера из colorSettings
+        let galleryContainerStyles = `
+            margin: 2rem 0;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        `;
+        
+        // Добавляем стили фона если включены
+        if (galleryColorSettings.sectionBackground?.enabled) {
+          if (galleryColorSettings.sectionBackground.useGradient) {
+            galleryContainerStyles += `
+              background: linear-gradient(${galleryColorSettings.sectionBackground.gradientDirection}, ${galleryColorSettings.sectionBackground.gradientColor1}, ${galleryColorSettings.sectionBackground.gradientColor2});
+              opacity: ${galleryColorSettings.sectionBackground.opacity || 1};
+            `;
+          } else {
+            galleryContainerStyles += `
+              background-color: ${galleryColorSettings.sectionBackground.solidColor};
+              opacity: ${galleryColorSettings.sectionBackground.opacity || 1};
+            `;
+          }
+        }
+        
+        // Добавляем стили границы и отступов
+        if (galleryColorSettings.borderColor) {
+          galleryContainerStyles += `
+            border: ${galleryColorSettings.borderWidth || 1}px solid ${galleryColorSettings.borderColor};
+            border-radius: ${galleryColorSettings.borderRadius || 8}px;
+          `;
+        }
+        
+        if (galleryColorSettings.padding) {
+          galleryContainerStyles += `padding: ${galleryColorSettings.padding}px;`;
+        }
+        
+        if (galleryColorSettings.boxShadow) {
+          galleryContainerStyles += `box-shadow: 0 2px 8px rgba(0,0,0,0.1);`;
+        }
+        
+        return `
+          <div id="${elementId}" class="content-element image-gallery" style="${galleryContainerStyles}">
+            ${element.title ? `
+              <h3 style="
+                text-align: center;
+                color: ${galleryTitleColor};
+                margin-bottom: 2rem;
+                font-size: 1.8rem;
+                font-weight: bold;
+              ">${element.title}</h3>
+            ` : ''}
+            ${element.description ? `
+              <p style="
+                text-align: center;
+                color: ${galleryDescriptionColor};
+                margin-bottom: 2rem;
+                font-size: 1rem;
+                line-height: 1.6;
+              ">${element.description}</p>
+            ` : ''}
+            <div style="
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+              gap: 1rem;
+            ">
+              ${galleryImages.map((img, index) => `
+                <div style="
+                  border-radius: 8px;
+                  overflow: hidden;
+                  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                  transition: transform 0.3s ease;
+                  background-color: ${galleryBackgroundColor};
+                  border: 1px solid ${galleryBorderColor};
+                " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                  <img src="${img.src}" alt="${img.alt}" style="
+                    width: 100%;
+                    height: 200px;
+                    object-fit: cover;
+                  ">
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+
+      case 'multiple-cards':
+        const cards = element.cards || [
+          { title: 'Карточка 1', content: 'Содержимое первой карточки' },
+          { title: 'Карточка 2', content: 'Содержимое второй карточки' },
+          { title: 'Карточка 3', content: 'Содержимое третьей карточки' }
+        ];
+        return `
+          <div id="${elementId}" class="content-element multiple-cards" style="
+            margin: 2rem 0;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+          ">
+            ${element.title ? `
+              <h3 style="
+                text-align: center;
+                color: ${element.titleColor || '#333333'};
+                margin-bottom: 2rem;
+                font-size: 1.8rem;
+              ">${element.title}</h3>
+            ` : ''}
+            <div style="
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+              gap: 2rem;
+            ">
+              ${cards.map((card, index) => `
+                <div style="
+                  background: white;
+                  padding: 2rem;
+                  border-radius: 12px;
+                  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                  transition: transform 0.3s ease;
+                " onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                  <h4 style="
+                    margin: 0 0 1rem 0;
+                    color: ${element.cardTitleColor || '#333333'};
+                    font-size: 1.3rem;
+                  ">${card.title}</h4>
+                  <p style="
+                    margin: 0;
+                    color: ${element.cardContentColor || '#666666'};
+                    line-height: 1.6;
+                  ">${card.content}</p>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+
+      case 'data-table':
+        console.log('[EditorPanel] DataTable element data:', { elementData, element });
+        // Получаем данные из различных возможных источников
+        let tableData = [];
+        
+        // Приоритет 1: rows из elementData
+        if (elementData.rows && Array.isArray(elementData.rows)) {
+          tableData = elementData.rows;
+        }
+        // Приоритет 2: data из elementData
+        else if (elementData.data && Array.isArray(elementData.data)) {
+          tableData = elementData.data;
+        }
+        // Приоритет 3: rows из element
+        else if (element.rows && Array.isArray(element.rows)) {
+          tableData = element.rows;
+        }
+        // Приоритет 4: data из element
+        else if (element.data && Array.isArray(element.data)) {
+          tableData = element.data;
+        }
+        // Приоритет 5: initialRows из elementData
+        else if (elementData.initialRows && Array.isArray(elementData.initialRows)) {
+          // Преобразуем initialRows в формат для таблицы
+          const headers = elementData.initialColumns || elementData.columns || [
+            { id: 'name', label: 'Название' },
+            { id: 'value', label: 'Значение' },
+            { id: 'description', label: 'Описание' }
+          ];
+          
+          // Создаем заголовки
+          const headerRow = headers.map(col => col.label);
+          tableData = [headerRow];
+          
+          // Добавляем данные
+          elementData.initialRows.forEach(row => {
+            const dataRow = headers.map(col => row[col.id] || '');
+            tableData.push(dataRow);
+          });
+        }
+        // Fallback: дефолтные данные
+        else {
+          tableData = [
+          ['Заголовок 1', 'Заголовок 2', 'Заголовок 3'],
+          ['Данные 1', 'Данные 2', 'Данные 3'],
+          ['Данные 4', 'Данные 5', 'Данные 6']
+        ];
+        }
+        
+        console.log('[EditorPanel] DataTable final data:', tableData);
+        
+        // Получаем настройки таблицы
+        const tableSettings = elementData.tableSettings || {};
+        const isStriped = tableSettings.striped !== undefined ? tableSettings.striped : true;
+        const isBordered = tableSettings.bordered !== undefined ? tableSettings.bordered : true;
+        const isHover = tableSettings.hover !== undefined ? tableSettings.hover : true;
+        const isDense = tableSettings.dense !== undefined ? tableSettings.dense : false;
+        const isSortable = tableSettings.sortable !== undefined ? tableSettings.sortable : true;
+        const sortConfig = tableSettings.sortConfig || { key: null, direction: 'asc' };
+
+        // Получаем цвета из colorSettings
+        const tableColorSettings = elementData.colorSettings || element.colorSettings || {};
+        const tableStyles = elementData.customStyles || element.customStyles || {};
+        const tableBackgroundColor = tableColorSettings.textFields?.background || tableStyles.backgroundColor || 'white';
+        const tableTitleColor = tableColorSettings.textFields?.title || tableColorSettings.textFields?.headerText || '#333333';
+        const tableHeaderColor = tableColorSettings.textFields?.headerText || '#ffffff';
+        const tableCellColor = tableColorSettings.textFields?.text || '#333333';
+        const tableHeaderBg = tableColorSettings.textFields?.headerBg || '#1976d2';
+        const tableBorderColor = tableColorSettings.textFields?.border || '#c41e3a';
+        const tableHoverColor = tableColorSettings.textFields?.hover || 'rgba(196,30,58,0.15)';
+        
+        // Стили контейнера из colorSettings
+        let tableContainerStyles = `
+            margin: 2rem 0;
+            max-width: 1000px;
+            margin-left: auto;
+            margin-right: auto;
+        `;
+
+        // Применяем настройки фона из sectionBackground
+        if (tableColorSettings.sectionBackground?.enabled) {
+          const { sectionBackground } = tableColorSettings;
+          if (sectionBackground.useGradient) {
+            tableContainerStyles += ` background: linear-gradient(${sectionBackground.gradientDirection}, ${sectionBackground.gradientColor1}, ${sectionBackground.gradientColor2});`;
+          } else {
+            tableContainerStyles += ` background-color: ${sectionBackground.solidColor};`;
+          }
+          tableContainerStyles += ` opacity: ${sectionBackground.opacity || 1};`;
+        }
+
+        // Применяем настройки границы
+        if (tableColorSettings.borderColor) {
+          tableContainerStyles += ` border: ${tableColorSettings.borderWidth || 1}px solid ${tableColorSettings.borderColor};`;
+        }
+
+        // Применяем радиус углов
+        if (tableColorSettings.borderRadius !== undefined) {
+          tableContainerStyles += ` border-radius: ${tableColorSettings.borderRadius}px;`;
+        }
+
+        // Применяем внутренние отступы
+        if (tableColorSettings.padding !== undefined) {
+          tableContainerStyles += ` padding: ${tableColorSettings.padding}px;`;
+        } else {
+          tableContainerStyles += ` padding: ${tableStyles.padding || 0}px;`;
+        }
+
+        // Применяем тень
+        if (tableColorSettings.boxShadow) {
+          tableContainerStyles += ` box-shadow: 0 2px 8px rgba(0,0,0,0.1);`;
+        }
+
+        return `
+          <div id="${elementId}" class="content-element data-table" style="${tableContainerStyles}">
+                      ${(elementData.title || element.title || elementData.headers?.[0]?.label) ? `
+              <h3 style="
+                text-align: center;
+                color: ${tableTitleColor};
+                margin-bottom: 2rem;
+                font-size: 1.5rem;
+                font-weight: bold;
+                font-family: 'Montserrat', sans-serif;
+              background-color: ${tableColorSettings.textFields?.headerBg || 'transparent'};
+              padding: 1rem;
+              border-radius: 8px;
+              border: ${tableColorSettings.textFields?.border ? `2px solid ${tableColorSettings.textFields.border}` : 'none'};
+            ">${elementData.title || element.title || elementData.headers?.[0]?.label}</h3>
+            ` : ''}
+            <div style="
+              overflow-x: auto;
+              border-radius: 8px;
+              box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+              background: ${tableBackgroundColor};
+              border: 1px solid rgba(0,0,0,0.12);
+              max-width: 100%;
+            ">
+              <table id="${elementId}" style="
+                width: 100%;
+                min-width: 600px;
+                border-collapse: collapse;
+                background: ${tableBackgroundColor};
+                font-family: 'Montserrat', sans-serif;
+                table-layout: fixed;
+              ">
+                ${tableData.map((row, rowIndex) => `
+                  <tr style="
+                    ${rowIndex === 0 ? `
+                      background: ${tableHeaderBg};
+                      background-image: linear-gradient(135deg, ${tableHeaderBg} 0%, ${tableHeaderBg}DD 100%);
+                    ` : `
+                      background: ${isStriped && rowIndex % 2 === 1 ? 'rgba(0,0,0,0.02)' : 'transparent'};
+                    `}
+                    border-bottom: ${isBordered ? (rowIndex === 0 ? '2px solid rgba(0,0,0,0.2)' : '1px solid rgba(0,0,0,0.08)') : 'none'};
+                    transition: background-color 0.2s ease;
+                  " ${rowIndex > 0 && isHover ? `onmouseover="this.style.backgroundColor='${tableHoverColor}'" onmouseout="this.style.backgroundColor='${isStriped && rowIndex % 2 === 1 ? 'rgba(0,0,0,0.02)' : 'transparent'}'"` : ''}>
+                    ${row.map((cell, cellIndex) => `
+                      <${rowIndex === 0 ? 'th' : 'td'} style="
+                        padding: ${rowIndex === 0 ? (isDense ? '12px 16px' : '16px 20px') : (isDense ? '8px 16px' : '14px 20px')};
+                        text-align: ${rowIndex === 0 ? 'center' : 'left'};
+                        color: ${rowIndex === 0 ? tableHeaderColor : tableCellColor};
+                        font-weight: ${rowIndex === 0 ? 'bold' : 'normal'};
+                        font-size: ${rowIndex === 0 ? (isDense ? '13px' : '14px') : (isDense ? '12px' : '13px')};
+                        ${rowIndex === 0 ? 'text-transform: uppercase; letter-spacing: 0.5px;' : ''}
+                        ${cellIndex === 0 && rowIndex > 0 ? 'font-weight: 500;' : ''}
+                        border-right: ${isBordered && cellIndex < row.length - 1 ? '1px solid rgba(0,0,0,0.08)' : 'none'};
+                        ${rowIndex === 0 && isSortable ? 'cursor: pointer; user-select: none;' : ''}
+                        word-wrap: break-word;
+                        overflow-wrap: break-word;
+                        max-width: 0;
+                        white-space: normal;
+                      " ${rowIndex === 0 && isSortable ? `onclick="sortTable('${elementId}', ${cellIndex})"` : ''}>${cell}${rowIndex === 0 && isSortable && cellIndex === 0 ? ' ↕' : ''}</${rowIndex === 0 ? 'th' : 'td'}>
+                    `).join('')}
+                  </tr>
+                `).join('')}
+              </table>
+            </div>
+            
+            <!-- Дополнительная информация удалена из экспорта -->
+            
+            <style>
+              @media (max-width: 768px) {
+                #${elementId} {
+                  min-width: 400px !important;
+                }
+                #${elementId} th,
+                #${elementId} td {
+                  padding: 8px 12px !important;
+                  font-size: 12px !important;
+                }
+              }
+              @media (max-width: 480px) {
+                #${elementId} {
+                  min-width: 300px !important;
+                }
+                #${elementId} th,
+                #${elementId} td {
+                  padding: 6px 8px !important;
+                  font-size: 11px !important;
+                }
+              }
+            </style>
+            
+            ${isSortable ? `
+            <script>
+              // Функция сортировки таблицы
+              function sortTable(tableId, columnIndex) {
+                const table = document.getElementById(tableId);
+                const tbody = table.querySelector('tbody') || table;
+                const rows = Array.from(tbody.querySelectorAll('tr')).slice(1); // Пропускаем заголовок
+                const headerRow = tbody.querySelector('tr');
+                
+                // Определяем направление сортировки (по умолчанию desc - обратный порядок)
+                const currentDirection = table.getAttribute('data-sort-direction') || 'desc';
+                const newDirection = currentDirection === 'asc' ? 'desc' : 'asc';
+                
+                // Сортируем строки
+                rows.sort((a, b) => {
+                  const aValue = a.cells[columnIndex]?.textContent || '';
+                  const bValue = b.cells[columnIndex]?.textContent || '';
+                  
+                  // Пытаемся преобразовать в числа для числовой сортировки
+                  const aNum = parseFloat(aValue);
+                  const bNum = parseFloat(bValue);
+                  
+                  if (!isNaN(aNum) && !isNaN(bNum)) {
+                    return newDirection === 'asc' ? aNum - bNum : bNum - aNum;
+                  }
+                  
+                  // Строковая сортировка
+                  return newDirection === 'asc' 
+                    ? aValue.localeCompare(bValue, 'ru') 
+                    : bValue.localeCompare(aValue, 'ru');
+                });
+                
+                // Обновляем таблицу
+                rows.forEach(row => tbody.appendChild(row));
+                table.setAttribute('data-sort-direction', newDirection);
+                
+                // Обновляем заголовки - стрелка переходит к активному столбцу
+                const headers = headerRow.querySelectorAll('th');
+                headers.forEach((header, index) => {
+                  const baseText = header.textContent.replace(/ [↑↓↕]/g, ''); // Убираем все стрелки
+                  if (index === columnIndex) {
+                    // Активный столбец показывает направление сортировки
+                    header.innerHTML = baseText + (newDirection === 'asc' ? ' ↑' : ' ↓');
+                  } else {
+                    // Остальные столбцы без стрелок
+                    header.innerHTML = baseText;
+                  }
+                });
+              }
+              
+              // Автоматическая сортировка при загрузке страницы
+              document.addEventListener('DOMContentLoaded', function() {
+                const table = document.getElementById('${elementId}');
+                if (table) {
+                  // Автоматически сортируем по первому столбцу при загрузке
+                  setTimeout(() => sortTable('${elementId}', 0), 100);
+                }
+              });
+            </script>
+            ` : ''}
+          </div>
+        `;
+      case 'bar-chart':
+
+        
+
+
+        const barData = (element.data && element.data.data && Array.isArray(element.data.data.data)) ? element.data.data.data :
+                       (element.data && Array.isArray(element.data.data)) ? element.data.data :
+                       Array.isArray(elementData.data) ? elementData.data :
+                       Array.isArray(element.data) ? element.data : [
+          { label: 'Январь', value: 65, color: '#1976d2' },
+          { label: 'Февраль', value: 45, color: '#2196f3' },
+          { label: 'Март', value: 80, color: '#03a9f4' },
+          { label: 'Апрель', value: 55, color: '#00bcd4' }
+        ];
+        
+
+        
+        const maxBarValue = Math.max(...barData.map(d => d.value));
+        const minBarValue = Math.min(...barData.map(d => d.value));
+        const barRange = maxBarValue - minBarValue;
+        
+        // Приоритет: element.data.data.customStyles > element.data.customStyles > element.customStyles > fallback
+        const deepCustomStyles = (element.data && element.data.data && element.data.data.customStyles) || {};
+        const dataCustomStyles = (element.data && element.data.customStyles) || {};
+        const elementCustomStyles = element.customStyles || {};
+        const chartStyles = { ...elementCustomStyles, ...dataCustomStyles, ...deepCustomStyles };
+        
+
+        
+        const chartBackgroundColor = chartStyles.backgroundColor;
+        const chartTextColor = chartStyles.textColor;
+        const chartTitleColor = chartStyles.titleColor;
+        const descriptionColor = chartStyles.descriptionColor;
+        const showValues = (element.data && element.data.data && element.data.data.showValues !== undefined) ? element.data.data.showValues :
+                          (element.data && element.data.showValues !== undefined) ? element.data.showValues : 
+                          (elementData.showValues !== undefined ? elementData.showValues : 
+                          (element.showValues !== undefined ? element.showValues : true));
+        const showGrid = (element.data && element.data.data && element.data.data.showGrid !== undefined) ? element.data.data.showGrid :
+                        (element.data && element.data.showGrid !== undefined) ? element.data.showGrid : 
+                        (elementData.showGrid !== undefined ? elementData.showGrid : 
+                        (element.showGrid !== undefined ? element.showGrid : true));
+        
+
+
+        return `
+          <div id="${elementId}" class="content-element chart-component" style="
+            margin: 2rem 0;
+            padding: ${(chartStyles.padding || 24) / 8 * 8}px;
+            background: ${backgroundColor || '#ffffff'};
+            border-radius: 16px;
+            box-shadow: 0px 2px 1px -1px rgba(0,0,0,0.2), 0px 1px 1px 0px rgba(0,0,0,0.14), 0px 1px 3px 0px rgba(0,0,0,0.12);
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            position: relative;
+            ${chartStyles.borderWidth && chartStyles.borderWidth > 0 ? `border: ${chartStyles.borderWidth}px solid ${chartStyles.borderColor || 'transparent'};` : 'border: none;'}
+          ">
+            <h3 style="
+              margin-bottom: ${(element.data && element.data.data && element.data.data.description) || (element.data && element.data.description) || elementData.description || element.description ? '16px' : '24px'};
+              color: ${titleColor || '#1976d2'};
+              font-size: 1.25rem;
+              font-weight: bold;
+              text-align: center;
+              font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
+              line-height: 1.6;
+              letter-spacing: 0.0075em;
+            ">${(element.data && element.data.data && element.data.data.title) || (element.data && element.data.title) || elementData.title || element.title || 'Диаграмма'}</h3>
+            
+            ${(element.data && element.data.data && element.data.data.description) || (element.data && element.data.description) || elementData.description || element.description ? `
+              <p style="
+                color: ${descriptionColor || '#666666'};
+                font-size: 1rem;
+                line-height: 1.5;
+                margin-bottom: 24px;
+                text-align: center;
+                font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
+              ">${(element.data && element.data.data && element.data.data.description) || (element.data && element.data.description) || elementData.description || element.description}</p>
+            ` : ''}
+            
+            <div style="
+              position: relative;
+              height: 400px;
+              padding: 20px;
+              display: flex;
+              align-items: flex-end;
+              justify-content: center;
+              gap: 12px;
+              background: rgba(0,0,0,0.02);
+              border-radius: 8px;
+              border: 1px solid rgba(0,0,0,0.1);
+              overflow: hidden;
+              width: 100%;
+              max-width: 100%;
+            ">
+              ${showGrid ? `
+                <!-- Сетка -->
+                <div style="
+                  position: absolute;
+                  left: 0;
+                  right: 0;
+                  top: 0;
+                  bottom: 60px;
+                  pointer-events: none;
+                  z-index: 0;
+                ">
+                  <!-- Горизонтальные линии сетки -->
+                  <div style="position: absolute; left: 0; right: 0; bottom: 25%; height: 1px; background: ${chartStyles.gridColor || 'rgba(0,0,0,0.1)'}; opacity: 0.3;"></div>
+                  <div style="position: absolute; left: 0; right: 0; bottom: 50%; height: 1px; background: ${chartStyles.gridColor || 'rgba(0,0,0,0.1)'}; opacity: 0.3;"></div>
+                  <div style="position: absolute; left: 0; right: 0; bottom: 75%; height: 1px; background: ${chartStyles.gridColor || 'rgba(0,0,0,0.1)'}; opacity: 0.3;"></div>
+                </div>
+              ` : ''}
+              
+              ${barData.map((item, index) => {
+                const maxValue = Math.max(...barData.map(d => d.value));
+                const minValue = Math.min(...barData.map(d => d.value));
+                const range = maxValue - minValue;
+                
+                let barHeight;
+                if (range === 0) {
+                  barHeight = 200; // Если все одинаковые
+                } else {
+                  // Для малых диапазонов делаем больше разницы
+                  const relativeValue = (item.value - minValue) / range;
+                  barHeight = 50 + (relativeValue * 300); // От 50px до 350px
+                }
+                
+                // Автоматическая ширина в зависимости от количества столбцов
+                const availableWidth = 700;
+                const gapSize = Math.max(8, Math.min(12, 700 / barData.length - 30));
+                const totalGap = gapSize * (barData.length - 1);
+                const widthPerColumn = (availableWidth - totalGap - 30) / barData.length;
+                const autoWidth = Math.max(20, Math.min(70, widthPerColumn));
+
+                return `
+                  <div style="
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 8px;
+                    position: relative;
+                  ">
+                    <!-- Столбец -->
+                    <div style="
+                      background: linear-gradient(180deg, ${item.color || '#1976d2'} 0%, ${item.color ? item.color + 'DD' : '#1976d2DD'} 100%);
+                      border-radius: 0;
+                      width: ${autoWidth}px;
+                      height: ${barHeight}px;
+                      min-height: 40px;
+                      cursor: pointer;
+                      transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+                      box-shadow: 0 2px 8px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.1);
+                      border: 1px solid rgba(0,0,0,0.2);
+                      border-bottom: 2px solid rgba(0,0,0,0.3);
+                      position: relative;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                    " onmouseover="this.style.opacity='0.9'; this.style.transform='translateY(-3px)'; this.style.boxShadow='0 6px 16px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.2)'; this.style.filter='brightness(1.1)';" onmouseout="this.style.opacity='1'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.1)'; this.style.filter='brightness(1)';">
+                      <!-- Значение на столбце -->
+                      ${showValues ? `
+                        <div style="
+                          color: #ffffff;
+                          font-size: 14px;
+                          font-weight: bold;
+                          text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+                          z-index: 10;
+                        ">${item.value}</div>
+                      ` : ''}
+                    </div>
+                    
+                    <!-- Подпись -->
+                    <div style="
+                      color: ${item.color || '#1976d2'};
+                      font-size: 12px;
+                      font-weight: 500;
+                      text-align: center;
+                      word-wrap: break-word;
+                      max-width: ${autoWidth + 20}px;
+                      line-height: 1.2;
+                    ">${item.name || item.label || 'Данные'}</div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      case 'advanced-line-chart':
+        console.log('🚀🚀🚀 ADVANCED-LINE-CHART EXPORT FUNCTION CALLED! 🚀🚀🚀');
+        console.log('=== ADVANCED-LINE-CHART DEBUG ===');
+        console.log('element:', element);
+        console.log('elementData:', elementData);
+        console.log('element.customStyles:', element.customStyles);
+        console.log('elementData.customStyles:', elementData.customStyles);
+        
+        const chartLineData = Array.isArray(elementData.data) ? elementData.data : [
+          { name: 'Янв', value: 65 },
+          { name: 'Фев', value: 59 },
+          { name: 'Мар', value: 80 },
+          { name: 'Апр', value: 81 },
+          { name: 'Май', value: 56 },
+          { name: 'Июн', value: 55 }
+        ];
+        
+        // Исправляем извлечение стилей - сначала из element.customStyles, потом из elementData.customStyles
+        const chartLineStyles = element.customStyles || elementData.customStyles || {};
+        const chartLineBackgroundColor = chartLineStyles.backgroundColor || 'rgba(0, 0, 0, 0.8)';
+        const chartLineTextColor = chartLineStyles.textColor || '#ffffff';
+        const chartLineTitleColor = chartLineStyles.titleColor || '#ffffff';
+        const chartStrokeColor = elementData.strokeColor || '#8884d8';
+        const chartFillColor = elementData.fillColor || 'rgba(136, 132, 216, 0.3)';
+        
+        const maxChartLineValue = Math.max(...chartLineData.map(d => d.value));
+        const minChartLineValue = Math.min(...chartLineData.map(d => d.value));
+        const chartLineRange = maxChartLineValue - minChartLineValue;
+        
+        return `
+          <div id="${elementId}" class="content-element chart-component" style="
+            margin: 2rem 0;
+            padding: ${chartLineStyles.padding || 24}px;
+            background: ${chartLineBackgroundColor};
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            position: relative;
+            ${chartLineStyles.borderWidth ? `border: ${chartLineStyles.borderWidth}px solid ${chartLineStyles.borderColor || 'transparent'};` : ''}
+          ">
+            <h3 style="
+              margin-bottom: 2rem;
+              color: ${chartLineTitleColor};
+              font-size: 1.25rem;
+              font-weight: bold;
+              text-align: center;
+              font-family: 'Montserrat', sans-serif;
+            ">${elementData.title || 'Линейный график'}</h3>
+            
+            <div style="
+              position: relative;
+              height: 400px;
+              padding: 20px;
+              background: rgba(255,255,255,0.05);
+              border-radius: 8px;
+              border: 1px solid rgba(255,255,255,0.1);
+            ">
+              <svg width="100%" height="100%" viewBox="0 0 800 350" style="overflow: visible;">
+                <!-- Сетка -->
+                <defs>
+                  <pattern id="grid-${elementId}" width="80" height="70" patternUnits="userSpaceOnUse">
+                                         <path d="M 80 0 L 0 0 0 70" fill="none" stroke="${chartLineStyles.gridColor || 'rgba(255,255,255,0.1)'}" stroke-width="1" opacity="0.3"/>
+                   </pattern>
+                 </defs>
+                 <rect width="100%" height="100%" fill="url(#grid-${elementId})" />
+                 
+                 <!-- Область под линией -->
+                 <defs>
+                   <linearGradient id="areaGradient-${elementId}" x1="0%" y1="0%" x2="0%" y2="100%">
+                     <stop offset="0%" style="stop-color:${chartFillColor};stop-opacity:0.8" />
+                     <stop offset="100%" style="stop-color:${chartFillColor};stop-opacity:0.1" />
+                   </linearGradient>
+                 </defs>
+                 
+                 ${(() => {
+                   const points = chartLineData.map((item, index) => {
+                     const x = 50 + (index * (700 / (chartLineData.length - 1)));
+                     const normalizedValue = chartLineRange === 0 ? 0.5 : (item.value - minChartLineValue) / chartLineRange;
+                     const y = 300 - (normalizedValue * 250);
+                     return { x, y, value: item.value, name: item.name };
+                   });
+                   
+                   const pathData = points.map((point, index) => 
+                     index === 0 ? `M ${point.x} ${point.y}` : `L ${point.x} ${point.y}`
+                   ).join(' ');
+                   
+                   const areaPath = `M 50 300 L ${points.map(p => `${p.x} ${p.y}`).join(' L ')} L ${points[points.length - 1].x} 300 Z`;
+                   
+                   return `
+                     <!-- Область заливки -->
+                     <path d="${areaPath}" fill="url(#areaGradient-${elementId})" />
+                     
+                     <!-- Основная линия -->
+                     <path d="${pathData}" fill="none" stroke="${chartStrokeColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+                     
+                     <!-- Точки данных -->
+                     ${points.map(point => `
+                       <circle cx="${point.x}" cy="${point.y}" r="6" fill="${chartStrokeColor}" stroke="white" stroke-width="2" />
+                       <circle cx="${point.x}" cy="${point.y}" r="12" fill="transparent" stroke="transparent" stroke-width="8">
+                         <title>${point.name}: ${point.value}</title>
+                       </circle>
+                     `).join('')}
+                     
+                     <!-- Подписи осей -->
+                     ${points.map((point, index) => `
+                       <text x="${point.x}" y="330" text-anchor="middle" fill="${chartLineTextColor}" font-size="12" font-family="Montserrat">
+                         ${point.name}
+                       </text>
+                     `).join('')}
+                     
+                     <!-- Значения -->
+                     ${points.map(point => `
+                       <text x="${point.x}" y="${point.y - 15}" text-anchor="middle" fill="${chartLineTextColor}" font-size="11" font-weight="bold" opacity="0.8">
+                         ${point.value}
+                       </text>
+                     `).join('')}
+                  `;
+                })()}
+              </svg>
+            </div>
+          </div>
+        `;
+      case 'advanced-pie-chart':
+
+        
+        // Извлекаем данные по модели bar-chart
+        let pieData;
+        if (Array.isArray(element.data)) {
+          pieData = element.data;
+        } else if (Array.isArray(elementData.data)) {
+          pieData = elementData.data;
+        } else if (element.data && Array.isArray(element.data.data)) {
+          pieData = element.data.data;
+        } else {
+          pieData = [
+          { name: 'Продукт A', value: 35, fill: '#8884d8' },
+          { name: 'Продукт B', value: 28, fill: '#82ca9d' },
+          { name: 'Продукт C', value: 22, fill: '#ffc658' },
+          { name: 'Продукт D', value: 15, fill: '#ff7c7c' }
+        ];
+        }
+        
+
+        
+        // Извлекаем стили - AdvancedPieChart использует отдельные props, не customStyles
+        const pieStyles = element.customStyles || elementData.customStyles || {};
+        const pieBackgroundColor = pieStyles.backgroundColor || element.backgroundColor || elementData.backgroundColor || '#ffffff';
+        const pieTextColor = pieStyles.textColor || element.legendColor || elementData.legendColor || '#333333';
+        const pieTitleColor = pieStyles.titleColor || element.titleColor || elementData.titleColor || '#1976d2';
+        const pieDescriptionColor = pieStyles.descriptionColor || '#cccccc';
+        const pieBorderColor = pieStyles.borderColor || 'transparent';
+        const pieBorderWidth = pieStyles.borderWidth || 0;
+        const piePadding = pieStyles.padding || element.padding || elementData.padding || 24;
+        const pieBorderRadius = pieStyles.borderRadius || element.borderRadius || elementData.borderRadius || 8;
+        
+        // Извлекаем цвета для сегментов
+        const pieColors = element.pieColors || elementData.pieColors || ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#0088fe', '#00c49f', '#ffbb28', '#ff8042'];
+        
+        // Добавляем цвета к данным, создавая новые объекты
+        pieData = pieData.map((item, index) => ({
+          ...item,
+          fill: item.fill || item.color || pieColors[index % pieColors.length]
+        }));
+        
+
+        
+        const total = pieData.reduce((sum, item) => sum + item.value, 0);
+        let currentAngle = 0;
+        
+        return `
+          <div id="${elementId}" class="content-element chart-component" style="
+            margin: 2rem 0;
+            padding: ${piePadding}px;
+            background: ${pieBackgroundColor};
+            border-radius: ${pieBorderRadius}px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            position: relative;
+            ${pieBorderWidth > 0 ? `border: ${pieBorderWidth}px solid ${pieBorderColor};` : ''}
+          ">
+            <h3 style="
+              margin-bottom: 2rem;
+              color: ${pieTitleColor};
+              font-size: 1.25rem;
+              font-weight: bold;
+              text-align: center;
+              font-family: 'Montserrat', sans-serif;
+            ">${element.title || elementData.title || 'Круговая диаграмма'}</h3>
+            
+            <div style="
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 12px;
+            ">
+              <!-- Диаграмма -->
+              <div style="flex: 1; display: flex; justify-content: center;">
+                <svg width="300" height="300" viewBox="0 0 300 300" style="overflow: visible;">
+                  <defs>
+                    ${pieData.map((item, index) => `
+                      <filter id="shadow-${elementId}-${index}" x="-50%" y="-50%" width="200%" height="200%">
+                        <feDropShadow dx="2" dy="2" stdDeviation="3" flood-color="rgba(0,0,0,0.3)"/>
+                      </filter>
+                    `).join('')}
+                  </defs>
+                  
+                  ${pieData.map((item, index) => {
+                    const percentage = (item.value / total) * 100;
+                    const angle = (item.value / total) * 360;
+                    const startAngle = currentAngle;
+                    const endAngle = currentAngle + angle;
+                    
+                    // Конвертируем углы в радианы
+                    const startRad = (startAngle - 90) * Math.PI / 180;
+                    const endRad = (endAngle - 90) * Math.PI / 180;
+                    
+                    // Вычисляем координаты
+                    const radius = 120;
+                    const centerX = 150;
+                    const centerY = 150;
+                    
+                    const x1 = centerX + radius * Math.cos(startRad);
+                    const y1 = centerY + radius * Math.sin(startRad);
+                    const x2 = centerX + radius * Math.cos(endRad);
+                    const y2 = centerY + radius * Math.sin(endRad);
+                    
+                    const largeArcFlag = angle > 180 ? 1 : 0;
+                    
+                    const pathData = [
+                      `M ${centerX} ${centerY}`,
+                      `L ${x1} ${y1}`,
+                      `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
+                      'Z'
+                    ].join(' ');
+                    
+                    // Координаты для текста
+                    const textAngle = (startAngle + endAngle) / 2;
+                    const textRad = (textAngle - 90) * Math.PI / 180;
+                    const textRadius = radius * 0.7;
+                    const textX = centerX + textRadius * Math.cos(textRad);
+                    const textY = centerY + textRadius * Math.sin(textRad);
+                    
+                    currentAngle = endAngle;
+                    
+                    return `
+                      <path 
+                        d="${pathData}" 
+                        fill="${item.fill || item.color || '#8884d8'}" 
+                        stroke="white" 
+                        stroke-width="2"
+                        filter="url(#shadow-${elementId}-${index})"
+                        style="cursor: pointer; transition: all 0.3s ease;"
+                        onmouseover="this.style.transform='scale(1.05)'; this.style.transformOrigin='${centerX}px ${centerY}px';"
+                        onmouseout="this.style.transform='scale(1)';"
+                      />
+                      ${percentage > 5 ? `
+                        <text 
+                          x="${textX}" 
+                          y="${textY}" 
+                          text-anchor="middle" 
+                          dominant-baseline="middle"
+                          fill="white" 
+                          font-size="12" 
+                          font-weight="bold"
+                          font-family="Montserrat"
+                          style="pointer-events: none;"
+                        >
+                          ${Math.round(percentage)}%
+                        </text>
+                      ` : ''}
+                    `;
+                  }).join('')}
+                </svg>
+              </div>
+              
+              <!-- Легенда -->
+              <div style="
+                flex: 0 0 200px;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+              ">
+                ${pieData.map((item, index) => {
+                  const percentage = ((item.value / total) * 100).toFixed(1);
+                  return `
+                    <div style="
+                      display: flex;
+                      align-items: center;
+                      gap: 8px;
+                      padding: 8px 12px;
+                      background: rgba(255,255,255,0.1);
+                      border-radius: 6px;
+                      border-left: 4px solid ${item.fill || item.color || '#8884d8'};
+                    ">
+                      <div style="
+                        width: 12px;
+                        height: 12px;
+                        background: ${item.fill || item.color || '#8884d8'};
+                        border-radius: 2px;
+                        flex-shrink: 0;
+                      "></div>
+                      <div style="flex: 1;">
+                        <div style="
+                          color: ${pieTextColor};
+                          font-size: 13px;
+                          font-weight: 500;
+                          font-family: 'Montserrat', sans-serif;
+                        ">${item.name}</div>
+                        <div style="
+                          color: ${pieTextColor};
+                          font-size: 11px;
+                          opacity: 0.8;
+                        ">${item.value} (${percentage}%)</div>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+
+      case 'advanced-area-chart':
+        console.log('🔍 [DEBUG] advanced-area-chart - START');
+        console.log('🔍 [DEBUG] element:', element);
+        console.log('🔍 [DEBUG] elementData:', elementData);
+        console.log('🔍 [DEBUG] elementId:', elementId);
+        
+        // Извлекаем данные и стили
+        // Сначала проверяем element.data (из парсера), потом element.content (из AI), потом elementData
+        let rawAreaData = element.data || elementData.data;
+        console.log('🔧 [DEBUG] Initial rawAreaData check:');
+        console.log('🔧 [DEBUG] element.data:', element.data);
+        console.log('🔧 [DEBUG] elementData.data:', elementData.data);
+        console.log('🔧 [DEBUG] element.data type:', typeof element.data);
+        console.log('🔧 [DEBUG] element.data isArray:', Array.isArray(element.data));
+        
+        // Если данных нет, но есть content, попробуем распарсить его
+        if (!rawAreaData && (element.content || elementData.content)) {
+          console.log('🔧 [DEBUG] Parsing content as rawAreaData');
+          const content = element.content || elementData.content || '';
+          console.log('🔧 [DEBUG] Content to parse:', content);
+          
+          // Парсим контент в формате: "Янв - 780, 360 * Фев - 810, 385 * ..."
+          const dataItems = content.split('*').map(item => item.trim()).filter(item => item);
+          console.log('🔧 [DEBUG] Parsed dataItems:', dataItems);
+          
+          rawAreaData = dataItems.map((item, idx) => {
+            const dashIndex = item.lastIndexOf('-');
+            if (dashIndex !== -1) {
+              const name = item.substring(0, dashIndex).trim();
+              const valuesStr = item.substring(dashIndex + 1).trim();
+              const values = valuesStr.split(',').map(v => parseFloat(v.trim().replace(/[^\d.]/g, '')) || 0);
+              
+              return {
+                name: name || `Период ${idx + 1}`,
+                value: values[0] || 0,
+                value2: values[1] || 0
+              };
+            }
+            return { name: `Период ${idx + 1}`, value: 0, value2: 0 };
+          });
+          
+          console.log('🔧 [DEBUG] Parsed rawAreaData from content:', rawAreaData);
+        }
+        
+        // Если element.data - объект (не массив), конвертируем в массив
+        if (rawAreaData && typeof rawAreaData === 'object' && !Array.isArray(rawAreaData)) {
+          console.log('🔧 [DEBUG] Converting object to array');
+          console.log('🔧 [DEBUG] rawAreaData keys:', Object.keys(rawAreaData));
+          
+          // Конвертируем объект в массив
+          const dataArray = [];
+          Object.keys(rawAreaData).forEach(key => {
+            if (rawAreaData[key] && typeof rawAreaData[key] === 'object') {
+              dataArray.push(rawAreaData[key]);
+            }
+          });
+          
+          if (dataArray.length > 0) {
+            rawAreaData = dataArray;
+            console.log('🔧 [DEBUG] Converted to array:', rawAreaData);
+          }
+        }
+        
+        // Fallback данные только если совсем ничего нет
+        if (!rawAreaData || !Array.isArray(rawAreaData) || rawAreaData.length === 0) {
+          console.log('🔧 [DEBUG] Using fallback data');
+          rawAreaData = [
+            { name: 'Янв', value: 65, value2: 45 },
+            { name: 'Фев', value: 59, value2: 55 },
+            { name: 'Мар', value: 80, value2: 70 },
+            { name: 'Апр', value: 81, value2: 60 },
+            { name: 'Май', value: 56, value2: 65 },
+            { name: 'Июн', value: 55, value2: 50 }
+          ];
+        }
+        console.log('🔍 [DEBUG] rawAreaData:', rawAreaData);
+        console.log('🔍 [DEBUG] rawAreaData type:', typeof rawAreaData);
+        console.log('🔍 [DEBUG] rawAreaData isArray:', Array.isArray(rawAreaData));
+        
+        // Извлекаем labels из данных или используем переданные
+        const areaChartLabels = Array.isArray(rawAreaData) && rawAreaData[0]?.name 
+          ? rawAreaData.map(item => item.name) 
+          : (element.labels || elementData.labels || ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн']);
+        console.log('🔍 [DEBUG] areaChartLabels:', areaChartLabels);
+          
+        // Извлекаем значения для первой линии
+        const areaChartData1 = Array.isArray(rawAreaData) 
+          ? rawAreaData.map(item => typeof item === 'object' ? item.value || 0 : item)
+          : (Array.isArray(rawAreaData) ? rawAreaData : [65, 59, 80, 81, 56, 55]);
+        console.log('🔍 [DEBUG] areaChartData1:', areaChartData1);
+          
+        // Извлекаем значения для второй линии (если есть)
+        const areaChartData2 = Array.isArray(rawAreaData) && rawAreaData[0]?.value2 !== undefined
+          ? rawAreaData.map(item => item.value2 || 0)
+          : (Array.isArray(rawAreaData) ? rawAreaData.map(item => typeof item === 'object' ? item.value2 || 0 : 0) : [45, 55, 70, 60, 65, 50]);
+        console.log('🔍 [DEBUG] areaChartData2:', areaChartData2);
+        
+        const areaChartTitle = element.title || elementData.title || 'Сравнительный анализ рыночной капитализации Bitcoin и Ethereum в контексте инвестиционной активности в ОАЭ за последние месяцы';
+        const areaChartTitleColor = element.titleColor || elementData.titleColor || '#333333';
+        const areaChartBorderColor = element.borderColor || elementData.borderColor || 'rgb(75, 192, 192)';
+        const areaChartBackgroundColor = element.backgroundColor || elementData.backgroundColor || 'rgba(75, 192, 192, 0.2)';
+        const areaChartDatasetLabel = element.datasetLabel || elementData.datasetLabel || 'Область 1';
+        
+        console.log('🔍 [DEBUG] areaChartTitle:', areaChartTitle);
+        console.log('🔍 [DEBUG] areaChartTitleColor:', areaChartTitleColor);
+        console.log('🔍 [DEBUG] Final data for SVG generation:');
+        console.log('🔍 [DEBUG] - Labels:', areaChartLabels);
+        console.log('🔍 [DEBUG] - Data1:', areaChartData1);
+        console.log('🔍 [DEBUG] - Data2:', areaChartData2);
+        
+        console.log('🚀 [HTML GENERATION] About to generate HTML with:');
+        console.log('🚀 [HTML GENERATION] elementId:', elementId);
+        console.log('🚀 [HTML GENERATION] JSON.stringify(areaChartLabels):', JSON.stringify(areaChartLabels));
+        console.log('🚀 [HTML GENERATION] JSON.stringify(areaChartData1):', JSON.stringify(areaChartData1));
+        console.log('🚀 [HTML GENERATION] JSON.stringify(areaChartData2):', JSON.stringify(areaChartData2));
+        
+
+        
+        return `
+          <div id="${elementId}" class="content-element chart-component" style="
+            margin: 2rem 0;
+            text-align: center;
+            padding: 2rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+          ">
+            <h3 style="
+              margin-bottom: 1rem;
+              color: ${areaChartTitleColor};
+              font-size: 1.5rem;
+            ">${areaChartTitle}</h3>
+            <!-- Красивая статичная SVG диаграмма с областями -->
+            <div style="position: relative; width: 100%; height: 300px;">
+              <svg width="100%" height="100%" viewBox="0 0 700 300" style="border: 1px solid #e0e0e0; border-radius: 8px; background: #fafafa;">
+                <!-- Сетка -->
+                <defs>
+                  <pattern id="grid-${elementId}" width="100" height="50" patternUnits="userSpaceOnUse">
+                    <path d="M 100 0 L 0 0 0 50" fill="none" stroke="#f0f0f0" stroke-width="1"/>
+                  </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#grid-${elementId})" />
+                
+                <!-- Вертикальные линии сетки -->
+                ${areaChartLabels.map((label, index) => {
+                  const x = 50 + (index * 600) / (areaChartLabels.length - 1);
+                  return `<line x1="${x}" y1="50" x2="${x}" y2="250" stroke="#f0f0f0" stroke-width="1" stroke-dasharray="3,3"/>`;
+                }).join('')}
+                
+                <!-- Оси -->
+                <line x1="50" y1="250" x2="650" y2="250" stroke="#ccc" stroke-width="2"/>
+                <line x1="50" y1="50" x2="50" y2="250" stroke="#ccc" stroke-width="2"/>
+                
+                <!-- Подписи по оси X -->
+                ${areaChartLabels.map((label, index) => {
+                  const x = 50 + (index * 600) / (areaChartLabels.length - 1);
+                  return `<text x="${x}" y="270" text-anchor="middle" fill="#666" font-size="12">${label}</text>`;
+                }).join('')}
+                
+                <!-- Подписи по оси Y -->
+                ${(() => {
+                  const maxValue = Math.max(...areaChartData1, ...(areaChartData2 || []));
+                  const step = Math.ceil(maxValue / 5);
+                  const values = [];
+                  for (let i = 0; i <= 5; i++) {
+                    values.push(i * step);
+                  }
+                  return values.map(value => {
+                    const y = 250 - (value / maxValue) * 200;
+                    return `<text x="35" y="${y + 4}" text-anchor="end" fill="#666" font-size="10">${value}</text>`;
+                  }).join('');
+                })()}
+                
+                                <!-- Области диаграммы -->
+                ${(() => {
+                  const maxValue = Math.max(...areaChartData1, ...(areaChartData2 || []));
+                  
+                  // Создаем точки для первой области
+                  const points1 = areaChartData1.map((value, index) => {
+                    const x = 50 + (index * 600) / (areaChartData1.length - 1);
+                    const y = 250 - (value / maxValue) * 200;
+                    return { x, y, value };
+                  });
+                  
+                  // Создаем точки для второй области
+                  const points2 = areaChartData2 ? areaChartData2.map((value, index) => {
+                    const x = 50 + (index * 600) / (areaChartData2.length - 1);
+                    const y = 250 - (value / maxValue) * 200;
+                    console.log('🔧 [DEBUG] Point2', index, '- value:', value, 'maxValue:', maxValue, 'y:', y);
+                    return { x, y, value };
+                  }) : [];
+                  
+                  console.log('🔧 [DEBUG] points1 y-coordinates:', points1.map(p => p.y));
+                  console.log('🔧 [DEBUG] points2 y-coordinates:', points2.map(p => p.y));
+                  
+                  // Создаем path для первой области
+                  const path1 = `M ${points1.map(p => `${p.x},${p.y}`).join(' L ')} L ${points1[points1.length-1].x},250 L ${points1[0].x},250 Z`;
+                  
+                  // Создаем path для второй области
+                  const path2 = points2.length > 0 ? `M ${points2.map(p => `${p.x},${p.y}`).join(' L ')} L ${points2[points2.length-1].x},250 L ${points2[0].x},250 Z` : '';
+                  
+                  return `
+                    <!-- Debug info -->
+                    <text x="350" y="30" text-anchor="middle" fill="#999" font-size="10">
+                      Data: Bitcoin [${areaChartData1.join(',')}] | Ethereum [${areaChartData2.join(',')}]
+                    </text>
+                    
+                    <!-- Сначала рисуем первую область (будет внизу) -->
+                    <path d="${path1}" fill="rgba(0, 143, 251, 0.3)" stroke="rgb(0, 143, 251)" stroke-width="2" style="cursor: pointer;">
+                      <title>${(element.areaNames && element.areaNames[0]) || (elementData.areaNames && elementData.areaNames[0]) || 'Bitcoin'}: ${areaChartData1.join(', ')}</title>
+                    </path>
+                    
+                    <!-- Потом рисуем вторую область (будет сверху и доступна для кликов) -->
+                    ${path2 ? `<path d="${path2}" fill="rgba(130, 202, 157, 0.3)" stroke="rgb(130, 202, 157)" stroke-width="2" style="cursor: pointer; pointer-events: all;">
+                      <title>${(element.areaNames && element.areaNames[1]) || (elementData.areaNames && elementData.areaNames[1]) || 'Ethereum'}: ${areaChartData2.join(', ')}</title>
+                    </path>` : ''}
+                    
+                    <!-- Точки первой линии -->
+                    ${points1.map((point, index) => `
+                      <circle cx="${point.x}" cy="${point.y}" r="4" fill="rgb(0, 143, 251)" stroke="white" stroke-width="2">
+                        <title>${(element.areaNames && element.areaNames[0]) || (elementData.areaNames && elementData.areaNames[0]) || 'Bitcoin'}: ${point.value}</title>
+                      </circle>
+                    `).join('')}
+                    
+                    <!-- Точки второй линии -->
+                    ${points2.map((point, index) => `
+                      <circle cx="${point.x}" cy="${point.y}" r="4" fill="rgb(130, 202, 157)" stroke="white" stroke-width="2">
+                        <title>${(element.areaNames && element.areaNames[1]) || (elementData.areaNames && elementData.areaNames[1]) || 'Ethereum'}: ${point.value}</title>
+                      </circle>
+                    `).join('')}
+                  `;
+                })()}
+              </svg>
+              
+              <!-- Легенда -->
+              <div style="
+                position: absolute;
+                bottom: 10px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(255,255,255,0.95);
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-size: 12px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                display: flex;
+                gap: 16px;
+              ">
+                <div style="display: flex; align-items: center;">
+                  <div style="width: 12px; height: 12px; background: rgba(0, 143, 251, 0.7); margin-right: 5px; border-radius: 2px;"></div>
+                  <span style="font-weight: 500;">${(element.areaNames && element.areaNames[0]) || (elementData.areaNames && elementData.areaNames[0]) || 'Bitcoin'}</span>
+                </div>
+                <div style="display: flex; align-items: center;">
+                  <div style="width: 12px; height: 12px; background: rgba(130, 202, 157, 0.7); margin-right: 5px; border-radius: 2px;"></div>
+                  <span style="font-weight: 500;">${(element.areaNames && element.areaNames[1]) || (elementData.areaNames && elementData.areaNames[1]) || 'Ethereum'}</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Интерактивные подсказки -->
+            <script type="text/javascript">
+              console.log('🚀🚀🚀 [HTML DEBUG] Script block started!');
+                              console.log('🚀 [HTML DEBUG] elementId: ${elementId}');
+                console.log('🚀 [HTML DEBUG] areaChartLabels: ${JSON.stringify(areaChartLabels)}');
+                console.log('🚀 [HTML DEBUG] areaChartData1: ${JSON.stringify(areaChartData1)}');
+                console.log('🚀 [HTML DEBUG] areaChartData2: ${JSON.stringify(areaChartData2)}');
+                console.log('🚀 [HTML DEBUG] areaNames: ${JSON.stringify(element.areaNames || elementData.areaNames || ['Bitcoin', 'Ethereum'])}');
+              
+              (function() {
+                console.log('🔍🔍🔍 [SVG SCRIPT] STARTED for elementId: ${elementId}');
+                console.log('🔍 [SVG] Labels:', ${JSON.stringify(areaChartLabels)});
+                console.log('🔍 [SVG] Data1 (${(element.areaNames && element.areaNames[0]) || (elementData.areaNames && elementData.areaNames[0]) || 'Bitcoin'}):', ${JSON.stringify(areaChartData1)});
+                console.log('🔍 [SVG] Data2 (${(element.areaNames && element.areaNames[1]) || (elementData.areaNames && elementData.areaNames[1]) || 'Ethereum'}):', ${JSON.stringify(areaChartData2)});
+                console.log('🔍 [SVG] Document ready state:', document.readyState);
+                
+                // Функция инициализации tooltips
+                function initTooltips() {
+                  console.log('🔍 [SVG] Initializing tooltips...');
+                  
+                  const element = document.getElementById('${elementId}');
+                  console.log('🔍 [SVG] Element exists:', !!element);
+                  
+                  if (!element) {
+                    console.error('🚨🚨🚨 [SVG ERROR] Element not found with ID:', '${elementId}');
+                    return;
+                  }
+                  
+                  console.log('✅ [SVG] Element found successfully!');
+                  console.log('🎯 [SVG] Starting tooltip setup...');
+                  
+                  // Данные для tooltip'ов
+                  const areaNames = ${JSON.stringify([
+                    (element.areaNames && element.areaNames[0]) || (elementData.areaNames && elementData.areaNames[0]) || 'Bitcoin',
+                    (element.areaNames && element.areaNames[1]) || (elementData.areaNames && elementData.areaNames[1]) || 'Ethereum'
+                  ])};
+                  const data1 = ${JSON.stringify(areaChartData1)};
+                  const data2 = ${JSON.stringify(areaChartData2)};
+                  const labels = ${JSON.stringify(areaChartLabels)};
+                  
+                  // Создаем невидимые области для hover на каждой точке X-оси
+                  const svg = element.querySelector('svg');
+                  const svgRect = svg.getBoundingClientRect();
+                  
+                  // Создаем hover области для каждой точки данных
+                  labels.forEach((label, index) => {
+                    const x = 50 + (index * 600) / (labels.length - 1);
+                    
+                    // Создаем невидимый прямоугольник для hover
+                    const hoverRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    hoverRect.setAttribute('x', x - 25);
+                    hoverRect.setAttribute('y', 50);
+                    hoverRect.setAttribute('width', 50);
+                    hoverRect.setAttribute('height', 200);
+                    hoverRect.setAttribute('fill', 'transparent');
+                    hoverRect.setAttribute('stroke', 'none');
+                    hoverRect.style.cursor = 'pointer';
+                    
+                    let tooltip = null;
+                    
+                    hoverRect.addEventListener('mouseenter', function(e) {
+                      // Создаем красивый tooltip с обоими значениями
+                      tooltip = document.createElement('div');
+                      tooltip.innerHTML = \`
+                        <div style="font-weight: bold; margin-bottom: 4px; color: #333; font-size: 13px;">\${label}</div>
+                        <div style="display: flex; align-items: center; margin-bottom: 2px;">
+                          <div style="width: 12px; height: 12px; background: rgb(0, 143, 251); border-radius: 2px; margin-right: 6px;"></div>
+                          <span style="color: #666; font-size: 12px;">\${areaNames[0]}: <strong style="color: #333;">\${data1[index]}</strong></span>
+                        </div>
+                        <div style="display: flex; align-items: center;">
+                          <div style="width: 12px; height: 12px; background: rgb(130, 202, 157); border-radius: 2px; margin-right: 6px;"></div>
+                          <span style="color: #666; font-size: 12px;">\${areaNames[1]}: <strong style="color: #333;">\${data2[index]}</strong></span>
+                        </div>
+                      \`;
+                      
+                      tooltip.style.cssText = \`
+                        position: fixed;
+                        background: white;
+                        border: 1px solid #ddd;
+                        border-radius: 6px;
+                        padding: 10px;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                        pointer-events: none;
+                        z-index: 10000;
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                        min-width: 120px;
+                      \`;
+                      
+                      tooltip.className = 'chart-tooltip-${elementId}';
+                      document.body.appendChild(tooltip);
+                      
+                      // Позиционируем tooltip
+                      const updatePosition = (event) => {
+                        const tooltipRect = tooltip.getBoundingClientRect();
+                        let left = event.clientX + 15;
+                        let top = event.clientY - tooltipRect.height / 2;
+                        
+                        // Проверяем, не выходит ли tooltip за границы экрана
+                        if (left + tooltipRect.width > window.innerWidth) {
+                          left = event.clientX - tooltipRect.width - 15;
+                        }
+                        if (top < 0) top = 10;
+                        if (top + tooltipRect.height > window.innerHeight) {
+                          top = window.innerHeight - tooltipRect.height - 10;
+                        }
+                        
+                        tooltip.style.left = left + 'px';
+                        tooltip.style.top = top + 'px';
+                      };
+                      
+                      updatePosition(e);
+                    });
+                    
+                    hoverRect.addEventListener('mousemove', function(e) {
+                      if (tooltip) {
+                        const tooltipRect = tooltip.getBoundingClientRect();
+                        let left = e.clientX + 15;
+                        let top = e.clientY - tooltipRect.height / 2;
+                        
+                        if (left + tooltipRect.width > window.innerWidth) {
+                          left = e.clientX - tooltipRect.width - 15;
+                        }
+                        if (top < 0) top = 10;
+                        if (top + tooltipRect.height > window.innerHeight) {
+                          top = window.innerHeight - tooltipRect.height - 10;
+                        }
+                        
+                        tooltip.style.left = left + 'px';
+                        tooltip.style.top = top + 'px';
+                      }
+                    });
+                    
+                    hoverRect.addEventListener('mouseleave', function() {
+                      if (tooltip) {
+                        tooltip.remove();
+                        tooltip = null;
+                      }
+                    });
+                    
+                    svg.appendChild(hoverRect);
+                  });
+                }
+                
+                // Инициализируем после загрузки DOM
+                if (document.readyState === 'loading') {
+                  document.addEventListener('DOMContentLoaded', initTooltips);
+                } else {
+                  initTooltips();
+                }
+              })();
+            </script>
+            </div>
+          </div>
+        `;
+
+      case 'chartjs-bar':
+
+        
+        // Извлекаем данные по модели других диаграмм
+        let chartjsBarData;
+        if (Array.isArray(element.data)) {
+          chartjsBarData = element.data;
+        } else if (Array.isArray(elementData.data)) {
+          chartjsBarData = elementData.data;
+        } else if (element.data && Array.isArray(element.data.data)) {
+          chartjsBarData = element.data.data;
+        } else {
+          chartjsBarData = [300, 450, 200, 600];
+        }
+        
+        // Преобразуем объекты в числа
+        chartjsBarData = chartjsBarData.map(item => typeof item === 'object' ? item.value || 0 : item);
+        
+        const chartjsBarLabels = element.labels || elementData.labels || ['Продукт A', 'Продукт B', 'Продукт C', 'Продукт D'];
+        const chartjsBarColors = ['#ff6384', '#36a2eb', '#ffce56', '#4bc0c0'];
+        
+
+        
+        let maxChartjsBarValue = chartjsBarData[0] || 0;
+        for (let i = 1; i < chartjsBarData.length; i++) {
+          if (chartjsBarData[i] > maxChartjsBarValue) maxChartjsBarValue = chartjsBarData[i];
+        }
+        
+        let barsHtml = '';
+        for (let i = 0; i < chartjsBarData.length; i++) {
+          const value = chartjsBarData[i];
+          const label = chartjsBarLabels[i] || `Продукт ${i + 1}`;
+          const color = chartjsBarColors[i % chartjsBarColors.length];
+          const height = Math.max(20, (value / maxChartjsBarValue) * 150);
+          
+          barsHtml += `
+            <div style="text-align: center;">
+              <div style="
+                width: 40px;
+                height: ${height}px;
+                background: ${color};
+                margin-bottom: 8px;
+                border-radius: 4px 4px 0 0;
+                display: flex;
+                align-items: flex-start;
+                justify-content: center;
+                padding-top: 4px;
+                color: white;
+                font-size: 10px;
+                font-weight: bold;
+              ">${value}</div>
+              <div style="font-size: 12px; color: #666;">${label}</div>
+            </div>
+          `;
+        }
+        
+        return `
+          <div id="${elementId}" class="content-element chart-component" style="
+            margin: 2rem 0;
+            padding: 24px;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: center;
+          ">
+            <h3 style="
+              margin-bottom: 2rem;
+              color: ${elementData.titleColor || '#1976d2'};
+              font-size: 1.25rem;
+              font-weight: bold;
+            ">${element.title || elementData.title || 'Chart.js столбцы'}</h3>
+            <div style="
+              display: flex;
+              gap: 1rem;
+              justify-content: center;
+              align-items: end;
+              height: 200px;
+              padding: 1rem;
+              border: 1px solid rgba(0,0,0,0.1);
+              border-radius: 4px;
+            ">
+              ${barsHtml}
+            </div>
+          </div>
+        `;
+      case 'chartjs-doughnut':
+
+        
+        // Извлекаем данные по модели других диаграмм
+        let doughnutData;
+        if (Array.isArray(element.data)) {
+          doughnutData = element.data;
+        } else if (Array.isArray(elementData.data)) {
+          doughnutData = elementData.data;
+        } else if (element.data && Array.isArray(element.data.data)) {
+          doughnutData = element.data.data;
+        } else {
+          doughnutData = [12, 19, 3, 5];
+        }
+        
+        // Преобразуем объекты в числа
+        doughnutData = doughnutData.map(item => typeof item === 'object' ? item.value || 0 : item);
+        
+        const doughnutLabels = element.labels || elementData.labels || ['Красный', 'Синий', 'Желтый', 'Зеленый'];
+        const doughnutColors = ['#ff6384', '#36a2eb', '#ffce56', '#4bc0c0'];
+        
+
+        
+        let doughnutTotal = 0;
+        for (let i = 0; i < doughnutData.length; i++) {
+          doughnutTotal += doughnutData[i];
+        }
+        
+        let cumulativeAngle = 0;
+        let pathsHtml = '';
+        
+        for (let i = 0; i < doughnutData.length; i++) {
+          const percentage = (doughnutData[i] / doughnutTotal) * 100;
+          const angle = (percentage / 100) * 360;
+          const startAngle = cumulativeAngle;
+          const endAngle = cumulativeAngle + angle;
+          
+          const startAngleRad = (startAngle - 90) * Math.PI / 180;
+          const endAngleRad = (endAngle - 90) * Math.PI / 180;
+          
+          const x1 = 100 + 80 * Math.cos(startAngleRad);
+          const y1 = 100 + 80 * Math.sin(startAngleRad);
+          const x2 = 100 + 80 * Math.cos(endAngleRad);
+          const y2 = 100 + 80 * Math.sin(endAngleRad);
+          
+          const largeArcFlag = angle > 180 ? 1 : 0;
+          
+          pathsHtml += `
+            <path d="M 100 100 L ${x1} ${y1} A 80 80 0 ${largeArcFlag} 1 ${x2} ${y2} Z" 
+                  fill="${doughnutColors[i % doughnutColors.length]}" 
+                  stroke="white" 
+                  stroke-width="2"/>
+          `;
+          
+          cumulativeAngle += angle;
+        }
+        
+        let legendHtml = '';
+        for (let i = 0; i < doughnutLabels.length; i++) {
+          const label = doughnutLabels[i];
+          const color = doughnutColors[i % doughnutColors.length];
+          legendHtml += `
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <div style="width: 12px; height: 12px; background: ${color}; border-radius: 2px;"></div>
+              <span style="font-size: 12px; color: #666;">${label}</span>
+            </div>
+          `;
+        }
+        
+        return `
+          <div id="${elementId}" class="content-element chart-component" style="
+            margin: 2rem 0;
+            padding: 24px;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: center;
+          ">
+            <h3 style="
+              margin-bottom: 2rem;
+              color: ${elementData.titleColor || '#1976d2'};
+              font-size: 1.25rem;
+              font-weight: bold;
+            ">${element.title || elementData.title || 'Пончиковая диаграмма'}</h3>
+            <div style="display: flex; flex-direction: column; align-items: center;">
+              <svg width="200" height="200" viewBox="0 0 200 200" style="margin-bottom: 1rem;">
+                <circle cx="100" cy="100" r="80" fill="none" stroke="#e0e0e0" stroke-width="2"/>
+                ${pathsHtml}
+                <circle cx="100" cy="100" r="40" fill="white"/>
+              </svg>
+              <div style="
+                display: flex;
+                justify-content: center;
+                gap: 1rem;
+                margin-top: 1rem;
+                flex-wrap: wrap;
+              ">
+                ${legendHtml}
+              </div>
+            </div>
+          </div>
+        `;
+
+      case 'apex-line':
+        return `
+          <div id="${elementId}" class="content-element chart-component" style="
+            margin: 2rem 0;
+            text-align: center;
+            padding: 2rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+          ">
+            <h3 style="
+              margin-bottom: 1rem;
+              color: ${elementData.titleColor || '#333333'};
+              font-size: 1.5rem;
+            ">${elementData.title || 'ApexCharts линии'}</h3>
+            <div id="chart-${elementId}" style="width: 100%; height: 300px;"></div>
+            <script>
+              (function() {
+                if (window.ApexCharts) {
+                  const options = {
+                    chart: {
+                      type: 'line',
+                      height: 300
+                    },
+                    series: [{
+                      name: '${elementData.seriesName || 'Данные'}',
+                      data: ${JSON.stringify(elementData.data || [30, 40, 35, 50, 49, 60, 70, 91, 125])}
+                    }],
+                    xaxis: {
+                      categories: ${JSON.stringify(elementData.categories || ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен'])}
+                    },
+                    colors: ['${elementData.color || '#1976d2'}'],
+                    stroke: {
+                      curve: 'smooth'
+                    }
+                  };
+                  new ApexCharts(document.getElementById('chart-${elementId}'), options).render();
+                }
+              })();
+            </script>
+          </div>
+        `;
+
+      case 'advanced-contact-form':
+        return `
+          <div id="${elementId}" class="content-element advanced-contact-form" style="
+            margin: 2rem 0;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+          ">
+            ${element.title ? `
+              <h3 style="
+                text-align: center;
+                color: ${element.titleColor || '#333333'};
+                margin-bottom: 2rem;
+                font-size: 1.8rem;
+              ">${element.title}</h3>
+            ` : ''}
+            <form style="display: flex; flex-direction: column; gap: 1rem;">
+              <input type="text" placeholder="Имя" style="
+                padding: 1rem;
+                border: 1px solid #e0e0e0;
+                border-radius: 8px;
+                font-size: 1rem;
+              ">
+              <input type="email" placeholder="Email" style="
+                padding: 1rem;
+                border: 1px solid #e0e0e0;
+                border-radius: 8px;
+                font-size: 1rem;
+              ">
+              <textarea placeholder="Сообщение" rows="4" style="
+                padding: 1rem;
+                border: 1px solid #e0e0e0;
+                border-radius: 8px;
+                font-size: 1rem;
+                resize: vertical;
+              "></textarea>
+              <button type="submit" style="
+                padding: 1rem 2rem;
+                background: ${element.buttonColor || '#1976d2'};
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-size: 1rem;
+                font-weight: bold;
+                cursor: pointer;
+                transition: background 0.3s ease;
+              " onmouseover="this.style.background='#1565c0'" onmouseout="this.style.background='${element.buttonColor || '#1976d2'}'">
+                ${element.buttonText || 'Отправить'}
+              </button>
+            </form>
+          </div>
+        `;
+
+      case 'cta-section':
+        return `
+          <div id="${elementId}" class="content-element cta-section" style="
+            margin: 2rem 0;
+            text-align: center;
+            padding: 3rem 2rem;
+            background: ${element.backgroundColor || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'};
+            border-radius: 12px;
+            color: white;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+          ">
+            <h2 style="
+              margin-bottom: 1rem;
+              font-size: 2rem;
+              color: inherit;
+            ">${element.title || 'Призыв к действию'}</h2>
+            <p style="
+              margin-bottom: 2rem;
+              font-size: 1.1rem;
+              line-height: 1.6;
+              color: inherit;
+              opacity: 0.9;
+            ">${element.description || 'Описание призыва к действию'}</p>
+            <button style="
+              padding: 1rem 2rem;
+              background: ${element.buttonColor || '#ffffff'};
+              color: ${element.backgroundColor ? '#333333' : '#ffffff'};
+              border: none;
+              border-radius: 25px;
+              font-size: 1.1rem;
+              font-weight: bold;
+              cursor: pointer;
+              transition: all 0.3s ease;
+              box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+              ${element.buttonText || 'Начать сейчас'}
+            </button>
+          </div>
+        `;
+
+      default:
+        return `
+          <div id="${elementId}" class="content-element unknown-type" style="
+            margin: 1rem 0;
+            padding: 1rem;
+            background: #f5f5f5;
+            border-radius: 8px;
+            text-align: center;
+            color: #666;
+          ">
+            <p>Элемент типа "${element.type}" пока не поддерживается в предпросмотре</p>
+          </div>
+        `;
     }
   };
 
@@ -1992,7 +6911,6 @@ const EditorPanel = ({
       </div>
     </nav>
   </header>
-
   <main>
     <section id="hero" class="hero" style="
       ${data.heroData.backgroundType === 'solid' ? `background-color: ${data.heroData.backgroundColor || '#ffffff'};` : ''}
@@ -2072,7 +6990,7 @@ const EditorPanel = ({
       </div>
     </section>
 
-    ${data.sectionsData.map(section => {
+    ${(Array.isArray(data.sectionsData) ? data.sectionsData : Object.values(data.sectionsData)).map(section => {
       // Get border colors from section cards for gradient
       const getBorderColors = () => {
         if (section.cards && section.cards.length > 0) {
@@ -2372,7 +7290,7 @@ const EditorPanel = ({
               ">
                 ${section.title ? `
                   <h2 style="
-                    color: ${titleColor};
+                    color: ${calloutTitleColor};
                     font-size: 2rem;
                     font-weight: 700;
                     margin-bottom: 1.5rem;
@@ -2406,7 +7324,7 @@ const EditorPanel = ({
                   <div style="
                     display: flex;
                     flex-direction: column;
-                    gap: 20px;
+                    gap: 12px;
                   ">
                     ${cardsHtml}
                   </div>
@@ -2600,11 +7518,20 @@ const EditorPanel = ({
                 </div>
               `).join('')}
             </div>
+            
+            <!-- Content Elements -->
+            ${section.contentElements && section.contentElements.length > 0 ? `
+              <div class="content-elements" style="
+                margin-top: 2rem;
+                padding: 1rem 0;
+              ">
+                ${section.contentElements.map(element => generateContentElementHTML(element)).join('')}
+              </div>
+            ` : ''}
           </div>
         </section>
       `;
     }).join('')}
-
     <section id="contact" class="section"
       style="
         padding: 4rem 0;
@@ -3095,7 +8022,10 @@ const EditorPanel = ({
 </html>`;
   };
 
-  const generateCSS = () => {
+  const generateCSS = (customHeaderData = null) => {
+    // Используем переданные данные или данные из компонента
+    const activeHeaderData = customHeaderData || headerData;
+    
     return `
       /* Base styles */
       * {
@@ -3737,7 +8667,6 @@ const EditorPanel = ({
         text-align: center;
         margin-bottom: 3rem;
       }
-
       .section-header h2 {
         font-size: 2.5rem;
         margin-bottom: 1rem;
@@ -3887,11 +8816,9 @@ const EditorPanel = ({
         background-color: #1976d2;
         transition: width 0.3s ease-in-out;
       }
-
       .section h2:hover::after {
         width: 100px;
       }
-
       .section p {
         font-size: 1.1rem;
         margin-bottom: 3rem;
@@ -4272,11 +9199,682 @@ const EditorPanel = ({
           font-size: 1.1rem;
         }
       }
+
+      /* Multi-page specific styles */
+      
+      /* Site Header for multi-page */
+      .site-header {
+        background: ${activeHeaderData.backgroundColor};
+        color: ${activeHeaderData.titleColor};
+        padding: 1rem 0;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+      }
+
+      .site-header .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 1rem;
+      }
+
+      .site-header .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .site-header .site-title {
+        margin: 0;
+        font-size: 1.8rem;
+        font-weight: 700;
+      }
+
+      .site-header .site-title a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .site-nav ul {
+        display: flex;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        gap: 2rem;
+      }
+
+      .site-nav a {
+        color: ${activeHeaderData.linksColor};
+        text-decoration: none;
+        font-weight: 500;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+      }
+
+      .site-nav a:hover,
+      .site-nav a.active {
+        background: rgba(255,255,255,0.1);
+        transform: translateY(-2px);
+      }
+
+      /* Mobile Menu Toggle */
+      .menu-toggle {
+        display: none;
+        background: none;
+        border: none;
+        cursor: pointer;
+        flex-direction: column;
+        justify-content: space-around;
+        width: 30px;
+        height: 30px;
+        padding: 0;
+      }
+
+      .menu-toggle span {
+        width: 100%;
+        height: 3px;
+        background: ${activeHeaderData.linksColor};
+        border-radius: 2px;
+        transition: all 0.3s ease;
+        transform-origin: center;
+      }
+
+      .menu-toggle.active span:nth-child(1) {
+        transform: translateY(9px) rotate(45deg);
+      }
+
+      .menu-toggle.active span:nth-child(2) {
+        opacity: 0;
+      }
+
+      .menu-toggle.active span:nth-child(3) {
+        transform: translateY(-9px) rotate(-45deg);
+      }
+
+      /* Breadcrumbs */
+      .breadcrumbs {
+        background: #f8f9fa;
+        padding: 1rem 0;
+        margin-bottom: 2rem;
+      }
+
+      .breadcrumbs a {
+        color: #007bff;
+        text-decoration: none;
+      }
+
+      .breadcrumbs a:hover {
+        text-decoration: underline;
+      }
+
+      .breadcrumbs span {
+        color: #6c757d;
+      }
+      /* Site Footer for multi-page */
+      .site-footer {
+        background: #2c3e50;
+        color: white;
+        text-align: center;
+        padding: 2rem 0;
+        margin-top: 4rem;
+      }
+
+      .site-footer .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 1rem;
+      }
+
+      /* Hero Section for index page */
+      .hero-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 4rem 0;
+        text-align: center;
+      }
+
+      .hero-section .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 1rem;
+      }
+
+      .hero-title {
+        font-size: 3rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+      }
+
+      .hero-subtitle {
+        font-size: 1.5rem;
+        font-weight: 300;
+        margin-bottom: 1rem;
+        opacity: 0.9;
+      }
+
+      .hero-description {
+        font-size: 1.2rem;
+        margin-bottom: 2rem;
+        opacity: 0.8;
+      }
+
+      .hero-button {
+        display: inline-block;
+        background: #ff6b6b;
+        color: white;
+        padding: 1rem 2rem;
+        text-decoration: none;
+        border-radius: 50px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+      }
+
+      .hero-button:hover {
+        background: #ff5252;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+      }
+
+      /* Sections Preview Grid */
+      .sections-preview {
+        padding: 4rem 0;
+      }
+
+      .sections-preview .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 1rem;
+      }
+
+      .sections-preview h2 {
+        text-align: center;
+        font-size: 2.5rem;
+        margin-bottom: 3rem;
+        color: #2c3e50;
+      }
+
+      .preview-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+      }
+
+      .preview-card {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        border: 1px solid #e9ecef;
+      }
+
+      .preview-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+      }
+
+      .preview-card h3 {
+        color: #2c3e50;
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+      }
+
+      .preview-card p {
+        color: #6c757d;
+        line-height: 1.6;
+        margin-bottom: 1.5rem;
+      }
+
+      .preview-link {
+        display: inline-block;
+        background: #007bff;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+      }
+
+      .preview-link:hover {
+        background: #0056b3;
+        transform: translateY(-2px);
+      }
+
+      /* Section Content Pages */
+      .section-content {
+        padding: 2rem 0;
+      }
+
+      .section-content .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 1rem;
+      }
+
+      .section-title {
+        font-size: 2.5rem;
+        color: #2c3e50;
+        margin-bottom: 1rem;
+        text-align: center;
+      }
+
+      .section-description {
+        font-size: 1.2rem;
+        color: #6c757d;
+        text-align: center;
+        margin-bottom: 3rem;
+        line-height: 1.6;
+      }
+
+      .cards-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+      }
+
+      .cards-grid .card {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        border: 1px solid #e9ecef;
+      }
+
+      .cards-grid .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+      }
+
+      .card-title {
+        color: #2c3e50;
+        font-size: 1.3rem;
+        margin-bottom: 1rem;
+      }
+
+      .card-content {
+        color: #6c757d;
+        line-height: 1.6;
+      }
+
+      /* Contact Section */
+      .contact-section {
+        padding: 2rem 0;
+      }
+
+      .contact-section .container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 0 1rem;
+      }
+
+      .contact-section h1 {
+        font-size: 2.5rem;
+        color: #2c3e50;
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+
+      .contact-section p {
+        font-size: 1.2rem;
+        color: #6c757d;
+        text-align: center;
+        margin-bottom: 2rem;
+        line-height: 1.6;
+      }
+
+      .contact-info {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        border: 1px solid #e9ecef;
+      }
+
+      .contact-info p {
+        margin-bottom: 1rem;
+        text-align: left;
+        font-size: 1.1rem;
+      }
+
+      .contact-info strong {
+        color: #2c3e50;
+      }
+
+      /* Legal Content */
+      .legal-content {
+        padding: 2rem 0;
+      }
+
+      .legal-content .container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 0 1rem;
+      }
+
+      .legal-content h1 {
+        font-size: 2.5rem;
+        color: #2c3e50;
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+
+      .legal-content .content {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        border: 1px solid #e9ecef;
+        line-height: 1.6;
+        color: #495057;
+      }
+      /* Responsive design for multi-page */
+      @media (max-width: 768px) {
+        .site-header .header-content {
+          flex-direction: row;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .menu-toggle {
+          display: flex !important;
+          z-index: 1001;
+        }
+
+        .site-nav ul {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100vh;
+          background: ${activeHeaderData.backgroundColor};
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          gap: 12px;
+          transform: translateX(-100%);
+          transition: transform 0.3s ease;
+          z-index: 1000;
+          box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        .nav-menu.active {
+          transform: translateX(0);
+        }
+
+        .site-nav a {
+          font-size: 1.2rem;
+          padding: 1rem 2rem;
+          border-radius: 10px;
+          width: 200px;
+          text-align: center;
+        }
+
+        .hero-title {
+          font-size: 2rem;
+        }
+
+        .hero-subtitle {
+          font-size: 1.2rem;
+        }
+
+        .sections-preview h2 {
+          font-size: 2rem;
+        }
+
+        .preview-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .section-title {
+          font-size: 2rem;
+        }
+
+        .cards-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* Enhanced section styles from EnhancedSectionEditor */
+      ${headerData.menuItems ? headerData.menuItems.map(item => {
+        const section = sectionsData[item.id];
+        if (!section || !section.enhancedStyles) return '';
+        
+        const styles = section.enhancedStyles;
+        let css = '';
+        
+        // Section specific styles
+        css += `
+          #${item.id} {
+            ${styles.padding ? `padding: ${styles.padding} !important;` : ''}
+            ${styles.margin ? `margin: ${styles.margin} !important;` : ''}
+            ${styles.borderRadius ? `border-radius: ${styles.borderRadius} !important;` : ''}
+            ${styles.background ? generateBackgroundCSS(styles.background) : ''}
+          }
+        `;
+        
+        // Title styles
+        if (styles.titleStyle) {
+          css += `
+            #${item.id} h2 {
+              ${styles.titleStyle.fontFamily ? `font-family: ${styles.titleStyle.fontFamily} !important;` : ''}
+              ${styles.titleStyle.fontSize ? `font-size: ${styles.titleStyle.fontSize} !important;` : ''}
+              ${styles.titleStyle.fontWeight ? `font-weight: ${styles.titleStyle.fontWeight} !important;` : ''}
+              ${styles.titleStyle.fontStyle ? `font-style: ${styles.titleStyle.fontStyle} !important;` : ''}
+              ${styles.titleStyle.textDecoration ? `text-decoration: ${styles.titleStyle.textDecoration} !important;` : ''}
+              ${styles.titleStyle.textAlign ? `text-align: ${styles.titleStyle.textAlign} !important;` : ''}
+              ${styles.titleStyle.color ? `color: ${styles.titleStyle.color} !important;` : ''}
+            }
+          `;
+        }
+        
+        // Description styles
+        if (styles.descriptionStyle) {
+          css += `
+            #${item.id} p {
+              ${styles.descriptionStyle.fontFamily ? `font-family: ${styles.descriptionStyle.fontFamily} !important;` : ''}
+              ${styles.descriptionStyle.fontSize ? `font-size: ${styles.descriptionStyle.fontSize} !important;` : ''}
+              ${styles.descriptionStyle.fontWeight ? `font-weight: ${styles.descriptionStyle.fontWeight} !important;` : ''}
+              ${styles.descriptionStyle.fontStyle ? `font-style: ${styles.descriptionStyle.fontStyle} !important;` : ''}
+              ${styles.descriptionStyle.textDecoration ? `text-decoration: ${styles.descriptionStyle.textDecoration} !important;` : ''}
+              ${styles.descriptionStyle.textAlign ? `text-align: ${styles.descriptionStyle.textAlign} !important;` : ''}
+              ${styles.descriptionStyle.color ? `color: ${styles.descriptionStyle.color} !important;` : ''}
+            }
+          `;
+        }
+        
+        // Animation styles
+        if (styles.animation && styles.animation.type !== 'none') {
+          css += `
+            #${item.id} {
+              animation: ${styles.animation.type} ${styles.animation.duration || 600}ms ease-out;
+              animation-delay: ${styles.animation.delay || 0}ms;
+              animation-fill-mode: both;
+              ${styles.animation.repeat ? 'animation-iteration-count: infinite;' : ''}
+            }
+          `;
+        }
+        
+        return css;
+      }).join('') : ''}
+
+      /* Animation keyframes */
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      
+      @keyframes slideInLeft {
+        from { transform: translateX(-100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+      
+      @keyframes slideInRight {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+      
+      @keyframes slideInUp {
+        from { transform: translateY(100%); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+      
+      @keyframes slideInDown {
+        from { transform: translateY(-100%); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+      
+      @keyframes zoomIn {
+        from { transform: scale(0.8); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+      }
+      
+      @keyframes bounce {
+        0%, 20%, 53%, 80%, 100% { transform: translateY(0); }
+        40%, 43% { transform: translateY(-20px); }
+        70% { transform: translateY(-10px); }
+        90% { transform: translateY(-4px); }
+      }
+      
+      @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+      }
+      
+      /* Chart Components */
+      .chart-component {
+        animation: fadeInUp 0.6s ease-out;
+      }
+      
+      .chart-component canvas {
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      }
+      
+      .chart-component div[id^="chart-"] {
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      }
+      
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
     `;
   };
 
+  // Helper function to generate background CSS
+  const generateBackgroundCSS = (background) => {
+    if (!background) return '';
+    
+    switch (background.type) {
+      case 'solid':
+        return `background: ${background.color} !important;`;
+      case 'gradient':
+        return `background: linear-gradient(${background.direction}, ${background.color1}, ${background.color2}) !important;`;
+      case 'image':
+        return `background: url('${background.imageUrl}') center/cover !important;`;
+      case 'pattern':
+        return generatePatternCSS(background.pattern);
+      default:
+        return '';
+    }
+  };
+
+  // Helper function to generate pattern CSS
+  const generatePatternCSS = (pattern) => {
+    switch (pattern) {
+      case 'dots':
+        return `background: radial-gradient(circle at 25% 25%, #ddd 2px, transparent 0), radial-gradient(circle at 75% 75%, #ddd 2px, transparent 0) !important; background-size: 20px 20px !important;`;
+      case 'grid':
+        return `background: linear-gradient(to right, #ddd 1px, transparent 1px), linear-gradient(to bottom, #ddd 1px, transparent 1px) !important; background-size: 20px 20px !important;`;
+      case 'stripes':
+        return `background: repeating-linear-gradient(45deg, #f0f0f0 0px, #f0f0f0 10px, #e0e0e0 10px, #e0e0e0 20px) !important;`;
+      case 'waves':
+        return `background: linear-gradient(120deg, #f0f0f0 0%, #e0e0e0 100%) !important;`;
+      case 'triangles':
+        return `background: linear-gradient(60deg, #f0f0f0 25%, transparent 25.5%, transparent 75%, #f0f0f0 75%, #f0f0f0), linear-gradient(-60deg, #f0f0f0 25%, transparent 25.5%, transparent 75%, #f0f0f0 75%, #f0f0f0) !important; background-size: 20px 35px !important;`;
+      default:
+        return '';
+    }
+  };
   const generateJS = () => {
     return `
+      // Инициализация React библиотек
+      document.addEventListener('DOMContentLoaded', function() {
+        console.log('React libraries loaded for multi-page site');
+        
+        // Глобальные переменные для доступа к библиотекам
+        if (typeof React !== 'undefined') window.React = React;
+        if (typeof ReactDOM !== 'undefined') window.ReactDOM = ReactDOM;
+        if (typeof MaterialUI !== 'undefined') window.MaterialUI = MaterialUI;
+        if (typeof FramerMotion !== 'undefined') window.FramerMotion = FramerMotion;
+        if (typeof ReactCountUp !== 'undefined') window.ReactCountUp = ReactCountUp;
+        if (typeof ReactConfetti !== 'undefined') window.ReactConfetti = ReactConfetti;
+        if (typeof QRCodeReact !== 'undefined') window.QRCodeReact = QRCodeReact;
+        if (typeof ReactPlayer !== 'undefined') window.ReactPlayer = ReactPlayer;
+        if (typeof ReactRatingStarsComponent !== 'undefined') window.ReactRatingStarsComponent = ReactRatingStarsComponent;
+        if (typeof ReactTextTransition !== 'undefined') window.ReactTextTransition = ReactTextTransition;
+        if (typeof ReactShare !== 'undefined') window.ReactShare = ReactShare;
+        if (typeof ReactCopyToClipboard !== 'undefined') window.ReactCopyToClipboard = ReactCopyToClipboard;
+        if (typeof ReactColor !== 'undefined') window.ReactColor = ReactColor;
+        if (typeof ReactDatepicker !== 'undefined') window.ReactDatepicker = ReactDatepicker;
+        if (typeof ReactSelect !== 'undefined') window.ReactSelect = ReactSelect;
+        if (typeof ReactScroll !== 'undefined') window.ReactScroll = ReactScroll;
+        if (typeof ReactRnd !== 'undefined') window.ReactRnd = ReactRnd;
+        if (typeof ReactImageCrop !== 'undefined') window.ReactImageCrop = ReactImageCrop;
+        if (typeof ReactMarkdown !== 'undefined') window.ReactMarkdown = ReactMarkdown;
+        if (typeof ReactPlotly !== 'undefined') window.ReactPlotly = ReactPlotly;
+        if (typeof ReactApexcharts !== 'undefined') window.ReactApexcharts = ReactApexcharts;
+        if (typeof ReactChartjs2 !== 'undefined') window.ReactChartjs2 = ReactChartjs2;
+        if (typeof Recharts !== 'undefined') window.Recharts = Recharts;
+        if (typeof ApexCharts !== 'undefined') window.ApexCharts = ApexCharts;
+        if (typeof Chart !== 'undefined') window.Chart = Chart;
+        if (typeof Plotly !== 'undefined') window.Plotly = Plotly;
+        if (typeof Swiper !== 'undefined') window.Swiper = Swiper;
+        if (typeof axios !== 'undefined') window.axios = axios;
+        if (typeof dayjs !== 'undefined') window.dayjs = dayjs;
+        if (typeof marked !== 'undefined') window.marked = marked;
+        if (typeof uuid !== 'undefined') window.uuid = uuid;
+        if (typeof browserImageCompression !== 'undefined') window.browserImageCompression = browserImageCompression;
+        if (typeof FileSaver !== 'undefined') window.FileSaver = FileSaver;
+        if (typeof JSZip !== 'undefined') window.JSZip = JSZip;
+        if (typeof Formik !== 'undefined') window.Formik = Formik;
+        if (typeof yup !== 'undefined') window.yup = yup;
+        if (typeof ReactHookForm !== 'undefined') window.ReactHookForm = ReactHookForm;
+        if (typeof HookformResolvers !== 'undefined') window.HookformResolvers = HookformResolvers;
+        if (typeof Slate !== 'undefined') window.Slate = Slate;
+        if (typeof SlateReact !== 'undefined') window.SlateReact = SlateReact;
+        if (typeof SlateHistory !== 'undefined') window.SlateHistory = SlateHistory;
+        if (typeof TipTapReact !== 'undefined') window.TipTapReact = TipTapReact;
+        if (typeof TipTapStarterKit !== 'undefined') window.TipTapStarterKit = TipTapStarterKit;
+        if (typeof TipTapExtensionColor !== 'undefined') window.TipTapExtensionColor = TipTapExtensionColor;
+        if (typeof TipTapExtensionHighlight !== 'undefined') window.TipTapExtensionHighlight = TipTapExtensionHighlight;
+        if (typeof TipTapExtensionImage !== 'undefined') window.TipTapExtensionImage = TipTapExtensionImage;
+        if (typeof TipTapExtensionLink !== 'undefined') window.TipTapExtensionLink = TipTapExtensionLink;
+        if (typeof TipTapExtensionTable !== 'undefined') window.TipTapExtensionTable = TipTapExtensionTable;
+        if (typeof TipTapExtensionTextAlign !== 'undefined') window.TipTapExtensionTextAlign = TipTapExtensionTextAlign;
+        if (typeof TipTapExtensionUnderline !== 'undefined') window.TipTapExtensionUnderline = TipTapExtensionUnderline;
+        if (typeof DndKitCore !== 'undefined') window.DndKitCore = DndKitCore;
+        if (typeof DndKitSortable !== 'undefined') window.DndKitSortable = DndKitSortable;
+        if (typeof DndKitUtilities !== 'undefined') window.DndKitUtilities = DndKitUtilities;
+        if (typeof Visx !== 'undefined') window.Visx = Visx;
+        if (typeof Victory !== 'undefined') window.Victory = Victory;
+        if (typeof Zustand !== 'undefined') window.Zustand = Zustand;
+        
+        console.log('All React libraries initialized successfully');
+      });
+      
       document.addEventListener('DOMContentLoaded', function() {
         // Mobile menu toggle
         const menuToggle = document.querySelector('.menu-toggle');
@@ -4353,6 +9951,9 @@ const EditorPanel = ({
         
         // Initialize automatic image slideshows
         initImageGalleries();
+        
+        // Initialize new AI elements
+        initAIElements();
         
         // Auto-detect and display current domain
         autoDisplayDomain();
@@ -4540,6 +10141,124 @@ const EditorPanel = ({
             if (text !== newText) element.textContent = newText;
           }
         });
+        
+        // Initialize content elements
+        initContentElements();
+      }
+      
+      // Function to initialize content elements
+      function initContentElements() {
+        // Initialize animated counters
+        const counters = document.querySelectorAll('.counter');
+        const counterObserver = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              const counter = entry.target;
+              const start = parseInt(counter.dataset.start) || 0;
+              const end = parseInt(counter.dataset.end) || 100;
+              const duration = parseInt(counter.dataset.duration) || 2000;
+              
+              animateCounter(counter, start, end, duration);
+              counterObserver.unobserve(counter);
+            }
+          });
+        }, { threshold: 0.5 });
+        
+        counters.forEach(counter => counterObserver.observe(counter));
+        
+        // Initialize typewriter text
+        const typewriters = document.querySelectorAll('.typewriter');
+        typewriters.forEach(initTypewriter);
+      }
+      
+      // Function to animate counters
+      function animateCounter(element, start, end, duration) {
+        const startTime = performance.now();
+        const difference = end - start;
+        
+        function updateCounter(currentTime) {
+          const elapsed = currentTime - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          
+          // Easing function (ease-out)
+          const easeOut = 1 - Math.pow(1 - progress, 3);
+          const current = Math.round(start + (difference * easeOut));
+          
+          element.textContent = current;
+          
+          if (progress < 1) {
+            requestAnimationFrame(updateCounter);
+          }
+        }
+        
+        requestAnimationFrame(updateCounter);
+      }
+      
+      // Function to initialize typewriter effect
+      function initTypewriter(element) {
+        const texts = JSON.parse(element.dataset.texts || '["Default text"]');
+        const speed = parseInt(element.dataset.speed) || 150;
+        const pauseTime = parseInt(element.dataset.pause) || 2000;
+        const repeat = element.dataset.repeat !== 'false';
+        
+        // Find the text content span
+        const textContentSpan = element.querySelector('.typewriter-text-content');
+        if (!textContentSpan) {
+          console.error('Typewriter text content span not found');
+          return;
+        }
+        
+        let textIndex = 0;
+        let charIndex = 0;
+        let isDeleting = false;
+        
+        function typeText() {
+          const fullText = texts[textIndex];
+          let displayText = '';
+          
+          if (isDeleting) {
+            displayText = fullText.substring(0, charIndex - 1);
+            charIndex--;
+          } else {
+            displayText = fullText.substring(0, charIndex + 1);
+            charIndex++;
+          }
+          
+          // Update only the text content, cursor stays separate
+          textContentSpan.textContent = displayText;
+          
+          let typeSpeed = speed;
+          
+          if (isDeleting) {
+            typeSpeed = speed / 2;
+          }
+          
+          if (!isDeleting && charIndex === fullText.length) {
+            // Finished typing, pause before deleting
+            typeSpeed = pauseTime;
+            isDeleting = true;
+          } else if (isDeleting && charIndex === 0) {
+            // Finished deleting, move to next text
+            isDeleting = false;
+            textIndex = (textIndex + 1) % texts.length;
+            
+            // If not repeating and we've gone through all texts, stop
+            if (!repeat && textIndex === 0) {
+              // Show final text and dim cursor
+              textContentSpan.textContent = texts[0];
+              const cursor = element.querySelector('.typewriter-cursor');
+              if (cursor) cursor.style.opacity = '0.3';
+              return;
+            }
+            
+            typeSpeed = speed;
+          }
+          
+          setTimeout(typeText, typeSpeed);
+        }
+        
+        // Start the typewriter effect
+        typeText();
       }
     `;
   };
@@ -4549,10 +10268,11 @@ const EditorPanel = ({
     const baseUrl = domain.startsWith('http') ? domain : `https://${domain}`;
     const currentDate = new Date().toISOString().replace('Z', '+00:00');
     
+    const indexFile = getIndexFileName();
     return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-        <loc>${baseUrl}/index.html</loc>
+        <loc>${baseUrl}/${indexFile}</loc>
         <lastmod>${currentDate}</lastmod>
         <changefreq>weekly</changefreq>
         <priority>1.0</priority>
@@ -4651,7 +10371,1389 @@ const EditorPanel = ({
 </urlset>`;
   };
 
+  // Функции для многостраничного экспорта
+  const getSectionFileNameSafe = (sectionId, sectionData) => {
+    // Используем пользовательское имя файла, если задано
+    if (sectionData?.fileName && sectionData.fileName.trim()) {
+      return sectionData.fileName.toString().toLowerCase()
+        .replace(/[^a-z0-9а-я]/g, '-')  // Поддерживаем кириллицу
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+    }
+    
+    // Используем ID секции из данных секции (не числовой индекс)
+    if (sectionData?.id && sectionData.id.trim()) {
+      return sectionData.id.toString().toLowerCase()
+        .replace(/[^a-z0-9а-я]/g, '-')  // Поддерживаем кириллицу
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+    }
+    
+    // Fallback: используем числовой ID только если нет другого варианта
+    if (!sectionId) return null;
+    
+    return sectionId.toString().toLowerCase()
+      .replace(/[^a-z0-9а-я]/g, '-')  // Поддерживаем кириллицу
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+  };
+
+  const getSectionDisplayNameSafe = (sectionId, sectionData, headerData) => {
+    // Ищем соответствующий пункт меню по ID секции
+    const menuItem = headerData?.menuItems?.find(item => item.id === sectionData?.id);
+    
+    // Возвращаем пользовательское название из пункта меню
+    const displayName = menuItem?.text || sectionData?.id || sectionId;
+    return displayName || 'Раздел';
+  };
+
+  const generateMultiPageHeader = (siteData, currentPage = '') => {
+    const headerData = siteData.headerData || {};
+    const siteName = headerData.siteName || 'My Site';
+    const sectionsArray = Object.entries(siteData.sectionsData || {});
+    
+    const indexFile = getIndexFileName();
+    return `<header class="site-header">
+      <div class="container">
+        <div class="header-content">
+          <div class="site-branding">
+            <h1 class="site-title">
+              <a href="${indexFile}">${siteName}</a>
+            </h1>
+          </div>
+          <nav class="site-nav">
+            <button class="menu-toggle" aria-label="Открыть меню">
+              <span></span>
+              <span></span>
+              <span></span>
+            </button>
+            <ul class="nav-menu">
+              <li><a href="${indexFile}" ${currentPage === 'index' ? 'class="active"' : ''}>${siteName}</a></li>
+              ${sectionsArray.map(([sectionId, sectionData]) => {
+                const fileName = getSectionFileNameSafe(sectionId, sectionData);
+                const displayName = getSectionDisplayNameSafe(sectionId, sectionData, headerData);
+                return fileName ? `<li><a href="${fileName}.html" ${currentPage === fileName ? 'class="active"' : ''}>${displayName}</a></li>` : '';
+              }).join('')}
+              <li><a href="contact.html" ${currentPage === 'contact' ? 'class="active"' : ''}>${siteData.contactData?.title || 'Контакты'}</a></li>
+            </ul>
+          </nav>
+        </div>
+      </div>
+    </header>`;
+  };
+
+  const generateMultiPageFooter = (siteData) => {
+    const headerData = siteData.headerData || {};
+    const siteName = headerData.siteName || 'My Site';
+    return `<footer class="site-footer">
+      <div class="container">
+        <p>&copy; ${new Date().getFullYear()} ${siteName}. Все права защищены.</p>
+      </div>
+    </footer>`;
+  };
+
+  const generateMultiPageIndex = (siteData) => {
+    const headerData = siteData.headerData || {};
+    const heroData = siteData.heroData || {};
+    const siteName = headerData.siteName || 'My Site';
+    const languageCode = typeof headerData.language === 'string' ? headerData.language : 'ru';
+    
+    return `<!DOCTYPE html>
+<html lang="${languageCode}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${siteName}</title>
+    <meta name="description" content="${headerData.description || 'Добро пожаловать на наш сайт'}">
+    <link rel="stylesheet" href="assets/css/styles.css">
+    
+    <!-- React и основные библиотеки -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Material-UI -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+    <script src="https://unpkg.com/@mui/material@5.15.10/umd/material-ui.production.min.js"></script>
+    <script src="https://unpkg.com/@emotion/react@11.14.0/dist/emotion-react.umd.min.js"></script>
+    <script src="https://unpkg.com/@emotion/styled@11.14.1/dist/emotion-styled.umd.min.js"></script>
+    
+    <!-- Дополнительные библиотеки для элементов -->
+    <script src="https://unpkg.com/framer-motion@12.23.0/dist/framer-motion.js"></script>
+    <script src="https://unpkg.com/react-countup@6.5.3/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-confetti@6.4.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/qrcode.react@4.2.0/lib/index.umd.js"></script>
+    <script src="https://unpkg.com/react-player@3.1.0/dist/ReactPlayer.js"></script>
+    <script src="https://unpkg.com/react-rating-stars-component@2.2.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-text-transition@3.1.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-share@5.2.2/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-copy-to-clipboard@5.1.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-color@2.19.3/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-datepicker@8.4.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-select@5.10.1/dist/react-select.umd.js"></script>
+    <script src="https://unpkg.com/react-scroll@1.9.3/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-rnd@10.5.2/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-image-crop@11.0.10/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-markdown@9.0.1/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-plotly.js@2.6.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-apexcharts@1.7.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-chartjs-2@5.3.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/recharts@3.0.2/lib/index.umd.js"></script>
+    <script src="https://unpkg.com/apexcharts@4.7.0/dist/apexcharts.min.js"></script>
+    <script src="https://unpkg.com/chart.js@4.5.0/dist/chart.umd.js"></script>
+    <script src="https://unpkg.com/plotly.js@3.0.1/dist/plotly.min.js"></script>
+    <script src="https://unpkg.com/swiper@11.2.10/swiper-bundle.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/swiper@11.2.10/swiper-bundle.min.css" />
+    <script src="https://unpkg.com/axios@1.6.7/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/dayjs@1.11.13/dayjs.min.js"></script>
+    <script src="https://unpkg.com/marked@15.0.10/marked.min.js"></script>
+    <script src="https://unpkg.com/uuid@11.1.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/browser-image-compression@2.0.2/dist/browser-image-compression.umd.js"></script>
+    <script src="https://unpkg.com/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="https://unpkg.com/formik@2.4.6/dist/formik.umd.min.js"></script>
+    <script src="https://unpkg.com/yup@1.6.1/dist/yup.umd.min.js"></script>
+    <script src="https://unpkg.com/react-hook-form@7.59.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@hookform/resolvers@5.1.1/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/slate@0.117.2/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/slate-react@0.117.3/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/slate-history@0.113.1/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/react@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/starter-kit@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-color@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-highlight@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-image@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-link@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-table@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-text-align@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-underline@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@dnd-kit/core@6.3.1/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@dnd-kit/sortable@10.0.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@dnd-kit/utilities@3.2.2/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@visx/visx@3.12.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/victory@37.3.6/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/zustand@5.0.6/umd/index.production.min.js"></script>
+</head>
+<body>
+    ${generateMultiPageHeader(siteData, 'index')}
+    
+    <main>
+        <section class="hero-section">
+          <div class="container">
+            <div class="hero-content">
+              <h1 class="hero-title">${heroData.title || 'Добро пожаловать'}</h1>
+              <p class="hero-subtitle">${heroData.subtitle || 'На наш сайт'}</p>
+              <p class="hero-description">${heroData.description || 'Мы предлагаем лучшие решения'}</p>
+              ${heroData.buttonText ? `<a href="contact.html" class="hero-button">${heroData.buttonText}</a>` : ''}
+            </div>
+          </div>
+        </section>
+        
+        <section class="sections-preview">
+          <div class="container">
+            <h2>Наши разделы</h2>
+            <div class="preview-grid">
+              ${Object.entries(siteData.sectionsData || {}).map(([sectionId, sectionData]) => {
+                const fileName = getSectionFileNameSafe(sectionId, sectionData);
+                const displayName = getSectionDisplayNameSafe(sectionId, sectionData, siteData.headerData);
+                return fileName ? `
+                  <div class="preview-card">
+                    <h3>${displayName}</h3>
+                    <p>${sectionData.description || 'Узнайте больше в этом разделе'}</p>
+                    <a href="${fileName}.html" class="preview-link">Подробнее</a>
+                  </div>
+                ` : '';
+              }).join('')}
+              ${siteData.contactData ? `
+                <div class="preview-card">
+                  <h3>${siteData.contactData.title || 'Контакты'}</h3>
+                  <p>${siteData.contactData.description || 'Свяжитесь с нами'}</p>
+                  <a href="contact.html" class="preview-link">Подробнее</a>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        </section>
+    </main>
+    
+    ${generateMultiPageFooter(siteData)}
+    
+    <script src="assets/js/script.js"></script>
+</body>
+</html>`;
+  };
+
+  const generateMultiPageSection = (siteData, sectionId, sectionData) => {
+    const headerData = siteData.headerData || {};
+    const siteName = headerData.siteName || 'My Site';
+    const languageCode = typeof headerData.language === 'string' ? headerData.language : 'ru';
+    const sectionTitle = sectionData.title || getSectionDisplayNameSafe(sectionId, sectionData, siteData.headerData);
+    const fileName = getSectionFileNameSafe(sectionId, sectionData);
+    
+
+    
+    // Применяем цвета из настроек секции (как в одностраничном режиме)
+    const bgColor = sectionData.backgroundColor || '#ffffff';
+    const titleColor = sectionData.titleColor || '#1a237e';
+    const descriptionColor = sectionData.descriptionColor || '#455a64';
+    const contentColor = sectionData.contentColor || '#455a64';
+    
+    // Получаем colorSettings секции (объявляем в начале функции)
+    const sectionColorSettings = sectionData.colorSettings || {};
+    
+    // Проверяем наличие изображений
+    const hasImages = Array.isArray(sectionData.images) && sectionData.images.length > 0;
+    const hasSingleImage = sectionData.imagePath && !hasImages;
+    
+    // Генерируем HTML для изображений
+    let imagesHtml = '';
+    if (hasImages) {
+      if (sectionData.images.length === 1) {
+        // Одно изображение
+        const imgPath = typeof sectionData.images[0] === 'string' 
+          ? sectionData.images[0].replace('/images/sections/', 'assets/images/')
+          : (sectionData.images[0].path || sectionData.images[0].url || '').replace('/images/sections/', 'assets/images/');
+        
+        // Применяем colorSettings если они есть
+        let imageContainerStyles = `
+          width: 100%;
+          margin: 2rem auto;
+          text-align: center;
+          max-width: 600px;
+          height: 400px;
+          border-radius: 15px;
+          overflow: hidden;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        `;
+        
+        // Добавляем стили фона если включены
+        if (sectionColorSettings.sectionBackground?.enabled) {
+          if (sectionColorSettings.sectionBackground.useGradient) {
+            imageContainerStyles += `
+              background: linear-gradient(${sectionColorSettings.sectionBackground.gradientDirection}, ${sectionColorSettings.sectionBackground.gradientColor1}, ${sectionColorSettings.sectionBackground.gradientColor2});
+              opacity: ${sectionColorSettings.sectionBackground.opacity || 1};
+            `;
+          } else {
+            imageContainerStyles += `
+              background-color: ${sectionColorSettings.sectionBackground.solidColor};
+              opacity: ${sectionColorSettings.sectionBackground.opacity || 1};
+            `;
+          }
+        }
+        
+        // Добавляем стили границы и отступов
+        if (sectionColorSettings.borderColor) {
+          imageContainerStyles += `
+            border: ${sectionColorSettings.borderWidth || 1}px solid ${sectionColorSettings.borderColor};
+            border-radius: ${sectionColorSettings.borderRadius || 15}px;
+          `;
+        }
+        
+        if (sectionColorSettings.padding !== undefined) {
+          imageContainerStyles += `padding: ${sectionColorSettings.padding}px;`;
+        }
+        
+        if (sectionColorSettings.boxShadow) {
+          imageContainerStyles += `box-shadow: 0 2px 8px rgba(0,0,0,0.1);`;
+        }
+        
+        imagesHtml = `
+          <div class="image-container" style="${imageContainerStyles}">
+            <img 
+              src="${imgPath}" 
+              alt="${sectionTitle}"
+              style="
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                border-radius: 15px;
+              "
+            >
+          </div>
+        `;
+      } else {
+        // Множественные изображения - галерея
+        // Применяем colorSettings если они есть
+        let galleryContainerStyles = `
+          width: 100%;
+          margin: 2rem auto;
+          text-align: center;
+          max-width: 600px;
+          height: 400px;
+          position: relative;
+          border-radius: 15px;
+          overflow: hidden;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        `;
+        
+        // Добавляем стили фона если включены
+        if (sectionColorSettings.sectionBackground?.enabled) {
+          if (sectionColorSettings.sectionBackground.useGradient) {
+            galleryContainerStyles += `
+              background: linear-gradient(${sectionColorSettings.sectionBackground.gradientDirection}, ${sectionColorSettings.sectionBackground.gradientColor1}, ${sectionColorSettings.sectionBackground.gradientColor2});
+              opacity: ${sectionColorSettings.sectionBackground.opacity || 1};
+            `;
+          } else {
+            galleryContainerStyles += `
+              background-color: ${sectionColorSettings.sectionBackground.solidColor};
+              opacity: ${sectionColorSettings.sectionBackground.opacity || 1};
+            `;
+          }
+        }
+        
+        // Добавляем стили границы и отступов
+        if (sectionColorSettings.borderColor) {
+          galleryContainerStyles += `
+            border: ${sectionColorSettings.borderWidth || 1}px solid ${sectionColorSettings.borderColor};
+            border-radius: ${sectionColorSettings.borderRadius || 15}px;
+          `;
+        }
+        
+        if (sectionColorSettings.padding !== undefined) {
+          galleryContainerStyles += `padding: ${sectionColorSettings.padding}px;`;
+        }
+        
+        if (sectionColorSettings.boxShadow) {
+          galleryContainerStyles += `box-shadow: 0 2px 8px rgba(0,0,0,0.1);`;
+        }
+        
+        imagesHtml = `
+          <div class="section-gallery" style="${galleryContainerStyles}">
+            ${sectionData.images.map((img, index) => {
+              const imgPath = typeof img === 'string' 
+                ? img.replace('/images/sections/', 'assets/images/')
+                : (img.path || img.url || '').replace('/images/sections/', 'assets/images/');
+              
+              return `
+                <img 
+                  src="${imgPath}" 
+                  alt="${sectionTitle} ${index + 1}"
+                  class="gallery-img"
+                  style="
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                    display: ${index === 0 ? 'block' : 'none'};
+                    transition: opacity 0.5s ease;
+                  "
+                >
+              `;
+            }).join('')}
+            
+            <div style="
+              position: absolute;
+              bottom: 15px;
+              left: 0;
+              right: 0;
+              text-align: center;
+              z-index: 2;
+            ">
+              ${sectionData.images.map((_, index) => `
+                <span 
+                  class="gallery-dot"
+                  style="
+                    display: inline-block;
+                    width: 10px;
+                    height: 10px;
+                    border-radius: 50%;
+                    background-color: ${index === 0 ? '#ffffff' : 'rgba(255,255,255,0.5)'};
+                    margin: 0 4px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                  "
+                ></span>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+          } else if (hasSingleImage) {
+        // Одно изображение из imagePath
+        // Применяем colorSettings если они есть
+        let imageContainerStyles = `
+        width: 100%;
+        margin: 2rem auto;
+        text-align: center;
+        max-width: 600px;
+        height: 400px;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      `;
+      
+      // Добавляем стили фона если включены
+      if (sectionColorSettings.sectionBackground?.enabled) {
+        if (sectionColorSettings.sectionBackground.useGradient) {
+          imageContainerStyles += `
+            background: linear-gradient(${sectionColorSettings.sectionBackground.gradientDirection}, ${sectionColorSettings.sectionBackground.gradientColor1}, ${sectionColorSettings.sectionBackground.gradientColor2});
+            opacity: ${sectionColorSettings.sectionBackground.opacity || 1};
+          `;
+        } else {
+          imageContainerStyles += `
+            background-color: ${sectionColorSettings.sectionBackground.solidColor};
+            opacity: ${sectionColorSettings.sectionBackground.opacity || 1};
+          `;
+        }
+      }
+      
+      // Добавляем стили границы и отступов
+      if (sectionColorSettings.borderColor) {
+        imageContainerStyles += `
+          border: ${sectionColorSettings.borderWidth || 1}px solid ${sectionColorSettings.borderColor};
+          border-radius: ${sectionColorSettings.borderRadius || 15}px;
+        `;
+      }
+      
+      if (sectionColorSettings.padding !== undefined) {
+        imageContainerStyles += `padding: ${sectionColorSettings.padding}px;`;
+      }
+      
+      if (sectionColorSettings.boxShadow) {
+        imageContainerStyles += `box-shadow: 0 2px 8px rgba(0,0,0,0.1);`;
+      }
+      
+      imagesHtml = `
+        <div class="image-container" style="${imageContainerStyles}">
+          <img 
+            src="${sectionData.imagePath.replace('/images/sections/', 'assets/images/')}" 
+            alt="${sectionTitle}"
+            style="
+              width: 100%;
+              height: 100%;
+              object-fit: cover;
+              border-radius: 15px;
+            "
+          >
+        </div>
+      `;
+    }
+    
+    // Генерируем HTML для карточек с индивидуальными стилями
+    const cardsHtml = (sectionData.cards || []).map((card, index) => {
+      const cardTitleColor = card.titleColor || sectionColorSettings?.textFields?.title || titleColor;
+      const cardContentColor = card.contentColor || sectionColorSettings?.textFields?.content || contentColor;
+      const cardBorderColor = card.borderColor || sectionColorSettings?.accentColor || '#1976d2';
+      
+      return `
+        <div class="service-block" style="
+          background: ${sectionColorSettings?.cardBackground || 'rgba(255, 255, 255, 0.95)'};
+          border-radius: ${sectionColorSettings?.cardBorderRadius || 15}px;
+          padding: ${sectionColorSettings?.cardPadding || 2}rem;
+          margin-bottom: 2rem;
+          border-left: 4px solid ${cardBorderColor};
+          box-shadow: ${sectionColorSettings?.cardBoxShadow ? '0 2px 8px rgba(0,0,0,0.1)' : '0 10px 30px rgba(0,0,0,0.1)'};
+          transition: all 0.3s ease;
+          position: relative;
+          overflow: hidden;
+        ">
+          <h3 style="
+            color: ${cardTitleColor};
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            font-family: 'Montserrat', sans-serif;
+          ">${card.title || ''}</h3>
+          <p style="
+            color: ${cardContentColor};
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin: 0;
+            font-family: 'Roboto', sans-serif;
+          ">${card.content || card.text || ''}</p>
+        </div>
+      `;
+    }).join('');
+    
+    // Генерируем HTML для новых элементов из AI
+    console.log('🔍 generateMultiPageSection - sectionData:', sectionData);
+    console.log('🔍 generateMultiPageSection - sectionData.aiElements:', sectionData.aiElements);
+    console.log('🔍 generateMultiPageSection - sectionData.elements:', sectionData.elements);
+    console.log('🔍 generateMultiPageSection - sectionData.contentElements:', sectionData.contentElements);
+    const elementsHtml = (sectionData.contentElements || sectionData.elements || sectionData.aiElements || []).map((element, index) => {
+              console.log('🔍 Processing element:', element);
+        
+        // Дополнительная проверка элемента перед передачей в generateContentElementHTML
+        if (element.type === 'bar-chart') {
+          console.log('🎯 BAR-CHART ELEMENT BEFORE PROCESSING:');
+          console.log('element.customStyles:', element.customStyles);
+          console.log('element.data type:', typeof element.data, 'isArray:', Array.isArray(element.data));
+          if (element.data && typeof element.data === 'object' && !Array.isArray(element.data)) {
+            console.log('element.data keys:', Object.keys(element.data));
+            if (element.data.customStyles) {
+              console.log('🎨 Found customStyles in element.data:', element.data.customStyles);
+            }
+            if (element.data.data && element.data.data.customStyles) {
+              console.log('🎨 Found customStyles in element.data.data:', element.data.data.customStyles);
+            }
+          }
+        }
+        
+        if (element.type === 'advanced-area-chart') {
+          console.log('📊 ADVANCED-AREA-CHART ELEMENT BEFORE PROCESSING:');
+          console.log('element:', element);
+          console.log('📊 ELEMENT STRUCTURE:');
+          console.log('element.id:', element.id);
+          console.log('element.type:', element.type);
+          console.log('element.title:', element.title);
+          console.log('element.content:', element.content);
+          console.log('element.data:', element.data);
+          console.log('element.data type:', typeof element.data, 'isArray:', Array.isArray(element.data));
+          console.log('element.areaNames:', element.areaNames);
+          console.log('element.customStyles:', element.customStyles);
+          console.log('element.showTitle:', element.showTitle);
+          console.log('📊 ALL ELEMENT KEYS:', Object.keys(element));
+          if (element.data && typeof element.data === 'object' && !Array.isArray(element.data)) {
+            console.log('element.data keys:', Object.keys(element.data));
+            if (element.data.data) {
+              console.log('element.data.data:', element.data.data);
+            }
+          }
+        }
+      return generateContentElementHTML(element);
+    }).join('');
+    
+    return `<!DOCTYPE html>
+<html lang="${languageCode}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${sectionTitle} - ${siteName}</title>
+    <meta name="description" content="${sectionData.description || sectionTitle}">
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- React и основные библиотеки -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Material-UI -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+    <script src="https://unpkg.com/@mui/material@5.15.10/umd/material-ui.production.min.js"></script>
+    <script src="https://unpkg.com/@emotion/react@11.14.0/dist/emotion-react.umd.min.js"></script>
+    <script src="https://unpkg.com/@emotion/styled@11.14.1/dist/emotion-styled.umd.min.js"></script>
+    
+    <!-- Дополнительные библиотеки для элементов -->
+    <script src="https://unpkg.com/framer-motion@12.23.0/dist/framer-motion.js"></script>
+    <script src="https://unpkg.com/react-countup@6.5.3/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-confetti@6.4.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/qrcode.react@4.2.0/lib/index.umd.js"></script>
+    <script src="https://unpkg.com/react-player@3.1.0/dist/ReactPlayer.js"></script>
+    <script src="https://unpkg.com/react-rating-stars-component@2.2.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-text-transition@3.1.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-share@5.2.2/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-copy-to-clipboard@5.1.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-color@2.19.3/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-datepicker@8.4.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-select@5.10.1/dist/react-select.umd.js"></script>
+    <script src="https://unpkg.com/react-scroll@1.9.3/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-rnd@10.5.2/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-image-crop@11.0.10/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-markdown@9.0.1/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-plotly.js@2.6.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-apexcharts@1.7.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-chartjs-2@5.3.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/recharts@3.0.2/lib/index.umd.js"></script>
+    <script src="https://unpkg.com/apexcharts@4.7.0/dist/apexcharts.min.js"></script>
+    <script src="https://unpkg.com/chart.js@4.5.0/dist/chart.umd.js"></script>
+    <script src="https://unpkg.com/plotly.js@3.0.1/dist/plotly.min.js"></script>
+    <script src="https://unpkg.com/swiper@11.2.10/swiper-bundle.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/swiper@11.2.10/swiper-bundle.min.css" />
+    <script src="https://unpkg.com/axios@1.6.7/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/dayjs@1.11.13/dayjs.min.js"></script>
+    <script src="https://unpkg.com/marked@15.0.10/marked.min.js"></script>
+    <script src="https://unpkg.com/uuid@11.1.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/browser-image-compression@2.0.2/dist/browser-image-compression.umd.js"></script>
+    <script src="https://unpkg.com/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="https://unpkg.com/formik@2.4.6/dist/formik.umd.min.js"></script>
+    <script src="https://unpkg.com/yup@1.6.1/dist/yup.umd.min.js"></script>
+    <script src="https://unpkg.com/react-hook-form@7.59.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@hookform/resolvers@5.1.1/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/slate@0.117.2/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/slate-react@0.117.3/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/slate-history@0.113.1/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/react@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/starter-kit@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-color@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-highlight@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-image@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-link@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-table@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-text-align@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-underline@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@dnd-kit/core@6.3.1/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@dnd-kit/sortable@10.0.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@dnd-kit/utilities@3.2.2/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@visx/visx@3.12.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/victory@37.3.6/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/zustand@5.0.6/umd/index.production.min.js"></script>
+    <style>
+      /* Анимации для галереи */
+      .gallery-dot:hover {
+        background-color: #ffffff !important;
+        transform: scale(1.2);
+      }
+      
+      .service-block:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+      }
+      
+      /* Адаптивность */
+      @media (max-width: 768px) {
+        .image-container,
+        .section-gallery {
+          height: 250px !important;
+          margin: 1rem auto !important;
+        }
+        
+        .service-block {
+          padding: 1.5rem !important;
+          margin-bottom: 1.5rem !important;
+        }
+        
+        .service-block h3 {
+          font-size: 1.3rem !important;
+        }
+        
+        .service-block p {
+          font-size: 1rem !important;
+        }
+      }
+    </style>
+</head>
+<body>
+    ${generateMultiPageHeader(siteData, fileName)}
+    
+    <main>
+        <nav class="breadcrumbs">
+          <div class="container">
+            <a href="${getIndexFileName()}">Главная</a> > <span>${sectionTitle}</span>
+          </div>
+        </nav>
+        
+        <section class="section-content" style="
+          padding: 3rem 0;
+          background: ${sectionColorSettings?.sectionBackground?.enabled ? 
+            (sectionColorSettings.sectionBackground.useGradient ? 
+              `linear-gradient(${sectionColorSettings.sectionBackground.gradientDirection}, ${sectionColorSettings.sectionBackground.gradientColor1}, ${sectionColorSettings.sectionBackground.gradientColor2})` : 
+              sectionColorSettings.sectionBackground.solidColor
+            ) : 
+            (sectionData.showBackground !== false ? bgColor : 'transparent')
+          };
+          opacity: ${sectionColorSettings?.sectionBackground?.opacity || 1};
+          border-radius: ${sectionColorSettings?.borderRadius || 20}px;
+          margin: 2rem auto;
+          max-width: 1200px;
+          box-shadow: ${sectionColorSettings?.boxShadow ? '0 2px 8px rgba(0,0,0,0.1)' : 
+            (sectionData.showBackground !== false ? '0 10px 30px rgba(0,0,0,0.08)' : 'none')
+          };
+          position: relative;
+          overflow: hidden;
+          ${sectionColorSettings?.borderColor ? `border: ${sectionColorSettings.borderWidth || 1}px solid ${sectionColorSettings.borderColor};` : ''}
+          ${sectionColorSettings?.padding !== undefined ? `padding: ${sectionColorSettings.padding}px;` : ''}
+        ">
+          <!-- Верхняя цветная полоса -->
+          <div style="
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: ${sectionColorSettings?.accentColor ? 
+              `linear-gradient(90deg, ${sectionColorSettings.accentColor}, ${sectionColorSettings.accentColor}80)` : 
+              'linear-gradient(90deg, #1976d2, #42a5f5)'
+            };
+            display: ${sectionData.showBackground !== false ? 'block' : 'none'};
+          "></div>
+          
+          <div class="container" style="
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 2rem;
+          ">
+            <h1 style="
+              color: ${sectionColorSettings?.textFields?.title || titleColor};
+              font-size: 2.5rem;
+              font-weight: 700;
+              margin-bottom: 1.5rem;
+              text-align: center;
+              font-family: 'Montserrat', sans-serif;
+            ">${sectionTitle}</h1>
+            
+            ${sectionData.description ? `
+              <p style="
+                color: ${sectionColorSettings?.textFields?.description || descriptionColor};
+                font-size: 1.2rem;
+                line-height: 1.6;
+                margin-bottom: 3rem;
+                text-align: center;
+                max-width: 800px;
+                margin-left: auto;
+                margin-right: auto;
+                font-family: 'Roboto', sans-serif;
+              ">${sectionData.description}</p>
+            ` : ''}
+            
+            ${imagesHtml}
+            
+            <div class="cards-container">
+              ${cardsHtml}
+            </div>
+            
+            <div class="elements-container">
+              ${elementsHtml}
+            </div>
+          </div>
+        </section>
+    </main>
+    
+    ${generateMultiPageFooter(siteData)}
+    
+    <script src="assets/js/script.js"></script>
+    <script>
+      // Инициализация галереи изображений
+      function initImageGalleries() {
+        const galleries = document.querySelectorAll('.section-gallery');
+        
+        galleries.forEach(gallery => {
+          const images = gallery.querySelectorAll('.gallery-img');
+          const dots = gallery.querySelectorAll('.gallery-dot');
+          let currentIndex = 0;
+          let interval = null;
+          
+          if (images.length < 2) return;
+          
+          function showSlide(index) {
+            images.forEach(img => img.style.display = 'none');
+            dots.forEach(dot => dot.style.backgroundColor = 'rgba(255,255,255,0.5)');
+            
+            if (images[index]) {
+              images[index].style.display = 'block';
+            }
+            
+            if (dots[index]) {
+              dots[index].style.backgroundColor = '#ffffff';
+            }
+            
+            currentIndex = index;
+          }
+          
+          dots.forEach((dot, index) => {
+            dot.addEventListener('click', () => {
+              clearInterval(interval);
+              showSlide(index);
+              startAutoScroll();
+            });
+          });
+          
+          function startAutoScroll() {
+            if (interval) clearInterval(interval);
+            interval = setInterval(() => {
+              const nextIndex = (currentIndex + 1) % images.length;
+              showSlide(nextIndex);
+            }, 3000);
+          }
+          
+          gallery.addEventListener('mouseenter', () => clearInterval(interval));
+          gallery.addEventListener('mouseleave', startAutoScroll);
+          
+          startAutoScroll();
+        });
+      }
+      
+      // Function to initialize AI elements
+      function initAIElements() {
+        // Initialize animated counters
+        const counters = document.querySelectorAll('.animated-counter .counter');
+        counters.forEach(counter => {
+          const startValue = parseInt(counter.dataset.start) || 0;
+          const endValue = parseInt(counter.dataset.end) || 100;
+          const duration = parseInt(counter.dataset.duration) || 2000;
+          
+          let startTime = null;
+          function animateCounter(timestamp) {
+            if (!startTime) startTime = timestamp;
+            const progress = Math.min((timestamp - startTime) / duration, 1);
+            const currentValue = Math.floor(startValue + (endValue - startValue) * progress);
+            counter.textContent = currentValue;
+            
+            if (progress < 1) {
+              requestAnimationFrame(animateCounter);
+            }
+          }
+          
+          // Start animation when element is visible
+          const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+              if (entry.isIntersecting) {
+                requestAnimationFrame(animateCounter);
+                observer.unobserve(entry.target);
+              }
+            });
+          });
+          observer.observe(counter);
+        });
+        
+        // Initialize typewriter text
+        const typewriters = document.querySelectorAll('.typewriter');
+        typewriters.forEach(typewriter => {
+          const texts = JSON.parse(typewriter.dataset.texts || '["Привет, мир!"]');
+          const speed = parseInt(typewriter.dataset.speed) || 150;
+          const pauseTime = parseInt(typewriter.dataset.pause) || 2000;
+          const repeat = typewriter.dataset.repeat !== 'false';
+          
+          let currentTextIndex = 0;
+          let currentCharIndex = 0;
+          let isDeleting = false;
+          
+          function typeWriter() {
+            const currentText = texts[currentTextIndex];
+            
+            if (isDeleting) {
+              typewriter.textContent = currentText.substring(0, currentCharIndex - 1);
+              currentCharIndex--;
+            } else {
+              typewriter.textContent = currentText.substring(0, currentCharIndex + 1);
+              currentCharIndex++;
+            }
+            
+            let typeSpeed = speed;
+            if (isDeleting) {
+              typeSpeed /= 2;
+            }
+            
+            if (!isDeleting && currentCharIndex === currentText.length) {
+              typeSpeed = pauseTime;
+              isDeleting = true;
+            } else if (isDeleting && currentCharIndex === 0) {
+              isDeleting = false;
+              currentTextIndex = (currentTextIndex + 1) % texts.length;
+              typeSpeed = 500;
+            }
+            
+            setTimeout(typeWriter, typeSpeed);
+          }
+          
+          // Start typewriter when element is visible
+          const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+              if (entry.isIntersecting) {
+                typeWriter();
+                observer.unobserve(entry.target);
+              }
+            });
+                     });
+           observer.observe(typewriter);
+         });
+         
+         // Initialize FAQ accordion functionality
+         window.toggleFAQ = function(index) {
+           const answer = document.getElementById('faq-answer-' + index);
+           if (answer) {
+             const isVisible = answer.style.display !== 'none';
+             answer.style.display = isVisible ? 'none' : 'block';
+           }
+         };
+         
+         // Initialize charts when libraries are loaded
+         function initializeCharts() {
+           const chartElements = document.querySelectorAll('.chart-component canvas, .chart-component div[id^="chart-"]');
+           chartElements.forEach(element => {
+             const scripts = element.parentElement.querySelectorAll('script');
+             scripts.forEach(script => {
+               if (script.textContent.includes('Chart(') || script.textContent.includes('ApexCharts')) {
+                 try {
+                   eval(script.textContent);
+                 } catch (e) {
+                   console.log('Chart initialization delayed:', e.message);
+                 }
+               }
+             });
+           });
+         }
+         
+         // Try to initialize charts after a delay to ensure libraries are loaded
+         setTimeout(initializeCharts, 1000);
+         setTimeout(initializeCharts, 2000);
+       }
+      
+      document.addEventListener('DOMContentLoaded', initImageGalleries);
+    </script>
+</body>
+</html>`;
+  };
+
+  const generateMultiPageContact = (siteData) => {
+    const headerData = siteData.headerData || {};
+    const contactData = siteData.contactData || {};
+    const siteName = headerData.siteName || 'My Site';
+    const languageCode = typeof headerData.language === 'string' ? headerData.language : 'ru';
+    
+    // Применяем цвета из настроек контактной секции (как в одностраничном режиме)
+    const contactBgColor = contactData.backgroundColor || '#f8f9fa';
+    const contactTitleColor = contactData.titleColor || '#1565c0';
+    const contactDescriptionColor = contactData.descriptionColor || '#424242';
+    const contactButtonColor = contactData.buttonColor || '#1976d2';
+    const contactTextColor = contactData.textColor || '#333333';
+    
+    // Определяем фон контактной секции
+    let backgroundStyle = '';
+    if (contactData.backgroundType === 'gradient') {
+      backgroundStyle = `background: linear-gradient(${contactData.gradientDirection || 'to bottom'}, ${contactData.gradientColor1 || '#ffffff'}, ${contactData.gradientColor2 || '#f5f5f5'});`;
+    } else if (contactData.backgroundType === 'solid') {
+      backgroundStyle = `background-color: ${contactBgColor};`;
+    } else {
+      backgroundStyle = `background-color: ${contactBgColor};`;
+    }
+    
+    return `<!DOCTYPE html>
+<html lang="${languageCode}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${contactData.title || 'Контакты'} - ${siteName}</title>
+    <meta name="description" content="${contactData.description || 'Свяжитесь с нами'}">
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- React и основные библиотеки -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Material-UI -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+    <script src="https://unpkg.com/@mui/material@5.15.10/umd/material-ui.production.min.js"></script>
+    <script src="https://unpkg.com/@emotion/react@11.14.0/dist/emotion-react.umd.min.js"></script>
+    <script src="https://unpkg.com/@emotion/styled@11.14.1/dist/emotion-styled.umd.min.js"></script>
+    
+    <!-- Дополнительные библиотеки для элементов -->
+    <script src="https://unpkg.com/framer-motion@12.23.0/dist/framer-motion.js"></script>
+    <script src="https://unpkg.com/react-countup@6.5.3/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-confetti@6.4.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/qrcode.react@4.2.0/lib/index.umd.js"></script>
+    <script src="https://unpkg.com/react-player@3.1.0/dist/ReactPlayer.js"></script>
+    <script src="https://unpkg.com/react-rating-stars-component@2.2.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-text-transition@3.1.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-share@5.2.2/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-copy-to-clipboard@5.1.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-color@2.19.3/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-datepicker@8.4.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-select@5.10.1/dist/react-select.umd.js"></script>
+    <script src="https://unpkg.com/react-scroll@1.9.3/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-rnd@10.5.2/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-image-crop@11.0.10/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-markdown@9.0.1/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-plotly.js@2.6.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-apexcharts@1.7.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-chartjs-2@5.3.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/recharts@3.0.2/lib/index.umd.js"></script>
+    <script src="https://unpkg.com/apexcharts@4.7.0/dist/apexcharts.min.js"></script>
+    <script src="https://unpkg.com/chart.js@4.5.0/dist/chart.umd.js"></script>
+    <script src="https://unpkg.com/plotly.js@3.0.1/dist/plotly.min.js"></script>
+    <script src="https://unpkg.com/swiper@11.2.10/swiper-bundle.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/swiper@11.2.10/swiper-bundle.min.css" />
+    <script src="https://unpkg.com/axios@1.6.7/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/dayjs@1.11.13/dayjs.min.js"></script>
+    <script src="https://unpkg.com/marked@15.0.10/marked.min.js"></script>
+    <script src="https://unpkg.com/uuid@11.1.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/browser-image-compression@2.0.2/dist/browser-image-compression.umd.js"></script>
+    <script src="https://unpkg.com/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="https://unpkg.com/formik@2.4.6/dist/formik.umd.min.js"></script>
+    <script src="https://unpkg.com/yup@1.6.1/dist/yup.umd.min.js"></script>
+    <script src="https://unpkg.com/react-hook-form@7.59.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@hookform/resolvers@5.1.1/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/slate@0.117.2/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/slate-react@0.117.3/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/slate-history@0.113.1/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/react@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/starter-kit@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-color@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-highlight@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-image@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-link@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-table@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-text-align@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-underline@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@dnd-kit/core@6.3.1/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@dnd-kit/sortable@10.0.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@dnd-kit/utilities@3.2.2/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@visx/visx@3.12.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/victory@37.3.6/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/zustand@5.0.6/umd/index.production.min.js"></script>
+    <style>
+      /* Стили для контактной формы */
+      .contact-form {
+        max-width: 600px;
+        margin: 0 auto;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 2rem;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      }
+      
+      .contact-form .form-group {
+        margin-bottom: 1.5rem;
+      }
+      
+      .contact-form label {
+        display: block;
+        color: ${contactTextColor};
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        font-family: 'Montserrat', sans-serif;
+      }
+      
+      .contact-form input,
+      .contact-form textarea {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-family: 'Roboto', sans-serif;
+        transition: border-color 0.3s ease;
+      }
+      
+      .contact-form input:focus,
+      .contact-form textarea:focus {
+        outline: none;
+        border-color: ${contactButtonColor};
+      }
+      
+      .contact-form textarea {
+        resize: vertical;
+        min-height: 120px;
+      }
+      
+      .contact-form button {
+        background-color: ${contactButtonColor};
+        color: white;
+        padding: 0.75rem 2rem;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-family: 'Montserrat', sans-serif;
+      }
+      
+      .contact-form button:hover {
+        background-color: ${contactButtonColor}dd;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+      }
+      
+      /* Адаптивность */
+      @media (max-width: 768px) {
+        .contact-form {
+          padding: 1.5rem;
+          margin: 0 1rem;
+        }
+      }
+    </style>
+</head>
+<body>
+    ${generateMultiPageHeader(siteData, 'contact')}
+    
+    <main>
+        <nav class="breadcrumbs">
+          <div class="container">
+            <a href="${getIndexFileName()}">Главная</a> > <span>${contactData.title || 'Контакты'}</span>
+          </div>
+        </nav>
+        
+        <section class="contact-section" style="
+          padding: 3rem 0;
+          ${backgroundStyle}
+          position: relative;
+        ">
+          <div class="container" style="
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 2rem;
+          ">
+            <h1 style="
+              color: ${contactTitleColor};
+              font-size: 2.5rem;
+              font-weight: 700;
+              text-align: center;
+              margin-bottom: 1.5rem;
+              font-family: 'Montserrat', sans-serif;
+            ">${contactData.title || 'Контакты'}</h1>
+            
+            ${contactData.description ? `
+              <p style="
+                color: ${contactDescriptionColor};
+                font-size: 1.2rem;
+                line-height: 1.6;
+                text-align: center;
+                margin-bottom: 3rem;
+                max-width: 800px;
+                margin-left: auto;
+                margin-right: auto;
+                font-family: 'Roboto', sans-serif;
+              ">${contactData.description}</p>
+            ` : ''}
+            
+            <!-- Контактная информация -->
+            <div class="contact-info" style="
+              background: rgba(255, 255, 255, 0.95);
+              border-radius: 15px;
+              padding: 2rem;
+              margin-bottom: 3rem;
+              box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+              text-align: center;
+            ">
+              ${contactData.phone ? `
+                <div style="margin-bottom: 1rem;">
+                  <strong style="color: ${contactTitleColor}; font-family: 'Montserrat', sans-serif;">Телефон:</strong>
+                  <span style="color: ${contactTextColor}; font-family: 'Roboto', sans-serif; margin-left: 0.5rem;">${contactData.phone}</span>
+                </div>
+              ` : ''}
+              ${contactData.email ? `
+                <div style="margin-bottom: 1rem;">
+                  <strong style="color: ${contactTitleColor}; font-family: 'Montserrat', sans-serif;">Email:</strong>
+                  <span style="color: ${contactTextColor}; font-family: 'Roboto', sans-serif; margin-left: 0.5rem;">${contactData.email}</span>
+                </div>
+              ` : ''}
+              ${contactData.address ? `
+                <div style="margin-bottom: 1rem;">
+                  <strong style="color: ${contactTitleColor}; font-family: 'Montserrat', sans-serif;">Адрес:</strong>
+                  <span style="color: ${contactTextColor}; font-family: 'Roboto', sans-serif; margin-left: 0.5rem;">${contactData.address}</span>
+                </div>
+              ` : ''}
+            </div>
+            
+            <!-- Контактная форма -->
+            <div class="contact-form">
+              <h3 style="
+                color: ${contactTitleColor};
+                font-size: 1.5rem;
+                font-weight: 600;
+                text-align: center;
+                margin-bottom: 2rem;
+                font-family: 'Montserrat', sans-serif;
+              ">Отправить сообщение</h3>
+              
+              <form id="contactForm" onsubmit="handleSubmit(event)">
+                <div class="form-group">
+                  <label for="name">Имя *</label>
+                  <input type="text" id="name" name="name" required>
+                </div>
+                
+                <div class="form-group">
+                  <label for="email">Email *</label>
+                  <input type="email" id="email" name="email" required>
+                </div>
+                
+                <div class="form-group">
+                  <label for="phone">Телефон</label>
+                  <input type="tel" id="phone" name="phone">
+                </div>
+                
+                <div class="form-group">
+                  <label for="message">Сообщение *</label>
+                  <textarea id="message" name="message" required placeholder="Расскажите о вашем вопросе или предложении..."></textarea>
+                </div>
+                
+                <div style="text-align: center;">
+                  <button type="submit">Отправить сообщение</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </section>
+    </main>
+    
+    ${generateMultiPageFooter(siteData)}
+    
+    <script src="assets/js/script.js"></script>
+    <script>
+      // Обработчик отправки формы
+      function handleSubmit(event) {
+        event.preventDefault();
+        const form = document.getElementById('contactForm');
+        const formData = new FormData(form);
+        
+        // Отправляем данные формы
+        fetch('https://formspree.io/f/mblyqyyj', {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'Accept': 'application/json'
+          }
+        }).finally(() => {
+          // Всегда перенаправляем на страницу благодарности
+          window.location.href = 'merci.html';
+        });
+      }
+    </script>
+</body>
+</html>`;
+  };
+
+  const generateMultiPageLegal = (siteData, docType) => {
+    const headerData = siteData.headerData || {};
+    const siteName = headerData.siteName || 'My Site';
+    const languageCode = typeof headerData.language === 'string' ? headerData.language : 'ru';
+    const doc = siteData.legalDocuments[docType];
+    
+    return `<!DOCTYPE html>
+<html lang="${languageCode}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${doc.title} - ${siteName}</title>
+    <meta name="description" content="${doc.title}">
+    <link rel="stylesheet" href="assets/css/styles.css">
+    
+    <!-- React и основные библиотеки -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Material-UI -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+    <script src="https://unpkg.com/@mui/material@5.15.10/umd/material-ui.production.min.js"></script>
+    <script src="https://unpkg.com/@emotion/react@11.14.0/dist/emotion-react.umd.min.js"></script>
+    <script src="https://unpkg.com/@emotion/styled@11.14.1/dist/emotion-styled.umd.min.js"></script>
+    
+    <!-- Дополнительные библиотеки для элементов -->
+    <script src="https://unpkg.com/framer-motion@12.23.0/dist/framer-motion.js"></script>
+    <script src="https://unpkg.com/react-countup@6.5.3/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-confetti@6.4.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/qrcode.react@4.2.0/lib/index.umd.js"></script>
+    <script src="https://unpkg.com/react-player@3.1.0/dist/ReactPlayer.js"></script>
+    <script src="https://unpkg.com/react-rating-stars-component@2.2.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-text-transition@3.1.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-share@5.2.2/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-copy-to-clipboard@5.1.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-color@2.19.3/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-datepicker@8.4.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-select@5.10.1/dist/react-select.umd.js"></script>
+    <script src="https://unpkg.com/react-scroll@1.9.3/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-rnd@10.5.2/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-image-crop@11.0.10/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-markdown@9.0.1/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-plotly.js@2.6.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-apexcharts@1.7.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-chartjs-2@5.3.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/recharts@3.0.2/lib/index.umd.js"></script>
+    <script src="https://unpkg.com/apexcharts@4.7.0/dist/apexcharts.min.js"></script>
+    <script src="https://unpkg.com/chart.js@4.5.0/dist/chart.umd.js"></script>
+    <script src="https://unpkg.com/plotly.js@3.0.1/dist/plotly.min.js"></script>
+    <script src="https://unpkg.com/swiper@11.2.10/swiper-bundle.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/swiper@11.2.10/swiper-bundle.min.css" />
+    <script src="https://unpkg.com/axios@1.6.7/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/dayjs@1.11.13/dayjs.min.js"></script>
+    <script src="https://unpkg.com/marked@15.0.10/marked.min.js"></script>
+    <script src="https://unpkg.com/uuid@11.1.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/browser-image-compression@2.0.2/dist/browser-image-compression.umd.js"></script>
+    <script src="https://unpkg.com/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="https://unpkg.com/formik@2.4.6/dist/formik.umd.min.js"></script>
+    <script src="https://unpkg.com/yup@1.6.1/dist/yup.umd.min.js"></script>
+    <script src="https://unpkg.com/react-hook-form@7.59.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@hookform/resolvers@5.1.1/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/slate@0.117.2/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/slate-react@0.117.3/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/slate-history@0.113.1/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/react@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/starter-kit@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-color@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-highlight@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-image@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-link@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-table@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-text-align@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-underline@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@dnd-kit/core@6.3.1/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@dnd-kit/sortable@10.0.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@dnd-kit/utilities@3.2.2/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@visx/visx@3.12.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/victory@37.3.6/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/zustand@5.0.6/umd/index.production.min.js"></script>
+</head>
+<body>
+    ${generateMultiPageHeader(siteData, docType)}
+    
+    <main>
+        <nav class="breadcrumbs">
+          <div class="container">
+            <a href="${getIndexFileName()}">Главная</a> > <span>${doc.title}</span>
+          </div>
+        </nav>
+        
+        <section class="legal-content">
+          <div class="container">
+            <h1>${doc.title}</h1>
+            <div class="content">
+              ${doc.content}
+            </div>
+          </div>
+        </section>
+    </main>
+    
+    ${generateMultiPageFooter(siteData)}
+    
+    <script src="assets/js/script.js"></script>
+</body>
+</html>`;
+  };
+
+  const generateMultiPageSitemap = (siteData) => {
+    const domain = siteData.headerData?.domain || 'example.com';
+    const baseUrl = domain.startsWith('http') ? domain : `https://${domain}`;
+    const currentDate = new Date().toISOString().replace('Z', '+00:00');
+    
+    const indexFile = getIndexFileName();
+    let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>${baseUrl}/${indexFile}</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>`;
+
+    // Добавляем страницы секций
+    Object.entries(siteData.sectionsData || {}).forEach(([sectionId, sectionData]) => {
+      const fileName = getSectionFileNameSafe(sectionId, sectionData);
+      if (fileName) {
+        sitemap += `
+  <url>
+    <loc>${baseUrl}/${fileName}.html</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>`;
+      }
+    });
+
+    // Добавляем остальные страницы
+    sitemap += `
+  <url>
+    <loc>${baseUrl}/contact.html</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+</urlset>`;
+  };
+
   const handleDownloadSite = async () => {
+    console.log('🚀🚀🚀 [DEBUG] handleDownloadSite STARTED!');
+    console.log('🔧 [DEBUG] currentConstructorMode:', currentConstructorMode);
+    console.log('🔧 [DEBUG] sectionsData:', sectionsData);
+
     try {
       const zip = new JSZip();
       
@@ -4689,6 +11791,29 @@ const EditorPanel = ({
       zip.file('merci.html', merciContent);
 
       // Convert sections from object to array if needed
+      console.log('🔍 CHECKING ORIGINAL sectionsData before conversion:');
+      Object.entries(sectionsData).forEach(([id, section]) => {
+        console.log(`Section ${id}:`, section);
+        if (section.elements) {
+          section.elements.forEach((element, index) => {
+            if (element.type === 'bar-chart') {
+              console.log(`🎯 BAR-CHART in original sectionsData[${id}].elements[${index}]:`);
+              console.log('element.customStyles:', element.customStyles);
+              console.log('element.data type:', typeof element.data, 'isArray:', Array.isArray(element.data));
+              if (element.data && typeof element.data === 'object' && !Array.isArray(element.data)) {
+                console.log('element.data keys:', Object.keys(element.data));
+                if (element.data.customStyles) {
+                  console.log('🎨 Found customStyles in element.data:', element.data.customStyles);
+                }
+                if (element.data.data && element.data.data.customStyles) {
+                  console.log('🎨 Found customStyles in element.data.data:', element.data.data.customStyles);
+                }
+              }
+            }
+          });
+        }
+      });
+      
       const sectionsArray = Object.entries(sectionsData).map(([id, section]) => ({
         ...section,
         id: id,
@@ -4696,7 +11821,9 @@ const EditorPanel = ({
         description: section.description || '',
         titleColor: section.titleColor || '#000000',
         descriptionColor: section.descriptionColor || '#666666',
-        cards: section.cards || []
+        cards: section.cards || [],
+        aiElements: section.aiElements || [],
+        contentElements: section.contentElements || []
       }));
 
       // Prepare data for HTML generation
@@ -4758,6 +11885,25 @@ const EditorPanel = ({
 
       console.log('🚀 handleDownloadSite - siteData:', siteData);
       console.log('🚀 handleDownloadSite - siteData.liveChatData:', siteData.liveChatData);
+      
+      // Отладка для advanced-area-chart элементов
+      console.log('📊 [DEBUG] Checking for advanced-area-chart elements in siteData...');
+      siteData.sectionsData.forEach((section, index) => {
+        if (section.aiElements && section.aiElements.length > 0) {
+          section.aiElements.forEach((element, elemIndex) => {
+            if (element.type === 'advanced-area-chart') {
+              console.log('📊 Found advanced-area-chart in section ' + index + ', element ' + elemIndex + ':', element);
+            }
+          });
+        }
+        if (section.contentElements && section.contentElements.length > 0) {
+          section.contentElements.forEach((element, elemIndex) => {
+            if (element.type === 'advanced-area-chart') {
+              console.log('📊 Found advanced-area-chart in section ' + index + ', contentElement ' + elemIndex + ':', element);
+            }
+          });
+        }
+      });
 
       // Process and add chat operator photo if live chat is enabled
       if (siteData.liveChatData?.enabled) {
@@ -4884,12 +12030,64 @@ const EditorPanel = ({
         }
       }
 
-      // Add HTML file
-      const htmlContent = generateHTML(siteData);
-      zip.file('index.html', htmlContent);
+      // Выбираем способ генерации в зависимости от режима
+      console.log('🔧🔧🔧 MODE CHECK: currentConstructorMode =', currentConstructorMode);
+      if (currentConstructorMode) {
+        // Режим конструктора - генерируем одностраничный сайт
+        console.log('🏗️🏗️🏗️ USING SINGLE PAGE MODE (Constructor mode) 🏗️🏗️🏗️');
+        const htmlContent = generateHTML(siteData);
+        zip.file('index.html', htmlContent);
+      } else {
+        // Ручной режим - генерируем многостраничный сайт
+        console.log('📄📄📄 USING MULTI-PAGE MODE (Manual mode) 📄📄📄');
+        
+        // Генерируем главную страницу
+        const indexContent = generateMultiPageIndex(siteData);
+        const indexFileName = getIndexFileName();
+        zip.file(indexFileName, indexContent);
+        
+        // Генерируем страницы для каждой секции
+        console.log('📄 Processing sections for multi-page site...');
+        console.log('📄 siteData.sectionsData:', siteData.sectionsData);
+        siteData.sectionsData.forEach((sectionData) => {
+          console.log('📄 Processing section:', sectionData.id, sectionData);
+          const fileName = getSectionFileNameSafe(sectionData.id, sectionData);
+          if (fileName) {
+            console.log('📄 Generating page for section:', sectionData.id, 'file:', fileName);
+            const pageContent = generateMultiPageSection(siteData, sectionData.id, sectionData);
+            zip.file(`${fileName}.html`, pageContent);
+          }
+        });
+        
+        // Генерируем страницу контактов
+        if (siteData.contactData) {
+          const contactContent = generateMultiPageContact(siteData);
+          zip.file('contact.html', contactContent);
+        }
+        
+        // Генерируем правовые документы
+        if (siteData.legalDocuments) {
+          if (siteData.legalDocuments.privacyPolicy?.content) {
+            const legalContent = generateMultiPageLegal(siteData, 'privacyPolicy');
+            zip.file('privacy-policy.html', legalContent);
+          }
+          if (siteData.legalDocuments.termsOfService?.content) {
+            const legalContent = generateMultiPageLegal(siteData, 'termsOfService');
+            zip.file('terms-of-service.html', legalContent);
+          }
+          if (siteData.legalDocuments.cookiePolicy?.content) {
+            const legalContent = generateMultiPageLegal(siteData, 'cookiePolicy');
+            zip.file('cookie-policy.html', legalContent);
+          }
+        }
+        
+        // Добавляем обновленную карту сайта для многостраничного формата
+        const sitemapContent = generateMultiPageSitemap(siteData);
+        zip.file('sitemap.xml', sitemapContent);
+      }
 
-      // Add CSS file
-      const cssContent = generateCSS();
+      // Add CSS file (передаем headerData для многостраничного режима)
+      const cssContent = generateCSS(siteData.headerData);
       cssFolder.file('styles.css', cssContent);
       
       // Add JS file
@@ -5317,6 +12515,218 @@ if (file_put_contents($sitemapFile, $updatedContent) !== false) {
         console.error('Error getting site background image from cache:', error);
       }
 
+      // Export gallery images
+      console.log('🖼️ [handleDownloadSite] Начинаем экспорт изображений галереи');
+      try {
+        const sectionsData = siteData.sectionsData || {};
+        const processedImages = new Set();
+        
+        // Отладочная информация о кеше
+        console.log('🖼️ [handleDownloadSite] Проверяем содержимое localStorage:');
+        const allKeys = Object.keys(localStorage);
+        const imageKeys = allKeys.filter(key => key.includes('image') || key.includes('gallery'));
+        console.log('🖼️ [handleDownloadSite] Ключи с изображениями:', imageKeys);
+        imageKeys.forEach(key => {
+          try {
+            const value = localStorage.getItem(key);
+            console.log(`🖼️ [handleDownloadSite] ${key}:`, value);
+          } catch (e) {
+            console.log(`🖼️ [handleDownloadSite] Ошибка чтения ${key}:`, e);
+          }
+        });
+        
+        console.log('🖼️ [handleDownloadSite] sectionsData:', sectionsData);
+        
+        // Проходим по всем секциям
+        for (const section of sectionsData) {
+          const sectionId = section.id;
+          console.log(`🖼️ [handleDownloadSite] Обрабатываем секцию: ${sectionId}`);
+          const elements = section.elements || [];
+          console.log(`🖼️ [handleDownloadSite] Элементы в секции ${sectionId}:`, elements);
+          
+          // Ищем элементы image-gallery
+          for (const element of elements) {
+            if (element.type === 'image-gallery') {
+              console.log(`🔥 НАЙДЕН ЭЛЕМЕНТ ГАЛЕРЕИ:`, element);
+              console.log(`🔥 element.title:`, element.title);
+              console.log(`🔥 element.description:`, element.description);
+              console.log(`🔥 element.colorSettings:`, element.colorSettings);
+              console.log(`🔥 element.data:`, element.data);
+              console.log(`🔥 element.data?.title:`, element.data?.title);
+              console.log(`🔥 element.data?.description:`, element.data?.description);
+              console.log(`🔥 element.data?.colorSettings:`, element.data?.colorSettings);
+              const elementData = element.data || element;
+              console.log(`🔥 elementData:`, elementData);
+              const images = elementData.images || element.images || [];
+              console.log(`🔥 Изображения в галерее:`, images);
+              console.log(`🔥 Количество изображений: ${images.length}`);
+              
+              // Поскольку изображения не сохраняются в состоянии элемента, ищем их в кеше
+              console.log(`🖼️ [handleDownloadSite] Ищем изображения галереи в кеше для элемента ${element.id}`);
+              
+              // Получаем sectionId из элемента или его данных
+              const elementSectionId = elementData.sectionId || element.sectionId || sectionId;
+              console.log(`🖼️ [handleDownloadSite] sectionId элемента: ${elementSectionId}`);
+              
+              // Также проверяем все возможные варианты sectionId
+              const possibleSectionIds = [
+                elementSectionId,
+                elementData.id,
+                element.id,
+                sectionId,
+                // Добавляем поиск по новому формату sectionId
+                elementData.sectionId,
+                // Добавляем поиск по sectionId из editData
+                elementData.data?.sectionId,
+                elementData.sectionId
+              ].filter(Boolean);
+              console.log(`🖼️ [handleDownloadSite] Возможные sectionId:`, possibleSectionIds);
+              console.log(`🖼️ [handleDownloadSite] elementSectionId: "${elementSectionId}"`);
+              console.log(`🖼️ [handleDownloadSite] elementData.id: "${elementData.id}"`);
+              console.log(`🖼️ [handleDownloadSite] element.id: "${element.id}"`);
+              console.log(`🖼️ [handleDownloadSite] sectionId: "${sectionId}"`);
+              console.log(`🖼️ [handleDownloadSite] elementData.title: "${elementData.title}"`);
+              console.log(`🖼️ [handleDownloadSite] element.title: "${element.title}"`);
+              console.log(`🖼️ [handleDownloadSite] elementData.sectionId: "${elementData.sectionId}"`);
+              console.log(`🖼️ [handleDownloadSite] elementData.data?.sectionId: "${elementData.data?.sectionId}"`);
+              
+              const allKeys = Object.keys(localStorage);
+              console.log(`🖼️ [handleDownloadSite] Все ключи localStorage:`, allKeys.filter(key => key.startsWith('gallery-image-')));
+              console.log(`🖼️ [handleDownloadSite] Все ключи localStorage (полный список):`, allKeys);
+              
+              const galleryKeys = allKeys.filter(key => {
+                if (!key.startsWith('gallery-image-')) return false;
+                
+                try {
+                  const metadata = JSON.parse(localStorage.getItem(key));
+                  console.log(`🖼️ [handleDownloadSite] Метаданные для ${key}:`, metadata);
+                  
+                  // Проверяем, что изображение принадлежит этому элементу галереи
+                  let matches = metadata && possibleSectionIds.includes(metadata.sectionId);
+                  
+                  // Если точное совпадение не найдено, пробуем частичное совпадение sectionId
+                  if (!matches && metadata && metadata.sectionId) {
+                    matches = possibleSectionIds.some(id => 
+                      metadata.sectionId.includes(id) || id.includes(metadata.sectionId)
+                    );
+                  }
+                  
+                  // Если sectionId не совпадает, пробуем по galleryName
+                  if (!matches && metadata && metadata.galleryName) {
+                    const elementTitle = elementData.title || element.title || '';
+                    // Нормализуем названия для сравнения (убираем пробелы, приводим к нижнему регистру)
+                    const normalizedGalleryName = metadata.galleryName.toLowerCase().replace(/\s+/g, ' ').trim();
+                    const normalizedElementTitle = elementTitle.toLowerCase().replace(/\s+/g, ' ').trim();
+                    
+                    matches = normalizedGalleryName === normalizedElementTitle || 
+                             normalizedGalleryName.includes(normalizedElementTitle) || 
+                             normalizedElementTitle.includes(normalizedGalleryName) ||
+                             // Проверяем первые 50 символов
+                             normalizedGalleryName.substring(0, 50) === normalizedElementTitle.substring(0, 50);
+                  }
+                  
+                  console.log(`🖼️ [handleDownloadSite] ${key} соответствует элементу: ${matches} (sectionId: ${metadata?.sectionId}, galleryName: ${metadata?.galleryName})`);
+                  return matches;
+                } catch (e) {
+                  console.warn(`🖼️ [handleDownloadSite] Ошибка парсинга метаданных для ${key}:`, e);
+                  return false;
+                }
+              });
+              console.log(`🖼️ [handleDownloadSite] Найденные ключи галереи для элемента ${element.id}:`, galleryKeys);
+              
+              // Выводим подробную информацию о каждом найденном ключе
+              galleryKeys.forEach((key, index) => {
+                try {
+                  const metadata = JSON.parse(localStorage.getItem(key));
+                  console.log(`🖼️ [handleDownloadSite] Ключ ${index + 1}: ${key}`);
+                  console.log(`🖼️ [handleDownloadSite] Метаданные:`, metadata);
+                } catch (e) {
+                  console.warn(`🖼️ [handleDownloadSite] Ошибка парсинга для ${key}:`, e);
+                }
+              });
+              
+              // Обрабатываем каждое изображение из кеша
+              console.log(`🖼️ [handleDownloadSite] Начинаем обработку ${galleryKeys.length} изображений`);
+              for (let i = 0; i < galleryKeys.length; i++) {
+                const galleryKey = galleryKeys[i];
+                console.log(`🖼️ [handleDownloadSite] Обрабатываем изображение ${i + 1}/${galleryKeys.length}: ${galleryKey}`);
+                
+                try {
+                  const metadata = JSON.parse(localStorage.getItem(galleryKey));
+                  console.log(`🖼️ [handleDownloadSite] Метаданные для ${galleryKey}:`, metadata);
+                  
+                  // Дополнительная проверка, что изображение принадлежит этому элементу
+                  let belongsToElement = metadata && possibleSectionIds.includes(metadata.sectionId);
+                  
+                  // Если точное совпадение не найдено, пробуем частичное совпадение sectionId
+                  if (!belongsToElement && metadata && metadata.sectionId) {
+                    belongsToElement = possibleSectionIds.some(id => 
+                      metadata.sectionId.includes(id) || id.includes(metadata.sectionId)
+                    );
+                  }
+                  
+                  // Если sectionId не совпадает, пробуем по galleryName
+                  if (!belongsToElement && metadata && metadata.galleryName) {
+                    const elementTitle = elementData.title || element.title || '';
+                    // Нормализуем названия для сравнения (убираем пробелы, приводим к нижнему регистру)
+                    const normalizedGalleryName = metadata.galleryName.toLowerCase().replace(/\s+/g, ' ').trim();
+                    const normalizedElementTitle = elementTitle.toLowerCase().replace(/\s+/g, ' ').trim();
+                    
+                    belongsToElement = normalizedGalleryName === normalizedElementTitle || 
+                                     normalizedGalleryName.includes(normalizedElementTitle) || 
+                                     normalizedElementTitle.includes(normalizedGalleryName) ||
+                                     // Проверяем первые 50 символов
+                                     normalizedGalleryName.substring(0, 50) === normalizedElementTitle.substring(0, 50);
+                  }
+                  
+                  if (metadata && !belongsToElement) {
+                    console.log(`🖼️ [handleDownloadSite] Пропускаем ${galleryKey} - не принадлежит элементу ${element.id} (sectionId: ${metadata.sectionId}, galleryName: ${metadata.galleryName})`);
+                    continue;
+                  }
+                  
+                  if (metadata && metadata.fileName) {
+                    const imageBlob = await imageCacheService.getImage(metadata.fileName);
+                    console.log(`🖼️ [handleDownloadSite] Результат getImage(${metadata.fileName}):`, imageBlob);
+                    
+                    if (imageBlob) {
+                      // Создаем объект изображения для генерации имени файла
+                      const imageObject = {
+                        fileName: metadata.fileName,
+                        originalName: metadata.originalName || '',
+                        alt: metadata.originalName || `Изображение ${i + 1}`,
+                        title: metadata.originalName || `Изображение ${i + 1}`,
+                        key: galleryKey
+                      };
+                      
+                      // Генерируем английское имя файла
+                      const englishFileName = generateGalleryImageFileName(imageObject, i, sectionId);
+                      console.log(`🖼️ [handleDownloadSite] Генерируем имя файла: ${englishFileName}`);
+                      
+                      // Добавляем изображение в архив
+                      imagesFolder.file(englishFileName, imageBlob);
+                      console.log(`🖼️ [handleDownloadSite] Файл добавлен в архив: ${englishFileName}`);
+                      
+                      processedImages.add(metadata.fileName);
+                      console.log(`✅ Экспортировано изображение галереи: ${englishFileName}`);
+                    } else {
+                      console.warn(`⚠️ [handleDownloadSite] Blob не найден для ${metadata.fileName}`);
+                    }
+                  } else {
+                    console.warn(`⚠️ [handleDownloadSite] Нет метаданных для ${galleryKey}`);
+                  }
+                } catch (error) {
+                  console.warn(`⚠️ Не удалось экспортировать изображение галереи ${i}:`, error);
+                }
+              }
+            }
+          }
+        }
+        
+        console.log(`🖼️ [handleDownloadSite] Экспорт завершен. Обработано изображений: ${processedImages.size}`);
+      } catch (error) {
+        console.error('Error exporting gallery images:', error);
+      }
+
       // Add images from sections
       for (const section of sectionsArray) {
         // Обработка массива изображений
@@ -5448,7 +12858,9 @@ if (file_put_contents($sitemapFile, $updatedContent) !== false) {
         description: section.description || '',
         titleColor: section.titleColor || '#000000',
         descriptionColor: section.descriptionColor || '#666666',
-        cards: section.cards || []
+        cards: section.cards || [],
+        aiElements: section.aiElements || [],
+        contentElements: section.contentElements || []
       }));
 
       const siteData = {
@@ -5504,8 +12916,8 @@ if (file_put_contents($sitemapFile, $updatedContent) !== false) {
       const phpContent = generatePHP(siteData);
       zip.file('index.php', phpContent);
 
-      // Add CSS file
-      const cssContent = generateCSS();
+      // Add CSS file (передаем headerData для PHP режима)
+      const cssContent = generateCSS(siteData.headerData);
       cssFolder.file('styles.css', cssContent);
       
       // Add JS file
@@ -5790,16 +13202,43 @@ if (file_put_contents($sitemapFile, $updatedContent) !== false) {
         // Перебираем все пункты меню (секции)
         for (const item of headerData.menuItems) {
           const sectionId = item.id;
-          const sectionImageMetadata = JSON.parse(localStorage.getItem(`section_${sectionId}_ImageMetadata`) || '{}');
+          const metadataKey = `section_${sectionId}_ImageMetadata`;
+          console.log(`Проверка метаданных для секции ${sectionId}, ключ: ${metadataKey}`);
           
-          if (sectionImageMetadata.filename) {
-            const blob = await imageCacheService.getImage(sectionImageMetadata.filename);
-            if (blob) {
-              imagesFolder.file(sectionImageMetadata.filename, blob);
-              console.log(`Section ${sectionId} image successfully added to zip from cache`);
+          try {
+            const sectionImageMetadata = JSON.parse(localStorage.getItem(metadataKey) || '{}');
+            console.log(`Метаданные для секции ${sectionId}:`, sectionImageMetadata);
+            
+            if (sectionImageMetadata.filename) {
+              // Проверяем есть ли файл в кеше
+              const blob = await imageCacheService.getImage(sectionImageMetadata.filename);
+              
+              if (blob) {
+                console.log(`Изображение для секции ${sectionId} найдено в кеше:`, sectionImageMetadata.filename);
+                imagesFolder.file(sectionImageMetadata.filename, blob);
+                console.log(`Section ${sectionId} image successfully added to zip from cache`);
+              } else {
+                console.warn(`Изображение для секции ${sectionId} не найдено в кеше:`, sectionImageMetadata.filename);
+                
+                // Пытаемся загрузить изображение по URL
+                if (sectionImageMetadata.originalPath) {
+                  try {
+                    const response = await fetch(sectionImageMetadata.originalPath);
+                    if (response.ok) {
+                      const blob = await response.blob();
+                      imagesFolder.file(sectionImageMetadata.filename, blob);
+                      console.log(`Section ${sectionId} image successfully fetched from URL and added to zip`);
+                    }
+                  } catch (fetchError) {
+                    console.error(`Ошибка при загрузке изображения для секции ${sectionId}:`, fetchError);
+                  }
+                }
+              }
             } else {
-              console.warn(`Section ${sectionId} image not found in cache`);
+              console.warn(`Нет метаданных изображения для секции ${sectionId}`);
             }
+          } catch (parseError) {
+            console.error(`Ошибка при разборе метаданных для секции ${sectionId}:`, parseError);
           }
         }
       } catch (error) {
@@ -6140,7 +13579,7 @@ ${mainHtml}
   font-size: 1rem;
   animation: fadeInUp 0.7s cubic-bezier(.23,1.01,.32,1) both;
 ">
-  <div style="display: flex; align-items: flex-start; gap: 1rem;">
+  <div style="display: flex; align-items: flex-start; gap: 12px;">
     <div style="flex:1;">
       <strong>We use cookies</strong><br>
       This website uses cookies to ensure you get the best experience on our website. <a href="cookie-policy.html" style="color:#90caf9;text-decoration:underline;">Learn more</a>.
@@ -6374,7 +13813,29 @@ ${mainHtml}
   };
 
   const handleExport = async () => {
+    console.log('🟢🟢🟢 handleExport CALLED! 🟢🟢🟢');
+    alert('handleExport function called!');
     try {
+      // Логирование для отладки графиков
+      console.log('=== EXPORT DEBUG ===');
+      console.log('sectionsData:', sectionsData);
+      
+      // Проверяем каждый раздел на наличие графиков
+      Object.entries(sectionsData).forEach(([sectionId, section]) => {
+        if (section.aiElements && section.aiElements.length > 0) {
+          console.log(`Section ${sectionId} has ${section.aiElements.length} AI elements:`, section.aiElements);
+          section.aiElements.forEach((element, index) => {
+            if (element.type === 'bar-chart') {
+              console.log(`Bar chart in section ${sectionId}, index ${index}:`, element);
+            }
+          });
+        }
+        if (section.contentElements && section.contentElements.length > 0) {
+          console.log(`Section ${sectionId} has ${section.contentElements.length} content elements:`, section.contentElements);
+        }
+      });
+      console.log('=====================');
+
       const siteData = {
         headerData: {
           ...headerData,
@@ -6393,13 +13854,25 @@ ${mainHtml}
           buttonText: heroData.buttonText || '',
           backgroundImage: heroData.backgroundImage ? 'assets/images/hero/' + heroData.backgroundImage.split('/').pop() : ''
         },
-        sectionsData: sectionsData.map(section => ({
+        sectionsData: Object.entries(sectionsData).map(([id, section]) => ({
           ...section,
+          id: id,
           title: section.title || '',
           description: section.description || '',
           titleColor: section.titleColor || '#000000',
           descriptionColor: section.descriptionColor || '#666666',
-          cards: section.cards || []
+          cards: section.cards || [],
+          aiElements: section.aiElements || [],
+          contentElements: (section.contentElements || []).map(element => ({
+            ...element,
+            // Сохраняем colorSettings в каждом элементе для экспорта
+            colorSettings: element.colorSettings || {},
+            // Сохраняем все данные элемента включая настройки цветов
+            data: {
+              ...element.data,
+              colorSettings: element.data?.colorSettings || element.colorSettings || {}
+            }
+          }))
         })),
         contactData: {
           ...contactData,
@@ -6438,7 +13911,16 @@ ${mainHtml}
         }
       };
 
-      await exportSite(siteData);
+      // Выбираем экспортер в зависимости от режима
+      if (currentConstructorMode) {
+        // Режим конструктора - используем одностраничный экспорт
+        console.log('🏗️ Exporting in Constructor mode (single page)');
+        await exportSite(siteData);
+      } else {
+        // Ручной режим - используем многостраничный экспорт
+        console.log('📄 Exporting in Manual mode (multi page)');
+        await exportMultiPageSite(siteData);
+      }
       } catch (error) {
       console.error('Error exporting site:', error);
       alert('Ошибка при экспорте сайта: ' + error.message);
@@ -6679,6 +14161,15 @@ ${mainHtml}
     onContactChange(newContactData);
   };
 
+  // Функция для получения имени файла главной страницы
+  const getIndexFileName = () => {
+    // Если указано пользовательское имя файла в ручном режиме, используем его
+    if (!currentConstructorMode && heroData?.indexFileName?.trim()) {
+      return heroData.indexFileName.trim() + '.html';
+    }
+    return 'index.html';
+  };
+
   // Добавляем блок с AI парсером
   const aiParserBlock = (
     <Box sx={{ mb: 4 }}>
@@ -6693,6 +14184,8 @@ ${mainHtml}
         onLegalDocumentsChange={onLegalDocumentsChange}
         heroData={heroData}
         onHeroChange={onHeroChange}
+        constructorMode={currentConstructorMode}
+        onConstructorModeChange={handleConstructorModeChange}
         aboutData={sectionsData.about}
         onAboutChange={(aboutData) => {
           console.log('onAboutChange called with:', aboutData);
@@ -6794,7 +14287,6 @@ ${mainHtml}
       id="liveChat"
     />
   );
-
   const sectionsEditor = (
         <Paper 
           sx={{ 
@@ -6826,6 +14318,25 @@ ${mainHtml}
               >
                 Добавить
               </Button>
+
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={handleCreateUAEPaymentsSite}
+                sx={{ 
+                  minWidth: 'auto',
+                  px: 2,
+                  mr: 1,
+                  color: '#1e3a8a',
+                  borderColor: '#1e3a8a',
+                  '&:hover': {
+                    backgroundColor: '#1e3a8a',
+                    color: 'white'
+                  }
+                }}
+              >
+                🇦🇪 UAE
+              </Button>
               <IconButton
                 onClick={() => toggleSection('menu')}
                 aria-expanded={expandedSections.menu}
@@ -6837,7 +14348,23 @@ ${mainHtml}
             </Box>
           </Box>
 
+          {/* Поле для переименования главной страницы - показывается только в Manual режиме */}
+          {!currentConstructorMode && (
+            <TextField
+              fullWidth
+              size="small"
+              label="Имя файла главной страницы (без расширения)"
+              value={heroData?.indexFileName || ''}
+              onChange={(e) => handleChange('indexFileName', e.target.value)}
+              placeholder="index"
+              helperText="По умолчанию: index.html. Вы можете изменить на: home.html, main.html и т.д."
+              sx={{ mt: 2, mb: 2 }}
+            />
+          )}
+
           <Collapse in={expandedSections.menu} timeout="auto" unmountOnExit>
+            {/* Блок предустановленных секций убран */}
+            
             <Stack spacing={1} sx={{ mt: 2 }}>
               {headerData.menuItems.map((item) => {
                 const section = sectionsData[item.id] || {
@@ -6845,7 +14372,9 @@ ${mainHtml}
                   title: '',
                   description: '',
                   cardType: CARD_TYPES.NONE,
-                  cards: []
+                  cards: [],
+                  aiElements: [],
+                  contentElements: []
                 };
                 
                 return (
@@ -6857,7 +14386,7 @@ ${mainHtml}
                       mb: 2, 
                       display: 'flex', 
                       flexDirection: 'column',
-                      gap: 2,
+                      gap: 12,
                       backgroundColor: '#bdc5da',
                       borderRadius: 2,
                       border: '1px solid #c5cae9',
@@ -6918,7 +14447,19 @@ ${mainHtml}
                           multiline
                           rows={2}
                         />
-                        <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', mt: 1 }}>
+                        {!currentConstructorMode && (
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label="Имя файла HTML (без расширения)"
+                            value={section.fileName || ''}
+                            onChange={(e) => handleSectionChange(item.id, 'fileName', e.target.value)}
+                            margin="dense"
+                            placeholder="Например: about-us, services, contact"
+                            helperText="Оставьте пустым для автоматической генерации из заголовка"
+                          />
+                        )}
+                        <Box sx={{ display: 'flex', gap: 12, alignItems: 'flex-start', mt: 1 }}>
                           {/* Удаляем первую кнопку и оставляем только вторую */}
                           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, width: '100%' }}>
                             <Button
@@ -6954,7 +14495,7 @@ ${mainHtml}
                             )}
                           </Box>
                         </Box>
-                        <Box sx={{ display: 'flex', gap: 2 }}>
+                        <Box sx={{ display: 'flex', gap: 12 }}>
                           <TextField
                             fullWidth
                             size="small"
@@ -7107,7 +14648,7 @@ ${mainHtml}
                                         }
                                         label="Показывать заголовок"
                                       />
-                                      <Box sx={{ display: 'flex', gap: 2 }}>
+                                      <Box sx={{ display: 'flex', gap: 12 }}>
                                         <TextField
                                           fullWidth
                                           size="small"
@@ -7125,7 +14666,7 @@ ${mainHtml}
                                           onChange={(e) => handleCardChange(item.id, card.id, 'contentColor', e.target.value)}
                                         />
                                       </Box>
-                                      <Box sx={{ display: 'flex', gap: 2 }}>
+                                      <Box sx={{ display: 'flex', gap: 12 }}>
                                         <TextField
                                           fullWidth
                                           size="small"
@@ -7157,7 +14698,7 @@ ${mainHtml}
                                         />
                                       ) : (
                                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                          <Box sx={{ display: 'flex', gap: 2 }}>
+                                          <Box sx={{ display: 'flex', gap: 12 }}>
                                             <TextField
                                               fullWidth
                                               size="small"
@@ -7228,6 +14769,15 @@ ${mainHtml}
                             </Stack>
                           </Box>
                         )}
+
+                        {/* Расширенный редактор секций */}
+                        <EnhancedSectionEditor
+                          section={section}
+                          sectionId={item.id}
+                          onSectionChange={handleSectionChange}
+                          selectedElement={selectedElement}
+                          onElementDeselect={onElementDeselect}
+                        />
 
                         <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                           <Button
@@ -7309,7 +14859,6 @@ ${mainHtml}
       }
     }
   }
-
   // Блок для редактирования "О нас"
   const aboutEditorBlock = (
     <Paper 
@@ -7354,7 +14903,7 @@ ${mainHtml}
             value={sectionsData.about?.description || ''}
             onChange={(e) => handleSectionChange('about', 'description', e.target.value)}
           />
-          <Box sx={{ display: 'flex', gap: 2 }}>
+          <Box sx={{ display: 'flex', gap: 12 }}>
             <TextField
               fullWidth
               label="Цвет заголовка"
@@ -7370,7 +14919,7 @@ ${mainHtml}
               onChange={(e) => handleSectionChange('about', 'descriptionColor', e.target.value)}
             />
           </Box>
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 1 }}>
+          <Box sx={{ display: 'flex', gap: 12, alignItems: 'center', mt: 1 }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
               <Button
                 variant="contained"
@@ -7450,14 +14999,17 @@ ${mainHtml}
         {legalDocumentsEditorBlock}
         {liveChatEditorBlock}
         
-        <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center', gap: 2 }}>
+        <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center', gap: 12 }}>
         <Button 
           variant="contained" 
           color="primary" 
           startIcon={<DownloadIcon />}
-          onClick={handleDownloadSite}
+          onClick={() => {
+    
+            handleDownloadSite();
+          }}
         >
-          Скачать сайт
+          {currentConstructorMode ? '📄 Скачать сайт (одностраничный)' : '📁 Скачать сайт (многостраничный)'}
         </Button>
         <Button
           variant="contained"
@@ -7492,6 +15044,16 @@ ${mainHtml}
       </Dialog>
     </Container>
   );
+};
+
+// Функция для генерации английских имен файлов изображений галереи
+const generateGalleryImageFileName = (image, index, sectionId) => {
+  // Генерируем простое имя типа image-gallery1.jpg
+  const fileName = `image-gallery${index + 1}.jpg`;
+  
+  console.log(`🖼️ [generateGalleryImageFileName] Генерируем имя файла: ${fileName} для изображения ${index + 1}`);
+  
+  return fileName;
 };
 
 export default EditorPanel; 

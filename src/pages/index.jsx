@@ -1,104 +1,121 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Container, Grid, useMediaQuery, useTheme } from '@mui/material';
+import { Box, Container, Grid, useMediaQuery, useTheme, Button, AppBar, Toolbar, Typography } from '@mui/material';
 import EditorPanel from '../components/Editor/EditorPanel';
 import PagePreview from '../components/Preview/PagePreview';
 import HeroEditor from '../components/Editor/HeroEditor';
 import { CARD_TYPES } from '../utils/configUtils';
 import AiParser from '../components/AiParser/AiParser';
+import Link from 'next/link';
+
+// Очистка localStorage от данных казино
+const clearCasinoData = () => {
+  const casinoKeys = [
+    'sectionsData',
+    'advantages',
+    'games', 
+    'testimonials',
+    'casino-stats',
+    'bonuses-section',
+    'vip-program',
+    'faq-section',
+    'news-section',
+    'advantagesImageMetadata',
+    'casinoData',
+    'socialCasinoData'
+  ];
+  
+  casinoKeys.forEach(key => {
+    // Исключаем ключи изображений hero
+    if (key.includes('ImageMetadata') || key.includes('imageMetadata')) {
+      console.log(`Skipping image metadata key: ${key}`);
+      return;
+    }
+    
+    if (localStorage.getItem(key)) {
+      console.log(`Removing casino data key from localStorage: ${key}`);
+      localStorage.removeItem(key);
+    }
+    if (sessionStorage.getItem(key)) {
+      console.log(`Removing casino data key from sessionStorage: ${key}`);
+      sessionStorage.removeItem(key);
+    }
+  });
+  
+  // Также очищаем все ключи, содержащие casino (НО НЕ ИЗОБРАЖЕНИЯ!)
+  Object.keys(localStorage).forEach(key => {
+    // Исключаем ключи изображений и метаданных
+    if (!key.startsWith('site-images-metadata-') && 
+        !key.includes('ImageMetadata') &&
+        !key.includes('imageMetadata') &&
+        (key.toLowerCase().includes('casino') || key.toLowerCase().includes('social'))) {
+      console.log(`Removing casino-related key from localStorage: ${key}`);
+      localStorage.removeItem(key);
+    }
+  });
+  
+  Object.keys(sessionStorage).forEach(key => {
+    // Исключаем ключи изображений и метаданных
+    if (!key.startsWith('site-images-metadata-') && 
+        !key.includes('ImageMetadata') &&
+        !key.includes('imageMetadata') &&
+        (key.toLowerCase().includes('casino') || key.toLowerCase().includes('social'))) {
+      console.log(`Removing casino-related key from sessionStorage: ${key}`);
+      sessionStorage.removeItem(key);
+    }
+  });
+  
+  // Очищаем все предустановленные секции (НО НЕ GALLERY!)
+  const predefinedSectionKeys = [
+    'about', 'services', 'features', 'testimonials', 'faq', 'news', 
+    'portfolio', 'blog', 'team', 'pricing', 'games', 
+    'blackjack', 'poker', 'ruleta'
+    // 'gallery' исключена, чтобы не затрагивать изображения галереи
+  ];
+  
+  predefinedSectionKeys.forEach(key => {
+    if (localStorage.getItem(key)) {
+      console.log(`Removing predefined section from localStorage: ${key}`);
+      localStorage.removeItem(key);
+    }
+    if (sessionStorage.getItem(key)) {
+      console.log(`Removing predefined section from sessionStorage: ${key}`);
+      sessionStorage.removeItem(key);
+    }
+  });
+  
+  console.log('All casino data and predefined sections cleared from storage');
+};
 
 const initialHeaderData = {
-  siteName: 'Юридическая компания "Право и Защита"',
-  titleColor: '#2196f3',
-  backgroundColor: '#e3f2fd',
-  linksColor: '#1976d2',
-  domain: '',
-  siteBackgroundColor: '#f8f9fa',
-  siteBackgroundType: 'gradient',
-  siteGradientColor1: '#e3f2fd',
-  siteGradientColor2: '#bbdefb',
-  siteGradientDirection: 'to right',
+  siteName: 'Мой сайт',
+  titleColor: '#1976d2',
+  backgroundColor: '#ffffff',
+  linksColor: '#333333',
   menuItems: [],
   contactLink: {
     show: true,
-    text: 'Свяжитесь с нами',
+    text: 'Контакты',
     url: '#contact',
-    color: '#000000'
+    color: '#1976d2'
   },
   logo: {
     show: true,
     url: '',
-    alt: 'Логотип компании'
-  },
-  phone: {
-    show: true,
-    number: '+7 (XXX) XXX-XX-XX',
-    color: '#000000'
-  },
-  email: {
-    show: true,
-    address: 'info@example.com',
-    color: '#000000'
-  },
-  socialLinks: {
-    show: true,
-    facebook: '#',
-    twitter: '#',
-    instagram: '#',
-    linkedin: '#'
-  },
-  search: {
-    show: true,
-    placeholder: 'Поиск...'
-  },
-  language: {
-    show: true,
-    current: 'ru',
-    options: ['ru', 'en']
-  },
-  styles: {
-    headerHeight: '80px',
-    menuItemSpacing: '20px',
-    menuItemHoverColor: '#1976d2',
-    menuItemActiveColor: '#1565c0',
-    menuItemFontSize: '16px',
-    menuItemFontWeight: '500',
-    menuItemTransition: '0.3s',
-    logoWidth: '150px',
-    logoHeight: 'auto',
-    contactButtonPadding: '8px 16px',
-    contactButtonBorderRadius: '4px',
-    contactButtonBackground: '#1976d2',
-    contactButtonHoverBackground: '#1565c0',
-    searchWidth: '200px',
-    searchBorderRadius: '4px',
-    searchBorderColor: '#e0e0e0',
-    searchFocusBorderColor: '#1976d2',
-    socialIconSize: '24px',
-    socialIconColor: '#000000',
-    socialIconHoverColor: '#1976d2',
-    languageSelectorWidth: '100px',
-    languageSelectorBorderRadius: '4px',
-    languageSelectorBorderColor: '#e0e0e0',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-    zIndex: 1000,
-    sticky: true,
-    transparent: false,
-    blurEffect: false,
-    blurAmount: 5
+    alt: 'Логотип'
   }
 };
 
 const initialHeroData = {
-  title: 'Профессиональные юридические услуги',
-  subtitle: 'Мы предоставляем комплексную юридическую поддержку в различных областях права. Наша команда опытных юристов готова помочь вам с корпоративным правом, судебным представительством, недвижимостью и семейным правом. Более 15 лет успешной практики и сотни довольных клиентов.',
+  title: 'Добро пожаловать в мир азарта',
+  subtitle: 'Откройте для себя увлекательный мир онлайн-казино с лучшими играми, щедрыми бонусами и безопасными транзакциями. Испытайте удачу в рулетке, покере, блэкджеке и слотах. Присоединяйтесь к тысячам игроков уже сегодня!',
   backgroundType: 'image',
-  backgroundColor: '#ffffff',
-  gradientColor1: '#ffffff',
-  gradientColor2: '#f5f5f5',
+  backgroundColor: '#1a1a1a',
+  gradientColor1: '#1a1a1a',
+  gradientColor2: '#c41e3a',
   gradientDirection: 'to right',
   backgroundImage: '/images/hero/hero.jpg',
-  titleColor: '#2196f3',
-  subtitleColor: '#64b5f6',
+  titleColor: '#c41e3a',
+  subtitleColor: '#e2e2e2',
   animationType: 'zoom',
   enableOverlay: true,
   overlayOpacity: 0.1,
@@ -106,55 +123,34 @@ const initialHeroData = {
   blurAmount: 0.1
 };
 
-const initialSectionsData = [];
+const initialSectionsData = {};
 
 const initialContactData = {
-  title: 'Свяжитесь с нами',
-  description: 'Оставьте свои контактные данные, и мы свяжемся с вами в ближайшее время. Наша команда юристов готова ответить на все ваши вопросы и предоставить профессиональную консультацию.',
-  companyName: 'Юридическая компания "Право и Защита"',
-  address: 'г. Москва, ул. Якиманка, д. 12',
-  phone: '+7 (495) 123-45-67',
-  email: 'info@pravo-zashita.ru',
-  mapCoordinates: {
-    lat: 55.7558,
-    lng: 37.6173
-  },
-  titleColor: '#1a237e',
-  descriptionColor: '#283593',
-  companyInfoColor: '#0d47a1',
-  formVariant: 'outlined',
-  infoVariant: 'outlined',
-  formBackgroundColor: '#ffffff',
-  infoBackgroundColor: '#ffffff',
-  formBorderColor: '#d32f2f',
-  infoBorderColor: '#b71c1c',
-  formBorderWidth: '5px',
-  infoBorderWidth: '5px',
-  titleFont: 'bold',
-  textFont: 'default'
+  title: 'Контакты',
+  description: 'Свяжитесь с нами',
+    formTitle: 'Отправить сообщение',
+  nameLabel: 'Имя',
+    emailLabel: 'Email',
+    messageLabel: 'Сообщение',
+    submitText: 'Отправить',
+  backgroundColor: '#ffffff',
+  titleColor: '#1976d2',
+  descriptionColor: '#666666'
 };
 
 const initialFooterData = {
-  backgroundColor: '#d32f2f',
-  textColor: '#ffffff',
-  companyName: 'Юридическая компания "Право и Защита"',
-  phone: '+7 (495) 123-45-67',
-  email: 'info@pravo-zashita.ru',
-  address: 'г. Москва, ул. Якиманка, д. 12',
-  showSocialLinks: true,
-  socialLinks: {
-    facebook: '#',
-    twitter: '#',
-    instagram: '#',
-    linkedin: '#'
-  },
-  copyrightYear: new Date().getFullYear(),
-  copyrightText: 'Все права защищены',
-  legalDocuments: {
-    privacyPolicyTitle: 'Политика конфиденциальности',
-    termsOfServiceTitle: 'Пользовательское соглашение',
-    cookiePolicyTitle: 'Политика использования cookie'
-  }
+  siteName: 'Мой сайт',
+  description: 'Краткое описание',
+  backgroundColor: '#f5f5f5',
+  textColor: '#333333',
+  linkColor: '#1976d2',
+  showSocialLinks: false,
+    showLegalLinks: true,
+    legalLinks: [
+      { text: 'Политика конфиденциальности', url: '/privacy-policy' },
+    { text: 'Условия использования', url: '/terms-of-service' }
+  ],
+  menuItems: []
 };
 
 const saveDocumentToFile = async (documentName, content) => {
@@ -171,7 +167,7 @@ const saveDocumentToFile = async (documentName, content) => {
       },
       body: JSON.stringify({
         documentName,
-        content: content.trim() // Удаляем лишние пробелы
+        content: content.trim()
       }),
     });
 
@@ -185,11 +181,55 @@ const saveDocumentToFile = async (documentName, content) => {
     return data;
   } catch (error) {
     console.error(`Error saving ${documentName}:`, error);
-    throw error; // Пробрасываем ошибку для обработки выше
+    throw error;
   }
 };
 
 export default function Home() {
+  // Очищаем данные казино при загрузке компонента и загружаем hero изображение
+  useEffect(() => {
+    clearCasinoData();
+    
+    // Принудительно загружаем hero изображение в кеш при первой загрузке
+    const preloadHeroImage = async () => {
+      try {
+        console.log('🖼️ [Home] Preloading hero image...');
+        const { imageCacheService } = await import('../utils/imageCacheService');
+        
+        // Проверяем, есть ли уже изображение в кеше
+        const existingImage = await imageCacheService.getImage('hero.jpg');
+        if (existingImage) {
+          console.log('✅ [Home] Hero image already in cache');
+          return;
+        }
+        
+        // Загружаем изображение с сервера
+        const response = await fetch('/images/hero/hero.jpg');
+        if (response.ok) {
+          const blob = await response.blob();
+          await imageCacheService.saveImage('hero.jpg', blob);
+          console.log('✅ [Home] Hero image preloaded and cached successfully');
+          
+          // Сохраняем метаданные
+          const metadata = {
+            fileName: 'hero.jpg',
+            type: 'image/jpeg',
+            size: blob.size,
+            uploadDate: new Date().toISOString(),
+            isHeroImage: true
+          };
+          await imageCacheService.saveMetadata('site-images-metadata-hero.jpg', metadata);
+        } else {
+          console.warn('⚠️ [Home] Failed to preload hero image from server');
+        }
+      } catch (error) {
+        console.error('❌ [Home] Error preloading hero image:', error);
+      }
+    };
+    
+    preloadHeroImage();
+  }, []);
+
   const [headerData, setHeaderData] = useState(initialHeaderData);
   const [heroData, setHeroData] = useState(initialHeroData);
   const [sectionsData, setSectionsData] = useState(initialSectionsData);
@@ -208,9 +248,17 @@ export default function Home() {
     }
   });
   const [liveChatData, setLiveChatData] = useState({
-    enabled: true,
-    apiKey: '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'
+    enabled: false,
+    apiKey: ''
   });
+
+  const [constructorMode, setConstructorMode] = useState(false);
+  const [selectedElement, setSelectedElement] = useState(null);
+
+  const handleConstructorModeChange = (newMode) => {
+    setConstructorMode(newMode);
+    console.log('Constructor mode changed to:', newMode ? 'Constructor' : 'Manual');
+  };
 
   console.log('Home component state:', {
     headerData,
@@ -224,36 +272,18 @@ export default function Home() {
     console.log('handleHeaderChange called with:', newHeaderData);
     setHeaderData(newHeaderData);
     
-    // Обновляем футер
-    setFooterData(prev => {
-      const newFooterData = {
+    setFooterData(prev => ({
         ...prev,
         menuItems: newHeaderData.menuItems,
         backgroundColor: newHeaderData.backgroundColor,
-        textColor: newHeaderData.titleColor,
-        companyNameColor: newHeaderData.titleColor,
-        phoneColor: newHeaderData.titleColor,
-        emailColor: newHeaderData.titleColor,
-        addressColor: newHeaderData.titleColor,
-        copyrightTextColor: newHeaderData.titleColor,
-        socialLinksColor: newHeaderData.titleColor,
-        menuItemsColor: newHeaderData.titleColor,
-        legalDocumentsColor: newHeaderData.titleColor
-      };
-      console.log('Footer data updated:', newFooterData);
-      return newFooterData;
-    });
+      textColor: newHeaderData.titleColor
+    }));
 
-    // Обновляем hero секцию
-    setHeroData(prev => {
-      const newHeroData = {
+    setHeroData(prev => ({
         ...prev,
         titleColor: newHeaderData.titleColor,
         subtitleColor: newHeaderData.linksColor
-      };
-      console.log('Hero data updated:', newHeroData);
-      return newHeroData;
-    });
+    }));
   };
 
   const handleHeroChange = (newHeroData) => {
@@ -263,6 +293,10 @@ export default function Home() {
 
   const handleSectionsChange = (newSectionsData) => {
     console.log('handleSectionsChange called with:', newSectionsData);
+    if (newSectionsData && newSectionsData.услуги) {
+      console.log('Секция услуги в handleSectionsChange:', newSectionsData.услуги);
+      console.log('Elements в услугах:', newSectionsData.услуги.elements ? newSectionsData.услуги.elements.length : 'нет elements');
+    }
     setSectionsData(newSectionsData);
   };
 
@@ -280,20 +314,14 @@ export default function Home() {
     console.log('handleLegalDocumentsChange called with:', documents);
     
     try {
-      // Сначала обновляем состояние для мгновенного отображения
-      setFooterData(prev => {
-        const newData = {
+      setFooterData(prev => ({
           ...prev,
           legalDocuments: {
             ...prev.legalDocuments,
             ...documents
           }
-        };
-        console.log('Footer data updated with legal documents:', newData);
-        return newData;
-      });
+      }));
 
-      // Затем сохраняем в файлы
       const savePromises = [
         saveDocumentToFile('privacy-policy', documents.privacyPolicy),
         saveDocumentToFile('terms-of-service', documents.termsOfService),
@@ -302,15 +330,12 @@ export default function Home() {
 
       const results = await Promise.allSettled(savePromises);
       
-      // Проверяем результаты сохранения
       const hasErrors = results.some(result => result.status === 'rejected');
       if (hasErrors) {
         console.error('Some documents failed to save:', results);
-        // Можно добавить уведомление пользователю об ошибке
       }
     } catch (error) {
       console.error('Error in handleLegalDocumentsChange:', error);
-      // Можно добавить уведомление пользователю об ошибке
     }
   };
 
@@ -319,15 +344,142 @@ export default function Home() {
     setLiveChatData(newLiveChatData);
   };
 
+  const handleElementSelect = (sectionId, elementId) => {
+    console.log('Element selected:', { sectionId, elementId });
+    setSelectedElement({ sectionId, elementId });
+  };
+
+  const handleElementDeselect = () => {
+    setSelectedElement(null);
+  };
+
+  const handleElementUpdate = (sectionId, elementId, fieldOrElement, value) => {
+    console.log('[index.jsx] Element update:', { sectionId, elementId, fieldOrElement, value });
+    
+    setSectionsData(prevSections => {
+      const updatedSections = { ...prevSections };
+      const section = updatedSections[sectionId];
+      
+      // Если поле 'add', добавляем новый элемент
+      if (fieldOrElement === 'add' && typeof value === 'object' && value !== null) {
+        if (section) {
+          const currentElements = section.contentElements || [];
+          const updatedElements = [...currentElements, value];
+          
+          updatedSections[sectionId] = {
+            ...section,
+            contentElements: updatedElements
+          };
+        } else {
+          // Создаем новую секцию если она не существует
+          updatedSections[sectionId] = {
+            id: sectionId,
+            title: sectionId === 'hero' ? 'Hero секция' : `Секция ${sectionId}`,
+            contentElements: [value]
+          };
+        }
+        return updatedSections;
+      }
+      
+      if (section && section.contentElements) {
+        const updatedElements = section.contentElements.map(element => {
+          if (element.id === elementId) {
+            if (typeof fieldOrElement === 'object' && fieldOrElement !== null && fieldOrElement.id) {
+              return fieldOrElement;
+            }
+            else if (fieldOrElement === 'customStyles' && typeof value === 'object' && value !== null) {
+              console.log('🎯 [index.jsx] Updating customStyles for element:', elementId, 'with value:', value);
+              return { ...element, customStyles: value };
+            }
+            else if (fieldOrElement === 'data' && typeof value === 'object' && value !== null) {
+              console.log('🔧 [index.jsx] Updating element data:', elementId, 'type:', element.type);
+              console.log('🔧 [index.jsx] Current element.data:', element.data);
+              console.log('🔧 [index.jsx] New value:', value);
+              
+              // Для продвинутых диаграмм обновляем все поля, не только data
+              if (['advanced-area-chart', 'advanced-pie-chart', 'advanced-line-chart'].includes(element.type)) {
+                console.log('🔧 [index.jsx] Advanced chart - updating all fields');
+                const updated = { ...element, ...value };
+                console.log('🔧 [index.jsx] Updated advanced chart element:', updated);
+                return updated;
+              } else {
+                const updated = { ...element, data: { ...element.data, ...value } };
+                console.log('🔧 [index.jsx] Updated regular element:', updated);
+                return updated;
+              }
+            } else {
+              return { ...element, data: { ...element.data, [fieldOrElement]: value } };
+            }
+          }
+          return element;
+        });
+        
+        updatedSections[sectionId] = {
+          ...section,
+          contentElements: updatedElements
+        };
+      }
+      
+      return updatedSections;
+    });
+  };
+
+  const handleAddElement = (sectionId, newElement) => {
+    console.log('Adding new element to section:', { sectionId, newElement });
+    
+    setSectionsData(prevSections => {
+      const updatedSections = { ...prevSections };
+      const section = updatedSections[sectionId];
+      
+      if (section) {
+        const currentElements = section.contentElements || [];
+        const updatedElements = [...currentElements, {
+          id: Date.now(),
+          ...newElement,
+          timestamp: new Date().toISOString()
+        }];
+        
+        updatedSections[sectionId] = {
+          ...section,
+          contentElements: updatedElements
+        };
+      }
+      
+      return updatedSections;
+    });
+  };
+
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   return (
-    <Box sx={{ 
-      display: 'flex', 
-      flexDirection: isMobile ? 'column' : 'row',
-      height: isMobile ? 'auto' : '100vh'
-    }}>
+    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {/* Навигационная панель */}
+      <AppBar position="static" color="default" elevation={1}>
+        <Toolbar>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            🏗️ Конструктор сайтов
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Link href="/" passHref>
+              <Button color="inherit">Главная</Button>
+            </Link>
+            <Link href="/test-image-system" passHref>
+              <Button color="inherit" variant="outlined">
+                🖼️ Тест изображений
+              </Button>
+            </Link>
+          </Box>
+        </Toolbar>
+      </AppBar>
+
+      {/* Основной контент */}
+      <Box sx={{ 
+        display: 'flex', 
+        flexDirection: isMobile ? 'column' : 'row',
+        flexGrow: 1,
+        height: 'calc(100vh - 64px)'
+      }}>
       <Box sx={{ 
         width: isMobile ? '100%' : '400px',
         flexShrink: 0,
@@ -361,6 +513,11 @@ export default function Home() {
           onLegalDocumentsChange={handleLegalDocumentsChange}
           liveChatData={liveChatData}
           onLiveChatChange={handleLiveChatChange}
+          constructorMode={constructorMode}
+          onConstructorModeChange={handleConstructorModeChange}
+          selectedElement={selectedElement}
+          onElementDeselect={handleElementDeselect}
+          onElementUpdate={handleElementUpdate}
         />
       </Box>
       <Box sx={{ 
@@ -378,7 +535,13 @@ export default function Home() {
           contactData={contactData}
           legalDocuments={footerData.legalDocuments}
           liveChatData={liveChatData}
+          constructorMode={constructorMode}
+          selectedElement={selectedElement}
+          onElementSelect={handleElementSelect}
+          onElementUpdate={handleElementUpdate}
+          onAddElement={handleAddElement}
         />
+      </Box>
       </Box>
     </Box>
   );
