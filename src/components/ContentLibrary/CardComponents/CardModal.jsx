@@ -38,17 +38,26 @@ const CardModal = ({
   };
 
   const renderImageCard = () => {
-    // Получаем настройки цветов из customStyles (приоритет) или colorSettings
+    // 🔥 ИСПРАВЛЕНИЕ: Приоритет переданных пропсов над colorSettings (как в карточках)
     const customStyles = card.customStyles || {};
     const colorSettings = card.colorSettings || {};
     
-    // Приоритет: customStyles > colorSettings > значения по умолчанию
-    const titleColor = customStyles.titleColor || colorSettings.textFields?.title || '#1976d2';
-    const textColor = customStyles.textColor || colorSettings.textFields?.text || '#333333';
-    const backgroundColor = customStyles.backgroundColor || colorSettings.textFields?.background || 'transparent';
-    const borderColor = customStyles.borderColor || colorSettings.borderColor || '#e0e0e0';
-    const borderRadius = customStyles.borderRadius || colorSettings.borderRadius || 8;
-    const borderWidth = customStyles.borderWidth || colorSettings.borderWidth || 1;
+    // Приоритет: переданные пропсы > colorSettings > customStyles > значения по умолчанию
+    const titleColor = card.titleColor || colorSettings.textFields?.cardTitle || colorSettings.textFields?.title || customStyles.titleColor || '#1976d2';
+    const textColor = card.contentColor || colorSettings.textFields?.cardText || colorSettings.textFields?.text || customStyles.textColor || '#333333';
+    const backgroundColor = card.backgroundColor || 
+      (colorSettings.cardBackground?.enabled
+        ? (colorSettings.cardBackground.useGradient
+            ? `linear-gradient(${colorSettings.cardBackground.gradientDirection || 'to right'}, ${colorSettings.cardBackground.gradientColor1 || '#ffffff'}, ${colorSettings.cardBackground.gradientColor2 || '#f5f5f5'})`
+            : colorSettings.cardBackground.solidColor || 'transparent')
+        : colorSettings.sectionBackground?.enabled
+        ? (colorSettings.sectionBackground.useGradient
+            ? `linear-gradient(${colorSettings.sectionBackground.gradientDirection || 'to right'}, ${colorSettings.sectionBackground.gradientColor1 || '#ffffff'}, ${colorSettings.sectionBackground.gradientColor2 || '#f5f5f5'})`
+            : colorSettings.sectionBackground.solidColor || 'transparent')
+        : customStyles.backgroundColor || 'transparent');
+    const borderColor = card.borderColor || colorSettings.textFields?.border || customStyles.borderColor || '#e0e0e0';
+    const borderRadius = colorSettings.borderRadius || customStyles.borderRadius || 8;
+    const borderWidth = colorSettings.borderWidth || customStyles.borderWidth || 1;
     
 
     
@@ -128,23 +137,30 @@ const CardModal = ({
       border: borderColor ? `${borderWidth}px solid ${borderColor}` : 'none'
     };
     
-    // Применяем настройки фона из customStyles (приоритет) или colorSettings
-    if (customStyles.backgroundType === 'gradient') {
-      containerStyles.background = `linear-gradient(${customStyles.gradientDirection || 'to right'}, ${customStyles.gradientColor1 || '#ffffff'}, ${customStyles.gradientColor2 || '#f5f5f5'})`;
+    // 🔥 ИСПРАВЛЕНИЕ: Приоритет переданных пропсов над colorSettings для фона
+    if (card.backgroundColor) {
+      // Если передан backgroundColor через пропсы, используем его
+      if (card.backgroundColor.includes('linear-gradient')) {
+        containerStyles.background = card.backgroundColor;
+      } else {
+        containerStyles.backgroundColor = card.backgroundColor;
+      }
     } else if (colorSettings.sectionBackground?.enabled) {
       if (colorSettings.sectionBackground.useGradient) {
-        containerStyles.background = `linear-gradient(${colorSettings.sectionBackground.gradientDirection}, ${colorSettings.sectionBackground.gradientColor1}, ${colorSettings.sectionBackground.gradientColor2})`;
+        containerStyles.background = `linear-gradient(${colorSettings.sectionBackground.gradientDirection || 'to right'}, ${colorSettings.sectionBackground.gradientColor1 || '#ffffff'}, ${colorSettings.sectionBackground.gradientColor2 || '#f5f5f5'})`;
         containerStyles.opacity = colorSettings.sectionBackground.opacity || 1;
       } else {
-        containerStyles.backgroundColor = colorSettings.sectionBackground.solidColor;
+        containerStyles.backgroundColor = colorSettings.sectionBackground.solidColor || 'transparent';
         containerStyles.opacity = colorSettings.sectionBackground.opacity || 1;
       }
+    } else if (customStyles.backgroundType === 'gradient') {
+      containerStyles.background = `linear-gradient(${customStyles.gradientDirection || 'to right'}, ${customStyles.gradientColor1 || '#ffffff'}, ${customStyles.gradientColor2 || '#f5f5f5'})`;
     } else {
       containerStyles.backgroundColor = backgroundColor;
     }
     
     // Применяем тень если включена
-    if (customStyles.boxShadow || colorSettings.boxShadow) {
+    if (colorSettings.boxShadow || customStyles.boxShadow) {
       containerStyles.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
     }
 
@@ -211,48 +227,37 @@ const CardModal = ({
   };
 
   const renderBasicCard = () => {
-    // Получаем настройки цветов из customStyles (приоритет) или colorSettings
+    // 🔥 ИСПРАВЛЕНИЕ: Используем переданные стили карточек (как в ImageCard)
     const customStyles = card.customStyles || {};
     const colorSettings = card.colorSettings || {};
     
-    // Приоритет: customStyles > colorStyles > colorSettings > значения по умолчанию
-    const titleColor = customStyles.titleColor || colorSettings.textFields?.title || '#ffd700';
-    const textColor = customStyles.textColor || colorSettings.textFields?.text || '#ffffff';
-    const backgroundColor = customStyles.backgroundColor || colorSettings.textFields?.background || 'rgba(0,0,0,0.85)';
-    const borderColor = customStyles.borderColor || colorSettings.textFields?.border || '#c41e3a';
-    const borderRadius = customStyles.borderRadius || colorSettings.borderRadius || 8;
-    const borderWidth = customStyles.borderWidth || colorSettings.borderWidth || 1;
+    // Приоритет: переданные пропсы > colorSettings > customStyles > значения по умолчанию
+    const titleColor = card.titleColor || colorSettings.textFields?.cardTitle || colorSettings.textFields?.title || customStyles.titleColor || '#333333';
+    const textColor = card.contentColor || colorSettings.textFields?.cardText || colorSettings.textFields?.text || customStyles.textColor || '#666666';
+    const backgroundColor = card.backgroundColor || 
+      (colorSettings.cardBackground?.enabled
+        ? (colorSettings.cardBackground.useGradient
+            ? `linear-gradient(${colorSettings.cardBackground.gradientDirection || 'to right'}, ${colorSettings.cardBackground.gradientColor1 || '#ffffff'}, ${colorSettings.cardBackground.gradientColor2 || '#f5f5f5'})`
+            : colorSettings.cardBackground.solidColor || '#ffffff')
+        : colorSettings.sectionBackground?.enabled
+        ? (colorSettings.sectionBackground.useGradient
+            ? `linear-gradient(${colorSettings.sectionBackground.gradientDirection || 'to right'}, ${colorSettings.sectionBackground.gradientColor1 || '#ffffff'}, ${colorSettings.sectionBackground.gradientColor2 || '#f5f5f5'})`
+            : colorSettings.sectionBackground.solidColor || '#ffffff')
+        : customStyles.backgroundColor || '#ffffff');
+    const borderColor = card.borderColor || colorSettings.textFields?.border || customStyles.borderColor || '#e0e0e0';
+    const borderRadius = colorSettings.borderRadius || customStyles.borderRadius || 8;
+    const borderWidth = colorSettings.borderWidth || customStyles.borderWidth || 1;
     
-
-    
-    // Стили контейнера с поддержкой customStyles и colorSettings
-    let containerStyles = {
+    // Дефолтные стили контейнера
+    const containerStyles = {
       textAlign: card.alignment || 'left',
       color: textColor,
-      padding: customStyles.padding ? `${customStyles.padding}px` : colorSettings.padding ? `${colorSettings.padding}px` : '24px',
+      padding: '24px',
       borderRadius: `${borderRadius}px`,
-      border: borderColor ? `${borderWidth}px solid ${borderColor}` : 'none'
+      border: `${borderWidth}px solid ${borderColor}`,
+      backgroundColor: backgroundColor,
+      boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
     };
-    
-    // Применяем настройки фона из customStyles (приоритет) или colorSettings
-    if (customStyles.backgroundType === 'gradient') {
-      containerStyles.background = `linear-gradient(${customStyles.gradientDirection || 'to right'}, ${customStyles.gradientColor1 || '#ffffff'}, ${customStyles.gradientColor2 || '#f5f5f5'})`;
-    } else if (colorSettings.sectionBackground?.enabled) {
-      if (colorSettings.sectionBackground.useGradient) {
-        containerStyles.background = `linear-gradient(${colorSettings.sectionBackground.gradientDirection}, ${colorSettings.sectionBackground.gradientColor1}, ${colorSettings.sectionBackground.gradientColor2})`;
-        containerStyles.opacity = colorSettings.sectionBackground.opacity || 1;
-      } else {
-        containerStyles.backgroundColor = colorSettings.sectionBackground.solidColor;
-        containerStyles.opacity = colorSettings.sectionBackground.opacity || 1;
-      }
-    } else {
-      containerStyles.backgroundColor = backgroundColor;
-    }
-    
-    // Применяем тень если включена
-    if (customStyles.boxShadow || colorSettings.boxShadow) {
-      containerStyles.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
-    }
     
     return (
       <Box sx={containerStyles}>

@@ -16,7 +16,7 @@ import { CARD_TYPES } from '../../utils/configUtils';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { exportSite } from '../../utils/siteExporter';
-import { exportMultiPageSite } from '../../utils/multiPageSiteExporter';
+import { exportMultiPageSite, generateHeroSection } from '../../utils/multiPageSiteExporter';
 import { generateLiveChatHTML, generateLiveChatCSS, generateLiveChatJS } from '../../utils/liveChatExporter';
 
 import LiveChatEditor from './LiveChatEditor';
@@ -1384,6 +1384,13 @@ const EditorPanel = ({
     footerData,
     legalDocuments
   });
+
+  // Принудительное обновление при изменении sectionsData
+  const [forceUpdate, setForceUpdate] = React.useState(0);
+  React.useEffect(() => {
+    console.log('🔄 [EditorPanel] sectionsData изменился, принудительно обновляем');
+    setForceUpdate(prev => prev + 1);
+  }, [sectionsData]);
 
   const [expandedSections, setExpandedSections] = React.useState({
     header: false,
@@ -3299,7 +3306,7 @@ const EditorPanel = ({
     }
   };
   // Функция для генерации HTML элементов контента
-  const generateContentElementHTML = (element) => {
+  const generateContentElementHTML = (element, isMultiPage = false) => {
     const elementId = `element-${element.id}`;
     
     // Извлекаем данные элемента
@@ -3344,8 +3351,19 @@ const EditorPanel = ({
       const gradientColorSettings = element.colorSettings || element.data?.colorSettings || {};
       
       // Получаем цвета градиента из ColorSettings или fallback на старые значения
-      const gradientColor1 = gradientColorSettings.textFields?.gradient1 || elementData.color1 || '#ff6b6b';
-      const gradientColor2 = gradientColorSettings.textFields?.gradient2 || elementData.color2 || '#4ecdc4';
+      const gradientColor1 = gradientColorSettings.textFields?.gradientStart || gradientColorSettings.textGradient?.gradientStart || elementData.color1 || '#ff6b6b';
+      const gradientColor2 = gradientColorSettings.textFields?.gradientEnd || gradientColorSettings.textGradient?.gradientEnd || elementData.color2 || '#4ecdc4';
+      
+      // Получаем направление градиента
+      const gradientDirection = gradientColorSettings.textGradient?.gradientDirection || elementData.direction || 'to right';
+      
+      // Отладочная информация
+      console.log('🎨 [GradientText] Применяем градиент:', {
+        gradientColor1,
+        gradientColor2,
+        gradientDirection,
+        colorSettings: gradientColorSettings
+      });
       
       // Стили контейнера с фоном
       let gradientContainerStyles = `margin: 1rem 0; text-align: center; padding: ${elementData.padding || 16}px; border-radius: ${elementData.borderRadius || 8}px;`;
@@ -3377,7 +3395,7 @@ const EditorPanel = ({
         return `
         <div id="${elementId}" class="content-element gradient-text" style="${gradientContainerStyles}">
             <h2 style="
-            background: linear-gradient(${elementData.direction || 'to right'}, ${gradientColor1}, ${gradientColor2});
+              background: linear-gradient(${gradientDirection}, ${gradientColor1}, ${gradientColor2});
               -webkit-background-clip: text;
               -webkit-text-fill-color: transparent;
               background-clip: text;
@@ -3385,6 +3403,7 @@ const EditorPanel = ({
               font-weight: ${elementData.fontWeight || 'bold'};
               margin: 0;
               display: inline-block;
+              color: transparent;
             ">${elementData.text || 'Градиентный текст'}</h2>
           </div>
         `;
@@ -4294,8 +4313,8 @@ const EditorPanel = ({
       case 'basic-card':
         // Получаем цвета из colorSettings
         const basicCardColorSettings = element.data?.colorSettings || element.colorSettings || {};
-        const basicCardTitleColor = basicCardColorSettings.textFields?.title || element.titleColor || '#1976d2';
-        const basicCardContentColor = basicCardColorSettings.textFields?.text || element.contentColor || '#666666';
+        const basicCardTitleColor = basicCardColorSettings.textFields?.cardTitle || basicCardColorSettings.textFields?.title || element.titleColor || '#1976d2';
+        const basicCardContentColor = basicCardColorSettings.textFields?.cardText || basicCardColorSettings.textFields?.text || element.contentColor || '#666666';
         const basicCardBackgroundColor = basicCardColorSettings.textFields?.background || element.backgroundColor || '#ffffff';
         const basicCardBorderColor = basicCardColorSettings.textFields?.border || '#e0e0e0';
         
@@ -4343,19 +4362,165 @@ const EditorPanel = ({
         }
         
         return `
-          <div id="${elementId}" class="content-element basic-card" style="${basicCardContainerStyles}">
+          <div id="${elementId}" class="content-element basic-card" style="${basicCardContainerStyles} cursor: pointer;" onclick="openModal${elementId.replace(/-/g, '_')}()">
             <h3 style="
               color: ${basicCardTitleColor};
               margin: 0 0 1rem 0;
               font-size: 1.25rem;
               font-weight: bold;
+              text-align: center;
             ">${element.title || 'Заголовок карточки'}</h3>
             <p style="
               color: ${basicCardContentColor};
               line-height: 1.5;
               margin: 0;
+              text-align: center;
             ">${element.content || 'Содержание карточки'}</p>
           </div>
+          
+          <!-- 🔥 МОДАЛЬНОЕ ОКНО для базовой карточки -->
+          <div id="modal-${elementId.replace(/-/g, '_')}" style="
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+          ">
+            <div style="
+              position: relative;
+              background-color: transparent;
+              margin: 5% auto;
+              padding: 0;
+              width: 90%;
+              max-width: 1200px;
+              max-height: 90vh;
+              overflow: auto;
+              border-radius: 16px;
+              box-shadow: none;
+            ">
+              <!-- Контент модального окна -->
+              <div id="modal-content-${elementId.replace(/-/g, '_')}" style="
+                background: ${basicCardColorSettings.sectionBackground?.enabled
+                  ? (basicCardColorSettings.sectionBackground.useGradient
+                      ? `linear-gradient(${basicCardColorSettings.sectionBackground.gradientDirection || 'to right'}, ${basicCardColorSettings.sectionBackground.gradientColor1 || '#ffffff'}, ${basicCardColorSettings.sectionBackground.gradientColor2 || '#f5f5f5'})`
+                      : basicCardColorSettings.sectionBackground.solidColor || '#ffffff')
+                  : basicCardBackgroundColor};
+                border: ${basicCardColorSettings.borderColor ? `${basicCardColorSettings.borderWidth || 1}px solid ${basicCardColorSettings.borderColor}` : `1px solid ${basicCardBorderColor}`};
+                border-radius: ${basicCardColorSettings.borderRadius || 12}px;
+                padding: ${basicCardColorSettings.padding || 24}px;
+                box-shadow: ${basicCardColorSettings.boxShadow ? '0 8px 32px rgba(0,0,0,0.15)' : '0 4px 12px rgba(0,0,0,0.1)'};
+                opacity: ${basicCardColorSettings.sectionBackground?.opacity || 1};
+              ">
+                <h2 style="
+                  color: ${basicCardTitleColor};
+                  font-size: 28px;
+                  margin-bottom: 16px;
+                  font-weight: bold;
+                  line-height: 1.3;
+                  text-align: center;
+                ">${element.title || 'Заголовок карточки'}</h2>
+                <div style="
+                  color: ${basicCardContentColor};
+                  font-size: 16px;
+                  line-height: 1.6;
+                  text-align: center;
+                ">${element.content || 'Содержание карточки'}</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 🔥 JAVASCRIPT для модального окна базовой карточки -->
+          <script>
+            // Функция открытия модального окна
+            function openModal${elementId.replace(/-/g, '_')}() {
+              console.log('🔥 [BasicCard Modal] openModal${elementId.replace(/-/g, '_')} вызвана');
+              
+              const modal = document.getElementById('modal-${elementId.replace(/-/g, '_')}');
+              const modalContent = document.getElementById('modal-content-${elementId.replace(/-/g, '_')}');
+              
+              console.log('🔥 [BasicCard Modal] Найденные элементы:', { modal, modalContent });
+              
+              if (modal && modalContent) {
+                console.log('🔥 [BasicCard Modal] Элементы найдены, показываем модальное окно...');
+                
+                modal.style.display = 'block';
+                
+                // Анимация появления
+                modalContent.style.opacity = '0';
+                modalContent.style.transform = 'scale(0.9)';
+                modalContent.style.transition = 'all 0.3s ease';
+                
+                setTimeout(() => {
+                  modalContent.style.opacity = '1';
+                  modalContent.style.transform = 'scale(1)';
+                  console.log('🔥 [BasicCard Modal] Модальное окно успешно открыто!');
+                }, 10);
+              } else {
+                console.error('🔥 [BasicCard Modal] ОШИБКА: Элементы модального окна не найдены!');
+                console.error('🔥 [BasicCard Modal] modal:', modal);
+                console.error('🔥 [BasicCard Modal] modalContent:', modalContent);
+                console.error('🔥 [BasicCard Modal] elementId:', '${elementId}');
+              }
+            }
+            
+            // Функция закрытия модального окна
+            function closeModal${elementId.replace(/-/g, '_')}() {
+              const modal = document.getElementById('modal-${elementId.replace(/-/g, '_')}');
+              const modalContent = document.getElementById('modal-content-${elementId.replace(/-/g, '_')}');
+              
+              if (modal && modalContent) {
+                // Анимация исчезновения
+                modalContent.style.opacity = '0';
+                modalContent.style.transform = 'scale(0.9)';
+                
+                setTimeout(() => {
+                  modal.style.display = 'none';
+                }, 300);
+              }
+            }
+            
+            // Закрытие по клику вне модального окна
+            document.getElementById('modal-${elementId.replace(/-/g, '_')}').addEventListener('click', function(e) {
+              if (e.target === this) {
+                closeModal${elementId.replace(/-/g, '_')}();
+              }
+            });
+            
+            // Закрытие по Escape
+            document.addEventListener('keydown', function(e) {
+              if (e.key === 'Escape') {
+                closeModal${elementId.replace(/-/g, '_')}();
+              }
+            });
+            
+            // 🔥 ИСПРАВЛЕНИЕ: Ждем загрузки DOM перед добавлением обработчиков
+            if (document.readyState === 'loading') {
+              document.addEventListener('DOMContentLoaded', function() {
+                const modal = document.getElementById('modal-${elementId.replace(/-/g, '_')}');
+                if (modal) {
+                  modal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                      closeModal${elementId.replace(/-/g, '_')}();
+                    }
+                  });
+                }
+              });
+            } else {
+              // DOM уже загружен
+              const modal = document.getElementById('modal-${elementId.replace(/-/g, '_')}');
+              if (modal) {
+                modal.addEventListener('click', function(e) {
+                  if (e.target === this) {
+                    closeModal${elementId.replace(/-/g, '_')}();
+                  }
+                });
+              }
+            }
+          </script>
         `;
 
       case 'image-card':
@@ -4419,7 +4584,7 @@ const EditorPanel = ({
         `;
         
         return `
-          <div id="${elementId}" class="content-element image-card" style="${imageCardContainerStyles}">
+          <div id="${elementId}" class="content-element image-card" style="${imageCardContainerStyles} cursor: pointer;" onclick="openModal${elementId.replace(/-/g, '_')}()">
             ${element.imageUrl ? `
               <img src="${element.imageUrl}" alt="${element.imageAlt || ''}" style="${imageStyles}">
             ` : `
@@ -4442,14 +4607,176 @@ const EditorPanel = ({
                 margin: 0 0 1rem 0;
                 font-size: 1.25rem;
                 font-weight: bold;
+                text-align: center;
               ">${element.title || 'Заголовок карточки'}</h3>
               <p style="
                 color: ${imageCardContentColor};
                 line-height: 1.5;
                 margin: 0;
+                text-align: center;
               ">${element.content || 'Описание изображения'}</p>
             </div>
           </div>
+          
+          <!-- 🔥 МОДАЛЬНОЕ ОКНО для карточки с изображением -->
+          <div id="modal-${elementId.replace(/-/g, '_')}" style="
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+          ">
+            <div style="
+              position: relative;
+              background-color: transparent;
+              margin: 5% auto;
+              padding: 0;
+              width: 90%;
+              max-width: 800px;
+              max-height: 90vh;
+              overflow: auto;
+              border-radius: 16px;
+              box-shadow: none;
+            ">
+              <!-- Контент модального окна -->
+              <div id="modal-content-${elementId.replace(/-/g, '_')}" style="
+                background: ${imageCardColorSettings.sectionBackground?.enabled
+                  ? (imageCardColorSettings.sectionBackground.useGradient
+                      ? `linear-gradient(${imageCardColorSettings.sectionBackground.gradientDirection || 'to right'}, ${imageCardColorSettings.sectionBackground.gradientColor1 || '#ffffff'}, ${imageCardColorSettings.sectionBackground.gradientColor2 || '#f5f5f5'})`
+                      : imageCardColorSettings.sectionBackground.solidColor || '#ffffff')
+                  : imageCardBackgroundColor};
+                border: ${imageCardColorSettings.borderColor ? `${imageCardColorSettings.borderWidth || 1}px solid ${imageCardColorSettings.borderColor}` : `1px solid ${imageCardBorderColor}`};
+                border-radius: ${imageCardColorSettings.borderRadius || 12}px;
+                padding: ${imageCardColorSettings.padding || 24}px;
+                box-shadow: ${imageCardColorSettings.boxShadow ? '0 8px 32px rgba(0,0,0,0.15)' : '0 4px 12px rgba(0,0,0,0.1)'};
+                opacity: ${imageCardColorSettings.sectionBackground?.opacity || 1};
+              ">
+                ${element.imageUrl ? `
+                  <div style="
+                    width: 100%;
+                    height: 300px;
+                    margin-bottom: 24px;
+                    border-radius: ${imageCardColorSettings.borderRadius || 12}px;
+                    overflow: hidden;
+                    flex-shrink: 0;
+                  ">
+                    <img src="${element.imageUrl}" alt="${element.imageAlt || ''}" style="
+                      width: 100%;
+                      height: 100%;
+                      object-fit: cover;
+                    ">
+                  </div>
+                ` : ''}
+                <h2 style="
+                  color: ${imageCardTitleColor};
+                  font-size: 28px;
+                  margin-bottom: 16px;
+                  font-weight: bold;
+                  line-height: 1.3;
+                  text-align: center;
+                ">${element.title || 'Заголовок карточки'}</h2>
+                <div style="
+                  color: ${imageCardContentColor};
+                  font-size: 16px;
+                  line-height: 1.6;
+                  text-align: center;
+                ">${element.content || 'Описание изображения'}</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 🔥 JAVASCRIPT для модального окна карточки с изображением -->
+          <script>
+            // Функция открытия модального окна
+            function openModal${elementId.replace(/-/g, '_')}() {
+              console.log('🔥 [ImageCard Modal] openModal${elementId.replace(/-/g, '_')} вызвана');
+              
+              const modal = document.getElementById('modal-${elementId.replace(/-/g, '_')}');
+              const modalContent = document.getElementById('modal-content-${elementId.replace(/-/g, '_')}');
+              
+              console.log('🔥 [ImageCard Modal] Найденные элементы:', { modal, modalContent });
+              
+              if (modal && modalContent) {
+                console.log('🔥 [ImageCard Modal] Элементы найдены, показываем модальное окно...');
+                
+                modal.style.display = 'block';
+                
+                // Анимация появления
+                modalContent.style.opacity = '0';
+                modalContent.style.transform = 'scale(0.9)';
+                modalContent.style.transition = 'all 0.3s ease';
+                
+                setTimeout(() => {
+                  modalContent.style.opacity = '1';
+                  modalContent.style.transform = 'scale(1)';
+                  console.log('🔥 [ImageCard Modal] Модальное окно успешно открыто!');
+                }, 10);
+              } else {
+                console.error('🔥 [ImageCard Modal] ОШИБКА: Элементы модального окна не найдены!');
+                console.error('🔥 [ImageCard Modal] modal:', modal);
+                console.error('🔥 [ImageCard Modal] modalContent:', modalContent);
+                console.error('🔥 [ImageCard Modal] elementId:', '${elementId}');
+              }
+            }
+            
+            // Функция закрытия модального окна
+            function closeModal${elementId.replace(/-/g, '_')}() {
+              const modal = document.getElementById('modal-${elementId.replace(/-/g, '_')}');
+              const modalContent = document.getElementById('modal-content-${elementId.replace(/-/g, '_')}');
+              
+              if (modal && modalContent) {
+                // Анимация исчезновения
+                modalContent.style.opacity = '0';
+                modalContent.style.transform = 'scale(0.9)';
+                
+                setTimeout(() => {
+                  modal.style.display = 'none';
+                }, 300);
+              }
+            }
+            
+            // Закрытие по клику вне модального окна
+            document.getElementById('modal-${elementId.replace(/-/g, '_')}').addEventListener('click', function(e) {
+              if (e.target === this) {
+                closeModal${elementId.replace(/-/g, '_')}();
+              }
+            });
+            
+            // Закрытие по Escape
+            document.addEventListener('keydown', function(e) {
+              if (e.key === 'Escape') {
+                closeModal${elementId.replace(/-/g, '_')}();
+              }
+            });
+            
+            // 🔥 ИСПРАВЛЕНИЕ: Ждем загрузки DOM перед добавлением обработчиков
+            if (document.readyState === 'loading') {
+              document.addEventListener('DOMContentLoaded', function() {
+                const modal = document.getElementById('modal-${elementId.replace(/-/g, '_')}');
+                if (modal) {
+                  modal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                      closeModal${elementId.replace(/-/g, '_')}();
+                    }
+                  });
+                }
+              });
+            } else {
+              // DOM уже загружен
+              const modal = document.getElementById('modal-${elementId.replace(/-/g, '_')}');
+              if (modal) {
+                modal.addEventListener('click', function(e) {
+                  if (e.target === this) {
+                    closeModal${elementId.replace(/-/g, '_')}();
+                  }
+                });
+              }
+            }
+          </script>
         `;
 
       // Интерактивные элементы
@@ -4513,33 +4840,50 @@ const EditorPanel = ({
         `;
 
       case 'qr-code':
+        // 🔥 ИСПРАВЛЕНИЕ: Используем ТОЛЬКО colorSettings (как в blockquote)
+        const qrColorSettings = element.colorSettings || element.data?.colorSettings || {};
+        const qrTitleColor = qrColorSettings.textFields?.title || '#333333';
+        const qrBackgroundColor = qrColorSettings.textFields?.background || '#ffffff';
+        const qrForegroundColor = qrColorSettings.textFields?.foreground || '#000000';
+        
         return `
           <div id="${elementId}" class="content-element qr-code" style="
             margin: 2rem 0;
             text-align: center;
+            background: ${qrColorSettings.sectionBackground?.enabled
+              ? (qrColorSettings.sectionBackground.useGradient
+                  ? `linear-gradient(${qrColorSettings.sectionBackground.gradientDirection || 'to right'}, ${qrColorSettings.sectionBackground.gradientColor1 || '#ffffff'}, ${qrColorSettings.sectionBackground.gradientColor2 || '#f8f9fa'})`
+                  : qrColorSettings.sectionBackground.solidColor || '#ffffff')
+              : qrBackgroundColor};
+            border: ${qrColorSettings.borderColor ? `${qrColorSettings.borderWidth || 1}px solid ${qrColorSettings.borderColor}` : 'none'};
+            border-radius: ${qrColorSettings.borderRadius || 12}px;
+            padding: ${qrColorSettings.padding || 24}px;
+            box-shadow: ${qrColorSettings.boxShadow ? '0 4px 12px rgba(0,0,0,0.1)' : '0 2px 8px rgba(0,0,0,0.1)'};
+            opacity: ${qrColorSettings.sectionBackground?.opacity || 1};
           ">
             <h3 style="
-              color: #333333;
+              color: ${qrTitleColor};
               margin-bottom: 1rem;
               font-size: 1.3rem;
+              text-align: center;
             ">${element.title || 'Сканируйте QR код'}</h3>
             <div style="
               display: inline-block;
               padding: 1rem;
-              background: ${element.backgroundColor || '#ffffff'};
+              background: ${qrBackgroundColor};
               border-radius: 12px;
               box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             ">
               <div style="
                 width: ${element.size || 200}px;
                 height: ${element.size || 200}px;
-                border: 2px solid ${element.foregroundColor || '#000000'};
+                border: 2px solid ${qrForegroundColor};
                 border-radius: 8px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 font-size: 0.8rem;
-                color: ${element.foregroundColor || '#000000'};
+                color: ${qrForegroundColor};
                 background: white;
                 position: relative;
                 overflow: hidden;
@@ -4552,8 +4896,8 @@ const EditorPanel = ({
                   bottom: 10px;
                   background: repeating-linear-gradient(
                     90deg,
-                    ${element.foregroundColor || '#000000'} 0px,
-                    ${element.foregroundColor || '#000000'} 2px,
+                    ${qrForegroundColor} 0px,
+                    ${qrForegroundColor} 2px,
                     transparent 2px,
                     transparent 4px
                   );
@@ -4577,36 +4921,355 @@ const EditorPanel = ({
           </div>
         `;
       case 'rating':
-        const maxRating = element.maxRating || 5;
-        const currentRating = element.rating || 5;
+        console.log('⭐ [RATING EXPORT - EditorPanel] element:', element);
+        
+        // 🔥 ИСПРАВЛЕНИЕ: Используем ТОЛЬКО colorSettings (как в blockquote)
+        const ratingColorSettings = element.colorSettings || element.data?.colorSettings || {};
+        console.log('⭐ [RATING EXPORT - EditorPanel] ratingColorSettings:', ratingColorSettings);
+        
+        // Получаем цвета с приоритетом на ColorSettings
+        const ratingTitleColor = ratingColorSettings.textFields?.title || '#ffd700';
+        const ratingTextColor = ratingColorSettings.textFields?.text || '#ffffff';
+        const ratingStarColor = ratingColorSettings.textFields?.star || '#ffc107';
+        const ratingEmptyStarColor = ratingColorSettings.textFields?.emptyStar || '#e0e0e0';
+        
+        // Получаем данные рейтинга с поддержкой разных форматов
+        const maxRating = element.maxRating || element.data?.maxRating || 5;
+        const currentRating = element.rating || element.data?.rating || 5;
+        const ratingTitle = element.title || element.data?.title || 'Рейтинг';
+        const ratingLabel = element.label || element.data?.label || 'Оцените наш сервис:';
+        
+        console.log('⭐ [RATING EXPORT - EditorPanel] Rating data:', { maxRating, currentRating, ratingTitle, ratingLabel });
+        console.log('⭐ [RATING EXPORT - EditorPanel] Interactive setting:', element.interactive);
+        console.log('⭐ [RATING EXPORT - EditorPanel] Original elementId:', elementId);
+        console.log('⭐ [RATING EXPORT - EditorPanel] Decimal rating support:', { 
+          floor: Math.floor(currentRating), 
+          ceil: Math.ceil(currentRating), 
+          decimal: currentRating % 1,
+          hasPartial: currentRating % 1 > 0
+        });
+        
+        // Генерируем звезды рейтинга с возможностью выбора
+        const isInteractive = element.interactive !== false;
+        
+        // 🔥 ИСПРАВЛЕНИЕ: Создаем безопасное имя для функций
+        const safeElementId = elementId.replace(/[^a-zA-Z0-9_]/g, '_');
+        console.log('⭐ [RATING EXPORT - EditorPanel] Safe elementId:', safeElementId);
+        
+        // 🔥 ИСПРАВЛЕНИЕ: Поддержка дробных рейтингов (например, 4.3)
         const ratingStars = Array(maxRating).fill(0).map((_, i) => {
-          const filled = i < currentRating;
-          return `<span style="color: ${filled ? (element.starColor || '#ffc107') : '#e0e0e0'}; font-size: 1.5rem; margin: 0 2px;">★</span>`;
+          const starIndex = i + 1;
+          const starRating = starIndex;
+          
+          // Определяем состояние звезды для дробных рейтингов
+          let starState = 'empty';
+          let starColor = ratingEmptyStarColor;
+          
+          if (starRating <= Math.floor(currentRating)) {
+            // Полностью заполненная звезда
+            starState = 'filled';
+            starColor = ratingStarColor;
+          } else if (starRating === Math.ceil(currentRating) && currentRating % 1 > 0) {
+            // Частично заполненная звезда (например, 4.3 -> 5-я звезда частично заполнена)
+            starState = 'partial';
+            starColor = ratingStarColor;
+          }
+          
+          return `<span 
+            class="rating-star ${starState}" 
+            data-rating="${starIndex}"
+            data-state="${starState}"
+            style="
+              color: ${starColor}; 
+              font-size: 3rem; 
+              margin: 0 8px; 
+              cursor: ${isInteractive ? 'pointer' : 'default'};
+              transition: all 0.3s ease;
+              display: inline-block;
+              user-select: none;
+              position: relative;
+            "
+            onmouseover="${isInteractive ? `window.hoverRating_${safeElementId}(${starIndex}, ${maxRating}, '${ratingStarColor}');` : ''}"
+            onmouseout="${isInteractive ? `window.resetHoverRating_${safeElementId}(${currentRating}, '${ratingStarColor}', '${ratingEmptyStarColor}');` : ''}"
+            onclick="${isInteractive ? `window.updateRating_${safeElementId}(${starIndex}, ${maxRating})` : ''}"
+          >★</span>`;
         }).join('');
+        
+        // Применяем стили фона из ColorSettings
+        const backgroundColor = ratingColorSettings.sectionBackground?.enabled
+          ? (ratingColorSettings.sectionBackground.useGradient
+              ? `linear-gradient(${ratingColorSettings.sectionBackground.gradientDirection || 'to right'}, ${ratingColorSettings.sectionBackground.gradientColor1 || 'rgba(0,0,0,0.85)'}, ${ratingColorSettings.sectionBackground.gradientColor2 || 'rgba(0,0,0,0.75)'})`
+              : ratingColorSettings.sectionBackground.solidColor || 'rgba(0,0,0,0.85)')
+          : 'rgba(0,0,0,0.85)';
         
         return `
           <div id="${elementId}" class="content-element rating" style="
-            margin: 1.5rem 0;
+            width: 100%;
+            max-width: 100%;
+            margin: 2rem 0;
             text-align: center;
-            padding: 1rem;
+            padding: ${ratingColorSettings.padding || 32}px;
+            background: ${backgroundColor};
+            border: ${ratingColorSettings.borderColor ? `${ratingColorSettings.borderWidth || 2}px solid ${ratingColorSettings.borderColor}` : `2px solid ${ratingStarColor}`};
+            border-radius: ${ratingColorSettings.borderRadius || 16}px;
+            box-shadow: ${ratingColorSettings.boxShadow ? '0 8px 32px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.2)'};
+            opacity: ${ratingColorSettings.sectionBackground?.opacity || 1};
+            transition: all 0.3s ease;
           ">
-            <h3 style="
-              color: #333333;
-              margin-bottom: 1rem;
-              font-size: 1.3rem;
-            ">${element.title || 'Рейтинг'}</h3>
-            <div style="margin-bottom: 0.5rem;">
+            <style>
+              .rating-star {
+                filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+                text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+                transition: all 0.3s ease;
+              }
+              .rating-star:hover {
+                filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));
+                text-shadow: 0 4px 8px rgba(0,0,0,0.6);
+                z-index: 10;
+              }
+              #rating-display-${elementId} {
+                transition: all 0.3s ease;
+              }
+              .rating-star[data-rating] {
+                position: relative;
+              }
+              
+              /* 🔥 Стили для частично заполненных звезд */
+              .rating-star.partial {
+                position: relative;
+                overflow: hidden;
+              }
+              
+              .rating-star.partial::before {
+                content: '★';
+                position: absolute;
+                top: 0;
+                left: 0;
+                color: ${ratingEmptyStarColor};
+                z-index: 1;
+              }
+              
+              .rating-star.partial::after {
+                content: '★';
+                position: absolute;
+                top: 0;
+                left: 0;
+                color: ${ratingStarColor};
+                z-index: 2;
+                clip-path: polygon(0 0, var(--partial-width, 30%) 0, var(--partial-width, 30%) 100%, 0 100%);
+              }
+            </style>
+            ${(element.showTitle !== false && ratingTitle) ? `
+              <h3 style="
+                color: ${ratingTitleColor};
+                margin-bottom: 1rem;
+                font-size: 1.8rem;
+                font-weight: bold;
+                text-align: center;
+                margin: 0 0 1rem 0;
+                line-height: 1.4;
+              ">${ratingTitle}</h3>
+            ` : ''}
+            
+            ${(element.showLabel !== false && ratingLabel) ? `
+              <p style="
+                color: ${ratingTextColor};
+                margin-bottom: 1.5rem;
+                font-size: 1.1rem;
+                text-align: center;
+                margin: 0 0 1.5rem 0;
+                line-height: 1.5;
+                opacity: 0.9;
+              ">${ratingLabel}</p>
+            ` : ''}
+            
+            <div style="
+              margin-bottom: 1.5rem;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              flex-wrap: wrap;
+              gap: 12px;
+              padding: 20px;
+              background: rgba(255,255,255,0.05);
+              border-radius: 16px;
+              backdrop-filter: blur(10px);
+            ">
               ${ratingStars}
             </div>
+            
             <div style="
-              color: #666666;
-              font-size: 0.9rem;
+              color: ${ratingTextColor};
+              font-size: 1.1rem;
+              font-weight: 500;
+              background: rgba(255,255,255,0.1);
+              padding: 8px 16px;
+              border-radius: 20px;
+              display: inline-block;
+              backdrop-filter: blur(10px);
             ">
-              ${currentRating} из ${maxRating}
+              <span id="rating-display-${elementId}">${currentRating}</span> из ${maxRating}
             </div>
           </div>
+          
+          <!-- 🔥 JAVASCRIPT для интерактивного рейтинга -->
+          <script>
+            // Глобальные функции для рейтинга (должны быть доступны везде)
+            window.hoverRating_${safeElementId} = function(hoverRating, maxRating, starColor) {
+              const stars = document.querySelectorAll('.rating-star');
+              console.log('⭐ [Rating Export] Hover rating:', hoverRating, 'maxRating:', maxRating);
+              
+              stars.forEach((star, index) => {
+                const starRating = index + 1;
+                const starElement = star;
+                
+                if (starRating <= hoverRating) {
+                  starElement.style.color = starColor;
+                  starElement.style.transform = 'scale(1.1)';
+                  
+                  // Убираем частичное заполнение при hover
+                  starElement.classList.remove('partial');
+                  starElement.classList.add('filled');
+                } else {
+                  starElement.style.color = '${ratingEmptyStarColor}';
+                  starElement.style.transform = 'scale(1)';
+                  
+                  // Убираем все классы состояния при hover
+                  starElement.classList.remove('filled', 'partial');
+                  starElement.classList.add('empty');
+                }
+              });
+            };
+            
+            window.resetHoverRating_${safeElementId} = function(currentRating, starColor, emptyStarColor) {
+              const stars = document.querySelectorAll('.rating-star');
+              
+              stars.forEach((star, index) => {
+                const starRating = index + 1;
+                const starElement = star;
+                
+                // Убираем hover эффекты
+                starElement.style.transform = 'scale(1)';
+                
+                // Восстанавливаем правильное состояние звезды
+                if (starRating <= Math.floor(window.currentRating_${safeElementId})) {
+                  // Полностью заполненная звезда
+                  starElement.style.color = starColor;
+                  starElement.classList.remove('partial');
+                  starElement.classList.add('filled');
+                  starElement.setAttribute('data-state', 'filled');
+                } else if (starRating === Math.ceil(window.currentRating_${safeElementId}) && window.currentRating_${safeElementId} % 1 > 0) {
+                  // Частично заполненная звезда
+                  starElement.style.color = starColor;
+                  starElement.classList.remove('filled', 'empty');
+                  starElement.classList.add('partial');
+                  starElement.setAttribute('data-state', 'partial');
+                  
+                  // Восстанавливаем clip-path
+                  const partialPercentage = (window.currentRating_${safeElementId} % 1) * 100;
+                  starElement.style.setProperty('--partial-width', partialPercentage + '%');
+                } else {
+                  // Пустая звезда
+                  starElement.style.color = emptyStarColor;
+                  starElement.classList.remove('filled', 'partial');
+                  starElement.classList.add('empty');
+                  starElement.setAttribute('data-state', 'empty');
+                }
+              });
+            };
+            
+            window.updateRating_${safeElementId} = function(newRating, maxRating) {
+              console.log('⭐ [Rating Export] updateRating called with:', newRating, 'maxRating:', maxRating);
+              console.log('⭐ [Rating Export] Current rating before update:', window.currentRating_${safeElementId});
+              
+              const ratingDisplay = document.getElementById('rating-display-${elementId}');
+              const stars = document.querySelectorAll('.rating-star');
+              
+              // Если кликнули на ту же звезду - снимаем выбор (рейтинг = 0)
+              if (newRating === window.currentRating_${safeElementId}) {
+                newRating = 0;
+                console.log('⭐ [Rating Export] Same star clicked, resetting to 0');
+              }
+              
+              // Обновляем глобальную переменную
+              window.currentRating_${safeElementId} = newRating;
+              console.log('⭐ [Rating Export] Updated currentRating_${safeElementId} to:', window.currentRating_${safeElementId});
+              
+              // Обновляем отображение рейтинга
+              ratingDisplay.textContent = newRating;
+              
+              // 🔥 ИСПРАВЛЕНИЕ: Обновляем звезды с поддержкой дробных рейтингов
+              stars.forEach((star, index) => {
+                const starRating = index + 1;
+                const starElement = star;
+                
+                // Убираем старые классы
+                starElement.classList.remove('filled', 'partial', 'empty');
+                
+                if (starRating <= Math.floor(newRating)) {
+                  // Полностью заполненная звезда
+                  starElement.classList.add('filled');
+                  starElement.style.color = '${ratingStarColor}';
+                  starElement.setAttribute('data-state', 'filled');
+                } else if (starRating === Math.ceil(newRating) && newRating % 1 > 0) {
+                  // Частично заполненная звезда
+                  starElement.classList.add('partial');
+                  starElement.style.color = '${ratingStarColor}';
+                  starElement.setAttribute('data-state', 'partial');
+                  
+                  // Обновляем clip-path для частичного заполнения
+                  const partialPercentage = (newRating % 1) * 100;
+                  starElement.style.setProperty('--partial-width', partialPercentage + '%');
+                } else {
+                  // Пустая звезда
+                  starElement.classList.add('empty');
+                  starElement.style.color = '${ratingEmptyStarColor}';
+                  starElement.setAttribute('data-state', 'empty');
+                }
+              });
+              
+              // Анимация обновления
+              ratingDisplay.style.transform = 'scale(1.2)';
+              ratingDisplay.style.transition = 'transform 0.3s ease';
+              setTimeout(() => {
+                ratingDisplay.style.transform = 'scale(1)';
+              }, 300);
+              
+              console.log('⭐ [Rating Export] Rating updated to:', newRating, 'Previous:', ${currentRating});
+            };
+            
+            // Глобальная переменная для хранения текущего рейтинга
+            window.currentRating_${safeElementId} = ${currentRating};
+            
+            // Инициализация при загрузке страницы
+            document.addEventListener('DOMContentLoaded', function() {
+              console.log('⭐ [Rating Export] Rating component initialized with rating:', ${currentRating}, 'interactive:', ${isInteractive});
+              console.log('⭐ [Rating Export] Element ID:', '${elementId}', 'Safe ID:', '${safeElementId}');
+              
+              // Если рейтинг не интерактивный, убираем hover эффекты
+              if (!${isInteractive}) {
+                const stars = document.querySelectorAll('.rating-star');
+                stars.forEach(star => {
+                  star.style.cursor = 'default';
+                  star.removeAttribute('onmouseover');
+                  star.removeAttribute('onmouseout');
+                  star.removeAttribute('onclick');
+                });
+                console.log('⭐ [Rating Export] Interactive disabled, removed event handlers');
+              } else {
+                console.log('⭐ [Rating Export] Interactive enabled, event handlers active');
+              }
+            });
+          </script>
         `;
       case 'progress-bars':
+        // 🔥 ИСПРАВЛЕНИЕ: Используем ТОЛЬКО colorSettings (как в blockquote)
+        const progressColorSettings = element.colorSettings || element.data?.colorSettings || {};
+        const progressTitleColor = progressColorSettings.textFields?.title || '#333333';
+        const progressTextColor = progressColorSettings.textFields?.text || '#666666';
+        const progressBackgroundColor = progressColorSettings.textFields?.background || '#e0e0e0';
+        const progressBarColor = progressColorSettings.textFields?.progress || '#1976d2';
+        
         const isCircular = element.variant === 'circular';
         const progressValue = element.value || 50;
         const radius = 50;
@@ -4617,12 +5280,22 @@ const EditorPanel = ({
           <div id="${elementId}" class="content-element progress-bars" style="
             margin: 2rem 0;
             text-align: center;
-            padding: 1rem;
+            padding: ${progressColorSettings.padding || 24}px;
+            background: ${progressColorSettings.sectionBackground?.enabled
+              ? (progressColorSettings.sectionBackground.useGradient
+                  ? `linear-gradient(${progressColorSettings.sectionBackground.gradientDirection || 'to right'}, ${progressColorSettings.sectionBackground.gradientColor1 || '#ffffff'}, ${progressColorSettings.sectionBackground.gradientColor2 || '#f8f9fa'})`
+                  : progressColorSettings.sectionBackground.solidColor || '#ffffff')
+              : '#ffffff'};
+            border: ${progressColorSettings.borderColor ? `${progressColorSettings.borderWidth || 1}px solid ${progressColorSettings.borderColor}` : 'none'};
+            border-radius: ${progressColorSettings.borderRadius || 12}px;
+            box-shadow: ${progressColorSettings.boxShadow ? '0 4px 12px rgba(0,0,0,0.1)' : '0 2px 8px rgba(0,0,0,0.1)'};
+            opacity: ${progressColorSettings.sectionBackground?.opacity || 1};
           ">
             <h3 style="
-              color: #333333;
+              color: ${progressTitleColor};
               margin-bottom: 1rem;
               font-size: 1.3rem;
+              text-align: center;
             ">${element.title || 'Прогресс'}</h3>
             <div style="
               max-width: 300px;
@@ -4638,8 +5311,8 @@ const EditorPanel = ({
                   <svg width="120" height="120" style="
                     transform: rotate(-90deg);
                   ">
-                    <circle cx="60" cy="60" r="50" fill="none" stroke="${element.backgroundColor || '#e0e0e0'}" stroke-width="8"/>
-                    <circle cx="60" cy="60" r="50" fill="none" stroke="${element.progressColor || '#1976d2'}" stroke-width="8" 
+                    <circle cx="60" cy="60" r="50" fill="none" stroke="${progressBackgroundColor}" stroke-width="8"/>
+                    <circle cx="60" cy="60" r="50" fill="none" stroke="${progressBarColor}" stroke-width="8" 
                             stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" 
                             style="transition: stroke-dashoffset 0.5s ease;"/>
                   </svg>
@@ -4650,7 +5323,7 @@ const EditorPanel = ({
                     transform: translate(-50%, -50%);
                     font-size: 1.2rem;
                     font-weight: bold;
-                    color: ${element.progressColor || '#1976d2'};
+                    color: ${progressBarColor};
                   ">
                     ${progressValue}%
                   </div>
@@ -4659,7 +5332,7 @@ const EditorPanel = ({
                 <div style="
                   width: 100%;
                   height: 12px;
-                  background: ${element.backgroundColor || '#e0e0e0'};
+                  background: ${progressBackgroundColor};
                   border-radius: 6px;
                   overflow: hidden;
                   margin-bottom: 0.5rem;
@@ -4667,13 +5340,13 @@ const EditorPanel = ({
                   <div style="
                     width: ${progressValue}%;
                     height: 100%;
-                    background: ${element.progressColor || '#1976d2'};
+                    background: ${progressBarColor};
                     border-radius: 6px;
                     transition: width 0.5s ease;
                   "></div>
                 </div>
                 <div style="
-                  color: #666666;
+                  color: ${progressTextColor};
                   font-size: 0.9rem;
                   font-weight: 500;
                 ">
@@ -4686,64 +5359,137 @@ const EditorPanel = ({
 
       // Дополнительные интерактивные элементы
       case 'accordion':
-        const accordionItems = element.accordionItems || [
-          { 
-            title: '🎰 Безопасность и лицензии', 
-            content: '**Наша безопасность - ваша уверенность!**\n\n• **Лицензия Кюрасао** - официальное разрешение на проведение азартных игр\n• **SSL-шифрование** - защита всех финансовых операций\n• **Сертификация RNG** - честность всех игровых результатов\n• **Проверка третьими лицами** - регулярный аудит систем\n• **Защита данных** - соответствие стандартам GDPR\n\n**Мы гарантируем честную игру и полную конфиденциальность ваших данных!**' 
-          },
-          { 
-            title: '💰 Бонусы и акции', 
-            content: '**Щедрые бонусы для всех игроков!**\n\n• **Приветственный бонус** - 200% на первый депозит + 200 фриспинов\n• **Еженедельный кэшбэк** - возврат до 20% от проигранных средств\n• **Турниры** - призовые фонды до €100,000\n• **VIP-программа** - эксклюзивные привилегии\n• **Бонусы на день рождения** - персональные подарки\n\n**Играйте больше - получайте больше бонусов!**' 
+        console.log('🎵 [ACCORDION EXPORT - EditorPanel] element:', element);
+        
+        // 🔥 ИСПРАВЛЕНИЕ: Используем ТОЛЬКО colorSettings (как в blockquote)
+        const accordionColorSettings = element.colorSettings || element.data?.colorSettings || {};
+        console.log('🎵 [ACCORDION EXPORT - EditorPanel] accordionColorSettings:', accordionColorSettings);
+        
+        const accordionTitleColor = accordionColorSettings.textFields?.title || '#ffd700';
+        const accordionContentColor = accordionColorSettings.textFields?.text || '#ffffff';
+        const accordionBackgroundColor = accordionColorSettings.textFields?.background || 'rgba(0,0,0,0.85)';
+        const accordionBorderColor = accordionColorSettings.textFields?.border || '#c41e3a';
+        const accordionHoverColor = accordionColorSettings.textFields?.hover || 'rgba(196,30,58,0.15)';
+        
+        // Получаем данные аккордеона с поддержкой разных форматов
+        let accordionItems = element.accordionItems || element.items || element.initialPanels || [];
+        
+        // Если данные в content, парсим их (как в multiPageSiteExporter.js)
+        if (accordionItems.length === 0 && element.content) {
+          console.log('🎵 [ACCORDION EXPORT - EditorPanel] Parsing content:', element.content);
+          // Парсим контент для извлечения вопросов и ответов
+          const contentLines = element.content.split('\n').filter(line => line.trim());
+          const tempItems = [];
+          let currentTitle = '';
+          let currentContent = '';
+          
+          contentLines.forEach((line, index) => {
+            if (line.includes('?') && !line.includes('*')) {
+              // Это вопрос
+              if (currentTitle && currentContent) {
+                tempItems.push({ id: tempItems.length + 1, title: currentTitle.trim(), content: currentContent.trim() });
+              }
+              currentTitle = line.trim();
+              currentContent = '';
+            } else if (line.trim() && !line.includes('*')) {
+              // Это ответ
+              currentContent += (currentContent ? ' ' : '') + line.trim();
+            }
+          });
+          
+          // Добавляем последний элемент
+          if (currentTitle && currentContent) {
+            tempItems.push({ id: tempItems.length + 1, title: currentTitle.trim(), content: currentContent.trim() });
           }
-        ];
+          
+          accordionItems = tempItems.length > 0 ? tempItems : [
+            { 
+              title: 'Секция 1', 
+              content: 'Содержимое первой секции' 
+            },
+            { 
+              title: 'Секция 2', 
+              content: 'Содержимое второй секции' 
+            }
+          ];
+        }
+        
+        console.log('🎵 [ACCORDION EXPORT - EditorPanel] Final accordionItems:', accordionItems);
         
         return `
           <div id="${elementId}" class="content-element accordion" style="
-            margin: 1.5rem 0;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
+            width: 100%;
+            max-width: 100%;
+            margin: 2rem 0;
+            padding: 0;
           ">
-            <h3 style="
-              color: #333333;
-              margin-bottom: 1rem;
-              font-size: 1.3rem;
-              text-align: center;
-            ">${element.title || 'Информация для игроков'}</h3>
-            <div class="accordion-container">
+            ${(element.showTitle !== false && element.title) ? `
+              <div style="
+                text-align: center;
+                padding: 0 0 2rem 0;
+                margin-bottom: 2rem;
+              ">
+                <h3 style="
+                  color: ${accordionTitleColor};
+                  font-size: 24px;
+                  font-weight: bold;
+                  margin: 0;
+                  line-height: 1.4;
+                ">${element.title}</h3>
+              </div>
+            ` : ''}
+            
+            <div class="accordion-container" style="
+              display: flex; 
+              flex-direction: column; 
+              gap: 2px;
+              width: 100%;
+            ">
               ${accordionItems.map((item, index) => `
                 <div class="accordion-item" style="
-                  margin-bottom: 0.5rem;
-                  border: 1px solid #e0e0e0;
+                  width: 100%;
+                  background: ${accordionBackgroundColor};
+                  border: 1px solid ${accordionBorderColor};
                   border-radius: 8px;
                   overflow: hidden;
+                  transition: all 0.3s ease;
+                  margin: 0;
                 ">
-                  <div class="accordion-header" onclick="toggleAccordion(${index})" style="
-                    padding: 1rem;
-                    background: #f8f9fa;
+                  <div class="accordion-header" onclick="toggleAccordion${elementId.replace(/-/g, '_')}(${index})" style="
+                    padding: 16px 24px;
+                    background: ${accordionBackgroundColor};
+                    color: ${accordionTitleColor};
+                    font-weight: bold;
                     cursor: pointer;
-                    font-weight: 500;
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    transition: background 0.3s ease;
-                  ">
-                    <span>${item.title}</span>
+                    transition: all 0.3s ease;
+                    width: 100%;
+                    box-sizing: border-box;
+                    font-size: 16px;
+                    min-height: 56px;
+                  " onmouseover="this.style.backgroundColor='${accordionHoverColor}'" onmouseout="this.style.backgroundColor='${accordionBackgroundColor}'">
+                    <span style="font-weight: bold;">${item.title}</span>
                     <span class="accordion-toggle" style="
-                      font-size: 1.2rem;
-                      color: #666;
+                      font-size: 18px;
+                      color: ${accordionTitleColor};
                       transform: rotate(0deg);
                       transition: transform 0.3s ease;
-                    ">+</span>
+                      margin-left: 16px;
+                    ">▼</span>
                   </div>
-                  <div class="accordion-content" id="accordion-content-${index}" style="
-                    padding: 0 1rem;
-                    background: white;
+                  <div class="accordion-content" id="accordion-content-${elementId.replace(/-/g, '_')}-${index}" style="
+                    padding: 0 24px;
+                    background: ${accordionBackgroundColor};
                     max-height: 0;
                     overflow: hidden;
                     transition: max-height 0.3s ease, padding 0.3s ease;
+                    color: ${accordionContentColor};
+                    border-top: 1px solid ${accordionBorderColor};
+                    box-sizing: border-box;
                   ">
-                    <div style="padding: 1rem 0;">
+                    <div style="padding: 16px 0; line-height: 1.6; white-space: pre-wrap; font-size: 14px;">
                       ${item.content}
                     </div>
                   </div>
@@ -4751,6 +5497,24 @@ const EditorPanel = ({
               `).join('')}
             </div>
           </div>
+          
+          <!-- 🔥 JAVASCRIPT для аккордеона -->
+          <script>
+            function toggleAccordion${elementId.replace(/-/g, '_')}(index) {
+              const content = document.getElementById('accordion-content-${elementId.replace(/-/g, '_')}-' + index);
+              const toggle = content.previousElementSibling.querySelector('.accordion-toggle');
+              
+              if (content.style.maxHeight === '0px' || content.style.maxHeight === '') {
+                content.style.maxHeight = content.scrollHeight + 'px';
+                content.style.padding = '16px 24px';
+                toggle.style.transform = 'rotate(180deg)';
+              } else {
+                content.style.maxHeight = '0px';
+                content.style.padding = '0 24px';
+                toggle.style.transform = 'rotate(0deg)';
+              }
+            }
+          </script>
         `;
 
 
@@ -4900,7 +5664,7 @@ const EditorPanel = ({
                 overflow: hidden;
                 background-color: ${faqAccordionBgColor};
                 transition: background-color 0.3s ease;
-              " onmouseover="this.style.backgroundColor='${faqAccordionHoverColor}'" onmouseout="this.style.backgroundColor='${faqAccordionBgColor}'">
+              " data-hover-bg="${faqAccordionHoverColor}" onmouseover="this.style.backgroundColor='${faqAccordionHoverColor}'" onmouseout="this.style.backgroundColor='${faqAccordionBgColor}'">
                 <div style="
                   padding: 1rem;
                   cursor: pointer;
@@ -4915,11 +5679,12 @@ const EditorPanel = ({
                 </div>
                 <div id="faq-answer-${index}" style="
                   padding: 1rem;
-                  background: white;
+                  background: ${faqAccordionBgColor};
                   display: none;
                   color: ${faqAnswerColor};
                   line-height: 1.6;
                   border-top: 1px solid #e0e0e0;
+                  transition: background-color 0.3s ease;
                 ">
                   ${item.answer}
                 </div>
@@ -4936,8 +5701,8 @@ const EditorPanel = ({
           { date: '2024', title: 'Релиз', description: 'Публикация', status: 'pending' }
         ];
 
-        // Получаем цвета из colorSettings
-        const timelineColorSettings = element.data?.colorSettings || element.colorSettings || {};
+        // 🔥 ИСПРАВЛЕНИЕ: Используем ТОЛЬКО colorSettings (как в blockquote)
+        const timelineColorSettings = element.colorSettings || element.data?.colorSettings || {};
         const timelineTitleColor = timelineColorSettings.textFields?.title || '#000000';
         const timelineDateColor = timelineColorSettings.textFields?.date || '#666666';
         const timelineTextColor = timelineColorSettings.textFields?.text || '#333333';
@@ -5184,14 +5949,60 @@ const EditorPanel = ({
         `;
 
       case 'multiple-cards':
+        // Данные элемента загружены
+        
         const cards = element.cards || [
           { title: 'Карточка 1', content: 'Содержимое первой карточки' },
           { title: 'Карточка 2', content: 'Содержимое второй карточки' },
           { title: 'Карточка 3', content: 'Содержимое третьей карточки' }
         ];
+        
+        // 🔥 ИСПРАВЛЕНИЕ: Применяем ColorSettings для множественных карточек
+        const sectionColorSettings = element.colorSettings || element.sectionColorSettings || element.data?.colorSettings || element.data?.sectionColorSettings || {};
+        const sectionStyles = element.sectionStyles || element.data?.sectionStyles || {};
+        
+        console.log('🎴🎴🎴 [EDITOR PANEL] multiple-cards colorSettings:', sectionColorSettings);
+        
+        // Определяем фон секции из ColorSettings или sectionStyles
+        let sectionBackground = 'transparent';
+        if (sectionColorSettings.sectionBackground?.enabled) {
+          if (sectionColorSettings.sectionBackground.useGradient) {
+            const gradientDir = sectionColorSettings.sectionBackground.gradientDirection || 'to right';
+            const color1 = sectionColorSettings.sectionBackground.gradientColor1 || '#1976d2';
+            const color2 = sectionColorSettings.sectionBackground.gradientColor2 || '#42a5f5';
+            sectionBackground = `linear-gradient(${gradientDir}, ${color1}, ${color2})`;
+          } else {
+            sectionBackground = sectionColorSettings.sectionBackground.solidColor || '#ffffff';
+          }
+        } else if (sectionStyles.backgroundType === 'gradient') {
+          sectionBackground = `linear-gradient(${sectionStyles.gradientDirection || 'to right'}, ${sectionStyles.gradientStartColor || '#1976d2'}, ${sectionStyles.gradientEndColor || '#42a5f5'})`;
+        } else if (sectionStyles.backgroundColor) {
+          sectionBackground = sectionStyles.backgroundColor;
+        }
+        
+        // Цвета текста из ColorSettings или sectionStyles
+        const titleColor = sectionColorSettings.textFields?.title || sectionStyles.titleColor || element.titleColor || '#ffff00';
+        const sectionDescriptionColor = sectionColorSettings.textFields?.text || sectionColorSettings.textFields?.description || sectionStyles.descriptionColor || element.descriptionColor || '#ff4444';
+        
+        console.log('🎴🎴🎴 [EDITOR PANEL] multiple-cards colors:', { titleColor, sectionDescriptionColor });
+        
+        // Дополнительные стили секции из ColorSettings
+        const sectionPadding = sectionColorSettings.padding ? `${sectionColorSettings.padding}px` : (sectionStyles.padding || '2rem');
+        const sectionBorderRadius = sectionColorSettings.borderRadius ? `${sectionColorSettings.borderRadius}px` : (sectionStyles.borderRadius || '0px');
+        const sectionBorderColor = sectionColorSettings.borderColor || '#e0e0e0';
+        const sectionBorderWidth = sectionColorSettings.borderWidth || 0;
+        const sectionBoxShadow = sectionColorSettings.boxShadow ? '0 2px 8px rgba(0,0,0,0.1)' : 'none';
+        const sectionOpacity = sectionColorSettings.sectionBackground?.opacity || 1;
+        
         return `
-          <div id="${elementId}" class="content-element multiple-cards" style="
+          <div id="${elementId}" class="content-element multiple-cards" data-color-settings='${JSON.stringify(sectionColorSettings)}' style="
             margin: 2rem 0;
+            padding: ${sectionPadding};
+            background: ${sectionBackground};
+            border-radius: ${sectionBorderRadius};
+            border: ${sectionBorderWidth}px solid ${sectionBorderColor};
+            box-shadow: ${sectionBoxShadow};
+            opacity: ${sectionOpacity};
             max-width: 1200px;
             margin-left: auto;
             margin-right: auto;
@@ -5199,110 +6010,311 @@ const EditorPanel = ({
             ${element.title ? `
               <h3 style="
                 text-align: center;
-                color: ${element.titleColor || '#333333'};
-                margin-bottom: 2rem;
-                font-size: 1.8rem;
+                color: ${titleColor};
+                font-size: ${element.titleFontSize || 28}px;
+                margin-bottom: 1rem;
+                font-weight: bold;
               ">${element.title}</h3>
             ` : ''}
+            ${element.description ? `
+              <p style="
+                text-align: center;
+                color: ${sectionDescriptionColor};
+                font-size: 16px;
+                margin-bottom: 2rem;
+                line-height: 1.6;
+              ">${element.description}</p>
+            ` : ''}
             <div style="
-              display: grid;
-              grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-              gap: 2rem;
+              display: flex;
+              flex-wrap: wrap;
+              gap: 1.5rem;
+              justify-content: center;
+              align-items: flex-start;
+              width: 100%;
             ">
-              ${cards.map((card, index) => `
+              ${cards.map((card, index) => {
+                // 🔥 ИСПРАВЛЕНИЕ: Применяем настройки карточек из colorSettings
+                let cardBackground = '#ffffff';
+                if (sectionColorSettings?.cardBackground?.enabled) {
+                  if (sectionColorSettings.cardBackground.useGradient) {
+                    const gradientDir = sectionColorSettings.cardBackground.gradientDirection || 'to right';
+                    const color1 = sectionColorSettings.cardBackground.gradientColor1 || '#ffffff';
+                    const color2 = sectionColorSettings.cardBackground.gradientColor2 || '#f0f0f0';
+                    cardBackground = `linear-gradient(${gradientDir}, ${color1}, ${color2})`;
+                  } else {
+                    cardBackground = sectionColorSettings.cardBackground.solidColor || '#ffffff';
+                  }
+                }
+                
+                const cardTitleColor = sectionColorSettings?.textFields?.cardTitle || '#333333';
+                const cardContentColor = sectionColorSettings?.textFields?.cardText || '#666666';
+                const cardBorderColor = sectionColorSettings?.textFields?.border || '#e0e0e0';
+                const cardBorderRadius = sectionColorSettings?.borderRadius || 8;
+                const cardBorderWidth = sectionColorSettings?.borderWidth || 1;
+                const cardPadding = sectionColorSettings?.padding || 24;
+                const cardBoxShadow = sectionColorSettings?.boxShadow ? '0 2px 8px rgba(0,0,0,0.1)' : '0 2px 8px rgba(0,0,0,0.1)';
+                const cardOpacity = sectionColorSettings?.cardBackground?.opacity || 1;
+                
+                return `
                 <div style="
-                  background: white;
-                  padding: 2rem;
-                  border-radius: 12px;
-                  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                    background: ${cardBackground};
+                    border: ${cardBorderWidth}px solid ${cardBorderColor};
+                    border-radius: ${cardBorderRadius}px;
+                    padding: ${cardPadding}px;
+                    box-shadow: ${cardBoxShadow};
+                    opacity: ${cardOpacity};
+                    text-align: ${element.textAlign || 'left'};
+                    transition: all 0.3s ease;
+                    width: calc(33.333% - 16px);
+                    min-width: 250px;
+                    max-width: 320px;
+                    height: auto;
+                    min-height: 320px;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                    cursor: pointer;
+                  " onclick="openMultipleCardModal${elementId.replace(/-/g, '_')}(${index})" data-card-index="${index}" 
+                     onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.15)'" 
+                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='${cardBoxShadow}'">
+                    ${card.imageUrl ? `
+                      <div style="
+                        width: 100%;
+                        height: 140px;
+                        margin-bottom: 1rem;
+                        border-radius: ${cardBorderRadius - 4}px;
+                        overflow: hidden;
+                        flex-shrink: 0;
+                      ">
+                        <img src="${card.imageUrl}" alt="${card.imageAlt || card.title || 'Изображение'}" style="
+                          width: 100%;
+                          height: 100%;
+                          object-fit: cover;
                   transition: transform 0.3s ease;
-                " onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                        " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                      </div>
+                    ` : ''}
+                    ${card.title ? `
                   <h4 style="
-                    margin: 0 0 1rem 0;
-                    color: ${element.cardTitleColor || '#333333'};
-                    font-size: 1.3rem;
+                        color: ${cardTitleColor};
+                        font-size: 20px;
+                        margin-bottom: 1rem;
+                        font-weight: bold;
+                        line-height: 1.3;
+                        word-wrap: break-word;
+                        overflow-wrap: break-word;
+                        hyphens: auto;
+                        display: -webkit-box;
+                        -webkit-line-clamp: 2;
+                        -webkit-box-orient: vertical;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        max-height: 2.6em;
+                        text-align: center;
                   ">${card.title}</h4>
+                    ` : ''}
+                    ${card.content ? `
+                      <div style="
+                        position: relative;
+                        flex: 1;
+                        margin-bottom: 16px;
+                      ">
                   <p style="
-                    margin: 0;
-                    color: ${element.cardContentColor || '#666666'};
+                          color: ${cardContentColor};
+                          font-size: 16px;
                     line-height: 1.6;
+                          display: -webkit-box;
+                          -webkit-line-clamp: 6;
+                          -webkit-box-orient: vertical;
+                          overflow: hidden;
+                          text-overflow: ellipsis;
+                          padding-bottom: 8px;
+                          word-break: break-word;
                   ">${card.content}</p>
+                      <!-- 🔥 МНОГОТОЧИЕ для показа что есть продолжение -->
+                      <div style="
+                        position: absolute;
+                        bottom: 0;
+                        right: 0;
+                        width: 40px;
+                        height: 20px;
+                        background: linear-gradient(transparent, ${cardBackground});
+                        pointer-events: none;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 18px;
+                        color: ${cardContentColor};
+                        font-weight: bold;
+                                              ">...</div>
                 </div>
-              `).join('')}
+                    ` : ''}
+                    <!-- 🔥 УБРАЛИ КНОПКУ: Карточка теперь кликабельна для открытия модального окна -->
             </div>
+                `;
+              }).join('')}
           </div>
+            
+            <!-- 🔥 МОДАЛЬНОЕ ОКНО теперь использует глобальные функции openCardModal/closeCardModal -->
+          </div>
+          
+          <!-- 🔥 МОДАЛЬНОЕ ОКНО теперь использует глобальные функции openCardModal/closeCardModal -->
         `;
 
       case 'data-table':
-        console.log('[EditorPanel] DataTable element data:', { elementData, element });
-        // Получаем данные из различных возможных источников
+        console.log('=== DataTable DEBUG START ===');
+        console.log('[EditorPanel] DataTable element:', element);
+        console.log('[EditorPanel] DataTable elementData:', elementData);
+        console.log('[EditorPanel] DataTable isMultiPage:', isMultiPage);
+        console.log('[EditorPanel] DataTable element keys:', Object.keys(element));
+        console.log('[EditorPanel] DataTable elementData keys:', Object.keys(elementData));
+        console.log('=== DataTable DEBUG END ===');
+        
+        // 🔥 ИСПРАВЛЕНИЕ: Получаем заголовки и данные таблицы
+        let tableHeaders = [];
         let tableData = [];
         
-        // Приоритет 1: rows из elementData
+        // Приоритет 1: columns из elementData (новый формат)
+        if (elementData.columns && Array.isArray(elementData.columns)) {
+          tableHeaders = elementData.columns.map(col => col.label);
+          console.log('[EditorPanel] DataTable - Using columns from elementData:', tableHeaders);
+        }
+        // Приоритет 2: headers из elementData (AI парсер формат)
+        else if (elementData.headers && Array.isArray(elementData.headers)) {
+          tableHeaders = elementData.headers.map(header => header.label);
+          console.log('[EditorPanel] DataTable - Using headers from elementData:', tableHeaders);
+        }
+        // Приоритет 3: initialColumns из elementData
+        else if (elementData.initialColumns && Array.isArray(elementData.initialColumns)) {
+          tableHeaders = elementData.initialColumns.map(col => col.label);
+          console.log('[EditorPanel] DataTable - Using initialColumns from elementData:', tableHeaders);
+        }
+        // Приоритет 4: columns из element
+        else if (element.columns && Array.isArray(element.columns)) {
+          tableHeaders = element.columns.map(col => col.label);
+          console.log('[EditorPanel] DataTable - Using columns from element:', tableHeaders);
+        }
+        // Fallback: дефолтные заголовки
+        else {
+          tableHeaders = ['Название', 'Значение', 'Описание'];
+          console.log('[EditorPanel] DataTable - Using default headers:', tableHeaders);
+        }
+        
+        // Получаем данные строк
         if (elementData.rows && Array.isArray(elementData.rows)) {
-          tableData = elementData.rows;
-        }
-        // Приоритет 2: data из elementData
-        else if (elementData.data && Array.isArray(elementData.data)) {
+          // Если rows уже в правильном формате (массив массивов)
+          if (elementData.rows.length > 0 && Array.isArray(elementData.rows[0])) {
+            tableData = elementData.rows;
+          } else {
+            // Если rows в формате объектов, преобразуем в массив массивов
+            tableData = elementData.rows.map(row => {
+              if (typeof row === 'object' && row !== null) {
+                return tableHeaders.map(header => {
+                  // Ищем значение по заголовку
+                  const key = Object.keys(row).find(k => 
+                    row[k] !== undefined && row[k] !== null
+                  );
+                  return key ? row[key] : '';
+                });
+              }
+              return [row];
+            });
+          }
+        } else if (elementData.data && Array.isArray(elementData.data)) {
           tableData = elementData.data;
-        }
-        // Приоритет 3: rows из element
-        else if (element.rows && Array.isArray(element.rows)) {
-          tableData = element.rows;
-        }
-        // Приоритет 4: data из element
-        else if (element.data && Array.isArray(element.data)) {
-          tableData = element.data;
-        }
-        // Приоритет 5: initialRows из elementData
-        else if (elementData.initialRows && Array.isArray(elementData.initialRows)) {
-          // Преобразуем initialRows в формат для таблицы
-          const headers = elementData.initialColumns || elementData.columns || [
-            { id: 'name', label: 'Название' },
-            { id: 'value', label: 'Значение' },
-            { id: 'description', label: 'Описание' }
-          ];
-          
-          // Создаем заголовки
-          const headerRow = headers.map(col => col.label);
-          tableData = [headerRow];
-          
-          // Добавляем данные
-          elementData.initialRows.forEach(row => {
-            const dataRow = headers.map(col => row[col.id] || '');
-            tableData.push(dataRow);
+        } else if (element.rows && Array.isArray(element.rows)) {
+          // Преобразуем element.rows в правильный формат
+          if (element.rows.length > 0 && typeof element.rows[0] === 'object') {
+            tableData = element.rows.map(row => {
+              return tableHeaders.map(header => {
+                const key = Object.keys(row).find(k => 
+                  row[k] !== undefined && row[k] !== null
+                );
+                return key ? row[key] : '';
+              });
+            });
+          } else {
+            tableData = element.rows;
+          }
+        } else if (elementData.initialRows && Array.isArray(elementData.initialRows)) {
+          // Преобразуем initialRows в правильный формат
+          tableData = elementData.initialRows.map(row => {
+            if (typeof row === 'object' && row !== null) {
+              return tableHeaders.map(header => {
+                const key = Object.keys(row).find(k => 
+                  row[k] !== undefined && row[k] !== null
+                );
+                return key ? row[key] : '';
+              });
+            }
+            return [row];
           });
         }
-        // Fallback: дефолтные данные
-        else {
-          tableData = [
-          ['Заголовок 1', 'Заголовок 2', 'Заголовок 3'],
-          ['Данные 1', 'Данные 2', 'Данные 3'],
-          ['Данные 4', 'Данные 5', 'Данные 6']
-        ];
+        
+        // Добавляем заголовки в начало данных, если их там нет
+        if (tableData.length === 0 || !tableHeaders.every((header, index) => tableData[0][index] === header)) {
+          tableData = [tableHeaders, ...tableData];
         }
         
-        console.log('[EditorPanel] DataTable final data:', tableData);
+        console.log('[EditorPanel] DataTable - Final headers:', tableHeaders);
+        console.log('[EditorPanel] DataTable - Final data:', tableData);
         
-        // Получаем настройки таблицы
-        const tableSettings = elementData.tableSettings || {};
-        const isStriped = tableSettings.striped !== undefined ? tableSettings.striped : true;
+        // Получаем настройки таблицы - проверяем и elementData, и element
+        const tableSettings = elementData.tableSettings || element.tableSettings || {};
+        console.log('[EditorPanel] DataTable - Raw tableSettings:', tableSettings);
+        console.log('[EditorPanel] DataTable - elementData.tableSettings:', elementData.tableSettings);
+        console.log('[EditorPanel] DataTable - element.tableSettings:', element.tableSettings);
+        
+        const isStriped = tableSettings.striped !== undefined ? tableSettings.striped : false;
+        console.log('[EditorPanel] DataTable - Striped logic: tableSettings.striped =', tableSettings.striped, ', result isStriped =', isStriped);
         const isBordered = tableSettings.bordered !== undefined ? tableSettings.bordered : true;
         const isHover = tableSettings.hover !== undefined ? tableSettings.hover : true;
         const isDense = tableSettings.dense !== undefined ? tableSettings.dense : false;
         const isSortable = tableSettings.sortable !== undefined ? tableSettings.sortable : true;
         const sortConfig = tableSettings.sortConfig || { key: null, direction: 'asc' };
 
-        // Получаем цвета из colorSettings
+        // Получаем цвета - теперь используем colorSettings и в превью, и в скачанном сайте
         const tableColorSettings = elementData.colorSettings || element.colorSettings || {};
-        const tableStyles = elementData.customStyles || element.customStyles || {};
-        const tableBackgroundColor = tableColorSettings.textFields?.background || tableStyles.backgroundColor || 'white';
+        console.log('[EditorPanel] DataTable - Color settings source:');
+        console.log('  elementData.colorSettings:', elementData.colorSettings);
+        console.log('  element.colorSettings:', element.colorSettings);
+        console.log('  final tableColorSettings:', tableColorSettings);
+        console.log('  textFields:', tableColorSettings.textFields);
+        // Цвета таблицы - применяются и в превью, и в скачанном сайте
+        const tableBackgroundColor = tableColorSettings.textFields?.background || 'white';
         const tableTitleColor = tableColorSettings.textFields?.title || tableColorSettings.textFields?.headerText || '#333333';
         const tableHeaderColor = tableColorSettings.textFields?.headerText || '#ffffff';
         const tableCellColor = tableColorSettings.textFields?.text || '#333333';
         const tableHeaderBg = tableColorSettings.textFields?.headerBg || '#1976d2';
         const tableBorderColor = tableColorSettings.textFields?.border || '#c41e3a';
         const tableHoverColor = tableColorSettings.textFields?.hover || 'rgba(196,30,58,0.15)';
+        
+        // Цвета для строк таблицы - теперь применяются и в превью, и в скачанном сайте
+        // Основной цвет строк - используется когда полосатые строки отключены или для четных строк
+        const tableRowBg = tableColorSettings.textFields?.rowBg || 'rgba(173, 216, 230, 0.3)'; // Светло-голубой для отладки
+        // Альтернативный цвет - используется только для нечетных строк когда полосатые строки включены
+        const tableAlternateRowBg = tableColorSettings.textFields?.alternateRowBg || 'rgba(255, 182, 193, 0.3)'; // Светло-розовый для отладки
+        const tableRowBorderColor = tableColorSettings.textFields?.rowBorder || 'rgba(0,0,0,0.08)';
+        
+        console.log('[EditorPanel] DataTable - Table settings:', {
+          isStriped,
+          isBordered,
+          isHover,
+          isDense,
+          isSortable,
+          isMultiPage,
+          tableRowBg,
+          tableAlternateRowBg,
+          tableRowBorderColor
+        });
+        console.log('[EditorPanel] DataTable - Color settings applied:', {
+          'colorSettings available': !!tableColorSettings.textFields,
+          'rowBg from settings': tableColorSettings.textFields?.rowBg,
+          'alternateRowBg from settings': tableColorSettings.textFields?.alternateRowBg,
+          'final tableRowBg': tableRowBg,
+          'final tableAlternateRowBg': tableAlternateRowBg
+        });
         
         // Стили контейнера из colorSettings
         let tableContainerStyles = `
@@ -5312,8 +6324,8 @@ const EditorPanel = ({
             margin-right: auto;
         `;
 
-        // Применяем настройки фона из sectionBackground
-        if (tableColorSettings.sectionBackground?.enabled) {
+        // Применяем настройки фона из sectionBackground - только в многостраничном режиме
+        if (isMultiPage && tableColorSettings.sectionBackground?.enabled) {
           const { sectionBackground } = tableColorSettings;
           if (sectionBackground.useGradient) {
             tableContainerStyles += ` background: linear-gradient(${sectionBackground.gradientDirection}, ${sectionBackground.gradientColor1}, ${sectionBackground.gradientColor2});`;
@@ -5323,25 +6335,23 @@ const EditorPanel = ({
           tableContainerStyles += ` opacity: ${sectionBackground.opacity || 1};`;
         }
 
-        // Применяем настройки границы
-        if (tableColorSettings.borderColor) {
+        // Применяем настройки границы - только в многостраничном режиме
+        if (isMultiPage && tableColorSettings.borderColor) {
           tableContainerStyles += ` border: ${tableColorSettings.borderWidth || 1}px solid ${tableColorSettings.borderColor};`;
         }
 
-        // Применяем радиус углов
-        if (tableColorSettings.borderRadius !== undefined) {
+        // Применяем радиус углов - только в многостраничном режиме
+        if (isMultiPage && tableColorSettings.borderRadius !== undefined) {
           tableContainerStyles += ` border-radius: ${tableColorSettings.borderRadius}px;`;
         }
 
-        // Применяем внутренние отступы
-        if (tableColorSettings.padding !== undefined) {
+        // Применяем внутренние отступы - только в многостраничном режиме
+        if (isMultiPage && tableColorSettings.padding !== undefined) {
           tableContainerStyles += ` padding: ${tableColorSettings.padding}px;`;
-        } else {
-          tableContainerStyles += ` padding: ${tableStyles.padding || 0}px;`;
         }
 
-        // Применяем тень
-        if (tableColorSettings.boxShadow) {
+        // Применяем тень - только в многостраничном режиме
+        if (isMultiPage && tableColorSettings.boxShadow) {
           tableContainerStyles += ` box-shadow: 0 2px 8px rgba(0,0,0,0.1);`;
         }
 
@@ -5355,10 +6365,10 @@ const EditorPanel = ({
                 font-size: 1.5rem;
                 font-weight: bold;
                 font-family: 'Montserrat', sans-serif;
-              background-color: ${tableColorSettings.textFields?.headerBg || 'transparent'};
+              background-color: ${tableColorSettings.textFields?.titleBg || 'transparent'};
               padding: 1rem;
               border-radius: 8px;
-              border: ${tableColorSettings.textFields?.border ? `2px solid ${tableColorSettings.textFields.border}` : 'none'};
+              border: ${tableColorSettings.textFields?.titleBorder ? `2px solid ${tableColorSettings.textFields.titleBorder}` : 'none'};
             ">${elementData.title || element.title || elementData.headers?.[0]?.label}</h3>
             ` : ''}
             <div style="
@@ -5377,17 +6387,33 @@ const EditorPanel = ({
                 font-family: 'Montserrat', sans-serif;
                 table-layout: fixed;
               ">
-                ${tableData.map((row, rowIndex) => `
+                ${tableData.map((row, rowIndex) => {
+                  // Определяем фон строки
+                  let rowBackground;
+                  if (rowIndex === 0) {
+                    // Заголовок - всегда используем headerBg
+                    rowBackground = tableHeaderBg;
+                  } else if (!isStriped) {
+                    // Полосатые строки отключены - все строки одинакового цвета
+                    rowBackground = tableRowBg;
+                  } else {
+                    // Полосатые строки включены - чередуем цвета
+                    rowBackground = rowIndex % 2 === 1 ? tableAlternateRowBg : tableRowBg;
+                  }
+                  
+                  console.log(`[EditorPanel] DataTable - Row ${rowIndex}: isStriped=${isStriped}, rowIndex%2=${rowIndex % 2}, background=${rowBackground}`);
+                  
+                  return `
                   <tr style="
                     ${rowIndex === 0 ? `
                       background: ${tableHeaderBg};
                       background-image: linear-gradient(135deg, ${tableHeaderBg} 0%, ${tableHeaderBg}DD 100%);
                     ` : `
-                      background: ${isStriped && rowIndex % 2 === 1 ? 'rgba(0,0,0,0.02)' : 'transparent'};
+                      background: ${rowBackground};
                     `}
-                    border-bottom: ${isBordered ? (rowIndex === 0 ? '2px solid rgba(0,0,0,0.2)' : '1px solid rgba(0,0,0,0.08)') : 'none'};
+                    border-bottom: ${isBordered ? (rowIndex === 0 ? '2px solid rgba(0,0,0,0.2)' : `1px solid ${tableRowBorderColor}`) : 'none'};
                     transition: background-color 0.2s ease;
-                  " ${rowIndex > 0 && isHover ? `onmouseover="this.style.backgroundColor='${tableHoverColor}'" onmouseout="this.style.backgroundColor='${isStriped && rowIndex % 2 === 1 ? 'rgba(0,0,0,0.02)' : 'transparent'}'"` : ''}>
+                  " ${rowIndex > 0 && isHover ? `onmouseover="this.style.backgroundColor='${tableHoverColor}'" onmouseout="this.style.backgroundColor='${rowBackground}'"` : ''}>
                     ${row.map((cell, cellIndex) => `
                       <${rowIndex === 0 ? 'th' : 'td'} style="
                         padding: ${rowIndex === 0 ? (isDense ? '12px 16px' : '16px 20px') : (isDense ? '8px 16px' : '14px 20px')};
@@ -5406,7 +6432,8 @@ const EditorPanel = ({
                       " ${rowIndex === 0 && isSortable ? `onclick="sortTable('${elementId}', ${cellIndex})"` : ''}>${cell}${rowIndex === 0 && isSortable && cellIndex === 0 ? ' ↕' : ''}</${rowIndex === 0 ? 'th' : 'td'}>
                     `).join('')}
                   </tr>
-                `).join('')}
+                `;
+                }).join('')}
               </table>
             </div>
             
@@ -5518,18 +6545,20 @@ const EditorPanel = ({
         const minBarValue = Math.min(...barData.map(d => d.value));
         const barRange = maxBarValue - minBarValue;
         
-        // Приоритет: element.data.data.customStyles > element.data.customStyles > element.customStyles > fallback
-        const deepCustomStyles = (element.data && element.data.data && element.data.data.customStyles) || {};
-        const dataCustomStyles = (element.data && element.data.customStyles) || {};
-        const elementCustomStyles = element.customStyles || {};
-        const chartStyles = { ...elementCustomStyles, ...dataCustomStyles, ...deepCustomStyles };
+        // Приоритет: element.colorSettings > element.data.colorSettings > element.data.data.colorSettings > fallback
+        const deepColorSettings = (element.data && element.data.data && element.data.data.colorSettings) || {};
+        const dataColorSettings = (element.data && element.data.colorSettings) || {};
+        const elementColorSettings = element.colorSettings || {};
+        const colorSettings = { ...elementColorSettings, ...dataColorSettings, ...deepColorSettings };
         
-
-        
-        const chartBackgroundColor = chartStyles.backgroundColor;
-        const chartTextColor = chartStyles.textColor;
-        const chartTitleColor = chartStyles.titleColor;
-        const descriptionColor = chartStyles.descriptionColor;
+        // Получаем цвета из новой системы colorSettings
+        const chartBackgroundColor = colorSettings.sectionBackground?.enabled 
+          ? (colorSettings.sectionBackground.useGradient 
+              ? `linear-gradient(${colorSettings.sectionBackground.gradientDirection}, ${colorSettings.sectionBackground.gradientColor1}, ${colorSettings.sectionBackground.gradientColor2})`
+              : colorSettings.sectionBackground.solidColor)
+          : '#ffffff';
+        const chartTitleColor = colorSettings.textFields?.title || '#1976d2';
+        const descriptionColor = colorSettings.textFields?.legendText || colorSettings.textFields?.legend || '#666666';
         const showValues = (element.data && element.data.data && element.data.data.showValues !== undefined) ? element.data.data.showValues :
                           (element.data && element.data.showValues !== undefined) ? element.data.showValues : 
                           (elementData.showValues !== undefined ? elementData.showValues : 
@@ -5538,25 +6567,43 @@ const EditorPanel = ({
                         (element.data && element.data.showGrid !== undefined) ? element.data.showGrid : 
                         (elementData.showGrid !== undefined ? elementData.showGrid : 
                         (element.showGrid !== undefined ? element.showGrid : true));
+        const showLegend = (element.data && element.data.data && element.data.data.showLegend !== undefined) ? element.data.data.showLegend :
+                          (element.data && element.data.showLegend !== undefined) ? element.data.showLegend : 
+                          (elementData.showLegend !== undefined ? elementData.showLegend : 
+                          (element.showLegend !== undefined ? element.showLegend : false));
+        const showStatistics = (element.data && element.data.data && element.data.data.showStatistics !== undefined) ? element.data.data.showStatistics :
+                             (element.data && element.data.showStatistics !== undefined) ? element.data.showStatistics : 
+                             (elementData.showStatistics !== undefined ? elementData.showStatistics : 
+                             (element.showStatistics !== undefined ? element.showStatistics : false));
         
 
 
         return `
+          <style>
+            @keyframes barChartAnimation-${elementId} {
+              from { height: 0; opacity: 0; }
+              to { height: var(--bar-height); opacity: 1; }
+            }
+            .bar-chart-bar-${elementId} {
+              animation: barChartAnimation-${elementId} 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+              animation-delay: calc(var(--bar-index) * 0.1s);
+            }
+          </style>
           <div id="${elementId}" class="content-element chart-component" style="
             margin: 2rem 0;
-            padding: ${(chartStyles.padding || 24) / 8 * 8}px;
-            background: ${backgroundColor || '#ffffff'};
-            border-radius: 16px;
-            box-shadow: 0px 2px 1px -1px rgba(0,0,0,0.2), 0px 1px 1px 0px rgba(0,0,0,0.14), 0px 1px 3px 0px rgba(0,0,0,0.12);
-            max-width: 800px;
+            padding: ${colorSettings.padding || 24}px;
+            background: ${chartBackgroundColor};
+            border-radius: ${colorSettings.borderRadius || 16}px;
+            box-shadow: ${colorSettings.boxShadow ? '0px 2px 1px -1px rgba(0,0,0,0.2), 0px 1px 1px 0px rgba(0,0,0,0.14), 0px 1px 3px 0px rgba(0,0,0,0.12)' : 'none'};
+            max-width: 1200px;
             margin-left: auto;
             margin-right: auto;
             position: relative;
-            ${chartStyles.borderWidth && chartStyles.borderWidth > 0 ? `border: ${chartStyles.borderWidth}px solid ${chartStyles.borderColor || 'transparent'};` : 'border: none;'}
+            ${colorSettings.borderWidth && colorSettings.borderWidth > 0 ? `border: ${colorSettings.borderWidth}px solid ${colorSettings.borderColor || 'transparent'};` : 'border: none;'}
           ">
             <h3 style="
               margin-bottom: ${(element.data && element.data.data && element.data.data.description) || (element.data && element.data.description) || elementData.description || element.description ? '16px' : '24px'};
-              color: ${titleColor || '#1976d2'};
+              color: ${chartTitleColor || '#1976d2'};
               font-size: 1.25rem;
               font-weight: bold;
               text-align: center;
@@ -5584,7 +6631,12 @@ const EditorPanel = ({
               align-items: flex-end;
               justify-content: center;
               gap: 12px;
-              background: rgba(0,0,0,0.02);
+              background: ${colorSettings.sectionBackground?.enabled && colorSettings.sectionBackground.useGradient 
+                ? `linear-gradient(${colorSettings.sectionBackground.gradientDirection}, ${colorSettings.sectionBackground.gradientColor1}, ${colorSettings.sectionBackground.gradientColor2})`
+                : colorSettings.sectionBackground?.enabled 
+                  ? colorSettings.sectionBackground.solidColor 
+                  : 'rgba(0,0,0,0.02)'};
+              opacity: ${colorSettings.sectionBackground?.enabled ? (colorSettings.sectionBackground.opacity || 1) : 1};
               border-radius: 8px;
               border: 1px solid rgba(0,0,0,0.1);
               overflow: hidden;
@@ -5603,9 +6655,9 @@ const EditorPanel = ({
                   z-index: 0;
                 ">
                   <!-- Горизонтальные линии сетки -->
-                  <div style="position: absolute; left: 0; right: 0; bottom: 25%; height: 1px; background: ${chartStyles.gridColor || 'rgba(0,0,0,0.1)'}; opacity: 0.3;"></div>
-                  <div style="position: absolute; left: 0; right: 0; bottom: 50%; height: 1px; background: ${chartStyles.gridColor || 'rgba(0,0,0,0.1)'}; opacity: 0.3;"></div>
-                  <div style="position: absolute; left: 0; right: 0; bottom: 75%; height: 1px; background: ${chartStyles.gridColor || 'rgba(0,0,0,0.1)'}; opacity: 0.3;"></div>
+                  <div style="position: absolute; left: 0; right: 0; bottom: 25%; height: 1px; background: ${colorSettings.textFields?.grid || 'rgba(0,0,0,0.1)'}; opacity: 0.3;"></div>
+                  <div style="position: absolute; left: 0; right: 0; bottom: 50%; height: 1px; background: ${colorSettings.textFields?.grid || 'rgba(0,0,0,0.1)'}; opacity: 0.3;"></div>
+                  <div style="position: absolute; left: 0; right: 0; bottom: 75%; height: 1px; background: ${colorSettings.textFields?.grid || 'rgba(0.1)'}; opacity: 0.3;"></div>
                 </div>
               ` : ''}
               
@@ -5637,9 +6689,11 @@ const EditorPanel = ({
                     align-items: center;
                     gap: 8px;
                     position: relative;
+                    height: 100%;
+                    justify-content: flex-end;
                   ">
                     <!-- Столбец -->
-                    <div style="
+                    <div class="bar-chart-bar-${elementId}" style="
                       background: linear-gradient(180deg, ${item.color || '#1976d2'} 0%, ${item.color ? item.color + 'DD' : '#1976d2DD'} 100%);
                       border-radius: 0;
                       width: ${autoWidth}px;
@@ -5654,6 +6708,8 @@ const EditorPanel = ({
                       display: flex;
                       align-items: center;
                       justify-content: center;
+                      --bar-height: ${barHeight}px;
+                      --bar-index: ${index};
                     " onmouseover="this.style.opacity='0.9'; this.style.transform='translateY(-3px)'; this.style.boxShadow='0 6px 16px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.2)'; this.style.filter='brightness(1.1)';" onmouseout="this.style.opacity='1'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.1)'; this.style.filter='brightness(1)';">
                       <!-- Значение на столбце -->
                       ${showValues ? `
@@ -5676,11 +6732,59 @@ const EditorPanel = ({
                       word-wrap: break-word;
                       max-width: ${autoWidth + 20}px;
                       line-height: 1.2;
+                      height: 36px;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
                     ">${item.name || item.label || 'Данные'}</div>
                   </div>
                 `;
               }).join('')}
             </div>
+            
+            ${showLegend ? `
+              <!-- Легенда с значениями -->
+              <div style="
+                margin-top: 16px;
+                display: flex;
+                justify-content: center;
+                flex-wrap: wrap;
+                gap: 8px;
+              ">
+                ${barData.map((item, index) => `
+                  <div style="
+                    background-color: ${item.color || '#1976d2'};
+                    color: white;
+                    font-size: 11px;
+                    font-weight: bold;
+                    padding: 4px 8px;
+                    border-radius: 12px;
+                    white-space: nowrap;
+                  ">${item.label || item.name}: ${item.value}</div>
+                `).join('')}
+              </div>
+            ` : ''}
+            
+            ${showStatistics ? `
+              <!-- Статистика -->
+              <div style="
+                margin-top: 16px;
+                padding-top: 16px;
+                border-top: 1px solid ${colorSettings.textFields?.grid || 'rgba(0,0,0,0.1)'};
+                text-align: center;
+              ">
+                <div style="
+                  color: ${colorSettings.textFields?.legend || '#1976d2'};
+                  font-size: 11px;
+                  font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
+                ">
+                  Элементов: ${barData.length} | 
+                  Максимум: ${maxBarValue} | 
+                  Среднее: ${barData.length > 0 ? (barData.reduce((sum, item) => sum + item.value, 0) / barData.length).toFixed(1) : 0} |
+                  Сумма: ${barData.reduce((sum, item) => sum + item.value, 0)}
+                </div>
+              </div>
+            ` : ''}
           </div>
         `;
       case 'advanced-line-chart':
@@ -5691,7 +6795,10 @@ const EditorPanel = ({
         console.log('element.customStyles:', element.customStyles);
         console.log('elementData.customStyles:', elementData.customStyles);
         
-        const chartLineData = Array.isArray(elementData.data) ? elementData.data : [
+        // Извлекаем данные с приоритетом: element.data.data > element.data > elementData.data > default
+        const chartLineData = (element.data?.data && Array.isArray(element.data.data)) ? element.data.data :
+                             (Array.isArray(element.data)) ? element.data :
+                             (Array.isArray(elementData.data)) ? elementData.data : [
           { name: 'Янв', value: 65 },
           { name: 'Фев', value: 59 },
           { name: 'Мар', value: 80 },
@@ -5700,13 +6807,22 @@ const EditorPanel = ({
           { name: 'Июн', value: 55 }
         ];
         
-        // Исправляем извлечение стилей - сначала из element.customStyles, потом из elementData.customStyles
+        // Извлекаем colorSettings с приоритетом
+        const chartLineColorSettings = element.colorSettings || elementData.colorSettings || {};
         const chartLineStyles = element.customStyles || elementData.customStyles || {};
-        const chartLineBackgroundColor = chartLineStyles.backgroundColor || 'rgba(0, 0, 0, 0.8)';
-        const chartLineTextColor = chartLineStyles.textColor || '#ffffff';
-        const chartLineTitleColor = chartLineStyles.titleColor || '#ffffff';
-        const chartStrokeColor = elementData.strokeColor || '#8884d8';
+        
+        // Получаем цвета из новой системы colorSettings с fallback на старые
+        const chartLineBackgroundColor = chartLineColorSettings.sectionBackground?.enabled 
+          ? (chartLineColorSettings.sectionBackground.useGradient 
+              ? `linear-gradient(${chartLineColorSettings.sectionBackground.gradientDirection}, ${chartLineColorSettings.sectionBackground.gradientColor1}, ${chartLineColorSettings.sectionBackground.gradientColor2})`
+              : chartLineColorSettings.sectionBackground.solidColor)
+          : (chartLineStyles.backgroundColor || 'rgba(0, 0, 0, 0.8)');
+        const chartLineTextColor = chartLineColorSettings.textFields?.axis || chartLineStyles.textColor || '#ffffff';
+        const chartLineTitleColor = chartLineColorSettings.textFields?.title || chartLineStyles.titleColor || '#ffffff';
+        // Извлекаем настройки линий с приоритетом
+        const chartStrokeColor = element.data?.lineColors?.[0] || element.lineColors?.[0] || elementData.strokeColor || elementData.lineColors?.[0] || '#8884d8';
         const chartFillColor = elementData.fillColor || 'rgba(136, 132, 216, 0.3)';
+        const chartGridColor = chartLineColorSettings.textFields?.grid || element.data?.gridColor || element.gridColor || elementData.gridColor || 'rgba(255,255,255,0.1)';
         
         const maxChartLineValue = Math.max(...chartLineData.map(d => d.value));
         const minChartLineValue = Math.min(...chartLineData.map(d => d.value));
@@ -5719,34 +6835,91 @@ const EditorPanel = ({
             background: ${chartLineBackgroundColor};
             border-radius: 8px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            max-width: 800px;
+            max-width: ${element.data?.maxWidth || element.maxWidth || elementData.maxWidth || '100%'};
+            width: ${element.data?.chartWidth || element.chartWidth || elementData.chartWidth || '100%'};
             margin-left: auto;
             margin-right: auto;
             position: relative;
             ${chartLineStyles.borderWidth ? `border: ${chartLineStyles.borderWidth}px solid ${chartLineStyles.borderColor || 'transparent'};` : ''}
           ">
             <h3 style="
-              margin-bottom: 2rem;
+              margin-bottom: ${element.data?.description || element.description || elementData.description ? '1rem' : '2rem'};
               color: ${chartLineTitleColor};
               font-size: 1.25rem;
               font-weight: bold;
               text-align: center;
               font-family: 'Montserrat', sans-serif;
-            ">${elementData.title || 'Линейный график'}</h3>
+            ">${element.data?.title || element.title || elementData.title || 'Линейный график'}</h3>
+            
+            ${element.data?.description || element.description || elementData.description ? `
+              <p style="
+                margin-bottom: 2rem;
+                color: ${chartLineColorSettings.textFields?.legend || chartLineStyles.legendColor || '#333333'};
+                font-size: 0.9rem;
+                line-height: 1.5;
+                text-align: center;
+                max-width: 800px;
+                margin-left: auto;
+                margin-right: auto;
+                font-family: 'Montserrat', sans-serif;
+              ">${element.data?.description || element.description || elementData.description}</p>
+            ` : ''}
             
             <div style="
               position: relative;
-              height: 400px;
+              height: 450px;
               padding: 20px;
               background: rgba(255,255,255,0.05);
               border-radius: 8px;
               border: 1px solid rgba(255,255,255,0.1);
             ">
-              <svg width="100%" height="100%" viewBox="0 0 800 350" style="overflow: visible;">
+              <style>
+                /* Стили для точек графика */
+                .chart-point-1, .chart-point-2 {
+                  cursor: pointer;
+                  transition: all 0.2s ease;
+                }
+                /* Hover эффекты для точек графика */
+                .chart-point-1:hover, .chart-point-2:hover {
+                  stroke: rgba(255,255,255,0.3) !important;
+                  stroke-width: 8 !important;
+                }
+                /* Улучшение линий сетки */
+                line[stroke-dasharray="3,3"] {
+                  pointer-events: none;
+                }
+                /* Hover эффекты для круговых точек */
+                circle[class*="chart-point"]:hover {
+                  filter: drop-shadow(0 0 4px rgba(255,255,255,0.5));
+                }
+                /* Стили для невидимых областей - убираем hover эффект */
+                rect[class*="chart-point"] {
+                  cursor: pointer;
+                }
+                
+                /* Стили для кастомных tooltip'ов */
+                .chart-tooltip-${elementId} {
+                  animation: tooltipFadeIn 0.2s ease-out;
+                }
+                
+                @keyframes tooltipFadeIn {
+                  from {
+                    opacity: 0;
+                    transform: translateY(5px);
+                  }
+                  to {
+                    opacity: 1;
+                    transform: translateY(0);
+                  }
+                }
+                
+
+              </style>
+              <svg width="100%" height="100%" viewBox="0 0 800 400" style="overflow: visible;">
                 <!-- Сетка -->
                 <defs>
                   <pattern id="grid-${elementId}" width="80" height="70" patternUnits="userSpaceOnUse">
-                                         <path d="M 80 0 L 0 0 0 70" fill="none" stroke="${chartLineStyles.gridColor || 'rgba(255,255,255,0.1)'}" stroke-width="1" opacity="0.3"/>
+                                         <path d="M 80 0 L 0 0 0 70" fill="none" stroke="${chartGridColor}" stroke-width="1" opacity="0.3"/>
                    </pattern>
                  </defs>
                  <rect width="100%" height="100%" fill="url(#grid-${elementId})" />
@@ -5754,56 +6927,544 @@ const EditorPanel = ({
                  <!-- Область под линией -->
                  <defs>
                    <linearGradient id="areaGradient-${elementId}" x1="0%" y1="0%" x2="0%" y2="100%">
-                     <stop offset="0%" style="stop-color:${chartFillColor};stop-opacity:0.8" />
-                     <stop offset="100%" style="stop-color:${chartFillColor};stop-opacity:0.1" />
+                     <stop offset="0%" style="stop-color:${chartLineColorSettings.lineColors?.line1 || element.data?.lineColors?.[0] || element.lineColors?.[0] || elementData.lineColors?.[0] || '#8884d8'};stop-opacity:0.3" />
+                     <stop offset="100%" style="stop-color:${chartLineColorSettings.lineColors?.line1 || element.data?.lineColors?.[0] || element.lineColors?.[0] || elementData.lineColors?.[0] || '#8884d8'};stop-opacity:0.1" />
                    </linearGradient>
                  </defs>
                  
                  ${(() => {
-                   const points = chartLineData.map((item, index) => {
-                     const x = 50 + (index * (700 / (chartLineData.length - 1)));
-                     const normalizedValue = chartLineRange === 0 ? 0.5 : (item.value - minChartLineValue) / chartLineRange;
-                     const y = 300 - (normalizedValue * 250);
+                   // Получаем цвета линий
+                   const lineColors = [
+                     chartLineColorSettings.lineColors?.line1 || element.data?.lineColors?.[0] || element.lineColors?.[0] || elementData.lineColors?.[0] || '#8884d8',
+                     chartLineColorSettings.lineColors?.line2 || element.data?.lineColors?.[1] || element.lineColors?.[1] || elementData.lineColors?.[1] || '#82ca9d'
+                   ];
+                   const lineNames = element.data?.lineNames || element.lineNames || elementData.lineNames || ['Линия 1', 'Линия 2'];
+                   
+                   // Переменные будут доступны в JavaScript коде через глобальные объекты
+                   
+                   // Переменные будут доступны в JavaScript коде через data-атрибуты
+                   
+                   // Вычисляем общий диапазон для всех значений (начиная от 0)
+                   const allValues = [];
+                   chartLineData.forEach(item => {
+                     if (typeof item.value === 'number') allValues.push(item.value);
+                     if (typeof item.value2 === 'number') allValues.push(item.value2);
+                   });
+                   const globalMin = 0; // Всегда начинаем от 0
+                   const globalMax = Math.max(...allValues);
+                   const globalRange = globalMax - globalMin;
+                   
+                   // Создаем точки для первой линии
+                   const points1 = chartLineData.map((item, index) => {
+                     const x = 80 + (index * (640 / (chartLineData.length - 1)));
+                     const normalizedValue = globalRange === 0 ? 0.5 : (item.value - globalMin) / globalRange;
+                     const y = 280 - (normalizedValue * 240);
                      return { x, y, value: item.value, name: item.name };
                    });
                    
-                   const pathData = points.map((point, index) => 
+                   // Создаем точки для второй линии (если есть value2)
+                   const hasSecondLine = chartLineData.some(item => typeof item.value2 === 'number');
+                   const points2 = hasSecondLine ? chartLineData.map((item, index) => {
+                     const x = 80 + (index * (640 / (chartLineData.length - 1)));
+                     const normalizedValue = globalRange === 0 ? 0.5 : ((item.value2 || 0) - globalMin) / globalRange;
+                     const y = 280 - (normalizedValue * 240);
+                     return { x, y, value: item.value2 || 0, name: item.name };
+                   }) : [];
+                   
+                   // Создаем пути для линий
+                   const pathData1 = points1.map((point, index) => 
                      index === 0 ? `M ${point.x} ${point.y}` : `L ${point.x} ${point.y}`
                    ).join(' ');
                    
-                   const areaPath = `M 50 300 L ${points.map(p => `${p.x} ${p.y}`).join(' L ')} L ${points[points.length - 1].x} 300 Z`;
+                   const pathData2 = hasSecondLine ? points2.map((point, index) => 
+                     index === 0 ? `M ${point.x} ${point.y}` : `L ${point.x} ${point.y}`
+                   ).join(' ') : '';
+                   
+                   // Создаем область заливки для первой линии
+                   const areaPath = `M 80 280 L ${points1.map(p => `${p.x} ${p.y}`).join(' L ')} L ${points1[points1.length - 1].x} 280 Z`;
+                   
+                   // Генерируем шкалу Y
+                   const yAxisSteps = 5;
+                   const yAxisLabels = [];
+                   for (let i = 0; i <= yAxisSteps; i++) {
+                     const value = globalMin + (globalRange * i / yAxisSteps);
+                     const y = 280 - (i * 240 / yAxisSteps);
+                     yAxisLabels.push({ y, value: Math.round(value) });
+                   }
                    
                    return `
-                     <!-- Область заливки -->
-                     <path d="${areaPath}" fill="url(#areaGradient-${elementId})" />
+                     <!-- Ось Y -->
+                     <line x1="50" y1="40" x2="50" y2="280" stroke="${chartLineTextColor}" stroke-width="1" opacity="0.5"/>
                      
-                     <!-- Основная линия -->
-                     <path d="${pathData}" fill="none" stroke="${chartStrokeColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
-                     
-                     <!-- Точки данных -->
-                     ${points.map(point => `
-                       <circle cx="${point.x}" cy="${point.y}" r="6" fill="${chartStrokeColor}" stroke="white" stroke-width="2" />
-                       <circle cx="${point.x}" cy="${point.y}" r="12" fill="transparent" stroke="transparent" stroke-width="8">
-                         <title>${point.name}: ${point.value}</title>
-                       </circle>
+                     <!-- Шкала Y -->
+                     ${yAxisLabels.map(label => `
+                       <line x1="45" y1="${label.y}" x2="55" y2="${label.y}" stroke="${chartLineTextColor}" stroke-width="1" opacity="0.5"/>
+                       <text x="40" y="${label.y + 4}" text-anchor="end" fill="${chartLineTextColor}" font-size="10" font-family="Montserrat">
+                         ${label.value}
+                       </text>
                      `).join('')}
                      
-                     <!-- Подписи осей -->
-                     ${points.map((point, index) => `
-                       <text x="${point.x}" y="330" text-anchor="middle" fill="${chartLineTextColor}" font-size="12" font-family="Montserrat">
+                     <!-- Горизонтальные линии сетки -->
+                     ${yAxisLabels.map(label => `
+                       <line x1="100" y1="${label.y}" x2="720" y2="${label.y}" stroke="${chartLineTextColor}" stroke-width="1" opacity="0.1" stroke-dasharray="3,3"/>
+                     `).join('')}
+                     
+                     <!-- Ось X -->
+                     <line x1="50" y1="280" x2="750" y2="280" stroke="${chartLineTextColor}" stroke-width="1" opacity="0.5"/>
+                     
+                     <!-- Вертикальные линии сетки для месяцев -->
+                     ${points1.map(point => `
+                       <line x1="${point.x}" y1="40" x2="${point.x}" y2="280" stroke="${chartLineTextColor}" stroke-width="1" opacity="0.1" stroke-dasharray="3,3"/>
+                     `).join('')}
+                     
+                     <!-- Область заливки для первой линии -->
+                     <path d="${areaPath}" fill="url(#areaGradient-${elementId})" />
+                     
+                     <!-- Первая линия -->
+                     <path d="${pathData1}" fill="none" stroke="${chartLineColorSettings.lineColors?.line1 || element.data?.lineColors?.[0] || element.lineColors?.[0] || elementData.lineColors?.[0] || '#8884d8'}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+                     
+                     <!-- Точки первой линии -->
+                     ${points1.map((point, index) => {
+                       const secondLinePoint = points2[index];
+                       const secondLineValue = secondLinePoint ? secondLinePoint.value : null;
+                                                const tooltipText = secondLineValue 
+                           ? `${point.name}\n${element.data?.lineNames?.[0] || element.lineNames?.[0] || elementData.lineNames?.[0] || 'Линия 1'}: ${point.value}\n${element.data?.lineNames?.[1] || element.lineNames?.[1] || elementData.lineNames?.[1] || 'Линия 2'}: ${secondLineValue}`
+                           : `${point.name}\n${element.data?.lineNames?.[0] || element.lineNames?.[0] || elementData.lineNames?.[0] || 'Линия 1'}: ${point.value}`;
+                       
+                       return `
+                         <circle cx="${point.x}" cy="${point.y}" r="4" fill="${chartLineColorSettings.lineColors?.line1 || element.data?.lineColors?.[0] || element.lineColors?.[0] || elementData.lineColors?.[0] || '#8884d8'}" stroke="white" stroke-width="2" />
+                         <circle cx="${point.x}" cy="${point.y}" r="8" fill="transparent" stroke="transparent" stroke-width="6" class="chart-point-1" data-index="${index}">
+                         </circle>
+                         <!-- Невидимая область для лучшего взаимодействия с tooltip -->
+                         <rect x="${point.x - 15}" y="${point.y - 15}" width="30" height="30" fill="transparent" class="chart-point-1" data-index="${index}">
+                         </rect>
+                       `;
+                     }).join('')}
+                     
+                     ${hasSecondLine ? `
+                       <!-- Вторая линия -->
+                       <path d="${pathData2}" fill="none" stroke="${chartLineColorSettings.lineColors?.line2 || element.data?.lineColors?.[1] || element.lineColors?.[1] || elementData.lineNames?.[1] || '#82ca9d'}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+                       
+                       <!-- Точки второй линии -->
+                       ${points2.map((point, index) => {
+                         const firstLinePoint = points1[index];
+                         const firstLineValue = firstLinePoint ? firstLinePoint.value : null;
+                         const tooltipText = firstLineValue 
+                           ? `${point.name}\n${element.data?.lineNames?.[0] || element.lineNames?.[0] || elementData.lineNames?.[0] || 'Линия 1'}: ${firstLineValue}\n${element.data?.lineNames?.[1] || element.lineNames?.[1] || elementData.lineNames?.[1] || 'Линия 2'}: ${point.value}`
+                           : `${point.name}\n${element.data?.lineNames?.[1] || element.lineNames?.[1] || elementData.lineNames?.[1] || 'Линия 2'}: ${point.value}`;
+                         
+                         return `
+                           <circle cx="${point.x}" cy="${point.y}" r="4" fill="${chartLineColorSettings.lineColors?.line2 || element.data?.lineColors?.[1] || element.lineColors?.[1] || elementData.lineColors?.[1] || '#82ca9d'}" stroke="white" stroke-width="2" />
+                           <circle cx="${point.x}" cy="${point.y}" r="8" fill="transparent" stroke="transparent" stroke-width="6" class="chart-point-2" data-index="${index}">
+                           </circle>
+                           <!-- Невидимая область для лучшего взаимодействия с tooltip -->
+                           <rect x="${point.x - 15}" y="${point.y - 15}" width="30" height="30" fill="transparent" class="chart-point-2" data-index="${index}">
+                           </rect>
+                         `;
+                       }).join('')}
+                     ` : ''}
+                     
+                     <!-- Подписи оси X -->
+                     ${points1.map((point, index) => `
+                       <text x="${point.x}" y="300" text-anchor="middle" fill="${chartLineTextColor}" font-size="12" font-family="Montserrat">
                          ${point.name}
                        </text>
                      `).join('')}
                      
-                     <!-- Значения -->
-                     ${points.map(point => `
-                       <text x="${point.x}" y="${point.y - 15}" text-anchor="middle" fill="${chartLineTextColor}" font-size="11" font-weight="bold" opacity="0.8">
-                         ${point.value}
-                       </text>
-                     `).join('')}
+                     <!-- Легенда внизу (вертикально) -->
+                     <g transform="translate(80, 320)">
+                       <!-- Первая линия -->
+                       <rect x="0" y="0" width="15" height="3" fill="${chartLineColorSettings.lineColors?.line1 || element.data?.lineColors?.[0] || element.lineColors?.[0] || elementData.lineColors?.[0] || '#8884d8'}"/>
+                       <text x="20" y="8" fill="${chartLineColorSettings.lineColors?.line1 || element.data?.lineColors?.[0] || element.lineColors?.[0] || elementData.lineColors?.[0] || '#8884d8'}" font-size="12" font-family="Montserrat">${element.data?.lineNames?.[0] || element.lineNames?.[0] || elementData.lineNames?.[0] || 'Линия 1'}</text>
+                       ${hasSecondLine ? `
+                         <!-- Вторая линия (под первой) -->
+                         <rect x="0" y="20" width="15" height="3" fill="${chartLineColorSettings.lineColors?.line2 || element.data?.lineColors?.[1] || element.lineColors?.[1] || elementData.lineColors?.[1] || '#82ca9d'}"/>
+                         <text x="20" y="28" fill="${chartLineColorSettings.lineColors?.line2 || element.data?.lineColors?.[1] || element.lineColors?.[1] || elementData.lineColors?.[1] || '#82ca9d'}" font-size="12" font-family="Montserrat">${element.data?.lineNames?.[1] || element.lineNames?.[1] || elementData.lineNames?.[1] || 'Линия 2'}</text>
+                       ` : ''}
+                     </g>
                   `;
                 })()}
               </svg>
+              
+
+              
+              <!-- JavaScript для умных всплывающих подсказок -->
+              <script>
+                (function() {
+                  const chartContainer = document.getElementById('${elementId}') || document.querySelector('.chart-component');
+                  const svg = chartContainer ? chartContainer.querySelector('svg') : null;
+                  
+                  // Проверяем, что необходимые элементы найдены
+                  if (!chartContainer || !svg) {
+                    console.error('❌ Chart container or SVG not found');
+                    return;
+                  }
+                  let tooltip = null;
+                  
+                  // Определяем данные для tooltip'ов напрямую
+                  const chartData = ${JSON.stringify(chartLineData)};
+                  const lineNames = ${JSON.stringify(element.data?.lineNames || element.lineNames || elementData.lineNames || ['Линия 1', 'Линия 2'])};
+                  const lineColors = ${JSON.stringify([
+                    chartLineColorSettings.lineColors?.line1 || element.data?.lineColors?.[0] || element.lineColors?.[0] || elementData.lineColors?.[0] || '#8884d8',
+                    chartLineColorSettings.lineColors?.line2 || element.data?.lineColors?.[1] || element.lineColors?.[1] || elementData.lineColors?.[1] || '#82ca9d'
+                  ])};
+                  
+                  // Функция для создания tooltip
+                  function createTooltip() {
+                    if (tooltip) return;
+                    
+                    tooltip = document.createElement('div');
+                    tooltip.style.cssText = \`
+                      position: fixed;
+                      background: rgba(0, 0, 0, 0.95);
+                      color: white;
+                      padding: 12px 16px;
+                      border-radius: 8px;
+                      font-family: 'Montserrat', sans-serif;
+                      font-size: 13px;
+                      line-height: 1.5;
+                      pointer-events: none;
+                      z-index: 10000;
+                      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+                      border: 1px solid rgba(255,255,255,0.2);
+                      min-width: 160px;
+                      backdrop-filter: blur(10px);
+                      -webkit-backdrop-filter: blur(10px);
+                      white-space: pre-line;
+                    \`;
+                    tooltip.className = 'chart-tooltip-${elementId}';
+                    document.body.appendChild(tooltip);
+                  }
+                  
+                  // Функция для определения ближайшей точки
+                  function findNearestPoint(mouseX, mouseY) {
+                    const chartRect = svg.getBoundingClientRect();
+                    const relativeX = mouseX - chartRect.left;
+                    const relativeY = mouseY - chartRect.top;
+                    
+                    // Получаем все точки графика с правильными индексами
+                    const points1 = Array.from(svg.querySelectorAll('.chart-point-1')).map((point, index) => {
+                      const cx = parseFloat(point.getAttribute('cx') || '0');
+                      const cy = parseFloat(point.getAttribute('cy') || '0');
+                      // Используем data-index атрибут, если он есть, иначе используем порядковый индекс
+                      const dataIndex = point.getAttribute('data-index');
+                      const pointIndex = dataIndex !== null ? parseInt(dataIndex) : index;
+                      return { x: cx, y: cy, index: pointIndex, line: 1 };
+                    });
+                    
+                    const points2 = Array.from(svg.querySelectorAll('.chart-point-2')).map((point, index) => {
+                      const cx = parseFloat(point.getAttribute('cx') || '0');
+                      const cy = parseFloat(point.getAttribute('cy') || '0');
+                      // Используем data-index атрибут, если он есть, иначе используем порядковый индекс
+                      const dataIndex = point.getAttribute('data-index');
+                      const pointIndex = dataIndex !== null ? parseInt(dataIndex) : index;
+                      return { x: cx, y: cy, index: pointIndex, line: 2 };
+                    });
+                    
+                    const allPoints = [...points1, ...points2];
+                    
+                    // Находим ближайшую точку с учетом радиуса взаимодействия
+                    let nearestPoint = null;
+                    let minDistance = Infinity;
+                    const interactionRadius = 30; // Увеличиваем радиус для лучшего взаимодействия
+                    
+                    allPoints.forEach(point => {
+                      const distance = Math.sqrt(
+                        Math.pow(relativeX - point.x, 2) + 
+                        Math.pow(relativeY - point.y, 2)
+                      );
+                      
+                      // Если точка в радиусе взаимодействия и ближе предыдущей
+                      if (distance <= interactionRadius && distance < minDistance) {
+                        minDistance = distance;
+                        nearestPoint = point;
+                      }
+                    });
+                    
+                    // Если не нашли точку в радиусе, ищем ближайшую в пределах большего радиуса
+                    if (!nearestPoint) {
+                      const extendedRadius = 50; // Увеличиваем расширенный радиус
+                      allPoints.forEach(point => {
+                        const distance = Math.sqrt(
+                          Math.pow(relativeX - point.x, 2) + 
+                          Math.pow(relativeY - point.y, 2)
+                        );
+                        
+                        if (distance <= extendedRadius && distance < minDistance) {
+                          minDistance = distance;
+                          nearestPoint = point;
+                        }
+                      });
+                    }
+                    
+                    // Отладочная информация
+                    if (nearestPoint) {
+                      console.log('🎯 Nearest point found:', {
+                        index: nearestPoint.index,
+                        line: nearestPoint.line,
+                        distance: minDistance,
+                        pointX: nearestPoint.x,
+                        pointY: nearestPoint.y,
+                        mouseRelativeX: relativeX,
+                        mouseRelativeY: relativeY
+                      });
+                      
+                      // Дополнительная отладка для понимания проблемы с индексами
+                      console.log('🔍 Points1 indices:', points1.map(p => p.index));
+                      console.log('🔍 Points2 indices:', points2.map(p => p.index));
+                      console.log('🔍 All points indices:', allPoints.map(p => p.index));
+                    }
+                    
+                    return nearestPoint;
+                  }
+                  
+                  // Функция для показа tooltip
+                  function showTooltip(mouseX, mouseY) {
+                    console.log('🔍 showTooltip called with:', { mouseX, mouseY });
+                    console.log('🔍 chartData:', chartData);
+                    console.log('🔍 lineNames:', lineNames);
+                    console.log('🔍 lineColors:', lineColors);
+                    
+                    const nearestPoint = findNearestPoint(mouseX, mouseY);
+                    if (!nearestPoint) {
+                      console.log('❌ No nearest point found');
+                      return;
+                    }
+                    
+                    console.log('🎯 Nearest point:', nearestPoint);
+                    
+                    createTooltip();
+                    
+                    // Получаем данные для tooltip
+                    const pointData = chartData[nearestPoint.index];
+                    
+                    // Проверяем, что индекс находится в допустимых пределах
+                    if (nearestPoint.index < 0 || nearestPoint.index >= chartData.length) {
+                      console.error('❌ Invalid index:', nearestPoint.index, 'chartData length:', chartData.length);
+                      hideTooltip();
+                      return;
+                    }
+                    
+                    // Проверяем, что данные существуют
+                    if (!pointData) {
+                      console.error('❌ Point data not found for index:', nearestPoint.index, 'chartData:', chartData);
+                      hideTooltip();
+                      return;
+                    }
+                    
+                    // Проверяем, что chartData и lineNames существуют
+                    if (!chartData || !Array.isArray(chartData)) {
+                      console.error('❌ chartData is not an array:', chartData);
+                      hideTooltip();
+                      return;
+                    }
+                    
+                    if (!lineNames || !Array.isArray(lineNames)) {
+                      console.error('❌ lineNames is not an array:', lineNames);
+                      hideTooltip();
+                      return;
+                    }
+                    
+                    if (!lineColors || !Array.isArray(lineColors)) {
+                      console.error('❌ lineColors is not an array:', lineColors);
+                      hideTooltip();
+                      return;
+                    }
+                    
+                    // Формируем содержимое tooltip с улучшенным форматированием
+                    let tooltipContent = \`<strong>\${pointData.name || 'Точка ' + (nearestPoint.index + 1)}</strong>\`;
+                    
+                    // НОВЫЙ ПОРЯДОК: Зеленая строка ПЕРВАЯ, фиолетовая ВТОРАЯ
+                    console.log('🔍 [TOOLTIP DEBUG] value2:', pointData.value2, 'value:', pointData.value);
+                    console.log('🔍 [TOOLTIP DEBUG] lineColors:', lineColors);
+                    console.log('🔍 [TOOLTIP DEBUG] lineNames:', lineNames);
+                    
+                    // 1. ЗЕЛЕНАЯ строка ПЕРВАЯ (Капитализация рынка - value2)
+                    if (pointData.value2 !== undefined) {
+                      tooltipContent += \`\n<span style="color: \${lineColors[1]}">●</span> <span style="color: \${lineColors[1]}">\${lineNames[1]}: <strong>\${pointData.value2}</strong></span>\`;
+                      console.log('🔍 [TOOLTIP DEBUG] Добавлена ЗЕЛЕНАЯ строка:', lineNames[1], pointData.value2);
+                    }
+                    
+                    // 2. ФИОЛЕТОВАЯ строка ВТОРАЯ (Объем инвестиций - value)
+                    if (pointData.value !== undefined) {
+                      tooltipContent += \`\n<span style="color: \${lineColors[0]}">●</span> <span style="color: \${lineColors[0]}">\${lineNames[0]}: <strong>\${pointData.value}</strong></span>\`;
+                      console.log('🔍 [TOOLTIP DEBUG] Добавлена ФИОЛЕТОВАЯ строка:', lineNames[0], pointData.value);
+                    }
+                    
+                    // Добавляем процентное соотношение (если есть вторая линия)
+                    if (pointData.value2 !== undefined && pointData.value > 0) {
+                      const percentage = ((pointData.value2 / pointData.value) * 100).toFixed(1);
+                      tooltipContent += \`\n<span style="opacity: 0.8; font-size: 11px; color: #cccccc;">⚖ \${percentage}%</span>\`;
+                    }
+                    
+                    tooltip.innerHTML = tooltipContent;
+                    
+                    // Улучшенное позиционирование tooltip с учетом границ экрана и элемента
+                    const chartRect = chartContainer ? chartContainer.getBoundingClientRect() : svg.getBoundingClientRect();
+                    const tooltipRect = tooltip.getBoundingClientRect();
+                    
+                    // Умное позиционирование в зависимости от положения курсора
+                    let left, top;
+                    
+                    // Определяем, где лучше показать tooltip
+                    const spaceOnRight = window.innerWidth - mouseX;
+                    const spaceOnLeft = mouseX;
+                    const tooltipWidth = tooltipRect.width + 30; // 15px отступ с каждой стороны
+                    
+                    // Если справа достаточно места, показываем справа
+                    if (spaceOnRight >= tooltipWidth) {
+                      left = mouseX + 15;
+                    } 
+                    // Если справа мало места, но слева много - показываем слева
+                    else if (spaceOnLeft >= tooltipWidth) {
+                      left = mouseX - tooltipRect.width - 15;
+                    }
+                    // Если нигде не хватает места, показываем по центру курсора
+                    else {
+                      left = mouseX - (tooltipRect.width / 2);
+                    }
+                    
+                    // Вертикальное позиционирование
+                    top = mouseY - tooltipRect.height / 2;
+                    
+                    // Проверяем границы экрана
+                    if (left < 0) left = 10;
+                    if (left + tooltipRect.width > window.innerWidth) {
+                      left = window.innerWidth - tooltipRect.width - 10;
+                    }
+                    if (top < 0) top = 10;
+                    if (top + tooltipRect.height > window.innerHeight) {
+                      top = window.innerHeight - tooltipRect.height - 10;
+                    }
+                    
+                    // Дополнительная проверка - tooltip не должен выходить за пределы элемента графика
+                    if (chartRect) {
+                      // Если tooltip выходит за левую границу элемента
+                      if (left < chartRect.left) {
+                        left = chartRect.left + 10;
+                      }
+                      
+                      // Если tooltip выходит за правую границу элемента
+                      if (left + tooltipRect.width > chartRect.right) {
+                        left = chartRect.right - tooltipRect.width - 10;
+                      }
+                      
+                      // Если tooltip выходит за верхнюю границу элемента
+                      if (top < chartRect.top) {
+                        top = chartRect.top + 10;
+                      }
+                      
+                      // Если tooltip выходит за нижнюю границу элемента
+                      if (top + tooltipRect.height > chartRect.bottom) {
+                        top = chartRect.bottom - tooltipRect.height - 10;
+                      }
+                    }
+                    
+                    // Применяем позицию
+                    tooltip.style.left = left + 'px';
+                    tooltip.style.top = top + 'px';
+                    
+                    // Отладочная информация (можно убрать в продакшене)
+                    console.log('🔍 Tooltip positioning:', {
+                      mouseX, mouseY,
+                      tooltipWidth: tooltipRect.width,
+                      tooltipHeight: tooltipRect.height,
+                      spaceOnRight,
+                      spaceOnLeft,
+                      finalLeft: left,
+                      finalTop: top,
+                      chartRect: chartRect ? {
+                        left: chartRect.left,
+                        right: chartRect.right,
+                        top: chartRect.top,
+                        bottom: chartRect.bottom
+                      } : null,
+                      chartContainer: chartContainer ? chartContainer.id : 'not found',
+                      svg: svg ? 'found' : 'not found'
+                    });
+                  }
+                  
+                  // Функция для скрытия tooltip
+                  function hideTooltip() {
+                    if (tooltip) {
+                      tooltip.remove();
+                      tooltip = null;
+                      isTooltipVisible = false;
+                    }
+                  }
+                  
+                  // Обработчики событий для SVG с улучшенным throttling для производительности
+                  let tooltipTimeout = null;
+                  let lastMouseX = null;
+                  let lastMouseY = null;
+                  let isTooltipVisible = false;
+                  
+                  svg.addEventListener('mousemove', function(e) {
+                    // Throttling для улучшения производительности
+                    if (tooltipTimeout) return;
+                    
+                    tooltipTimeout = setTimeout(() => {
+                      // Показываем tooltip только если он еще не видим или курсор значительно переместился
+                      if (!isTooltipVisible || 
+                          lastMouseX === null || 
+                          lastMouseY === null ||
+                          Math.abs(e.clientX - lastMouseX) > 5 || 
+                          Math.abs(e.clientY - lastMouseY) > 5) {
+                        showTooltip(e.clientX, e.clientY);
+                        isTooltipVisible = true;
+                      }
+                      
+                      // Обновляем последние координаты ПОСЛЕ показа tooltip
+                      lastMouseX = e.clientX;
+                      lastMouseY = e.clientY;
+                      
+                      tooltipTimeout = null;
+                    }, 20); // Увеличиваем интервал для лучшей производительности
+                  });
+                  
+                  svg.addEventListener('mouseleave', function() {
+                    if (tooltipTimeout) {
+                      clearTimeout(tooltipTimeout);
+                      tooltipTimeout = null;
+                    }
+                    hideTooltip();
+                    isTooltipVisible = false;
+                  });
+                  
+                  // Обработчики для точек графика и невидимых областей
+                  const chartPoints = svg.querySelectorAll('.chart-point-1, .chart-point-2');
+                  const invisibleRects = svg.querySelectorAll('rect[class*="chart-point"]');
+                  
+                  // Объединяем все элементы для обработки событий
+                  const allInteractiveElements = [...chartPoints, ...invisibleRects];
+                  
+                  allInteractiveElements.forEach(element => {
+                    element.addEventListener('mouseenter', function(e) {
+                      if (tooltipTimeout) {
+                        clearTimeout(tooltipTimeout);
+                        tooltipTimeout = null;
+                      }
+                      showTooltip(e.clientX, e.clientY);
+                      isTooltipVisible = true;
+                    });
+                    
+                    element.addEventListener('mouseleave', function() {
+                      hideTooltip();
+                    });
+                  });
+                  
+                  // Добавляем обработчик для клика по точкам (опционально)
+                  chartPoints.forEach(point => {
+                    point.addEventListener('click', function(e) {
+                      // Можно добавить дополнительную функциональность при клике
+                      const clickedPoint = findNearestPoint(e.clientX, e.clientY);
+                      if (clickedPoint) {
+                        console.log('Clicked on chart point:', clickedPoint);
+                      }
+                    });
+                  });
+                })();
+              </script>
             </div>
           </div>
         `;
@@ -5829,16 +7490,23 @@ const EditorPanel = ({
         
 
         
-        // Извлекаем стили - AdvancedPieChart использует отдельные props, не customStyles
+        // Извлекаем стили - AdvancedPieChart использует colorSettings с fallback на старые настройки
+        const pieColorSettings = element.colorSettings || elementData.colorSettings || {};
         const pieStyles = element.customStyles || elementData.customStyles || {};
-        const pieBackgroundColor = pieStyles.backgroundColor || element.backgroundColor || elementData.backgroundColor || '#ffffff';
-        const pieTextColor = pieStyles.textColor || element.legendColor || elementData.legendColor || '#333333';
-        const pieTitleColor = pieStyles.titleColor || element.titleColor || elementData.titleColor || '#1976d2';
-        const pieDescriptionColor = pieStyles.descriptionColor || '#cccccc';
-        const pieBorderColor = pieStyles.borderColor || 'transparent';
-        const pieBorderWidth = pieStyles.borderWidth || 0;
-        const piePadding = pieStyles.padding || element.padding || elementData.padding || 24;
-        const pieBorderRadius = pieStyles.borderRadius || element.borderRadius || elementData.borderRadius || 8;
+        
+        // Получаем цвета из новой системы colorSettings с fallback на старые
+        const pieBackgroundColor = pieColorSettings.sectionBackground?.enabled 
+          ? (pieColorSettings.sectionBackground.useGradient 
+              ? `linear-gradient(${pieColorSettings.sectionBackground.gradientDirection}, ${pieColorSettings.sectionBackground.gradientColor1}, ${pieColorSettings.sectionBackground.gradientColor2})`
+              : pieColorSettings.sectionBackground.solidColor)
+          : (pieStyles.backgroundColor || element.backgroundColor || elementData.backgroundColor || '#ffffff');
+        const pieTextColor = pieColorSettings.textFields?.legend || pieStyles.textColor || element.legendColor || elementData.legendColor || '#333333';
+        const pieTitleColor = pieColorSettings.textFields?.title || pieStyles.titleColor || element.titleColor || elementData.titleColor || '#1976d2';
+        const pieDescriptionColor = pieColorSettings.textFields?.description || '#cccccc';
+        const pieBorderColor = pieColorSettings.borderColor || pieStyles.borderColor || 'transparent';
+        const pieBorderWidth = pieColorSettings.borderWidth || pieStyles.borderWidth || 0;
+        const piePadding = pieColorSettings.padding || pieStyles.padding || element.padding || elementData.padding || 24;
+        const pieBorderRadius = pieColorSettings.borderRadius || pieStyles.borderRadius || element.borderRadius || elementData.borderRadius || 8;
         
         // Извлекаем цвета для сегментов
         const pieColors = element.pieColors || elementData.pieColors || ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#0088fe', '#00c49f', '#ffbb28', '#ff8042'];
@@ -5861,7 +7529,7 @@ const EditorPanel = ({
             background: ${pieBackgroundColor};
             border-radius: ${pieBorderRadius}px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            max-width: 800px;
+            max-width: 1200px;
             margin-left: auto;
             margin-right: auto;
             position: relative;
@@ -5869,6 +7537,8 @@ const EditorPanel = ({
           ">
             <h3 style="
               margin-bottom: 2rem;
+              margin-left: 2rem;
+              margin-right: 2rem;
               color: ${pieTitleColor};
               font-size: 1.25rem;
               font-weight: bold;
@@ -5878,12 +7548,12 @@ const EditorPanel = ({
             
             <div style="
               display: flex;
+              flex-direction: column;
               align-items: center;
-              justify-content: space-between;
-              gap: 12px;
+              gap: 24px;
             ">
-              <!-- Диаграмма -->
-              <div style="flex: 1; display: flex; justify-content: center;">
+              <!-- Диаграмма по центру -->
+              <div style="display: flex; justify-content: center;">
                 <svg width="300" height="300" viewBox="0 0 300 300" style="overflow: visible;">
                   <defs>
                     ${pieData.map((item, index) => `
@@ -5939,8 +7609,13 @@ const EditorPanel = ({
                         stroke-width="2"
                         filter="url(#shadow-${elementId}-${index})"
                         style="cursor: pointer; transition: all 0.3s ease;"
-                        onmouseover="this.style.transform='scale(1.05)'; this.style.transformOrigin='${centerX}px ${centerY}px';"
-                        onmouseout="this.style.transform='scale(1)';"
+                        class="pie-segment"
+                        data-index="${index}"
+                        data-name="${item.name}"
+                        data-value="${item.value}"
+                        data-percentage="${Math.round(percentage)}"
+                        data-color="${item.fill || item.color || '#8884d8'}"
+
                       />
                       ${percentage > 5 ? `
                         <text 
@@ -5952,7 +7627,9 @@ const EditorPanel = ({
                           font-size="12" 
                           font-weight="bold"
                           font-family="Montserrat"
-                          style="pointer-events: none;"
+                          style="pointer-events: none; transition: all 0.3s ease;"
+                          class="pie-segment-text"
+                          data-index="${index}"
                         >
                           ${Math.round(percentage)}%
                         </text>
@@ -5962,24 +7639,196 @@ const EditorPanel = ({
                 </svg>
               </div>
               
-              <!-- Легенда -->
+              <!-- JavaScript для умных всплывающих подсказок -->
+              <script>
+                (function() {
+                  const chartContainer = document.getElementById('${elementId}') || document.querySelector('.chart-component');
+                  const svg = chartContainer ? chartContainer.querySelector('svg') : null;
+                  
+                  // Проверяем, что необходимые элементы найдены
+                  if (!chartContainer || !svg) {
+                    console.error('❌ Chart container or SVG not found');
+                    return;
+                  }
+                  
+                  let tooltip = null;
+                  
+                  // Определяем данные для tooltip'ов напрямую
+                  const pieData = ${JSON.stringify(pieData)};
+                  const pieColors = ${JSON.stringify(pieColors)};
+                  
+                  // Функция для создания tooltip
+                  function createTooltip() {
+                    if (tooltip) return;
+                    
+                    tooltip = document.createElement('div');
+                    tooltip.style.cssText = \`
+                      position: fixed;
+                      background: rgba(0, 0, 0, 0.95);
+                      color: white;
+                      padding: 12px 16px;
+                      border-radius: 8px;
+                      font-family: 'Montserrat', sans-serif;
+                      font-size: 13px;
+                      line-height: 1.5;
+                      pointer-events: none;
+                      z-index: 10000;
+                      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+                      border: 1px solid rgba(255,255,255,0.2);
+                      min-width: 160px;
+                      backdrop-filter: blur(10px);
+                      -webkit-backdrop-filter: blur(10px);
+                      white-space: pre-line;
+                    \`;
+                    tooltip.className = 'pie-chart-tooltip-${elementId}';
+                    document.body.appendChild(tooltip);
+                  }
+                  
+                  // Функция для показа tooltip
+                  function showTooltip(mouseX, mouseY) {
+                    const chartRect = svg.getBoundingClientRect();
+                    const relativeX = mouseX - chartRect.left;
+                    const relativeY = mouseY - chartRect.top;
+                    
+                    // Находим ближайший сегмент
+                    const centerX = 150;
+                    const centerY = 150;
+                    const radius = 120;
+                    
+                    // Вычисляем расстояние от центра
+                    const distanceFromCenter = Math.sqrt(
+                      Math.pow(relativeX - centerX, 2) + 
+                      Math.pow(relativeY - centerY, 2)
+                    );
+                    
+                    // Если мышь находится в пределах диаграммы
+                    if (distanceFromCenter <= radius) {
+                      // Вычисляем угол от центра
+                      const angle = Math.atan2(relativeY - centerY, relativeX - centerX) * 180 / Math.PI;
+                      // Нормализуем угол (0-360 градусов)
+                      const normalizedAngle = (angle + 90 + 360) % 360;
+                      
+                      // Находим соответствующий сегмент
+                      let currentAngle = 0;
+                      let segmentIndex = -1;
+                      
+                      for (let i = 0; i < pieData.length; i++) {
+                        const percentage = (pieData[i].value / pieData.reduce((sum, item) => sum + item.value, 0)) * 100;
+                        const segmentAngle = (percentage / 100) * 360;
+                        
+                        if (normalizedAngle >= currentAngle && normalizedAngle <= currentAngle + segmentAngle) {
+                          segmentIndex = i;
+                          break;
+                        }
+                        currentAngle += segmentAngle;
+                      }
+                      
+                      if (segmentIndex !== -1) {
+                        const segment = pieData[segmentIndex];
+                        const total = pieData.reduce((sum, item) => sum + item.value, 0);
+                        const percentage = ((segment.value / total) * 100).toFixed(1);
+                        
+                        createTooltip();
+                        
+                        // Формируем содержимое tooltip
+                        const tooltipContent = \`
+                          <strong>\${segment.name}</strong>
+                          <span style="color: \${segment.fill || pieColors[segmentIndex % pieColors.length]}">●</span> <span style="color: \${segment.fill || pieColors[segmentIndex % pieColors.length]}">\${segment.value}</span>
+                        \`;
+                        
+                        tooltip.innerHTML = tooltipContent;
+                        
+                        // Позиционируем tooltip
+                        const tooltipRect = tooltip.getBoundingClientRect();
+                        let tooltipX = mouseX + 15;
+                        let tooltipY = mouseY - tooltipRect.height - 10;
+                        
+                        // Проверяем границы экрана
+                        if (tooltipX + tooltipRect.width > window.innerWidth) {
+                          tooltipX = mouseX - tooltipRect.width - 15;
+                        }
+                        if (tooltipY < 0) {
+                          tooltipY = mouseY + 20;
+                        }
+                        
+                        tooltip.style.left = tooltipX + 'px';
+                        tooltip.style.top = tooltipY + 'px';
+                        tooltip.style.display = 'block';
+                      }
+                    }
+                  }
+                  
+                  // Функция для скрытия tooltip
+                  function hideTooltip() {
+                    if (tooltip) {
+                      tooltip.style.display = 'none';
+                    }
+                  }
+                  
+                  // Добавляем обработчики событий
+                  svg.addEventListener('mousemove', (e) => {
+                    showTooltip(e.clientX, e.clientY);
+                  });
+                  
+                  svg.addEventListener('mouseleave', () => {
+                    hideTooltip();
+                  });
+                  
+                  // Анимация сегментов и текста при наведении
+                  const segments = svg.querySelectorAll('.pie-segment');
+                  const textElements = svg.querySelectorAll('.pie-segment-text');
+                  
+                  segments.forEach((segment, index) => {
+                    const textElement = textElements[index];
+                    const centerX = 150;
+                    const centerY = 150;
+                    
+                    segment.addEventListener('mouseenter', () => {
+                      // Анимируем сегмент
+                      segment.style.transform = 'scale(1.05)';
+                      segment.style.transformOrigin = centerX + 'px ' + centerY + 'px';
+                      
+                      // Анимируем текст вместе с сегментом
+                      if (textElement) {
+                        textElement.style.transform = 'scale(1.05)';
+                        textElement.style.transformOrigin = centerX + 'px ' + centerY + 'px';
+                      }
+                    });
+                    
+                    segment.addEventListener('mouseleave', () => {
+                      // Возвращаем сегмент в исходное состояние
+                      segment.style.transform = 'scale(1)';
+                      
+                      // Возвращаем текст в исходное состояние
+                      if (textElement) {
+                        textElement.style.transform = 'scale(1)';
+                      }
+                    });
+                  });
+                  
+                  // Очистка при уничтожении элемента
+                  window.addEventListener('beforeunload', () => {
+                    if (tooltip && tooltip.parentNode) {
+                      tooltip.parentNode.removeChild(tooltip);
+                    }
+                  });
+                })();
+              </script>
+              
+              <!-- Легенда снизу в несколько строк -->
               <div style="
-                flex: 0 0 200px;
                 display: flex;
-                flex-direction: column;
-                gap: 12px;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 20px;
+                max-width: 600px;
               ">
                 ${pieData.map((item, index) => {
-                  const percentage = ((item.value / total) * 100).toFixed(1);
                   return `
                     <div style="
                       display: flex;
                       align-items: center;
                       gap: 8px;
-                      padding: 8px 12px;
-                      background: rgba(255,255,255,0.1);
-                      border-radius: 6px;
-                      border-left: 4px solid ${item.fill || item.color || '#8884d8'};
                     ">
                       <div style="
                         width: 12px;
@@ -5988,19 +7837,13 @@ const EditorPanel = ({
                         border-radius: 2px;
                         flex-shrink: 0;
                       "></div>
-                      <div style="flex: 1;">
-                        <div style="
-                          color: ${pieTextColor};
-                          font-size: 13px;
-                          font-weight: 500;
-                          font-family: 'Montserrat', sans-serif;
-                        ">${item.name}</div>
-                        <div style="
-                          color: ${pieTextColor};
-                          font-size: 11px;
-                          opacity: 0.8;
-                        ">${item.value} (${percentage}%)</div>
-                      </div>
+                      <span style="
+                        color: ${item.fill || item.color || '#8884d8'};
+                        font-size: 12px;
+                        font-weight: 500;
+                        font-family: 'Montserrat', sans-serif;
+                        white-space: nowrap;
+                      ">${item.name}</span>
                     </div>
                   `;
                 }).join('')}
@@ -6107,13 +7950,49 @@ const EditorPanel = ({
         console.log('🔍 [DEBUG] areaChartData2:', areaChartData2);
         
         const areaChartTitle = element.title || elementData.title || 'Сравнительный анализ рыночной капитализации Bitcoin и Ethereum в контексте инвестиционной активности в ОАЭ за последние месяцы';
-        const areaChartTitleColor = element.titleColor || elementData.titleColor || '#333333';
-        const areaChartBorderColor = element.borderColor || elementData.borderColor || 'rgb(75, 192, 192)';
-        const areaChartBackgroundColor = element.backgroundColor || elementData.backgroundColor || 'rgba(75, 192, 192, 0.2)';
+        
+        // Получаем настройки цветов из colorSettings с fallback на старые
+        const areaChartColorSettings = element.colorSettings || elementData.colorSettings || {};
+        const areaChartTitleColor = areaChartColorSettings.textFields?.title || element.titleColor || elementData.titleColor || '#333333';
+        const areaChartBorderColor = areaChartColorSettings.borderColor || element.borderColor || elementData.borderColor || 'rgb(75, 192, 192)';
+        const areaChartBackgroundColor = areaChartColorSettings.sectionBackground?.enabled 
+          ? (areaChartColorSettings.sectionBackground.useGradient 
+              ? `linear-gradient(${areaChartColorSettings.sectionBackground.gradientDirection}, ${areaChartColorSettings.sectionBackground.gradientColor1}, ${areaChartColorSettings.sectionBackground.gradientColor2})`
+              : areaChartColorSettings.sectionBackground.solidColor)
+          : (element.backgroundColor || elementData.backgroundColor || 'rgba(75, 192, 192, 0.2)');
+        const areaChartBorderRadius = areaChartColorSettings.borderRadius || element.borderRadius || elementData.borderRadius || 12;
+        const areaChartPadding = areaChartColorSettings.padding || element.padding || elementData.padding || 32;
+        const areaChartBoxShadow = areaChartColorSettings.boxShadow ? '0 4px 20px rgba(0,0,0,0.15)' : '0 4px 12px rgba(0,0,0,0.1)';
+        const areaChartBorderWidth = areaChartColorSettings.borderWidth || element.borderWidth || elementData.borderWidth || 0;
+        const areaChartBorderStyle = areaChartBorderWidth ? `${areaChartBorderWidth}px solid ${areaChartBorderColor}` : 'none';
+        
         const areaChartDatasetLabel = element.datasetLabel || elementData.datasetLabel || 'Область 1';
+        
+        // Извлекаем дополнительные цвета из colorSettings
+        const areaChartGridColor = areaChartColorSettings.gridSettings?.color || areaChartColorSettings.textFields?.grid || element.gridColor || elementData.gridColor || '#e0e0e0';
+        const areaChartAxisColor = areaChartColorSettings.textFields?.axisLabel || areaChartColorSettings.textFields?.axis || element.axisColor || elementData.axisColor || '#666666';
+        const areaChartLegendColor = areaChartColorSettings.textFields?.legendText || areaChartColorSettings.textFields?.legend || element.legendColor || elementData.legendColor || '#333333';
+        
+        // Извлекаем стиль сетки
+        const areaChartGridStyle = areaChartColorSettings.gridSettings?.style || 'dashed';
+        const areaChartGridWidth = areaChartColorSettings.gridSettings?.width || 1;
+        const areaChartAreaColor1 = areaChartColorSettings.areaColors?.area1 || element.areaColors?.[0] || elementData.areaColors?.[0] || '#8884d8';
+        const areaChartAreaColor2 = areaChartColorSettings.areaColors?.area2 || element.areaColors?.[1] || elementData.areaColors?.[1] || '#82ca9d';
         
         console.log('🔍 [DEBUG] areaChartTitle:', areaChartTitle);
         console.log('🔍 [DEBUG] areaChartTitleColor:', areaChartTitleColor);
+        console.log('🔍 [DEBUG] areaChartColorSettings:', areaChartColorSettings);
+        console.log('🔍 [DEBUG] areaChartBackgroundColor:', areaChartBackgroundColor);
+        console.log('🔍 [DEBUG] areaChartBorderRadius:', areaChartBorderRadius);
+        console.log('🔍 [DEBUG] areaChartPadding:', areaChartPadding);
+        console.log('🔍 [DEBUG] areaChartBoxShadow:', areaChartBoxShadow);
+        console.log('🔍 [DEBUG] areaChartBorderWidth:', areaChartBorderWidth);
+        console.log('🔍 [DEBUG] areaChartBorderStyle:', areaChartBorderStyle);
+        console.log('🔍 [DEBUG] areaChartGridColor:', areaChartGridColor);
+        console.log('🔍 [DEBUG] areaChartAxisColor:', areaChartAxisColor);
+        console.log('🔍 [DEBUG] areaChartLegendColor:', areaChartLegendColor);
+        console.log('🔍 [DEBUG] areaChartAreaColor1:', areaChartAreaColor1);
+        console.log('🔍 [DEBUG] areaChartAreaColor2:', areaChartAreaColor2);
         console.log('🔍 [DEBUG] Final data for SVG generation:');
         console.log('🔍 [DEBUG] - Labels:', areaChartLabels);
         console.log('🔍 [DEBUG] - Data1:', areaChartData1);
@@ -6128,47 +8007,97 @@ const EditorPanel = ({
 
         
         return `
+          <style>
+            @keyframes fadeIn {
+              from {
+                opacity: 0;
+                transform: translateY(20px);
+              }
+              to {
+                opacity: 1;
+                transform: translateY(0);
+              }
+            }
+            
+            .chart-component {
+              animation: fadeIn 0.8s ease-in-out;
+              opacity: 0;
+              animation-fill-mode: forwards;
+            }
+            
+            .chart-component svg {
+              animation: fadeIn 1.2s ease-in-out 0.3s;
+              opacity: 0;
+              animation-fill-mode: forwards;
+            }
+            
+            .chart-component h3 {
+              animation: fadeIn 0.6s ease-in-out 0.1s;
+              opacity: 0;
+              animation-fill-mode: forwards;
+            }
+            
+            .chart-component .legend {
+              animation: fadeIn 0.8s ease-in-out 0.5s;
+              opacity: 0;
+              animation-fill-mode: forwards;
+            }
+          </style>
           <div id="${elementId}" class="content-element chart-component" style="
             margin: 2rem 0;
             text-align: center;
-            padding: 2rem;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            max-width: 800px;
+            padding: ${areaChartPadding}px;
+            background: ${areaChartBackgroundColor};
+            border-radius: ${areaChartBorderRadius}px;
+            box-shadow: ${areaChartBoxShadow};
+            max-width: 1200px;
             margin-left: auto;
             margin-right: auto;
+            ${areaChartBorderStyle !== 'none' ? `border: ${areaChartBorderStyle};` : ''}
           ">
             <h3 style="
-              margin-bottom: 1rem;
+              margin-bottom: 2rem;
+              margin-left: 2rem;
+              margin-right: 2rem;
               color: ${areaChartTitleColor};
-              font-size: 1.5rem;
+              font-size: 1.25rem;
+              font-weight: bold;
+              text-align: center;
+              font-family: 'Montserrat', sans-serif;
             ">${areaChartTitle}</h3>
             <!-- Красивая статичная SVG диаграмма с областями -->
-            <div style="position: relative; width: 100%; height: 300px;">
-              <svg width="100%" height="100%" viewBox="0 0 700 300" style="border: 1px solid #e0e0e0; border-radius: 8px; background: #fafafa;">
-                <!-- Сетка -->
-                <defs>
-                  <pattern id="grid-${elementId}" width="100" height="50" patternUnits="userSpaceOnUse">
-                    <path d="M 100 0 L 0 0 0 50" fill="none" stroke="#f0f0f0" stroke-width="1"/>
-                  </pattern>
-                </defs>
-                <rect width="100%" height="100%" fill="url(#grid-${elementId})" />
+            <div style="position: relative; width: 100%; height: 400px; display: flex; justify-content: center; align-items: center;">
+              <svg width="100%" height="100%" viewBox="0 0 800 400" style="border: 1px solid ${areaChartBorderColor}; border-radius: 8px; background: ${areaChartBackgroundColor}; max-width: 100%;">
+                <!-- Горизонтальные линии сетки -->
+                ${(() => {
+                  const maxValue = Math.max(...areaChartData1, ...(areaChartData2 || []));
+                  const step = Math.ceil(maxValue / 5);
+                  const values = [];
+                  for (let i = 1; i <= 4; i++) { // Создаем 4 горизонтальные линии (не включая базовую)
+                    values.push(i * step);
+                  }
+                  return values.map(value => {
+                    const y = 300 - (value / maxValue) * 250;
+                    const dashArray = areaChartGridStyle === 'dotted' ? '2,2' : areaChartGridStyle === 'dashed' ? '5,5' : 'none';
+                    return `<line x1="100" y1="${y}" x2="700" y2="${y}" stroke="${areaChartGridColor}" stroke-width="${areaChartGridWidth}" stroke-dasharray="${dashArray}" opacity="0.3"/>`;
+                  }).join('');
+                })()}
                 
                 <!-- Вертикальные линии сетки -->
                 ${areaChartLabels.map((label, index) => {
-                  const x = 50 + (index * 600) / (areaChartLabels.length - 1);
-                  return `<line x1="${x}" y1="50" x2="${x}" y2="250" stroke="#f0f0f0" stroke-width="1" stroke-dasharray="3,3"/>`;
+                  const x = 100 + (index * 600) / (areaChartLabels.length - 1);
+                  const dashArray = areaChartGridStyle === 'dotted' ? '2,2' : areaChartGridStyle === 'dashed' ? '5,5' : 'none';
+                  return `<line x1="${x}" y1="50" x2="${x}" y2="300" stroke="${areaChartGridColor}" stroke-width="${areaChartGridWidth}" stroke-dasharray="${dashArray}"/>`;
                 }).join('')}
                 
                 <!-- Оси -->
-                <line x1="50" y1="250" x2="650" y2="250" stroke="#ccc" stroke-width="2"/>
-                <line x1="50" y1="50" x2="50" y2="250" stroke="#ccc" stroke-width="2"/>
+                <line x1="100" y1="300" x2="700" y2="300" stroke="${areaChartAxisColor}" stroke-width="${areaChartGridWidth + 1}"/>
+                <line x1="100" y1="50" x2="100" y2="300" stroke="${areaChartAxisColor}" stroke-width="${areaChartGridWidth + 1}"/>
                 
                 <!-- Подписи по оси X -->
                 ${areaChartLabels.map((label, index) => {
-                  const x = 50 + (index * 600) / (areaChartLabels.length - 1);
-                  return `<text x="${x}" y="270" text-anchor="middle" fill="#666" font-size="12">${label}</text>`;
+                  const x = 100 + (index * 600) / (areaChartLabels.length - 1);
+                  return `<text x="${x}" y="320" text-anchor="middle" fill="${areaChartAxisColor}" font-size="12">${label}</text>`;
                 }).join('')}
                 
                 <!-- Подписи по оси Y -->
@@ -6180,8 +8109,8 @@ const EditorPanel = ({
                     values.push(i * step);
                   }
                   return values.map(value => {
-                    const y = 250 - (value / maxValue) * 200;
-                    return `<text x="35" y="${y + 4}" text-anchor="end" fill="#666" font-size="10">${value}</text>`;
+                    const y = 300 - (value / maxValue) * 250;
+                    return `<text x="85" y="${y + 4}" text-anchor="end" fill="${areaChartAxisColor}" font-size="10">${value}</text>`;
                   }).join('');
                 })()}
                 
@@ -6191,15 +8120,15 @@ const EditorPanel = ({
                   
                   // Создаем точки для первой области
                   const points1 = areaChartData1.map((value, index) => {
-                    const x = 50 + (index * 600) / (areaChartData1.length - 1);
-                    const y = 250 - (value / maxValue) * 200;
+                    const x = 100 + (index * 600) / (areaChartData1.length - 1);
+                    const y = 300 - (value / maxValue) * 250;
                     return { x, y, value };
                   });
                   
                   // Создаем точки для второй области
                   const points2 = areaChartData2 ? areaChartData2.map((value, index) => {
-                    const x = 50 + (index * 600) / (areaChartData2.length - 1);
-                    const y = 250 - (value / maxValue) * 200;
+                    const x = 100 + (index * 600) / (areaChartData2.length - 1);
+                    const y = 300 - (value / maxValue) * 250;
                     console.log('🔧 [DEBUG] Point2', index, '- value:', value, 'maxValue:', maxValue, 'y:', y);
                     return { x, y, value };
                   }) : [];
@@ -6207,39 +8136,79 @@ const EditorPanel = ({
                   console.log('🔧 [DEBUG] points1 y-coordinates:', points1.map(p => p.y));
                   console.log('🔧 [DEBUG] points2 y-coordinates:', points2.map(p => p.y));
                   
-                  // Создаем path для первой области
-                  const path1 = `M ${points1.map(p => `${p.x},${p.y}`).join(' L ')} L ${points1[points1.length-1].x},250 L ${points1[0].x},250 Z`;
+                  // Проверяем, является ли диаграмма стековой
+                  const isStacked = element.stacked || elementData.stacked;
+                  console.log('🔧 [DEBUG] isStacked:', isStacked);
                   
-                  // Создаем path для второй области
-                  const path2 = points2.length > 0 ? `M ${points2.map(p => `${p.x},${p.y}`).join(' L ')} L ${points2[points2.length-1].x},250 L ${points2[0].x},250 Z` : '';
+                  let path1, path2 = '';
+                  
+                  if (isStacked && points2.length > 0) {
+                    // СТЕКОВАЯ ДИАГРАММА: как в Recharts
+                    // Первая область: от базовой линии до своих точек
+                    path1 = `M 100,300 L ${points1.map(p => `${p.x},${p.y}`).join(' L ')} L ${points1[points1.length-1].x},300 Z`;
+                    
+                    // Вторая область: от точек первой области до точек второй области
+                    // Начинаем с первой точки первой области, идем по второй области, возвращаемся по первой
+                    path2 = `M ${points1[0].x},${points1[0].y} L ${points2.map(p => `${p.x},${p.y}`).join(' L ')} L ${points1.slice().reverse().map(p => `${p.x},${p.y}`).join(' L ')} Z`;
+                  } else {
+                    // ОБЫЧНАЯ ДИАГРАММА: обе области от базовой линии
+                    path1 = `M 100,300 L ${points1.map(p => `${p.x},${p.y}`).join(' L ')} L ${points1[points1.length-1].x},300 Z`;
+                    if (points2.length > 0) {
+                      path2 = `M 100,300 L ${points2.map(p => `${p.x},${p.y}`).join(' L ')} L ${points2[points2.length-1].x},300 Z`;
+                    }
+                  }
+                  
+                  console.log('🔧 [DEBUG] Generated path1:', path1);
+                  console.log('🔧 [DEBUG] Generated path2:', path2);
+                  
+                  // Функция для затемнения цвета
+                  const darkenColor = (color, amount = 0.4) => {
+                    if (!color || !color.startsWith('#')) return color;
+                    const hex = color.replace('#', '');
+                    const r = Math.max(0, Math.floor(parseInt(hex.substr(0, 2), 16) * (1 - amount)));
+                    const g = Math.max(0, Math.floor(parseInt(hex.substr(2, 2), 16) * (1 - amount)));
+                    const b = Math.max(0, Math.floor(parseInt(hex.substr(4, 2), 16) * (1 - amount)));
+                    return '#' + r.toString(16).padStart(2, '0') + g.toString(16).padStart(2, '0') + b.toString(16).padStart(2, '0');
+                  };
+                  
+                  const darkerColor1 = darkenColor(areaChartAreaColor1);
+                  const darkerColor2 = darkenColor(areaChartAreaColor2);
+                  
+                  console.log('🎨 [DEBUG] Original colors:', areaChartAreaColor1, areaChartAreaColor2);
+                  console.log('🎨 [DEBUG] Darkened colors:', darkerColor1, darkerColor2);
                   
                   return `
-                    <!-- Debug info -->
-                    <text x="350" y="30" text-anchor="middle" fill="#999" font-size="10">
-                      Data: Bitcoin [${areaChartData1.join(',')}] | Ethereum [${areaChartData2.join(',')}]
-                    </text>
+                    <!-- DEBUG: color1=${areaChartAreaColor1} -> ${darkerColor1} -->
+                    <!-- DEBUG: color2=${areaChartAreaColor2} -> ${darkerColor2} -->
+                    
+                    <script>
+                      console.log('🎨 [HTML DEBUG] Original colors:', '${areaChartAreaColor1}', '${areaChartAreaColor2}');
+                      console.log('🎨 [HTML DEBUG] Darkened colors:', '${darkerColor1}', '${darkerColor2}');
+                    </script>
                     
                     <!-- Сначала рисуем первую область (будет внизу) -->
-                    <path d="${path1}" fill="rgba(0, 143, 251, 0.3)" stroke="rgb(0, 143, 251)" stroke-width="2" style="cursor: pointer;">
-                      <title>${(element.areaNames && element.areaNames[0]) || (elementData.areaNames && elementData.areaNames[0]) || 'Bitcoin'}: ${areaChartData1.join(', ')}</title>
+                    <path d="${path1}" fill="${areaChartAreaColor1}" stroke="${darkerColor1}" stroke-width="2" style="cursor: pointer; opacity: 0.7;">
                     </path>
                     
                     <!-- Потом рисуем вторую область (будет сверху и доступна для кликов) -->
-                    ${path2 ? `<path d="${path2}" fill="rgba(130, 202, 157, 0.3)" stroke="rgb(130, 202, 157)" stroke-width="2" style="cursor: pointer; pointer-events: all;">
-                      <title>${(element.areaNames && element.areaNames[1]) || (elementData.areaNames && elementData.areaNames[1]) || 'Ethereum'}: ${areaChartData2.join(', ')}</title>
+                    ${path2 ? `<path d="${path2}" fill="${areaChartAreaColor2}" stroke="${darkerColor2}" stroke-width="2" style="cursor: pointer; pointer-events: all; opacity: 0.7;">
+                    </path>` : ''}
+                    
+                    <!-- Перерисовываем контуры поверх областей для лучшей видимости -->
+                    <path d="${points1.map(p => `${p.x},${p.y}`).join(' L ')}" fill="none" stroke="${darkerColor1}" stroke-width="2" style="pointer-events: none;">
+                    </path>
+                    ${points2.length > 0 ? `<path d="${points2.map(p => `${p.x},${p.y}`).join(' L ')}" fill="none" stroke="${darkerColor2}" stroke-width="2" style="pointer-events: none;">
                     </path>` : ''}
                     
                     <!-- Точки первой линии -->
                     ${points1.map((point, index) => `
-                      <circle cx="${point.x}" cy="${point.y}" r="4" fill="rgb(0, 143, 251)" stroke="white" stroke-width="2">
-                        <title>${(element.areaNames && element.areaNames[0]) || (elementData.areaNames && elementData.areaNames[0]) || 'Bitcoin'}: ${point.value}</title>
+                      <circle cx="${point.x}" cy="${point.y}" r="4" fill="${areaChartAreaColor1}" stroke="white" stroke-width="2">
                       </circle>
                     `).join('')}
                     
                     <!-- Точки второй линии -->
                     ${points2.map((point, index) => `
-                      <circle cx="${point.x}" cy="${point.y}" r="4" fill="rgb(130, 202, 157)" stroke="white" stroke-width="2">
-                        <title>${(element.areaNames && element.areaNames[1]) || (elementData.areaNames && elementData.areaNames[1]) || 'Ethereum'}: ${point.value}</title>
+                      <circle cx="${point.x}" cy="${point.y}" r="4" fill="${areaChartAreaColor2}" stroke="white" stroke-width="2">
                       </circle>
                     `).join('')}
                   `;
@@ -6247,26 +8216,32 @@ const EditorPanel = ({
               </svg>
               
               <!-- Легенда -->
-              <div style="
+              <div class="legend" style="
                 position: absolute;
-                bottom: 10px;
-                left: 50%;
-                transform: translateX(-50%);
-                background: rgba(255,255,255,0.95);
-                padding: 8px 16px;
-                border-radius: 4px;
-                font-size: 12px;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                bottom: 20px;
+                left: 0;
+                right: 0;
+                margin: 0 auto;
+                width: fit-content;
+                background: transparent;
+                padding: 12px 20px;
+                border-radius: 6px;
+                font-size: 14px;
+                box-shadow: ${areaChartColorSettings.boxShadow ? '0 4px 20px rgba(0,0,0,0.15)' : '0 2px 4px rgba(0,0,0,0.1)'};
                 display: flex;
-                gap: 16px;
+                gap: 20px;
+                justify-content: center;
+                align-items: center;
+                min-width: 200px;
               ">
+                <!-- Меняем порядок: сначала вторая область (зеленая), потом первая (фиолетовая) -->
                 <div style="display: flex; align-items: center;">
-                  <div style="width: 12px; height: 12px; background: rgba(0, 143, 251, 0.7); margin-right: 5px; border-radius: 2px;"></div>
-                  <span style="font-weight: 500;">${(element.areaNames && element.areaNames[0]) || (elementData.areaNames && elementData.areaNames[0]) || 'Bitcoin'}</span>
+                  <div style="width: 16px; height: 16px; background: ${areaChartAreaColor2}; margin-right: 8px; border-radius: 3px;"></div>
+                  <span style="font-weight: 500; color: ${areaChartAreaColor2} !important;">${(element.areaNames && element.areaNames[1]) || (elementData.areaNames && elementData.areaNames[1]) || 'Капитализация рынка'}</span>
                 </div>
                 <div style="display: flex; align-items: center;">
-                  <div style="width: 12px; height: 12px; background: rgba(130, 202, 157, 0.7); margin-right: 5px; border-radius: 2px;"></div>
-                  <span style="font-weight: 500;">${(element.areaNames && element.areaNames[1]) || (elementData.areaNames && elementData.areaNames[1]) || 'Ethereum'}</span>
+                  <div style="width: 16px; height: 16px; background: ${areaChartAreaColor1}; margin-right: 8px; border-radius: 3px;"></div>
+                  <span style="font-weight: 500; color: ${areaChartAreaColor1} !important;">${(element.areaNames && element.areaNames[0]) || (elementData.areaNames && elementData.areaNames[0]) || 'Объем инвестиций'}</span>
                 </div>
               </div>
             </div>
@@ -6317,14 +8292,14 @@ const EditorPanel = ({
                   
                   // Создаем hover области для каждой точки данных
                   labels.forEach((label, index) => {
-                    const x = 50 + (index * 600) / (labels.length - 1);
+                    const x = 100 + (index * 600) / (labels.length - 1);
                     
                     // Создаем невидимый прямоугольник для hover
                     const hoverRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
                     hoverRect.setAttribute('x', x - 25);
                     hoverRect.setAttribute('y', 50);
                     hoverRect.setAttribute('width', 50);
-                    hoverRect.setAttribute('height', 200);
+                    hoverRect.setAttribute('height', 250);
                     hoverRect.setAttribute('fill', 'transparent');
                     hoverRect.setAttribute('stroke', 'none');
                     hoverRect.style.cursor = 'pointer';
@@ -6337,12 +8312,12 @@ const EditorPanel = ({
                       tooltip.innerHTML = \`
                         <div style="font-weight: bold; margin-bottom: 4px; color: #333; font-size: 13px;">\${label}</div>
                         <div style="display: flex; align-items: center; margin-bottom: 2px;">
-                          <div style="width: 12px; height: 12px; background: rgb(0, 143, 251); border-radius: 2px; margin-right: 6px;"></div>
-                          <span style="color: #666; font-size: 12px;">\${areaNames[0]}: <strong style="color: #333;">\${data1[index]}</strong></span>
+                          <div style="width: 12px; height: 12px; background: ${areaChartAreaColor2}; border-radius: 2px; margin-right: 6px;"></div>
+                          <span style="color: ${areaChartAreaColor2}; font-size: 12px;">\${areaNames[1]}: <strong style="color: #333;">\${data2[index]}</strong></span>
                         </div>
                         <div style="display: flex; align-items: center;">
-                          <div style="width: 12px; height: 12px; background: rgb(130, 202, 157); border-radius: 2px; margin-right: 6px;"></div>
-                          <span style="color: #666; font-size: 12px;">\${areaNames[1]}: <strong style="color: #333;">\${data2[index]}</strong></span>
+                          <div style="width: 12px; height: 12px; background: ${areaChartAreaColor1}; border-radius: 2px; margin-right: 6px;"></div>
+                          <span style="color: ${areaChartAreaColor1}; font-size: 12px;">\${areaNames[0]}: <strong style="color: #333;">\${data1[index]}</strong></span>
                         </div>
                       \`;
                       
@@ -6724,43 +8699,70 @@ const EditorPanel = ({
         `;
 
       case 'cta-section':
+        // Извлекаем colorSettings с fallback на старые настройки
+        const ctaColorSettings = element.colorSettings || element.data?.colorSettings || {};
+        const ctaCustomStyles = element.customStyles || element.data?.customStyles || {};
+        
+        // Получаем цвета из новой системы colorSettings с fallback на старые
+        const ctaBackgroundColor = ctaColorSettings.sectionBackground?.enabled 
+          ? (ctaColorSettings.sectionBackground.useGradient 
+              ? `linear-gradient(${ctaColorSettings.sectionBackground.gradientDirection}, ${ctaColorSettings.sectionBackground.gradientColor1}, ${ctaColorSettings.sectionBackground.gradientColor2})`
+              : ctaColorSettings.sectionBackground.solidColor)
+          : (ctaCustomStyles.backgroundColor || element.backgroundColor || element.data?.backgroundColor || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)');
+        
+        const ctaTitleColor = ctaColorSettings.textFields?.title || ctaCustomStyles.titleColor || element.titleColor || element.data?.titleColor || '#ffffff';
+        const ctaDescriptionColor = ctaColorSettings.textFields?.description || ctaCustomStyles.descriptionColor || element.descriptionColor || element.data?.descriptionColor || '#ffffff';
+        const ctaButtonColor = ctaColorSettings.textFields?.button || ctaCustomStyles.buttonColor || element.buttonColor || element.data?.buttonColor || '#ffffff';
+        const ctaButtonTextColor = ctaColorSettings.textFields?.buttonText || ctaCustomStyles.buttonTextColor || element.buttonTextColor || element.data?.buttonTextColor || '#333333';
+        const ctaBorderColor = ctaColorSettings.borderColor || ctaCustomStyles.borderColor || 'transparent';
+        const ctaBorderWidth = ctaColorSettings.borderWidth || ctaCustomStyles.borderWidth || 0;
+        const ctaPadding = ctaColorSettings.padding || ctaCustomStyles.padding || element.padding || element.data?.padding || 48;
+        const ctaBorderRadius = ctaColorSettings.borderRadius || ctaCustomStyles.borderRadius || element.borderRadius || element.data?.borderRadius || 12;
+        const ctaBoxShadow = ctaColorSettings.boxShadow ? '0 8px 32px rgba(0,0,0,0.2)' : '0 4px 15px rgba(0,0,0,0.2)';
+        
         return `
           <div id="${elementId}" class="content-element cta-section" style="
             margin: 2rem 0;
             text-align: center;
-            padding: 3rem 2rem;
-            background: ${element.backgroundColor || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'};
-            border-radius: 12px;
-            color: white;
-            max-width: 800px;
+            padding: ${ctaPadding}px 2rem;
+            background: ${ctaBackgroundColor};
+            border-radius: ${ctaBorderRadius}px;
+            color: ${ctaTitleColor};
+            max-width: 1200px;
             margin-left: auto;
             margin-right: auto;
+            ${ctaBorderWidth > 0 ? `border: ${ctaBorderWidth}px solid ${ctaBorderColor};` : ''}
+            box-shadow: ${ctaBoxShadow};
           ">
             <h2 style="
               margin-bottom: 1rem;
               font-size: 2rem;
-              color: inherit;
-            ">${element.title || 'Призыв к действию'}</h2>
+              color: ${ctaTitleColor};
+              font-family: 'Montserrat', sans-serif;
+              font-weight: bold;
+            ">${element.title || element.data?.title || 'Призыв к действию'}</h2>
             <p style="
               margin-bottom: 2rem;
               font-size: 1.1rem;
               line-height: 1.6;
-              color: inherit;
+              color: ${ctaDescriptionColor};
               opacity: 0.9;
-            ">${element.description || 'Описание призыва к действию'}</p>
+              font-family: 'Montserrat', sans-serif;
+            ">${element.description || element.data?.description || 'Описание призыва к действию'}</p>
             <button style="
               padding: 1rem 2rem;
-              background: ${element.buttonColor || '#ffffff'};
-              color: ${element.backgroundColor ? '#333333' : '#ffffff'};
+              background: ${ctaButtonColor};
+              color: ${ctaButtonTextColor};
               border: none;
-              border-radius: 25px;
+              border-radius: ${ctaColorSettings.textFields?.buttonBorderRadius || element.buttonBorderRadius || element.data?.buttonBorderRadius || 8}px;
               font-size: 1.1rem;
               font-weight: bold;
               cursor: pointer;
               transition: all 0.3s ease;
               box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+              font-family: 'Montserrat', sans-serif;
             " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-              ${element.buttonText || 'Начать сейчас'}
+              ${element.buttonText || element.data?.buttonText || 'Начать сейчас'}
             </button>
           </div>
         `;
@@ -7585,10 +9587,8 @@ const EditorPanel = ({
           ">
             <form 
               id="contactForm" 
-              method="POST"
               onsubmit="submitForm(event)"
             >
-              <input type="hidden" name="_next" value="merci.html" />
               <input type="hidden" name="_captcha" value="false" />
               <input type="hidden" name="_template" value="table" />
               <input type="hidden" name="_subject" value="New message from website" />
@@ -7732,20 +9732,24 @@ const EditorPanel = ({
                   localStorage.removeItem('contactFormData');
                   
                   // Send form data to Formspree
-                  const response = await fetch('https://formspree.io/f/mblyqyyj', {
+                  const response = await fetch('https://formspree.io/f/mvgwpqrr', {
                     method: 'POST',
                     body: formData,
                     headers: {
                       'Accept': 'application/json'
                     }
                   }).finally(() => {
-                    // Always redirect to merci.html
-                    window.location.href = 'merci.html';
+                    // Always redirect to merci.html with parameters
+                    const thankYouMessage = encodeURIComponent('${contactData?.thankYouMessage || 'Спасибо за обращение! Мы свяжемся с вами в ближайшее время.'}');
+                    const closeButtonText = encodeURIComponent('${contactData?.closeButtonText || 'Закрыть'}');
+                    window.location.href = \`merci.html?message=\${thankYouMessage}&closeButtonText=\${closeButtonText}\`;
                   });
                 } catch (error) {
                   console.error('Error sending form:', error);
-                  // Even on error, redirect to merci.html
-                  window.location.href = 'merci.html';
+                  // Even on error, redirect to merci.html with parameters
+                  const thankYouMessage = encodeURIComponent('${contactData?.thankYouMessage || 'Спасибо за обращение! Мы свяжемся с вами в ближайшее время.'}');
+                  const closeButtonText = encodeURIComponent('${contactData?.closeButtonText || 'Закрыть'}');
+                  window.location.href = \`merci.html?message=\${thankYouMessage}&closeButtonText=\${closeButtonText}\`;
                 }
                 
                 return false;
@@ -8035,6 +10039,192 @@ const EditorPanel = ({
         font-family: 'Roboto', sans-serif;
       }
 
+      /* Header styles for multi-page export */
+      .site-header { 
+        background: var(--header-bg-color, #fff); 
+        padding: 0.25rem 0.5rem; 
+        border-bottom: 1px solid #eee; 
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+      }
+
+      .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: nowrap;
+        max-width: 1200px;
+        margin: 0 auto;
+        gap: 0.5rem;
+      }
+
+      .site-branding {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        margin-right: 0.5rem;
+        flex-shrink: 0;
+      }
+
+      .site-title {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 700;
+      }
+
+      .site-nav {
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+      }
+
+      .site-title a {
+        color: var(--header-title-color, #333);
+        text-decoration: none;
+        transition: color 0.3s ease;
+      }
+
+      .site-title a:hover {
+        color: var(--header-title-color, #333);
+        opacity: 0.8;
+      }
+
+      .site-domain {
+        font-size: 0.9rem;
+        color: var(--header-title-color, #666);
+        opacity: 0.8;
+        margin-top: 4px;
+      }
+
+      .site-nav {
+        position: relative;
+      }
+
+      .menu-toggle {
+        display: none;
+        flex-direction: column;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0.5rem;
+        color: #1976d2;
+      }
+
+      .menu-toggle span {
+        width: 25px;
+        height: 3px;
+        background: var(--header-link-color, #1976d2) !important;
+        margin: 3px 0;
+        transition: 0.3s;
+      }
+
+      .nav-menu {
+        display: flex;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        gap: 0.5rem;
+        align-items: center;
+      }
+
+      .nav-menu li {
+        margin: 0;
+        list-style: none;
+      }
+
+      .nav-menu li a {
+        all: unset;
+        cursor: pointer;
+      }
+
+      .nav-menu a,
+      .nav-link {
+        color: var(--header-link-color, #333) !important;
+        text-decoration: none !important;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        padding: 0.125rem 0.25rem;
+        border-radius: 4px;
+        background: transparent !important;
+        display: inline-block;
+        border: none !important;
+        box-shadow: none !important;
+        font-size: 0.85rem;
+        line-height: 1.5;
+        white-space: nowrap;
+      }
+
+      .nav-menu a:hover,
+      .nav-link:hover {
+        color: var(--header-link-color, #1976d2) !important;
+        background: rgba(0, 0, 0, 0.05) !important;
+        opacity: 1;
+        transform: none !important;
+      }
+
+      /* ПРОСТЫЕ СТИЛИ ДЛЯ АКТИВНОЙ ССЫЛКИ */
+      .nav-link.active {
+        background: #1976d2 !important;
+        color: #ffffff !important;
+        font-weight: bold !important;
+        border-radius: 20px !important;
+        padding: 0.5rem 1rem !important;
+        box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3) !important;
+        transition: all 0.3s ease !important;
+      }
+
+      /* Mobile responsiveness */
+      @media (max-width: 768px) {
+        .site-header {
+          padding: 0.25rem;
+        }
+        
+        .menu-toggle {
+          display: flex !important;
+          color: var(--header-link-color, #1976d2) !important;
+          background: transparent !important;
+          border: none !important;
+          cursor: pointer !important;
+          padding: 0.5rem !important;
+        }
+        
+        .menu-toggle span {
+          background: var(--header-link-color, #1976d2) !important;
+          color: var(--header-link-color, #1976d2) !important;
+          width: 25px !important;
+          height: 3px !important;
+          margin: 3px 0 !important;
+          display: block !important;
+        }
+        
+        .nav-menu {
+          position: absolute;
+          top: 100%;
+          left: 0;
+          right: 0;
+          background: var(--header-bg-color, #fff);
+          flex-direction: column;
+          padding: 0.25rem;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+          display: none;
+          gap: 0.25rem;
+        }
+        
+        .nav-menu.active {
+          display: flex;
+        }
+        
+        .header-content {
+          flex-wrap: nowrap;
+        }
+        
+        .site-branding {
+          margin-right: 0.25rem;
+          margin-left: 0.5rem;
+        }
+      }
+
       /* Styles for sections without cards */
       .section-nocards {
         background: linear-gradient(135deg, #f6f9fc 0%, #ffffff 100%);
@@ -8293,30 +10483,17 @@ const EditorPanel = ({
         width: 100%;
       }
 
-      .menu-toggle {
-        display: none;
-        background: none;
-        border: none;
-        cursor: pointer;
-        padding: 0.5rem;
-      }
 
       .menu-toggle span {
         display: block;
         width: 25px;
         height: 3px;
-        background-color: currentColor;
+        background: var(--header-link-color, #333);
         margin: 5px 0;
         transition: all 0.3s ease;
       }
 
       @media (max-width: 768px) {
-        .menu-toggle {
-          display: block;
-          color: inherit;
-          z-index: 1002;
-          position: relative;
-        }
 
         .nav-menu {
           display: none !important;
@@ -8356,6 +10533,16 @@ const EditorPanel = ({
         .nav-menu a::after {
           display: none;
         }
+        
+        .nav-link.active {
+          background: #1976d2 !important;
+          color: #ffffff !important;
+          font-weight: bold !important;
+          border-radius: 20px !important;
+          padding: 0.5rem 1rem !important;
+          box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3) !important;
+          transition: all 0.3s ease !important;
+        }
 
         .logo {
           font-size: 1.1rem;
@@ -8388,6 +10575,17 @@ const EditorPanel = ({
         margin: 0;
         padding: 0;
         width: 100%;
+      }
+
+      /* ФИНАЛЬНЫЕ СТИЛИ ДЛЯ АКТИВНОЙ ССЫЛКИ */
+      .nav-link.active {
+        background: #1976d2 !important;
+        color: #ffffff !important;
+        font-weight: bold !important;
+        border-radius: 20px !important;
+        padding: 0.5rem 1rem !important;
+        box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3) !important;
+        transition: all 0.3s ease !important;
       }
       
       /* Styles for image gallery */
@@ -8433,57 +10631,6 @@ const EditorPanel = ({
         margin-bottom: 0;
       }
 
-      section::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        border: 4px solid transparent;
-        border-radius: 20px;
-        background: linear-gradient(45deg, var(--border-start-color, #1976d2), var(--border-end-color, #64b5f6)) border-box;
-        -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
-        -webkit-mask-composite: xor;
-        mask-composite: exclude;
-        z-index: 1;
-        transition: all 0.3s ease-in-out;
-        animation: borderPulse 3s infinite, glowPulse 3s infinite;
-        pointer-events: none;
-      }
-
-      section:hover::before {
-        border: 5px solid transparent;
-        box-shadow: 0 0 25px 15px var(--border-start-color, #1976d2);
-        animation: none;
-      }
-
-      @keyframes borderPulse {
-        0% {
-          border-width: 4px;
-          box-shadow: 0 0 0 0 rgba(25, 118, 210, 0.4);
-        }
-        50% {
-          border-width: 5px;
-          box-shadow: 0 0 20px 10px rgba(25, 118, 210, 0.2);
-        }
-        100% {
-          border-width: 4px;
-          box-shadow: 0 0 0 0 rgba(25, 118, 210, 0.4);
-        }
-      }
-
-      @keyframes glowPulse {
-        0% {
-          box-shadow: 0 0 5px 0 rgba(25, 118, 210, 0.4);
-        }
-        50% {
-          box-shadow: 0 0 20px 10px rgba(25, 118, 210, 0.2);
-        }
-        100% {
-          box-shadow: 0 0 5px 0 rgba(25, 118, 210, 0.4);
-        }
-      }
 
       .site-overlay {
         position: fixed;
@@ -8707,20 +10854,6 @@ const EditorPanel = ({
         box-shadow: 0 4px 20px rgba(0,0,0,0.1);
       }
 
-      .about-section::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        border-radius: 16px;
-        padding: 2px;
-        background: linear-gradient(45deg, #1976d2, #42a5f5);
-        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-        -webkit-mask-composite: xor;
-        mask-composite: exclude;
-      }
 
       .about-content {
         flex: 1;
@@ -9118,9 +11251,6 @@ const EditorPanel = ({
         transform: translateY(0);
       }
 
-      .about-section::before, .about-content::before {
-        display: none !important;
-      }
 
       @media (max-width: 1024px) {
         .no-card-section {
@@ -9259,23 +11389,11 @@ const EditorPanel = ({
         transform: translateY(-2px);
       }
 
-      /* Mobile Menu Toggle */
-      .menu-toggle {
-        display: none;
-        background: none;
-        border: none;
-        cursor: pointer;
-        flex-direction: column;
-        justify-content: space-around;
-        width: 30px;
-        height: 30px;
-        padding: 0;
-      }
 
       .menu-toggle span {
         width: 100%;
         height: 3px;
-        background: ${activeHeaderData.linksColor};
+        background: var(--header-link-color, #333);
         border-radius: 2px;
         transition: all 0.3s ease;
         transform-origin: center;
@@ -9293,38 +11411,96 @@ const EditorPanel = ({
         transform: translateY(-9px) rotate(-45deg);
       }
 
-      /* Breadcrumbs */
-      .breadcrumbs {
-        background: #f8f9fa;
-        padding: 1rem 0;
-        margin-bottom: 2rem;
-      }
-
-      .breadcrumbs a {
-        color: #007bff;
-        text-decoration: none;
-      }
-
-      .breadcrumbs a:hover {
-        text-decoration: underline;
-      }
-
-      .breadcrumbs span {
-        color: #6c757d;
-      }
       /* Site Footer for multi-page */
       .site-footer {
         background: #2c3e50;
         color: white;
-        text-align: center;
-        padding: 2rem 0;
         margin-top: 4rem;
+        padding: 3rem 0 1rem;
       }
 
-      .site-footer .container {
+      .footer-container {
         max-width: 1200px;
         margin: 0 auto;
         padding: 0 1rem;
+      }
+
+      .footer-content {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 2rem;
+        margin-bottom: 2rem;
+      }
+
+      .footer-info h3 {
+        color: #ecf0f1;
+        margin-bottom: 1rem;
+        font-size: 1.5rem;
+        font-weight: 600;
+      }
+
+      .footer-info p {
+        color: #bdc3c7;
+        line-height: 1.6;
+        margin-bottom: 0.5rem;
+      }
+
+      .footer-links h4,
+      .footer-contact h4 {
+        color: #ecf0f1;
+        margin-bottom: 1rem;
+        font-size: 1.2rem;
+        font-weight: 600;
+      }
+
+      .footer-links ul {
+        list-style: none;
+        padding: 0;
+      }
+
+      .footer-links li {
+        margin-bottom: 0.5rem;
+      }
+
+      .footer-links a {
+        color: #bdc3c7;
+        text-decoration: none;
+        transition: color 0.3s ease;
+      }
+
+      .footer-links a:hover {
+        color: #3498db;
+      }
+
+      .footer-contact p {
+        color: #bdc3c7;
+        margin-bottom: 0.5rem;
+        line-height: 1.6;
+      }
+
+      .footer-bottom {
+        border-top: 1px solid #34495e;
+        padding-top: 1rem;
+        text-align: center;
+      }
+
+      .footer-bottom p {
+        color: #95a5a6;
+        margin: 0;
+        font-size: 0.9rem;
+      }
+
+      @media (max-width: 768px) {
+        .footer-content {
+          grid-template-columns: 1fr;
+          gap: 1.5rem;
+        }
+        
+        .footer-info,
+        .footer-links,
+        .footer-contact {
+          text-align: center;
+        }
       }
 
       /* Hero Section for index page */
@@ -9443,6 +11619,82 @@ const EditorPanel = ({
         transform: translateY(-2px);
       }
 
+      /* Стили для выделенного раздела */
+      .featured-section {
+        position: relative;
+        overflow: hidden;
+      }
+
+      .featured-content {
+        position: relative;
+        z-index: 2;
+      }
+
+      .featured-image {
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+      }
+
+      .featured-image img {
+        width: 100%;
+        height: auto;
+        display: block;
+        transition: transform 0.3s ease;
+      }
+
+      .featured-image:hover img {
+        transform: scale(1.05);
+      }
+
+      .featured-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(25, 118, 210, 0.3);
+      }
+
+      /* Стили для разных режимов отображения разделов */
+      .sections-preview.mode-cards .preview-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+      }
+
+
+
+      /* Стили для превью контактов */
+      .contact-preview {
+        position: relative;
+        overflow: hidden;
+      }
+
+      .contact-preview-content {
+        position: relative;
+        z-index: 2;
+      }
+
+      .contact-preview-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(255,255,255,0.2);
+      }
+
+      /* Адаптивность для новых режимов */
+      @media (max-width: 768px) {
+        .featured-content {
+          grid-template-columns: 1fr !important;
+          gap: 2rem;
+        }
+
+        .sections-preview.mode-cards .preview-grid {
+          grid-template-columns: 1fr;
+        }
+
+
+        .contact-preview-info {
+          flex-direction: column;
+          gap: 1rem;
+        }
+      }
+
       /* Section Content Pages */
       .section-content {
         padding: 2rem 0;
@@ -9527,11 +11779,11 @@ const EditorPanel = ({
       }
 
       .contact-info {
-        background: white;
+        background: inherit; /* Наследует фон от родительского контейнера */
         border-radius: 15px;
         padding: 2rem;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-        border: 1px solid #e9ecef;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.08);
+        border: 1px solid rgba(255,255,255,0.1);
       }
 
       .contact-info p {
@@ -9579,10 +11831,6 @@ const EditorPanel = ({
           align-items: center;
         }
 
-        .menu-toggle {
-          display: flex !important;
-          z-index: 1001;
-        }
 
         .site-nav ul {
           position: fixed;
@@ -9925,15 +12173,17 @@ const EditorPanel = ({
           const formData = new FormData(form);
           
           // Send form data
-          fetch('https://formspree.io/f/mblyqyyj', {
+          fetch('https://formspree.io/f/mvgwpqrr', {
             method: 'POST',
             body: formData,
             headers: {
               'Accept': 'application/json'
             }
           }).finally(() => {
-            // Always redirect to merci.html
-            window.location.href = 'merci.html';
+            // Always redirect to merci.html with parameters
+            const thankYouMessage = encodeURIComponent('${contactData?.thankYouMessage || 'Спасибо за обращение! Мы свяжемся с вами в ближайшее время.'}');
+            const closeButtonText = encodeURIComponent('${contactData?.closeButtonText || 'Закрыть'}');
+            window.location.href = \`merci.html?message=\${thankYouMessage}&closeButtonText=\${closeButtonText}\`;
           });
         };
 
@@ -10260,6 +12510,312 @@ const EditorPanel = ({
         // Start the typewriter effect
         typeText();
       }
+      
+      // 🔥 ГЛОБАЛЬНЫЕ ФУНКЦИИ для модальных окон карточек
+      // Открытие модального окна с полной поддержкой стилей
+      window.openCardModal = function(title, content, cardBgColor, cardTitleColor, cardTextColor, colorSettingsJson) {
+        console.log('🎴 [CARD MODAL] ФУНКЦИЯ openCardModal ВЫЗВАНА!');
+        console.log('🎴 [CARD MODAL] Параметры:', { title, content, cardBgColor, cardTitleColor, cardTextColor, colorSettingsJson });
+        
+        // Парсинг настроек стилей
+        let colorSettings = {};
+        try {
+          if (colorSettingsJson && colorSettingsJson !== 'undefined') {
+            colorSettings = JSON.parse(colorSettingsJson);
+          }
+        } catch (error) {
+          console.warn('Ошибка парсинга colorSettings:', error);
+        }
+        
+        console.log('🎴 [CARD MODAL] colorSettings:', colorSettings);
+        
+        // Создание модального окна
+        const modal = document.createElement('div');
+        modal.id = 'global-card-modal';
+        modal.style.cssText = \`
+          display: none;
+          position: fixed;
+          z-index: 1000;
+          left: 0;
+          top: 0;
+          width: 100%;
+          height: 100%;
+          background-color: rgba(0,0,0,0.5);
+          backdrop-filter: blur(5px);
+        \`;
+        
+        // Создание контента модального окна
+        const modalContent = document.createElement('div');
+        
+        // 🔥 ИСПРАВЛЕНИЕ: Определяем, является ли фон градиентом
+        const isGradient = cardBgColor && (cardBgColor.includes('gradient') || cardBgColor.includes('linear-gradient') || cardBgColor.includes('radial-gradient'));
+        
+        modalContent.style.cssText = \`
+          position: relative;
+          \${isGradient ? 'background: ' + cardBgColor + ';' : 'background-color: ' + (cardBgColor || '#ffffff') + ';'}
+          margin: 5% auto;
+          padding: 0;
+          width: 90%;
+          max-width: 800px;
+          max-height: 90vh;
+          overflow: auto;
+          border-radius: \${colorSettings.borderRadius || 16}px;
+          box-shadow: \${colorSettings.boxShadow ? '0 8px 32px rgba(0,0,0,0.15)' : '0 8px 32px rgba(0,0,0,0.15)'};
+          border: \${colorSettings.borderWidth || 0}px solid \${colorSettings.borderColor || 'transparent'};
+        \`;
+        
+        // Создание содержимого
+        const contentHTML = \`
+          <div style="
+            padding: \${colorSettings.padding || 24}px;
+            text-align: center;
+          ">
+            <h2 style="
+              color: \${cardTitleColor || '#333333'};
+              font-size: \${colorSettings.textFields?.titleFontSize || 28}px;
+              margin-bottom: 16px;
+              font-weight: bold;
+              line-height: 1.3;
+            ">\${title || 'Заголовок'}</h2>
+            <div style="
+              color: \${cardTextColor || '#666666'};
+              font-size: \${colorSettings.textFields?.textFontSize || 16}px;
+              line-height: 1.6;
+              text-align: left;
+            ">\${content || 'Содержимое карточки'}</div>
+          </div>
+        \`;
+        
+        modalContent.innerHTML = contentHTML;
+        modal.appendChild(modalContent);
+        document.body.appendChild(modal);
+        
+        // Показываем модальное окно
+        modal.style.display = 'block';
+        
+        // Анимация появления
+        modalContent.style.opacity = '0';
+        modalContent.style.transform = 'scale(0.9)';
+        modalContent.style.transition = 'all 0.3s ease';
+        
+        requestAnimationFrame(() => {
+          modalContent.style.opacity = '1';
+          modalContent.style.transform = 'scale(1)';
+          console.log('🎴 [CARD MODAL] Модальное окно успешно открыто!');
+        });
+        
+        // Закрытие по клику вне модального окна
+        modal.addEventListener('click', function(e) {
+          if (e.target === modal) {
+            window.closeCardModal();
+          }
+        });
+        
+        // Закрытие по Escape
+        const handleEscape = function(e) {
+          if (e.key === 'Escape') {
+            window.closeCardModal();
+            document.removeEventListener('keydown', handleEscape);
+          }
+        };
+        document.addEventListener('keydown', handleEscape);
+      };
+      
+      // Закрытие модального окна с анимацией
+      window.closeCardModal = function() {
+        console.log('🎴 [CARD MODAL] ФУНКЦИЯ closeCardModal ВЫЗВАНА!');
+        
+        const modal = document.getElementById('global-card-modal');
+        if (modal) {
+          const modalContent = modal.querySelector('div');
+          if (modalContent) {
+            // Анимация исчезновения
+            modalContent.style.opacity = '0';
+            modalContent.style.transform = 'scale(0.9)';
+            
+            setTimeout(() => {
+              modal.remove();
+              console.log('🎴 [CARD MODAL] Модальное окно успешно закрыто!');
+            }, 300);
+          } else {
+            modal.remove();
+          }
+        }
+      };
+      
+      // Проверка доступности функций
+      console.log('🎯 [FUNCTIONS] openCardModal доступна:', typeof window.openCardModal === 'function');
+      console.log('🎯 [FUNCTIONS] closeCardModal доступна:', typeof window.closeCardModal === 'function');
+      
+      // 🔥 WRAPPER ФУНКЦИИ для множественных карточек
+      // Создаем wrapper функции для каждого элемента множественных карточек
+      window.generateMultipleCardModalWrappers = function() {
+        // Находим все элементы множественных карточек
+        const multipleCardElements = document.querySelectorAll('.multiple-cards');
+        
+        multipleCardElements.forEach((element, elementIndex) => {
+          const elementId = element.id;
+          if (!elementId) return;
+          
+          const cleanElementId = elementId.replace(/-/g, '_');
+          const wrapperFunctionName = \`openMultipleCardModal\${cleanElementId}\`;
+          
+          // Создаем wrapper функцию для этого элемента
+          window[wrapperFunctionName] = function(cardIndex) {
+            console.log(\`🎴 [WRAPPER] \${wrapperFunctionName} вызвана с индексом:\`, cardIndex);
+            
+            // Находим карточку по индексу
+            const cards = element.querySelectorAll('[data-card-index]');
+            const targetCard = Array.from(cards).find(card => 
+              parseInt(card.getAttribute('data-card-index')) === cardIndex
+            );
+            
+            if (!targetCard) {
+              console.error('🎴 [WRAPPER] Карточка не найдена для индекса:', cardIndex);
+              return;
+            }
+            
+            // Извлекаем данные из карточки
+            const cardTitle = targetCard.querySelector('h3')?.textContent || targetCard.querySelector('h4')?.textContent || 'Заголовок карточки';
+            const cardContent = targetCard.querySelector('p')?.textContent || 'Содержимое карточки';
+            
+            // Получаем стили карточки
+            const computedStyle = window.getComputedStyle(targetCard);
+            
+            // 🔥 ИСПРАВЛЕНИЕ: Извлекаем градиентный фон, а не только backgroundColor
+            let cardBgColor = computedStyle.background || computedStyle.backgroundImage || computedStyle.backgroundColor || '#ffffff';
+            
+            // Если фон пустой, пытаемся извлечь из inline стилей
+            if (!cardBgColor || cardBgColor === 'rgba(0, 0, 0, 0)' || cardBgColor === 'transparent') {
+              const inlineStyle = targetCard.getAttribute('style');
+              if (inlineStyle) {
+                const backgroundMatch = inlineStyle.match(/background[^:]*:\s*([^;]+)/);
+                if (backgroundMatch) {
+                  cardBgColor = backgroundMatch[1].trim();
+                }
+              }
+            }
+            
+            // Если все еще пустой, используем значение по умолчанию
+            if (!cardBgColor || cardBgColor === 'rgba(0, 0, 0, 0)' || cardBgColor === 'transparent') {
+              cardBgColor = '#ffffff';
+            }
+            
+            // 🔥 ИСПРАВЛЕНИЕ: Извлекаем цвета заголовка и содержимого из конкретных элементов
+            const titleElement = targetCard.querySelector('h3');
+            const contentElement = targetCard.querySelector('p');
+            
+            let cardTitleColor = '#333333';
+            let cardContentColor = '#666666';
+            
+            if (titleElement) {
+              const titleStyle = window.getComputedStyle(titleElement);
+              cardTitleColor = titleStyle.color || '#333333';
+            }
+            
+            if (contentElement) {
+              const contentStyle = window.getComputedStyle(contentElement);
+              cardContentColor = contentStyle.color || '#666666';
+            }
+            
+            // Если цвета не найдены, пытаемся извлечь из inline стилей
+            if (cardTitleColor === '#333333' || cardContentColor === '#666666') {
+              const inlineStyle = targetCard.getAttribute('style');
+              if (inlineStyle) {
+                // Ищем color в inline стилях
+                const colorMatch = inlineStyle.match(/color:\s*([^;]+)/);
+                if (colorMatch) {
+                  const inlineColor = colorMatch[1].trim();
+                  if (cardTitleColor === '#333333') cardTitleColor = inlineColor;
+                  if (cardContentColor === '#666666') cardContentColor = inlineColor;
+                }
+              }
+            }
+            
+            // Извлекаем colorSettings из data-атрибута или используем значения по умолчанию
+            let colorSettings = {};
+            try {
+              const colorSettingsData = element.getAttribute('data-color-settings');
+              if (colorSettingsData) {
+                colorSettings = JSON.parse(colorSettingsData);
+              }
+            } catch (error) {
+              console.warn('Ошибка парсинга colorSettings из data-атрибута:', error);
+            }
+            
+            // Если colorSettings пустые, создаем базовые настройки
+            if (Object.keys(colorSettings).length === 0) {
+              colorSettings = {
+                borderRadius: 16,
+                padding: 24,
+                borderWidth: 0,
+                borderColor: 'transparent',
+                boxShadow: true,
+                textFields: {
+                  titleFontSize: 28,
+                  textFontSize: 16
+                }
+              };
+            }
+            
+            // 🔥 ИСПРАВЛЕНИЕ: Приоритет для цветов из colorSettings
+            if (colorSettings.textFields?.cardTitle) {
+              cardTitleColor = colorSettings.textFields.cardTitle;
+            } else if (colorSettings.textFields?.title) {
+              cardTitleColor = colorSettings.textFields.title;
+            }
+            if (colorSettings.textFields?.cardText) {
+              cardContentColor = colorSettings.textFields.cardText;
+            } else if (colorSettings.textFields?.text) {
+              cardContentColor = colorSettings.textFields.text;
+            }
+            
+            // 🔥 ИСПРАВЛЕНИЕ: Приоритет для фона из colorSettings.cardBackground
+            if (colorSettings.cardBackground?.enabled) {
+              if (colorSettings.cardBackground.useGradient) {
+                const gradientDir = colorSettings.cardBackground.gradientDirection || 'to right';
+                const color1 = colorSettings.cardBackground.gradientColor1 || '#ffffff';
+                const color2 = colorSettings.cardBackground.gradientColor2 || '#f0f0f0';
+                cardBgColor = \`linear-gradient(\${gradientDir}, \${color1}, \${color2})\`;
+              } else {
+                cardBgColor = colorSettings.cardBackground.solidColor || cardBgColor;
+              }
+            }
+            
+            console.log('🎴 [WRAPPER] Извлеченные данные:', {
+              cardTitle,
+              cardContent,
+              cardBgColor,
+              cardTitleColor,
+              cardContentColor,
+              colorSettings
+            });
+            
+            // Вызываем глобальную функцию openCardModal
+            if (typeof window.openCardModal === 'function') {
+              window.openCardModal(
+                cardTitle,
+                cardContent,
+                cardBgColor,
+                cardTitleColor,
+                cardContentColor,
+                JSON.stringify(colorSettings)
+              );
+            } else {
+              console.error('🎴 [WRAPPER] openCardModal не найдена!');
+            }
+          };
+          
+          console.log(\`🎴 [WRAPPER] Создана функция \${wrapperFunctionName}\`);
+        });
+      };
+      
+      // Вызываем создание wrapper функций после загрузки DOM
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', window.generateMultipleCardModalWrappers);
+      } else {
+        window.generateMultipleCardModalWrappers();
+      }
     `;
   };
 
@@ -10373,7 +12929,21 @@ const EditorPanel = ({
 
   // Функции для многостраничного экспорта
   const getSectionFileNameSafe = (sectionId, sectionData) => {
-    // Используем пользовательское имя файла, если задано
+    console.log('🔍 getSectionFileNameSafe called with:', { sectionId, sectionData });
+    console.log('🔍 sectionData.pageName:', sectionData?.pageName);
+    console.log('🔍 sectionData.fileName:', sectionData?.fileName);
+    console.log('🔍 sectionData.id:', sectionData?.id);
+    
+    // Приоритет 1: Используем pageName из AI парсера (всегда на английском)
+    if (sectionData?.pageName && sectionData.pageName.trim()) {
+      console.log('✅ Using pageName:', sectionData.pageName);
+      return sectionData.pageName.toString().toLowerCase()
+        .replace(/[^a-z0-9-]/g, '-')  // Только латиница, цифры и дефисы
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+    }
+    
+    // Приоритет 2: Используем пользовательское имя файла, если задано
     if (sectionData?.fileName && sectionData.fileName.trim()) {
       return sectionData.fileName.toString().toLowerCase()
         .replace(/[^a-z0-9а-я]/g, '-')  // Поддерживаем кириллицу
@@ -10381,7 +12951,7 @@ const EditorPanel = ({
         .replace(/^-|-$/g, '');
     }
     
-    // Используем ID секции из данных секции (не числовой индекс)
+    // Приоритет 3: Используем ID секции из данных секции (не числовой индекс)
     if (sectionData?.id && sectionData.id.trim()) {
       return sectionData.id.toString().toLowerCase()
         .replace(/[^a-z0-9а-я]/g, '-')  // Поддерживаем кириллицу
@@ -10407,49 +12977,711 @@ const EditorPanel = ({
     return displayName || 'Раздел';
   };
 
+  const getContactFileNameSafe = (contactData) => {
+    console.log('🔍 getContactFileNameSafe called with contactData:', contactData);
+    console.log('🔍 contactData.pageName:', contactData?.pageName);
+    
+    // Приоритет 1: Используем pageName из AI парсера (всегда на английском)
+    if (contactData?.pageName && contactData.pageName.trim()) {
+      console.log('✅ getContactFileNameSafe using pageName:', contactData.pageName);
+      return contactData.pageName.toString().toLowerCase()
+        .replace(/[^a-z0-9-]/g, '-')  // Только латиница, цифры и дефисы
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+    }
+    
+    // Приоритет 2: Используем стандартное название как fallback
+    console.log('⚠️ getContactFileNameSafe using fallback: contact');
+    return 'contact';
+  };
+
   const generateMultiPageHeader = (siteData, currentPage = '') => {
     const headerData = siteData.headerData || {};
     const siteName = headerData.siteName || 'My Site';
     const sectionsArray = Object.entries(siteData.sectionsData || {});
     
+    // Генерируем стили хедера из headerData (как в одностраничном экспорте)
+    const headerStyles = [];
+    
+    if (headerData.backgroundColor) {
+      headerStyles.push(`--header-bg-color: ${headerData.backgroundColor}`);
+    }
+    if (headerData.titleColor) {
+      headerStyles.push(`--header-title-color: ${headerData.titleColor}`);
+    }
+    if (headerData.linksColor) {
+      headerStyles.push(`--header-link-color: ${headerData.linksColor}`);
+    }
+    
     const indexFile = getIndexFileName();
-    return `<header class="site-header">
-      <div class="container">
-        <div class="header-content">
-          <div class="site-branding">
-            <h1 class="site-title">
-              <a href="${indexFile}">${siteName}</a>
-            </h1>
-          </div>
-          <nav class="site-nav">
-            <button class="menu-toggle" aria-label="Открыть меню">
-              <span></span>
-              <span></span>
-              <span></span>
-            </button>
-            <ul class="nav-menu">
-              <li><a href="${indexFile}" ${currentPage === 'index' ? 'class="active"' : ''}>${siteName}</a></li>
-              ${sectionsArray.map(([sectionId, sectionData]) => {
-                const fileName = getSectionFileNameSafe(sectionId, sectionData);
-                const displayName = getSectionDisplayNameSafe(sectionId, sectionData, headerData);
-                return fileName ? `<li><a href="${fileName}.html" ${currentPage === fileName ? 'class="active"' : ''}>${displayName}</a></li>` : '';
-              }).join('')}
-              <li><a href="contact.html" ${currentPage === 'contact' ? 'class="active"' : ''}>${siteData.contactData?.title || 'Контакты'}</a></li>
-            </ul>
-          </nav>
+    
+    // Генерируем навигационные ссылки из headerData.menuItems (если есть) или из секций
+    let navigationLinks = '';
+    
+    if (headerData.menuItems && headerData.menuItems.length > 0) {
+      // Используем menuItems из headerData, но генерируем правильные ссылки
+      navigationLinks = headerData.menuItems.map(item => {
+        // Находим соответствующую секцию по ID
+        const sectionData = sectionsArray.find(([sectionId, data]) => data?.id === item.id)?.[1];
+        const fileName = sectionData ? getSectionFileNameSafe(item.id, sectionData) : null;
+        const text = item.text || item.title || '';
+        
+        // Используем правильное имя файла или fallback на якорь
+        const url = fileName ? `${fileName}.html` : (item.url || '#');
+        
+        // Определяем активную ссылку
+        let isActive = '';
+        if (currentPage === 'index' && url === 'index.html') {
+          isActive = 'class="nav-link active"';
+        } else if (currentPage === fileName) {
+          isActive = 'class="nav-link active"';
+        } else {
+          isActive = 'class="nav-link"';
+        }
+        
+        // Отладочная информация
+        console.log('🔍 Navigation debug:', { currentPage, fileName, url, isActive, text });
+        
+        return `<li><a href="${url}" ${isActive}>${text.toLowerCase()}</a></li>`;
+      }).join('');
+    } else {
+      // Fallback: используем секции
+      navigationLinks = sectionsArray.map(([sectionId, sectionData]) => {
+        const fileName = getSectionFileNameSafe(sectionId, sectionData);
+        const displayName = getSectionDisplayNameSafe(sectionId, sectionData, headerData);
+        
+        // Определяем активную ссылку
+        let isActive = '';
+        if (currentPage === 'index' && fileName === 'index') {
+          isActive = 'class="nav-link active"';
+        } else if (currentPage === fileName) {
+          isActive = 'class="nav-link active"';
+        } else {
+          isActive = 'class="nav-link"';
+        }
+        
+        // Отладочная информация
+        console.log('🔍 Fallback navigation debug:', { currentPage, fileName, isActive, displayName });
+        
+        return fileName ? `<li><a href="${fileName}.html" ${isActive}>${displayName.toLowerCase()}</a></li>` : '';
+      }).join('');
+    }
+    
+    // Добавляем контакты в навигацию
+    if (siteData.contactData) {
+      const contactFileName = getContactFileNameSafe(siteData.contactData);
+      const contactTitle = siteData.contactData?.title || 'Контакты';
+      
+      // Определяем активную ссылку
+      let isActive = '';
+      if (currentPage === 'contact' || currentPage === contactFileName) {
+        isActive = 'class="nav-link active"';
+      } else {
+        isActive = 'class="nav-link"';
+      }
+      
+      // Отладочная информация
+      console.log('🔍 Contact navigation debug:', { currentPage, contactFileName, isActive, contactTitle });
+      
+      navigationLinks += `<li><a href="${contactFileName}.html" ${isActive}>${contactTitle.toLowerCase()}</a></li>`;
+    }
+    
+    return `<header class="site-header" style="${headerStyles.join('; ')}">
+      <div class="header-content">
+        <div class="site-branding">
+          <h1 class="site-title">
+            <a href="${indexFile}">${siteName}</a>
+          </h1>
+          <div class="site-domain" style="display: none;">${headerData.domain || ''}</div>
         </div>
+        <nav class="site-nav">
+          <button class="menu-toggle" aria-label="Открыть меню">
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
+          <ul class="nav-menu">
+            ${navigationLinks}
+          </ul>
+        </nav>
       </div>
     </header>`;
   };
 
   const generateMultiPageFooter = (siteData) => {
+    const footerData = siteData.footerData || {};
     const headerData = siteData.headerData || {};
+    const currentYear = new Date().getFullYear();
     const siteName = headerData.siteName || 'My Site';
-    return `<footer class="site-footer">
-      <div class="container">
-        <p>&copy; ${new Date().getFullYear()} ${siteName}. Все права защищены.</p>
+    
+    // Определяем стили футера на основе предустановленных стилей
+    let footerStyles = [];
+    let textColor = '#ffffff'; // По умолчанию белый текст
+    
+    if (headerData.siteBackgroundType === 'gradient') {
+      // Для градиентного фона используем более темный вариант
+      const gradientColor1 = headerData.siteGradientColor1 || '#ffffff';
+      const gradientColor2 = headerData.siteGradientColor2 || '#f5f5f5';
+      
+      // Создаем более темный градиент для футера
+      footerStyles.push(`background: linear-gradient(${headerData.siteGradientDirection || 'to right'}, 
+        ${darkenColor(gradientColor1, 20)}, 
+        ${darkenColor(gradientColor2, 20)})`);
+      
+      // Определяем цвет текста на основе яркости фона
+      textColor = getContrastColor(gradientColor1);
+    } else if (headerData.siteBackgroundType === 'solid') {
+      const bgColor = headerData.siteBackgroundColor || '#ffffff';
+      footerStyles.push(`background-color: ${darkenColor(bgColor, 20)}`);
+      textColor = getContrastColor(bgColor);
+    } else {
+      // По умолчанию используем темный фон
+      footerStyles.push(`background: linear-gradient(135deg, #2c3e50, #34495e)`);
+      textColor = '#ffffff';
+    }
+    
+    return `<footer class="site-footer" style="${footerStyles.join('; ')}">
+      <div class="footer-container" style="color: ${textColor};">
+        <div class="footer-content">
+          <div class="footer-info">
+            <h3 style="color: ${textColor};">${siteName}</h3>
+            ${siteData.contactData?.address ? `<p style="color: ${textColor};">📍 ${siteData.contactData.address}</p>` : ''}
+            ${siteData.contactData?.phone ? `<p style="color: ${textColor};">📞 ${siteData.contactData.phone}</p>` : ''}
+            ${siteData.contactData?.email ? `<p style="color: ${textColor};">✉️ ${siteData.contactData.email}</p>` : ''}
+          </div>
+          ${footerData.showLinks !== false ? `
+            <div class="footer-links">
+              <h4 style="color: ${textColor};">Menu</h4>
+              <ul>
+                <li><a href="${getIndexFileName()}" style="color: ${textColor};">${siteName}</a></li>
+                ${(headerData.menuItems && headerData.menuItems.length > 0) ? 
+                  headerData.menuItems.map(item => {
+                    // Находим соответствующую секцию по ID
+                    const sectionsArray = Object.entries(siteData.sectionsData || {});
+                    const sectionData = sectionsArray.find(([sectionId, data]) => data?.id === item.id)?.[1];
+                    const fileName = sectionData ? getSectionFileNameSafe(item.id, sectionData) : null;
+                    const url = fileName ? `${fileName}.html` : (item.url || '#');
+                    return `<li><a href="${url}" style="color: ${textColor};">${(item.text || item.title || '').toLowerCase()}</a></li>`;
+                  }).join('') :
+                  Object.entries(siteData.sectionsData || {}).map(([sectionId, sectionData]) => {
+                    const fileName = getSectionFileNameSafe(sectionId, sectionData);
+                    const displayName = getSectionDisplayNameSafe(sectionId, sectionData, headerData);
+                    return fileName ? `<li><a href="${fileName}.html" style="color: ${textColor};">${(displayName || '').toLowerCase()}</a></li>` : '';
+                  }).join('')
+                }
+                ${siteData.contactData ? `<li><a href="${getContactFileNameSafe(siteData.contactData)}.html" style="color: ${textColor};">${(siteData.contactData.title || 'Контакты').toLowerCase()}</a></li>` : ''}
+              </ul>
+            </div>
+          ` : ''}
+          <div class="footer-contact">
+            <h4 style="color: ${textColor};">Legal Information</h4>
+            <ul>
+              <li><a href="privacy-policy.html" style="color: ${textColor};">Privacy Policy</a></li>
+              <li><a href="terms-of-service.html" style="color: ${textColor};">Terms of Service</a></li>
+              <li><a href="cookie-policy.html" style="color: ${textColor};">Cookie Policy</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <p style="color: ${textColor};">&copy; ${currentYear} ${siteName}. All rights reserved.</p>
+        </div>
       </div>
     </footer>`;
+  };
+
+  // Вспомогательная функция для затемнения цвета
+  const darkenColor = (color, percent) => {
+    if (!color || color === '#ffffff') return '#2c3e50';
+    
+    // Простое затемнение для hex цветов
+    if (color.startsWith('#')) {
+      const hex = color.replace('#', '');
+      const r = parseInt(hex.substr(0, 2), 16);
+      const g = parseInt(hex.substr(2, 2), 16);
+      const b = parseInt(hex.substr(4, 2), 16);
+      
+      const newR = Math.max(0, Math.floor(r * (1 - percent / 100)));
+      const newG = Math.max(0, Math.floor(g * (1 - percent / 100)));
+      const newB = Math.max(0, Math.floor(b * (1 - percent / 100)));
+      
+      return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+    }
+    
+    return '#2c3e50';
+  };
+
+  // Вспомогательная функция для определения контрастного цвета текста
+  const getContrastColor = (hexColor) => {
+    if (!hexColor || hexColor === '#ffffff') return '#000000';
+    
+    if (hexColor.startsWith('#')) {
+      const hex = hexColor.replace('#', '');
+      const r = parseInt(hex.substr(0, 2), 16);
+      const g = parseInt(hex.substr(2, 2), 16);
+      const b = parseInt(hex.substr(4, 2), 16);
+      
+      // Вычисляем яркость
+      const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+      
+      return brightness > 128 ? '#000000' : '#ffffff';
+    }
+    
+    return '#ffffff';
+  };
+
+  // Функция для генерации выделенного раздела
+  const generateFeaturedSection = (siteData) => {
+    const heroData = siteData.heroData || {};
+    const homePageSettings = heroData.homePageSettings || {};
+    
+    console.log('generateFeaturedSection - heroData:', heroData);
+    console.log('generateFeaturedSection - homePageSettings:', homePageSettings);
+    console.log('generateFeaturedSection - sectionsData:', siteData.sectionsData);
+    
+    // Проверяем, нужно ли показывать выделенный раздел
+    if (!homePageSettings.showFeaturedSection || !homePageSettings.featuredSectionId) {
+      console.log('Featured section not enabled or no section selected');
+      return '';
+    }
+    
+    const featuredSectionId = homePageSettings.featuredSectionId;
+    
+    // Преобразуем sectionsData в объект, если это массив
+    let sectionsObject = siteData.sectionsData || {};
+    if (Array.isArray(siteData.sectionsData)) {
+      sectionsObject = siteData.sectionsData.reduce((acc, section) => {
+        acc[section.id] = section;
+        return acc;
+      }, {});
+    }
+    
+    const featuredSectionData = sectionsObject[featuredSectionId];
+    
+    if (!featuredSectionData) {
+      console.warn(`Featured section ${featuredSectionId} not found`);
+      return '';
+    }
+    
+    const sectionTitle = featuredSectionData.title || getSectionDisplayNameSafe(featuredSectionId, featuredSectionData, siteData.headerData);
+    const sectionDescription = featuredSectionData.description || '';
+    
+    // Получаем настройки цветов секции
+    const sectionColorSettings = featuredSectionData.colorSettings || {};
+    const titleColor = sectionColorSettings?.textFields?.title || '#1a237e';
+    const descriptionColor = sectionColorSettings?.textFields?.description || '#455a64';
+    const contentColor = sectionColorSettings?.textFields?.content || '#455a64';
+    
+    // Получаем изображения секции
+    const hasImages = Array.isArray(featuredSectionData.images) && featuredSectionData.images.length > 0;
+    const hasSingleImage = featuredSectionData.imagePath && !hasImages;
+    
+    let imagesHtml = '';
+    if (hasImages) {
+      imagesHtml = featuredSectionData.images.map((image, index) => `
+        <div class="featured-image">
+          <img src="${image.url || image}" alt="${image.alt || sectionTitle}" loading="lazy">
+        </div>
+      `).join('');
+    } else if (hasSingleImage) {
+      imagesHtml = `
+        <div class="featured-image">
+          <img src="${featuredSectionData.imagePath}" alt="${sectionTitle}" loading="lazy">
+        </div>
+      `;
+    }
+    
+    // Генерируем контент элементов
+    const elementsHtml = (featuredSectionData.contentElements || featuredSectionData.elements || featuredSectionData.aiElements || []).map((element, index) => {
+      return generateContentElementHTML(element);
+    }).join('');
+    
+    return `
+      <section class="featured-section" style="
+        padding: 4rem 0;
+        background: ${sectionColorSettings?.sectionBackground?.enabled ? 
+          (sectionColorSettings.sectionBackground.useGradient ? 
+            `linear-gradient(${sectionColorSettings.sectionBackground.gradientDirection}, ${sectionColorSettings.sectionBackground.gradientColor1}, ${sectionColorSettings.sectionBackground.gradientColor2})` :
+            sectionColorSettings.sectionBackground.solidColor) : 
+          '#f8f9fa'
+        };
+        margin: 0;
+      ">
+        <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0 2rem;">
+          <div class="featured-content" style="
+            display: grid;
+            grid-template-columns: ${imagesHtml ? '1fr 1fr' : '1fr'};
+            gap: 3rem;
+            align-items: center;
+          ">
+            <div class="featured-text">
+              <h2 style="
+                color: ${titleColor};
+                font-size: 2.5rem;
+                font-weight: 700;
+                margin-bottom: 1.5rem;
+                font-family: 'Montserrat', sans-serif;
+              ">${sectionTitle}</h2>
+              
+              ${sectionDescription ? `
+                <p style="
+                  color: ${descriptionColor};
+                  font-size: 1.2rem;
+                  line-height: 1.6;
+                  margin-bottom: 2rem;
+                  font-family: 'Montserrat', sans-serif;
+                ">${sectionDescription}</p>
+              ` : ''}
+              
+              <div class="featured-elements" style="
+                color: ${contentColor};
+                font-family: 'Montserrat', sans-serif;
+              ">
+                ${elementsHtml}
+              </div>
+              
+            </div>
+            
+            ${imagesHtml ? `
+              <div class="featured-images">
+                ${imagesHtml}
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      </section>
+    `;
+  };
+
+  // Функция для генерации превью разделов
+  const generateSectionsPreview = (siteData) => {
+    const heroData = siteData.heroData || {};
+    const homePageSettings = heroData.homePageSettings || {};
+    
+    console.log('generateSectionsPreview - heroData:', heroData);
+    console.log('generateSectionsPreview - homePageSettings:', homePageSettings);
+    console.log('generateSectionsPreview - sectionsData:', siteData.sectionsData);
+    
+    // Проверяем, нужно ли показывать превью разделов
+    if (!homePageSettings.showSectionsPreview) {
+      console.log('Sections preview not enabled');
+      return '';
+    }
+    
+    const sectionsData = siteData.sectionsData || {};
+    const maxSections = homePageSettings.maxSectionsToShow || 6;
+    const displayMode = homePageSettings.sectionsDisplayMode || 'cards';
+    
+    // Преобразуем sectionsData в объект, если это массив
+    let sectionsObject = sectionsData;
+    if (Array.isArray(sectionsData)) {
+      sectionsObject = sectionsData.reduce((acc, section) => {
+        acc[section.id] = section;
+        return acc;
+      }, {});
+    }
+    
+    // Фильтруем разделы (исключаем выделенный раздел)
+    const filteredSections = Object.entries(sectionsObject).filter(([sectionId, sectionData]) => {
+      return sectionId !== homePageSettings.featuredSectionId;
+    }).slice(0, maxSections);
+    
+    if (filteredSections.length === 0) {
+      return '';
+    }
+    
+    const gridClass = 'preview-grid';
+    
+    const cardClass = 'preview-card';
+    
+    return `
+      <section class="sections-preview mode-${displayMode}" style="padding: 4rem 0; background: #f8f9fa;">
+        <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0 2rem;">
+          
+          <div class="${gridClass}">
+            ${filteredSections.map(([sectionId, sectionData]) => {
+              const fileName = getSectionFileNameSafe(sectionId, sectionData);
+              const displayName = getSectionDisplayNameSafe(sectionId, sectionData, siteData.headerData);
+              
+              if (!fileName) return '';
+              
+              // Получаем изображение для карточки
+              const cardImage = sectionData.imagePath || 
+                               (Array.isArray(sectionData.images) && sectionData.images.length > 0 ? sectionData.images[0].url || sectionData.images[0] : '') ||
+                               '';
+              
+              // Специальная обработка для разных форматов
+              // Стандартный рендеринг для карточек
+              return `
+                <div class="${cardClass}">
+                  ${cardImage ? `
+                    <div class="preview-image">
+                      <img src="${cardImage}" alt="${displayName}" loading="lazy">
+                    </div>
+                  ` : ''}
+                  <div class="preview-content">
+                    <h3>${displayName}</h3>
+                    <p>${sectionData.description || 'Узнайте больше в этом разделе'}</p>
+                    <a href="${fileName}.html" class="preview-link">...</a>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      </section>
+    `;
+  };
+
+  // Функция для генерации превью контактов (обновленная версия с той же структурой что и в contacts.html)
+  const generateContactPreview = (siteData) => {
+    const heroData = siteData.heroData || {};
+    const homePageSettings = heroData.homePageSettings || {};
+    
+    // Проверяем, нужно ли показывать превью контактов
+    if (!homePageSettings.showContactPreview || !siteData.contactData) {
+      return '';
+    }
+    
+    let contactData = siteData.contactData;
+    const contactFileName = getContactFileNameSafe(contactData);
+    
+    // Используем ту же логику обработки данных, что и в generateMultiPageContact
+    if (!contactData || !contactData.title) {
+      // Проверяем альтернативные места где могут храниться данные контактов
+      if (siteData.contact) {
+        contactData = siteData.contact;
+      } else if (siteData.contactSection) {
+        contactData = siteData.contactSection;
+      }
+      
+      if (!contactData || !contactData.title) {
+        contactData = {
+          title: 'Get In Touch',
+          description: 'Contact us for more information'
+        };
+      }
+    }
+
+    // Создаем inline стили для контактной секции на основе contactData (как в contacts.html)
+    const sectionStyles = [];
+    
+    // Улучшенная логика для фонов - проверяем разные варианты хранения данных
+    if (contactData.backgroundType === 'gradient') {
+      if (contactData.gradientColor1 && contactData.gradientColor2) {
+        sectionStyles.push(`background: linear-gradient(${contactData.gradientDirection || 'to bottom'}, ${contactData.gradientColor1}, ${contactData.gradientColor2})`);
+      }
+    } else if (contactData.backgroundColor) {
+      sectionStyles.push(`background-color: ${contactData.backgroundColor}`);
+    }
+    
+    // Проверяем альтернативные названия полей для фонов
+    if (!sectionStyles.length) {
+      const possibleBgFields = [
+        'sectionBackgroundColor', 'bgColor', 'background', 'bg',
+        'primaryColor', 'mainColor', 'themeColor'
+      ];
+      
+      for (const field of possibleBgFields) {
+        if (contactData[field]) {
+          sectionStyles.push(`background-color: ${contactData[field]}`);
+          break;
+        }
+      }
+      
+      // Проверяем градиенты в альтернативных полях
+      const possibleGradientFields = [
+        ['gradientStart', 'gradientEnd'],
+        ['gradient1', 'gradient2'],
+        ['color1', 'color2'],
+        ['startColor', 'endColor']
+      ];
+      
+      for (const [field1, field2] of possibleGradientFields) {
+        if (contactData[field1] && contactData[field2]) {
+          sectionStyles.push(`background: linear-gradient(to bottom, ${contactData[field1]}, ${contactData[field2]})`);
+          break;
+        }
+      }
+    }
+    
+    // Стили для форм и информационных блоков
+    const formStyles = [];
+    const infoStyles = [];
+    
+    // Применяем фон формы (по умолчанию белый)
+    if (contactData.formBackgroundColor) {
+      formStyles.push(`background-color: ${contactData.formBackgroundColor}`);
+    } else {
+      formStyles.push(`background-color: #ffffff`);
+    }
+    
+    if (contactData.formBorderColor) {
+      formStyles.push(`border: 1px solid ${contactData.formBorderColor}`);
+    }
+    
+    // Синхронизируем фон с формой
+    if (contactData.infoBackgroundColor) {
+      infoStyles.push(`background-color: ${contactData.infoBackgroundColor}`);
+    } else if (contactData.formBackgroundColor) {
+      // Используем тот же фон, что и у формы
+      infoStyles.push(`background-color: ${contactData.formBackgroundColor}`);
+    } else {
+      // По умолчанию белый фон как у формы
+      infoStyles.push(`background-color: #ffffff`);
+    }
+    
+    if (contactData.infoBorderColor) {
+      infoStyles.push(`border: 1px solid ${contactData.infoBorderColor}`);
+    }
+    
+    return `
+      <section id="contact" class="contact-section" style="${sectionStyles.join('; ')}">
+        <div class="contact-container">
+          <div class="contact-header">
+            <h2 class="contact-title" style="color: ${contactData.titleColor || '#1976d2'}">${contactData.title}</h2>
+            ${contactData.description ? `<p class="contact-description" style="color: ${contactData.descriptionColor || '#666666'}">${contactData.description}</p>` : ''}
+          </div>
+          
+          <div class="contact-content">
+            ${contactData.showContactForm !== false ? `
+              <div class="contact-form-container" style="${formStyles.join('; ')}">
+                <h3 style="color: ${contactData.titleColor || '#1976d2'}">Get In Touch</h3>
+                  <form class="contact-form" onsubmit="submitContactForm(event)">
+                    <input type="hidden" name="_captcha" value="false" />
+                    <input type="hidden" name="_template" value="table" />
+                    <input type="hidden" name="_subject" value="New message from website" />
+                    <input type="hidden" name="_language" value="en" />
+                  <div class="form-group">
+                    <label style="color: ${contactData.labelColor || '#333333'}">Full Name</label>
+                    <input type="text" name="name" required style="background-color: ${contactData.inputBackgroundColor || '#f5f9ff'}; color: ${contactData.inputTextColor || '#1a1a1a'};" placeholder="Enter your full name">
+                  </div>
+                  <div class="form-group">
+                    <label style="color: ${contactData.labelColor || '#333333'}">Phone Number</label>
+                    <input type="tel" name="phone" required style="background-color: ${contactData.inputBackgroundColor || '#f5f9ff'}; color: ${contactData.inputTextColor || '#1a1a1a'};" placeholder="Enter your phone number">
+                  </div>
+                  <div class="form-group">
+                    <label style="color: ${contactData.labelColor || '#333333'}">Email</label>
+                    <input type="email" name="email" required style="background-color: ${contactData.inputBackgroundColor || '#f5f9ff'}; color: ${contactData.inputTextColor || '#1a1a1a'};" placeholder="Enter your email address">
+                  </div>
+                  <div class="form-group">
+                    <label style="color: ${contactData.labelColor || '#333333'}">Message</label>
+                    <textarea name="message" required style="background-color: ${contactData.inputBackgroundColor || '#f5f9ff'}; color: ${contactData.inputTextColor || '#1a1a1a'}; min-height: 100px;" placeholder="Tell us about your inquiry..."></textarea>
+                  </div>
+                  <button type="submit" style="background-color: ${contactData.buttonColor || '#1976d2'}; color: ${contactData.buttonTextColor || '#ffffff'};">
+                    Send Message
+                  </button>
+                </form>
+              </div>
+            ` : ''}
+            
+            ${contactData.showCompanyInfo !== false ? `
+              <div class="contact-info-container" style="${infoStyles.join('; ')}">
+                <h3 class="info-title" style="color: ${contactData.infoTitleColor || contactData.titleColor || '#1976d2'}">Contact Information</h3>
+                <div class="contact-info">
+                  <!-- Компания -->
+                  ${contactData.companyName || contactData.title ? `
+                    <div class="contact-info-item">
+                      <span class="contact-icon" style="color: ${contactData.iconColor || '#1976d2'}">🏢</span>
+                      <span style="color: ${contactData.labelColor || '#333333'}; font-weight: 500;">${contactData.companyName || contactData.title || 'Company Name'}</span>
+                    </div>
+                  ` : `
+                    <div class="contact-info-item">
+                      <span class="contact-icon" style="color: ${contactData.iconColor || '#1976d2'}">🏢</span>
+                      <span style="color: ${contactData.labelColor || '#333333'}; font-weight: 500;">КриптоИнвест</span>
+                    </div>
+                  `}
+                  
+                  <!-- Адрес -->
+                  ${contactData.address ? `
+                    <div class="contact-info-item">
+                      <span class="contact-icon" style="color: ${contactData.iconColor || '#1976d2'}">📍</span>
+                      <span style="color: ${contactData.labelColor || '#333333'}; font-weight: 500;">${contactData.address}</span>
+                    </div>
+                  ` : `
+                    <div class="contact-info-item">
+                      <span class="contact-icon" style="color: ${contactData.iconColor || '#1976d2'}">📍</span>
+                      <span style="color: ${contactData.labelColor || '#333333'}; font-weight: 500;">Al Maktoum Street, Deira, P.O. Box 12345, Dubai, UAE</span>
+                    </div>
+                  `}
+                  
+                  <!-- Телефон -->
+                  ${contactData.phone ? `
+                    <div class="contact-info-item">
+                      <span class="contact-icon" style="color: ${contactData.iconColor || '#1976d2'}">📞</span>
+                      <span style="color: ${contactData.labelColor || '#333333'}; font-weight: 500;">${contactData.phone}</span>
+                    </div>
+                  ` : `
+                    <div class="contact-info-item">
+                      <span class="contact-icon" style="color: ${contactData.iconColor || '#1976d2'}">📞</span>
+                      <span style="color: ${contactData.labelColor || '#333333'}; font-weight: 500;">+971 4 237 7922</span>
+                    </div>
+                  `}
+                  
+                  <!-- Email -->
+                  ${contactData.email ? `
+                    <div class="contact-info-item">
+                      <span class="contact-icon" style="color: ${contactData.iconColor || '#1976d2'}">✉️</span>
+                      <span style="color: ${contactData.labelColor || '#333333'}; font-weight: 500;">${contactData.email}</span>
+                    </div>
+                  ` : `
+                    <div class="contact-info-item">
+                      <span class="contact-icon" style="color: ${contactData.iconColor || '#1976d2'}">✉️</span>
+                      <span style="color: ${contactData.labelColor || '#333333'}; font-weight: 500;">team@moy-sayt.com</span>
+                    </div>
+                  `}
+                  
+                  <!-- Часы работы -->
+                  ${contactData.workingHours ? `
+                    <div class="contact-info-item">
+                      <span class="contact-icon" style="color: ${contactData.iconColor || '#1976d2'}">🕒</span>
+                      <span style="color: ${contactData.labelColor || '#333333'}; font-weight: 500;">${contactData.workingHours}</span>
+                    </div>
+                  ` : ''}
+                </div>
+              </div>
+            ` : ''}
+          </div>
+          
+          <!-- Всегда показываем карту с адресом по умолчанию -->
+          <div class="contact-map-container" style="
+            margin-top: 3rem;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+          ">
+            <div style="position: relative; width: 100%; height: 400px;">
+              <iframe
+                src="https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent((contactData.address || 'Al Maktoum Street, Deira, Dubai, UAE') + ', ' + (contactData.city || 'Dubai'))}&language=en"
+                width="100%"
+                height="100%"
+                style="border: 0;"
+                allowfullscreen=""
+                loading="lazy"
+                referrerpolicy="no-referrer-when-downgrade"
+                title="Map: ${contactData.address || 'Al Maktoum Street, Deira, Dubai, UAE'}">
+              </iframe>
+              <div style="
+                position: absolute;
+                bottom: 10px;
+                left: 10px;
+                background: rgba(255, 255, 255, 0.9);
+                padding: 8px 12px;
+                border-radius: 6px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 14px;
+                color: #333;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+              ">
+                <span style="color: #1976d2;">📍</span>
+                <span>${contactData.address || 'Al Maktoum Street, Deira, Dubai, UAE'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    `;
   };
 
   const generateMultiPageIndex = (siteData) => {
@@ -10465,7 +13697,184 @@ const EditorPanel = ({
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${siteName}</title>
     <meta name="description" content="${headerData.description || 'Добро пожаловать на наш сайт'}">
+    <link rel="icon" type="image/png" href="assets/images/Favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/styles.css">
+    
+    <style>
+      /* Contact section styles - точно как в contacts.html */
+      .contact-section {
+        padding: 4rem 2rem;
+        width: 100%;
+        margin: 0;
+        position: relative;
+        z-index: 2;
+      }
+      
+      .contact-container {
+        max-width: 1140px;
+        margin: 0 auto;
+        padding: 0 20px;
+      }
+      
+      .contact-header {
+        text-align: center;
+        margin-bottom: 3rem;
+      }
+      
+      .contact-title {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        position: relative;
+        display: inline-block;
+      }
+      
+      .contact-title::after {
+        content: '';
+        position: absolute;
+        bottom: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 50px;
+        height: 3px;
+        background-color: currentColor;
+      }
+      
+      .contact-description {
+        font-size: 1.1rem;
+        max-width: 800px;
+        margin: 0 auto;
+        line-height: 1.6;
+      }
+      
+      .contact-content {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-bottom: 3rem;
+      }
+      
+      .contact-form-container {
+        padding: 2.5rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        border: 1px solid #ddd;
+      }
+      
+      .contact-form .form-group {
+        margin-bottom: 1.5rem;
+      }
+      
+      .contact-form label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+      }
+      
+      .contact-form input,
+      .contact-form textarea {
+        width: 100%;
+        padding: 0.85rem 1rem;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 1rem;
+        box-sizing: border-box;
+        font-family: inherit;
+      }
+      
+      .contact-form textarea {
+        resize: vertical;
+        min-height: 100px;
+      }
+      
+      .contact-form button {
+        width: 100%;
+        padding: 0.9rem 1.5rem;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 500;
+        font-size: 1rem;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      }
+      
+      .contact-form button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+      }
+      
+      .contact-info-container {
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        border: 1px solid #ddd;
+      }
+      
+      .info-title {
+        font-size: 1.5rem;
+        margin-bottom: 1.5rem;
+        text-align: center;
+      }
+      
+      .contact-info-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 1rem;
+        padding: 8px 0;
+      }
+
+      .contact-icon {
+        color: #1976d2; /* Default icon color */
+        font-size: 1.2rem;
+        min-width: 24px;
+        text-align: center;
+      }
+      
+      .contact-map,
+      .contact-map-container {
+        margin-top: 2rem;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      
+      .contact-map iframe,
+      .contact-map-container iframe {
+        width: 100%;
+        height: 300px;
+        border: 0;
+      }
+      
+      @media (max-width: 768px) {
+        .contact-section {
+          padding: 2rem 1rem;
+        }
+
+        .contact-title {
+          font-size: 2rem;
+        }
+
+        .contact-description {
+          font-size: 1.1rem;
+        }
+
+        .contact-content {
+          grid-template-columns: 1fr;
+        }
+        
+        .contact-form-container,
+        .contact-info-container {
+          padding: 1.5rem;
+        }
+      }
+      
+      /* Styles for .contact-info (the inner container for text items) */
+      .contact-info {
+        border-radius: 15px;
+        padding: 2rem;
+      }
+    </style>
     
     <!-- React и основные библиотеки -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -10535,45 +13944,64 @@ const EditorPanel = ({
     <script src="https://unpkg.com/zustand@5.0.6/umd/index.production.min.js"></script>
 </head>
 <body>
+    ${headerData.siteBackgroundType === 'image' ? `
+    <div class="background-image" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: url('assets/images/fon.jpg');
+      background-size: cover;
+      background-position: center;
+      filter: ${headerData.siteBackgroundBlur ? `blur(${headerData.siteBackgroundBlur}px)` : 'none'};
+      z-index: -2;
+    "></div>
+    ${headerData.siteBackgroundDarkness ? `
+    <div class="site-overlay" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, ${headerData.siteBackgroundDarkness / 100});
+      z-index: -1;
+    "></div>
+    ` : ''}
+    ` : headerData.siteBackgroundType === 'gradient' ? `
+    <div class="background-image" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(${headerData.siteGradientDirection || 'to right'}, 
+        ${headerData.siteGradientColor1 || '#ffffff'}, 
+        ${headerData.siteGradientColor2 || '#f5f5f5'});
+      z-index: -2;
+    "></div>
+    ` : headerData.siteBackgroundType === 'solid' ? `
+    <div class="background-image" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: ${headerData.siteBackgroundColor || '#ffffff'};
+      z-index: -2;
+    "></div>
+    ` : ''}
+    
     ${generateMultiPageHeader(siteData, 'index')}
     
     <main>
-        <section class="hero-section">
-          <div class="container">
-            <div class="hero-content">
-              <h1 class="hero-title">${heroData.title || 'Добро пожаловать'}</h1>
-              <p class="hero-subtitle">${heroData.subtitle || 'На наш сайт'}</p>
-              <p class="hero-description">${heroData.description || 'Мы предлагаем лучшие решения'}</p>
-              ${heroData.buttonText ? `<a href="contact.html" class="hero-button">${heroData.buttonText}</a>` : ''}
-            </div>
-          </div>
-        </section>
+        ${generateHeroSection(siteData)}
         
-        <section class="sections-preview">
-          <div class="container">
-            <h2>Наши разделы</h2>
-            <div class="preview-grid">
-              ${Object.entries(siteData.sectionsData || {}).map(([sectionId, sectionData]) => {
-                const fileName = getSectionFileNameSafe(sectionId, sectionData);
-                const displayName = getSectionDisplayNameSafe(sectionId, sectionData, siteData.headerData);
-                return fileName ? `
-                  <div class="preview-card">
-                    <h3>${displayName}</h3>
-                    <p>${sectionData.description || 'Узнайте больше в этом разделе'}</p>
-                    <a href="${fileName}.html" class="preview-link">Подробнее</a>
-                  </div>
-                ` : '';
-              }).join('')}
-              ${siteData.contactData ? `
-                <div class="preview-card">
-                  <h3>${siteData.contactData.title || 'Контакты'}</h3>
-                  <p>${siteData.contactData.description || 'Свяжитесь с нами'}</p>
-                  <a href="contact.html" class="preview-link">Подробнее</a>
-                </div>
-              ` : ''}
-            </div>
-          </div>
-        </section>
+        ${generateFeaturedSection(siteData)}
+        
+        ${generateSectionsPreview(siteData)}
+        
+        ${generateContactPreview(siteData)}
     </main>
     
     ${generateMultiPageFooter(siteData)}
@@ -10600,6 +14028,22 @@ const EditorPanel = ({
     
     // Получаем colorSettings секции (объявляем в начале функции)
     const sectionColorSettings = sectionData.colorSettings || {};
+    
+    // 🔥 ИСПРАВЛЕНИЕ: Получаем sectionBackground из элементов, если его нет в секции
+    if (!sectionColorSettings.sectionBackground?.enabled) {
+      const elementWithSectionBackground = (sectionData.contentElements || sectionData.elements || sectionData.aiElements || [])
+        .find(el => el.colorSettings?.sectionBackground?.enabled);
+      
+      if (elementWithSectionBackground?.colorSettings?.sectionBackground) {
+        sectionColorSettings.sectionBackground = elementWithSectionBackground.colorSettings.sectionBackground;
+        sectionColorSettings.borderRadius = elementWithSectionBackground.colorSettings.borderRadius;
+        sectionColorSettings.padding = elementWithSectionBackground.colorSettings.padding;
+        sectionColorSettings.borderColor = elementWithSectionBackground.colorSettings.borderColor;
+        sectionColorSettings.borderWidth = elementWithSectionBackground.colorSettings.borderWidth;
+        sectionColorSettings.boxShadow = elementWithSectionBackground.colorSettings.boxShadow;
+        console.log('🎨 [generateMultiPageSection] Применяем sectionBackground из элемента:', sectionColorSettings.sectionBackground);
+      }
+    }
     
     // Проверяем наличие изображений
     const hasImages = Array.isArray(sectionData.images) && sectionData.images.length > 0;
@@ -10912,7 +14356,20 @@ const EditorPanel = ({
             }
           }
         }
-      return generateContentElementHTML(element);
+        
+        // 🔥 ОТЛАДКА: Проверяем multiple-cards элемент
+        if (element.type === 'multiple-cards') {
+          console.log('🎴 MULTIPLE-CARDS ELEMENT BEFORE PROCESSING:');
+          console.log('element:', element);
+          console.log('element.cards:', element.cards);
+          console.log('element.sectionColorSettings:', element.sectionColorSettings);
+          console.log('element.sectionStyles:', element.sectionStyles);
+          if (element.cards && element.cards.length > 0) {
+            console.log('First card colorSettings:', element.cards[0].colorSettings);
+            console.log('First card customStyles:', element.cards[0].customStyles);
+          }
+        }
+      return generateContentElementHTML(element, true); // true = многостраничный режим
     }).join('');
     
     return `<!DOCTYPE html>
@@ -10922,6 +14379,7 @@ const EditorPanel = ({
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${sectionTitle} - ${siteName}</title>
     <meta name="description" content="${sectionData.description || sectionTitle}">
+    <link rel="icon" type="image/png" href="assets/images/Favicon.png">
     <link rel="stylesheet" href="assets/css/styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     
@@ -11027,50 +14485,63 @@ const EditorPanel = ({
     </style>
 </head>
 <body>
+    ${headerData.siteBackgroundType === 'image' ? `
+    <div class="background-image" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: url('assets/images/fon.jpg');
+      background-size: cover;
+      background-position: center;
+      filter: ${headerData.siteBackgroundBlur ? `blur(${headerData.siteBackgroundBlur}px)` : 'none'};
+      z-index: -2;
+    "></div>
+    ${headerData.siteBackgroundDarkness ? `
+    <div class="site-overlay" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, ${headerData.siteBackgroundDarkness / 100});
+      z-index: -1;
+    "></div>
+    ` : ''}
+    ` : headerData.siteBackgroundType === 'gradient' ? `
+    <div class="background-image" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(${headerData.siteGradientDirection || 'to right'}, 
+        ${headerData.siteGradientColor1 || '#ffffff'}, 
+        ${headerData.siteGradientColor2 || '#f5f5f5'});
+      z-index: -2;
+    "></div>
+    ` : headerData.siteBackgroundType === 'solid' ? `
+    <div class="background-image" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: ${headerData.siteBackgroundColor || '#ffffff'};
+      z-index: -2;
+    "></div>
+    ` : ''}
+    
     ${generateMultiPageHeader(siteData, fileName)}
     
     <main>
-        <nav class="breadcrumbs">
-          <div class="container">
-            <a href="${getIndexFileName()}">Главная</a> > <span>${sectionTitle}</span>
-          </div>
-        </nav>
         
         <section class="section-content" style="
           padding: 3rem 0;
-          background: ${sectionColorSettings?.sectionBackground?.enabled ? 
-            (sectionColorSettings.sectionBackground.useGradient ? 
-              `linear-gradient(${sectionColorSettings.sectionBackground.gradientDirection}, ${sectionColorSettings.sectionBackground.gradientColor1}, ${sectionColorSettings.sectionBackground.gradientColor2})` : 
-              sectionColorSettings.sectionBackground.solidColor
-            ) : 
-            (sectionData.showBackground !== false ? bgColor : 'transparent')
-          };
-          opacity: ${sectionColorSettings?.sectionBackground?.opacity || 1};
-          border-radius: ${sectionColorSettings?.borderRadius || 20}px;
-          margin: 2rem auto;
-          max-width: 1200px;
-          box-shadow: ${sectionColorSettings?.boxShadow ? '0 2px 8px rgba(0,0,0,0.1)' : 
-            (sectionData.showBackground !== false ? '0 10px 30px rgba(0,0,0,0.08)' : 'none')
-          };
-          position: relative;
-          overflow: hidden;
-          ${sectionColorSettings?.borderColor ? `border: ${sectionColorSettings.borderWidth || 1}px solid ${sectionColorSettings.borderColor};` : ''}
-          ${sectionColorSettings?.padding !== undefined ? `padding: ${sectionColorSettings.padding}px;` : ''}
+          background: transparent;
+          margin: 0;
         ">
-          <!-- Верхняя цветная полоса -->
-          <div style="
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: ${sectionColorSettings?.accentColor ? 
-              `linear-gradient(90deg, ${sectionColorSettings.accentColor}, ${sectionColorSettings.accentColor}80)` : 
-              'linear-gradient(90deg, #1976d2, #42a5f5)'
-            };
-            display: ${sectionData.showBackground !== false ? 'block' : 'none'};
-          "></div>
-          
           <div class="container" style="
             max-width: 1000px;
             margin: 0 auto;
@@ -11254,9 +14725,38 @@ const EditorPanel = ({
          // Initialize FAQ accordion functionality
          window.toggleFAQ = function(index) {
            const answer = document.getElementById('faq-answer-' + index);
+           const container = answer ? answer.parentElement : null;
+           const icon = container ? container.querySelector('span') : null;
+           
            if (answer) {
              const isVisible = answer.style.display !== 'none';
              answer.style.display = isVisible ? 'none' : 'block';
+             
+             // Обновляем иконку
+             if (icon) {
+               icon.textContent = isVisible ? '▼' : '▲';
+             }
+             
+             // Применяем hover эффекты к контейнеру
+             if (container) {
+               const originalBg = container.style.backgroundColor;
+               const hoverBg = container.getAttribute('data-hover-bg') || '#f0f0f0';
+               
+               // Добавляем обработчики hover для развернутого состояния
+               container.onmouseover = function() {
+                 this.style.backgroundColor = hoverBg;
+                 if (answer.style.display !== 'none') {
+                   answer.style.backgroundColor = hoverBg;
+                 }
+               };
+               
+               container.onmouseout = function() {
+                 this.style.backgroundColor = originalBg;
+                 if (answer.style.display !== 'none') {
+                   answer.style.backgroundColor = originalBg;
+                 }
+               };
+             }
            }
          };
          
@@ -11283,6 +14783,29 @@ const EditorPanel = ({
        }
       
       document.addEventListener('DOMContentLoaded', initImageGalleries);
+      
+      // Функция отправки формы контактов
+      function submitContactForm(event) {
+        event.preventDefault();
+        const form = event.target;
+        const formData = new FormData(form);
+        
+        // Отправляем данные на Formspree
+        fetch('https://formspree.io/f/mvgwpqrr', {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'Accept': 'application/json'
+          }
+        }).finally(() => {
+          // Перенаправляем на страницу благодарности с параметрами
+          const thankYouMessage = encodeURIComponent('${siteData.contactData?.thankYouMessage || 'Спасибо за обращение! Мы свяжемся с вами в ближайшее время.'}');
+          const closeButtonText = encodeURIComponent('${siteData.contactData?.closeButtonText || 'Закрыть'}');
+          window.location.href = \`merci.html?message=\${thankYouMessage}&closeButtonText=\${closeButtonText}\`;
+        });
+        
+        return false;
+      }
     </script>
 </body>
 </html>`;
@@ -11290,26 +14813,132 @@ const EditorPanel = ({
 
   const generateMultiPageContact = (siteData) => {
     const headerData = siteData.headerData || {};
-    const contactData = siteData.contactData || {};
+    let contactData = siteData.contactData;
     const siteName = headerData.siteName || 'My Site';
     const languageCode = typeof headerData.language === 'string' ? headerData.language : 'ru';
     
-    // Применяем цвета из настроек контактной секции (как в одностраничном режиме)
-    const contactBgColor = contactData.backgroundColor || '#f8f9fa';
-    const contactTitleColor = contactData.titleColor || '#1565c0';
-    const contactDescriptionColor = contactData.descriptionColor || '#424242';
-    const contactButtonColor = contactData.buttonColor || '#1976d2';
-    const contactTextColor = contactData.textColor || '#333333';
+    console.log('🔍 generateMultiPageContact called with siteData keys:', Object.keys(siteData));
+    console.log('🔍 Full contactData structure:', JSON.stringify(contactData, null, 2));
     
-    // Определяем фон контактной секции
-    let backgroundStyle = '';
-    if (contactData.backgroundType === 'gradient') {
-      backgroundStyle = `background: linear-gradient(${contactData.gradientDirection || 'to bottom'}, ${contactData.gradientColor1 || '#ffffff'}, ${contactData.gradientColor2 || '#f5f5f5'});`;
-    } else if (contactData.backgroundType === 'solid') {
-      backgroundStyle = `background-color: ${contactBgColor};`;
-    } else {
-      backgroundStyle = `background-color: ${contactBgColor};`;
+    if (!contactData || !contactData.title) {
+      console.log('❌ No contact data or title found, checking alternative locations...');
+      
+      // Проверяем альтернативные места где могут храниться данные контактов
+      if (siteData.contact) {
+        console.log('🔍 Found contact data in siteData.contact:', siteData.contact);
+        contactData = siteData.contact;
+      } else if (siteData.contactSection) {
+        console.log('🔍 Found contact data in siteData.contactSection:', siteData.contactSection);
+        contactData = siteData.contactSection;
+      }
+      
+      if (!contactData || !contactData.title) {
+        console.log('❌ Still no contact data found, using defaults');
+        contactData = {
+          title: 'Свяжитесь с нами',
+          description: 'Оставьте свои контактные данные, и мы свяжемся с вами в ближайшее время'
+        };
+      }
     }
+
+    // Создаем inline стили для контактной секции на основе contactData (как в одностраничном экспорте)
+    const sectionStyles = [];
+    
+    console.log('🎨 Checking background styles in contactData...');
+    console.log('🔍 backgroundType:', contactData.backgroundType);
+    console.log('🔍 gradientColor1:', contactData.gradientColor1);
+    console.log('🔍 gradientColor2:', contactData.gradientColor2);
+    console.log('🔍 backgroundColor:', contactData.backgroundColor);
+    
+    // Улучшенная логика для фонов - проверяем разные варианты хранения данных
+    if (contactData.backgroundType === 'gradient') {
+      if (contactData.gradientColor1 && contactData.gradientColor2) {
+        sectionStyles.push(`background: linear-gradient(${contactData.gradientDirection || 'to bottom'}, ${contactData.gradientColor1}, ${contactData.gradientColor2})`);
+        console.log('✅ Applied gradient background:', contactData.gradientColor1, contactData.gradientColor2);
+      }
+    } else if (contactData.backgroundColor) {
+      sectionStyles.push(`background-color: ${contactData.backgroundColor}`);
+      console.log('✅ Applied solid background:', contactData.backgroundColor);
+    }
+    
+    // Проверяем альтернативные названия полей для фонов
+    if (!sectionStyles.length) {
+      console.log('❌ No primary background found, checking alternatives...');
+      
+      const possibleBgFields = [
+        'sectionBackgroundColor', 'bgColor', 'background', 'bg',
+        'primaryColor', 'mainColor', 'themeColor'
+      ];
+      
+      for (const field of possibleBgFields) {
+        if (contactData[field]) {
+          sectionStyles.push(`background-color: ${contactData[field]}`);
+          console.log(`✅ Applied ${field}:`, contactData[field]);
+          break;
+        }
+      }
+      
+      // Проверяем градиенты в альтернативных полях
+      const possibleGradientFields = [
+        ['gradientStart', 'gradientEnd'],
+        ['gradient1', 'gradient2'],
+        ['color1', 'color2'],
+        ['startColor', 'endColor']
+      ];
+      
+      for (const [field1, field2] of possibleGradientFields) {
+        if (contactData[field1] && contactData[field2]) {
+          sectionStyles.push(`background: linear-gradient(to bottom, ${contactData[field1]}, ${contactData[field2]})`);
+          console.log(`✅ Applied gradient ${field1}/${field2}:`, contactData[field1], contactData[field2]);
+          break;
+        }
+      }
+    }
+    
+    // Стили для форм и информационных блоков
+    const formStyles = [];
+    const infoStyles = [];
+    
+    // Применяем фон формы (по умолчанию белый)
+    if (contactData.formBackgroundColor) {
+      formStyles.push(`background-color: ${contactData.formBackgroundColor}`);
+    } else {
+      formStyles.push(`background-color: #ffffff`);
+    }
+    
+    if (contactData.formBorderColor) {
+      formStyles.push(`border: 1px solid ${contactData.formBorderColor}`);
+    }
+    
+    // Синхронизируем фон с формой
+    if (contactData.infoBackgroundColor) {
+      infoStyles.push(`background-color: ${contactData.infoBackgroundColor}`);
+    } else if (contactData.formBackgroundColor) {
+      // Используем тот же фон, что и у формы
+      infoStyles.push(`background-color: ${contactData.formBackgroundColor}`);
+    } else {
+      // По умолчанию белый фон как у формы
+      infoStyles.push(`background-color: #ffffff`);
+    }
+    
+    if (contactData.infoBorderColor) {
+      infoStyles.push(`border: 1px solid ${contactData.infoBorderColor}`);
+    }
+
+    console.log('🎨 Final section styles:', sectionStyles);
+    console.log('📋 Form styles:', formStyles);
+    console.log('ℹ️ Info styles:', infoStyles);
+    
+    // 🐛 ОТЛАДКА: Проверяем все данные contactData
+    console.log('🔍 [DEBUG] All contactData properties:');
+    console.log('   - title:', contactData.title);
+    console.log('   - companyName:', contactData.companyName);
+    console.log('   - address:', contactData.address);
+    console.log('   - phone:', contactData.phone);
+    console.log('   - email:', contactData.email);
+    console.log('   - workingHours:', contactData.workingHours);
+    console.log('   - showCompanyInfo:', contactData.showCompanyInfo);
+    console.log('   - showContactForm:', contactData.showContactForm);
     
     return `<!DOCTYPE html>
 <html lang="${languageCode}">
@@ -11318,6 +14947,7 @@ const EditorPanel = ({
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${contactData.title || 'Контакты'} - ${siteName}</title>
     <meta name="description" content="${contactData.description || 'Свяжитесь с нами'}">
+    <link rel="icon" type="image/png" href="assets/images/Favicon.png">
     <link rel="stylesheet" href="assets/css/styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     
@@ -11388,14 +15018,63 @@ const EditorPanel = ({
     <script src="https://unpkg.com/victory@37.3.6/dist/index.umd.js"></script>
     <script src="https://unpkg.com/zustand@5.0.6/umd/index.production.min.js"></script>
     <style>
-      /* Стили для контактной формы */
-      .contact-form {
-        max-width: 600px;
+      /* Contact section styles - точно как в одностраничном экспорте */
+      .contact-section {
+        padding: 4rem 2rem;
+        width: 100%;
+        margin: 0;
+        position: relative;
+        z-index: 2;
+      }
+      
+      .contact-container {
+        max-width: 1140px;
         margin: 0 auto;
-        background: rgba(255, 255, 255, 0.95);
-        padding: 2rem;
-        border-radius: 15px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        padding: 0 20px;
+      }
+      
+      .contact-header {
+        text-align: center;
+        margin-bottom: 3rem;
+      }
+      
+      .contact-title {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        position: relative;
+        display: inline-block;
+      }
+      
+      .contact-title::after {
+        content: '';
+        position: absolute;
+        bottom: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 50px;
+        height: 3px;
+        background-color: currentColor;
+      }
+      
+      .contact-description {
+        font-size: 1.1rem;
+        max-width: 800px;
+        margin: 0 auto;
+        line-height: 1.6;
+      }
+      
+      .contact-content {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-bottom: 3rem;
+      }
+      
+      .contact-form-container {
+        padding: 2.5rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        border: 1px solid #ddd;
       }
       
       .contact-form .form-group {
@@ -11404,170 +15083,306 @@ const EditorPanel = ({
       
       .contact-form label {
         display: block;
-        color: ${contactTextColor};
-        font-weight: 500;
         margin-bottom: 0.5rem;
-        font-family: 'Montserrat', sans-serif;
+        font-weight: 500;
       }
       
       .contact-form input,
       .contact-form textarea {
         width: 100%;
-        padding: 0.75rem;
-        border: 2px solid #e0e0e0;
-        border-radius: 8px;
+        padding: 0.85rem 1rem;
+        border: 1px solid #ddd;
+        border-radius: 6px;
         font-size: 1rem;
-        font-family: 'Roboto', sans-serif;
-        transition: border-color 0.3s ease;
-      }
-      
-      .contact-form input:focus,
-      .contact-form textarea:focus {
-        outline: none;
-        border-color: ${contactButtonColor};
+        box-sizing: border-box;
+        font-family: inherit;
       }
       
       .contact-form textarea {
         resize: vertical;
-        min-height: 120px;
+        min-height: 100px;
       }
       
       .contact-form button {
-        background-color: ${contactButtonColor};
-        color: white;
-        padding: 0.75rem 2rem;
+        width: 100%;
+        padding: 0.9rem 1.5rem;
         border: none;
-        border-radius: 8px;
-        font-size: 1rem;
-        font-weight: 500;
+        border-radius: 6px;
         cursor: pointer;
         transition: all 0.3s ease;
-        font-family: 'Montserrat', sans-serif;
+        font-weight: 500;
+        font-size: 1rem;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
       }
       
       .contact-form button:hover {
-        background-color: ${contactButtonColor}dd;
         transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
       }
       
-      /* Адаптивность */
+      .contact-info-container {
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        border: 1px solid #ddd;
+      }
+      
+      .info-title {
+        font-size: 1.5rem;
+        margin-bottom: 1.5rem;
+        text-align: center;
+      }
+      
+      .contact-info-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 1rem;
+        padding: 8px 0;
+      }
+
+      .contact-icon {
+        color: #1976d2;
+        font-size: 1.2rem;
+        min-width: 24px;
+        text-align: center;
+      }
+      
+      .contact-map,
+      .contact-map-container {
+        margin-top: 2rem;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      
+      .contact-map iframe,
+      .contact-map-container iframe {
+        width: 100%;
+        height: 300px;
+        border: 0;
+      }
+      
       @media (max-width: 768px) {
-        .contact-form {
+        .contact-section {
+          padding: 2rem 1rem;
+        }
+
+        .contact-title {
+          font-size: 2rem;
+        }
+
+        .contact-description {
+          font-size: 1.1rem;
+        }
+
+        .contact-content {
+          grid-template-columns: 1fr;
+        }
+        
+        .contact-form-container,
+        .contact-info-container {
           padding: 1.5rem;
-          margin: 0 1rem;
         }
       }
     </style>
 </head>
 <body>
+    ${headerData.siteBackgroundType === 'image' ? `
+    <div class="background-image" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: url('assets/images/fon.jpg');
+      background-size: cover;
+      background-position: center;
+      filter: ${headerData.siteBackgroundBlur ? `blur(${headerData.siteBackgroundBlur}px)` : 'none'};
+      z-index: -2;
+    "></div>
+    ${headerData.siteBackgroundDarkness ? `
+    <div class="site-overlay" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, ${headerData.siteBackgroundDarkness / 100});
+      z-index: -1;
+    "></div>
+    ` : ''}
+    ` : headerData.siteBackgroundType === 'gradient' ? `
+    <div class="background-image" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(${headerData.siteGradientDirection || 'to right'}, 
+        ${headerData.siteGradientColor1 || '#ffffff'}, 
+        ${headerData.siteGradientColor2 || '#f5f5f5'});
+      z-index: -2;
+    "></div>
+    ` : headerData.siteBackgroundType === 'solid' ? `
+    <div class="background-image" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: ${headerData.siteBackgroundColor || '#ffffff'};
+      z-index: -2;
+    "></div>
+    ` : ''}
+    
     ${generateMultiPageHeader(siteData, 'contact')}
     
     <main>
-        <nav class="breadcrumbs">
-          <div class="container">
-            <a href="${getIndexFileName()}">Главная</a> > <span>${contactData.title || 'Контакты'}</span>
-          </div>
-        </nav>
-        
-        <section class="contact-section" style="
-          padding: 3rem 0;
-          ${backgroundStyle}
-          position: relative;
-        ">
-          <div class="container" style="
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 0 2rem;
-          ">
-            <h1 style="
-              color: ${contactTitleColor};
-              font-size: 2.5rem;
-              font-weight: 700;
-              text-align: center;
-              margin-bottom: 1.5rem;
-              font-family: 'Montserrat', sans-serif;
-            ">${contactData.title || 'Контакты'}</h1>
-            
-            ${contactData.description ? `
-              <p style="
-                color: ${contactDescriptionColor};
-                font-size: 1.2rem;
-                line-height: 1.6;
-                text-align: center;
-                margin-bottom: 3rem;
-                max-width: 800px;
-                margin-left: auto;
-                margin-right: auto;
-                font-family: 'Roboto', sans-serif;
-              ">${contactData.description}</p>
-            ` : ''}
-            
-            <!-- Контактная информация -->
-            <div class="contact-info" style="
-              background: rgba(255, 255, 255, 0.95);
-              border-radius: 15px;
-              padding: 2rem;
-              margin-bottom: 3rem;
-              box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-              text-align: center;
-            ">
-              ${contactData.phone ? `
-                <div style="margin-bottom: 1rem;">
-                  <strong style="color: ${contactTitleColor}; font-family: 'Montserrat', sans-serif;">Телефон:</strong>
-                  <span style="color: ${contactTextColor}; font-family: 'Roboto', sans-serif; margin-left: 0.5rem;">${contactData.phone}</span>
-                </div>
-              ` : ''}
-              ${contactData.email ? `
-                <div style="margin-bottom: 1rem;">
-                  <strong style="color: ${contactTitleColor}; font-family: 'Montserrat', sans-serif;">Email:</strong>
-                  <span style="color: ${contactTextColor}; font-family: 'Roboto', sans-serif; margin-left: 0.5rem;">${contactData.email}</span>
-                </div>
-              ` : ''}
-              ${contactData.address ? `
-                <div style="margin-bottom: 1rem;">
-                  <strong style="color: ${contactTitleColor}; font-family: 'Montserrat', sans-serif;">Адрес:</strong>
-                  <span style="color: ${contactTextColor}; font-family: 'Roboto', sans-serif; margin-left: 0.5rem;">${contactData.address}</span>
-                </div>
-              ` : ''}
+        <!-- Применяем точно такую же структуру как в одностраничном экспорте -->
+        <section id="contact" class="contact-section" style="${sectionStyles.join('; ')}">
+          <div class="contact-container">
+            <div class="contact-header">
+              <h2 class="contact-title" style="color: ${contactData.titleColor || '#1976d2'}">${contactData.title}</h2>
+              ${contactData.description ? `<p class="contact-description" style="color: ${contactData.descriptionColor || '#666666'}">${contactData.description}</p>` : ''}
             </div>
             
-            <!-- Контактная форма -->
-            <div class="contact-form">
-              <h3 style="
-                color: ${contactTitleColor};
-                font-size: 1.5rem;
-                font-weight: 600;
-                text-align: center;
-                margin-bottom: 2rem;
-                font-family: 'Montserrat', sans-serif;
-              ">Отправить сообщение</h3>
+            <div class="contact-content">
+              ${contactData.showContactForm !== false ? `
+                <div class="contact-form-container" style="${formStyles.join('; ')}">
+                  <h3 style="color: ${contactData.titleColor || '#1976d2'}">Get In Touch</h3>
+                  <form class="contact-form" onsubmit="handleSubmit(event)" id="contactForm">
+                    <input type="hidden" name="_captcha" value="false" />
+                    <input type="hidden" name="_template" value="table" />
+                    <input type="hidden" name="_subject" value="New message from website" />
+                    <input type="hidden" name="_language" value="en" />
+                    <div class="form-group">
+                      <label style="color: ${contactData.labelColor || '#333333'}">Full Name</label>
+                      <input type="text" name="name" required style="background-color: ${contactData.inputBackgroundColor || '#f5f9ff'}; color: ${contactData.inputTextColor || '#1a1a1a'};" placeholder="Enter your full name">
+                </div>
+                    <div class="form-group">
+                      <label style="color: ${contactData.labelColor || '#333333'}">Phone Number</label>
+                      <input type="tel" name="phone" required style="background-color: ${contactData.inputBackgroundColor || '#f5f9ff'}; color: ${contactData.inputTextColor || '#1a1a1a'};" placeholder="Enter your phone number">
+                </div>
+                    <div class="form-group">
+                      <label style="color: ${contactData.labelColor || '#333333'}">Email</label>
+                      <input type="email" name="email" required style="background-color: ${contactData.inputBackgroundColor || '#f5f9ff'}; color: ${contactData.inputTextColor || '#1a1a1a'};" placeholder="Enter your email address">
+                    </div>
+                    <div class="form-group">
+                      <label style="color: ${contactData.labelColor || '#333333'}">Message</label>
+                      <textarea name="message" required style="background-color: ${contactData.inputBackgroundColor || '#f5f9ff'}; color: ${contactData.inputTextColor || '#1a1a1a'}; min-height: 100px;" placeholder="Tell us about your inquiry..."></textarea>
+                    </div>
+                    <button type="submit" style="background-color: ${contactData.buttonColor || '#1976d2'}; color: ${contactData.buttonTextColor || '#ffffff'};">
+                      Send Message
+                    </button>
+                  </form>
+                </div>
+              ` : ''}
               
-              <form id="contactForm" onsubmit="handleSubmit(event)">
-                <div class="form-group">
-                  <label for="name">Имя *</label>
-                  <input type="text" id="name" name="name" required>
+              ${contactData.showCompanyInfo !== false ? `
+                <div class="contact-info-container" style="${infoStyles.join('; ')}">
+                  <h3 class="info-title" style="color: ${contactData.infoTitleColor || contactData.titleColor || '#1976d2'}">Contact Information</h3>
+                  <div class="contact-info">
+            
+                    <!-- Компания -->
+                    ${contactData.companyName || contactData.title ? `
+                      <div class="contact-info-item">
+                        <span class="contact-icon" style="color: ${contactData.iconColor || '#1976d2'}">🏢</span>
+                        <span style="color: ${contactData.labelColor || '#333333'}; font-weight: 500;">${contactData.companyName || contactData.title || 'Company Name'}</span>
+                      </div>
+                    ` : `
+                      <div class="contact-info-item">
+                        <span class="contact-icon" style="color: ${contactData.iconColor || '#1976d2'}">🏢</span>
+                        <span style="color: ${contactData.labelColor || '#333333'}; font-weight: 500;">КриптоИнвест</span>
+                      </div>
+                    `}
+                    
+                    <!-- Адрес -->
+                    ${contactData.address ? `
+                      <div class="contact-info-item">
+                        <span class="contact-icon" style="color: ${contactData.iconColor || '#1976d2'}">📍</span>
+                        <span style="color: ${contactData.labelColor || '#333333'}; font-weight: 500;">${contactData.address}</span>
+                </div>
+                    ` : `
+                      <div class="contact-info-item">
+                        <span class="contact-icon" style="color: ${contactData.iconColor || '#1976d2'}">📍</span>
+                        <span style="color: ${contactData.labelColor || '#333333'}; font-weight: 500;">Al Maktoum Street, Deira, P.O. Box 12345, Dubai, UAE</span>
+                      </div>
+                    `}
+                    
+                    <!-- Телефон -->
+                    ${contactData.phone ? `
+                      <div class="contact-info-item">
+                        <span class="contact-icon" style="color: ${contactData.iconColor || '#1976d2'}">📞</span>
+                        <span style="color: ${contactData.labelColor || '#333333'}; font-weight: 500;">${contactData.phone}</span>
+                </div>
+                    ` : `
+                      <div class="contact-info-item">
+                        <span class="contact-icon" style="color: ${contactData.iconColor || '#1976d2'}">📞</span>
+                        <span style="color: ${contactData.labelColor || '#333333'}; font-weight: 500;">+971 4 237 7922</span>
+                      </div>
+                    `}
+                    
+                    <!-- Email -->
+                    ${contactData.email ? `
+                      <div class="contact-info-item">
+                        <span class="contact-icon" style="color: ${contactData.iconColor || '#1976d2'}">✉️</span>
+                        <span style="color: ${contactData.labelColor || '#333333'}; font-weight: 500;">${contactData.email}</span>
+                </div>
+                    ` : `
+                      <div class="contact-info-item">
+                        <span class="contact-icon" style="color: ${contactData.iconColor || '#1976d2'}">✉️</span>
+                        <span style="color: ${contactData.labelColor || '#333333'}; font-weight: 500;">team@moy-sayt.com</span>
+                      </div>
+                    `}
+                    
+                    <!-- Часы работы -->
+                    ${contactData.workingHours ? `
+                      <div class="contact-info-item">
+                        <span class="contact-icon" style="color: ${contactData.iconColor || '#1976d2'}">🕒</span>
+                        <span style="color: ${contactData.companyInfoColor || '#333333'}">${contactData.workingHours}</span>
+                      </div>
+                    ` : ''}
+                  </div>
+                </div>
+              ` : ''}
                 </div>
                 
-                <div class="form-group">
-                  <label for="email">Email *</label>
-                  <input type="email" id="email" name="email" required>
+            <!-- Всегда показываем карту с адресом по умолчанию -->
+            <div class="contact-map-container" style="
+              margin-top: 3rem;
+              border-radius: 12px;
+              overflow: hidden;
+              box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            ">
+              <div style="position: relative; width: 100%; height: 400px;">
+                <iframe
+                  src="https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent((contactData.address || 'Al Maktoum Street, Deira, Dubai, UAE') + ', ' + (contactData.city || 'Dubai'))}&language=en"
+                  width="100%"
+                  height="100%"
+                  style="border: 0;"
+                  allowfullscreen=""
+                  loading="lazy"
+                  referrerpolicy="no-referrer-when-downgrade"
+                  title="Map: ${contactData.address || 'Al Maktoum Street, Deira, Dubai, UAE'}">
+                </iframe>
+                <div style="
+                  position: absolute;
+                  bottom: 10px;
+                  left: 10px;
+                  background: rgba(255, 255, 255, 0.9);
+                  padding: 8px 12px;
+                  border-radius: 6px;
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                  font-size: 14px;
+                  color: #333;
+                  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                ">
+                  <span style="color: #1976d2;">📍</span>
+                  <span>${contactData.address || 'Al Maktoum Street, Deira, Dubai, UAE'}</span>
                 </div>
-                
-                <div class="form-group">
-                  <label for="phone">Телефон</label>
-                  <input type="tel" id="phone" name="phone">
-                </div>
-                
-                <div class="form-group">
-                  <label for="message">Сообщение *</label>
-                  <textarea id="message" name="message" required placeholder="Расскажите о вашем вопросе или предложении..."></textarea>
-                </div>
-                
-                <div style="text-align: center;">
-                  <button type="submit">Отправить сообщение</button>
-                </div>
-              </form>
+              </div>
             </div>
           </div>
         </section>
@@ -11584,15 +15399,17 @@ const EditorPanel = ({
         const formData = new FormData(form);
         
         // Отправляем данные формы
-        fetch('https://formspree.io/f/mblyqyyj', {
+        fetch('https://formspree.io/f/mvgwpqrr', {
           method: 'POST',
           body: formData,
           headers: {
             'Accept': 'application/json'
           }
         }).finally(() => {
-          // Всегда перенаправляем на страницу благодарности
-          window.location.href = 'merci.html';
+          // Всегда перенаправляем на страницу благодарности с параметрами
+          const thankYouMessage = encodeURIComponent('${contactData?.thankYouMessage || 'Спасибо за обращение! Мы свяжемся с вами в ближайшее время.'}');
+          const closeButtonText = encodeURIComponent('${contactData?.closeButtonText || 'Закрыть'}');
+          window.location.href = \`merci.html?message=\${thankYouMessage}&closeButtonText=\${closeButtonText}\`;
         });
       }
     </script>
@@ -11613,6 +15430,7 @@ const EditorPanel = ({
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${doc.title} - ${siteName}</title>
     <meta name="description" content="${doc.title}">
+    <link rel="icon" type="image/png" href="assets/images/Favicon.png">
     <link rel="stylesheet" href="assets/css/styles.css">
     
     <!-- React и основные библиотеки -->
@@ -11683,14 +15501,57 @@ const EditorPanel = ({
     <script src="https://unpkg.com/zustand@5.0.6/umd/index.production.min.js"></script>
 </head>
 <body>
+    ${headerData.siteBackgroundType === 'image' ? `
+    <div class="background-image" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: url('assets/images/fon.jpg');
+      background-size: cover;
+      background-position: center;
+      filter: ${headerData.siteBackgroundBlur ? `blur(${headerData.siteBackgroundBlur}px)` : 'none'};
+      z-index: -2;
+    "></div>
+    ${headerData.siteBackgroundDarkness ? `
+    <div class="site-overlay" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, ${headerData.siteBackgroundDarkness / 100});
+      z-index: -1;
+    "></div>
+    ` : ''}
+    ` : headerData.siteBackgroundType === 'gradient' ? `
+    <div class="background-image" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(${headerData.siteGradientDirection || 'to right'}, 
+        ${headerData.siteGradientColor1 || '#ffffff'}, 
+        ${headerData.siteGradientColor2 || '#f5f5f5'});
+      z-index: -2;
+    "></div>
+    ` : headerData.siteBackgroundType === 'solid' ? `
+    <div class="background-image" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: ${headerData.siteBackgroundColor || '#ffffff'};
+      z-index: -2;
+    "></div>
+    ` : ''}
+    
     ${generateMultiPageHeader(siteData, docType)}
     
     <main>
-        <nav class="breadcrumbs">
-          <div class="container">
-            <a href="${getIndexFileName()}">Главная</a> > <span>${doc.title}</span>
-          </div>
-        </nav>
         
         <section class="legal-content">
           <div class="container">
@@ -11739,13 +15600,18 @@ const EditorPanel = ({
     });
 
     // Добавляем остальные страницы
-    sitemap += `
+    if (siteData.contactData) {
+      const contactFileName = getContactFileNameSafe(siteData.contactData);
+      sitemap += `
   <url>
-    <loc>${baseUrl}/contact.html</loc>
+    <loc>${baseUrl}/${contactFileName}.html</loc>
     <lastmod>${currentDate}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
-  </url>
+  </url>`;
+    }
+    
+    sitemap += `
 </urlset>`;
   };
 
@@ -11822,6 +15688,7 @@ const EditorPanel = ({
         titleColor: section.titleColor || '#000000',
         descriptionColor: section.descriptionColor || '#666666',
         cards: section.cards || [],
+        elements: section.elements || [],
         aiElements: section.aiElements || [],
         contentElements: section.contentElements || []
       }));
@@ -11882,6 +15749,13 @@ const EditorPanel = ({
           allTranslations: liveChatData.allTranslations || ''
         }
       };
+
+      // 🔥 ИСПРАВЛЕНИЕ: Проверяем siteData после его объявления
+      console.log('🔍 [DEBUG] siteData after declaration:', siteData);
+      if (!siteData || !siteData.headerData) {
+        console.error('❌ [ERROR] siteData or headerData is missing after declaration:', { siteData, headerData: siteData?.headerData });
+        throw new Error('Данные сайта не найдены. Пожалуйста, обновите страницу и попробуйте снова.');
+      }
 
       console.log('🚀 handleDownloadSite - siteData:', siteData);
       console.log('🚀 handleDownloadSite - siteData.liveChatData:', siteData.liveChatData);
@@ -12062,7 +15936,8 @@ const EditorPanel = ({
         // Генерируем страницу контактов
         if (siteData.contactData) {
           const contactContent = generateMultiPageContact(siteData);
-          zip.file('contact.html', contactContent);
+          const contactFileName = getContactFileNameSafe(siteData.contactData);
+          zip.file(`${contactFileName}.html`, contactContent);
         }
         
         // Генерируем правовые документы
@@ -12805,7 +16680,16 @@ if (file_put_contents($sitemapFile, $updatedContent) !== false) {
         type: 'blob',
         mimeType: 'application/zip'
       });
+      
+      // 🔥 ИСПРАВЛЕНИЕ: Добавляем проверку siteData
+      console.log('🔍 [DEBUG] siteData before generateSafeFileName:', siteData);
+      if (!siteData || !siteData.headerData) {
+        console.error('❌ [ERROR] siteData or headerData is missing:', { siteData, headerData: siteData?.headerData });
+        throw new Error('Данные сайта не найдены. Пожалуйста, обновите страницу и попробуйте снова.');
+      }
+      
       const fileName = generateSafeFileName(siteData);
+      console.log('🔍 [DEBUG] Generated fileName:', fileName);
       saveAs(content, `${fileName}.zip`);
     } catch (error) {
       console.error('Error during site download:', error);
@@ -12859,6 +16743,7 @@ if (file_put_contents($sitemapFile, $updatedContent) !== false) {
         titleColor: section.titleColor || '#000000',
         descriptionColor: section.descriptionColor || '#666666',
         cards: section.cards || [],
+        elements: section.elements || [],
         aiElements: section.aiElements || [],
         contentElements: section.contentElements || []
       }));
@@ -12910,6 +16795,13 @@ if (file_put_contents($sitemapFile, $updatedContent) !== false) {
           }
         }
       };
+
+      // 🔥 ИСПРАВЛЕНИЕ: Проверяем siteData после его объявления (PHP)
+      console.log('🔍 [DEBUG] siteData after declaration (PHP):', siteData);
+      if (!siteData || !siteData.headerData) {
+        console.error('❌ [ERROR] siteData or headerData is missing after declaration (PHP):', { siteData, headerData: siteData?.headerData });
+        throw new Error('Данные сайта не найдены. Пожалуйста, обновите страницу и попробуйте снова.');
+      }
 
       console.log('Generating PHP site with data:', siteData);
 
@@ -13355,7 +17247,15 @@ if (file_put_contents($sitemapFile, $updatedContent) !== false) {
         type: 'blob',
         mimeType: 'application/zip'
       });
+      // 🔥 ИСПРАВЛЕНИЕ: Добавляем проверку siteData
+      console.log('🔍 [DEBUG] siteData before generateSafeFileName (PHP):', siteData);
+      if (!siteData || !siteData.headerData) {
+        console.error('❌ [ERROR] siteData or headerData is missing (PHP):', { siteData, headerData: siteData?.headerData });
+        throw new Error('Данные сайта не найдены. Пожалуйста, обновите страницу и попробуйте снова.');
+      }
+      
       const fileName = generateSafeFileName(siteData);
+      console.log('🔍 [DEBUG] Generated fileName (PHP):', fileName);
       saveAs(content, `${fileName}-php.zip`);
     } catch (error) {
       console.error('Error during PHP site download:', error);
@@ -13835,6 +17735,10 @@ ${mainHtml}
         }
       });
       console.log('=====================');
+      
+      // Логирование heroData для отладки
+      console.log('heroData before export:', heroData);
+      console.log('heroData.homePageSettings:', heroData.homePageSettings);
 
       const siteData = {
         headerData: {
@@ -13852,7 +17756,16 @@ ${mainHtml}
           title: heroData.title || '',
           subtitle: heroData.subtitle || '',
           buttonText: heroData.buttonText || '',
-          backgroundImage: heroData.backgroundImage ? 'assets/images/hero/' + heroData.backgroundImage.split('/').pop() : ''
+          backgroundImage: heroData.backgroundImage ? 'assets/images/hero/' + heroData.backgroundImage.split('/').pop() : '',
+          homePageSettings: heroData.homePageSettings || {
+            showFeaturedSection: true,
+            featuredSectionId: '',
+            showSectionsPreview: true,
+            sectionsDisplayMode: 'cards',
+            maxSectionsToShow: 6,
+            sectionsOrder: [],
+            showContactPreview: true
+          }
         },
         sectionsData: Object.entries(sectionsData).map(([id, section]) => ({
           ...section,
@@ -14132,6 +18045,7 @@ ${mainHtml}
           expanded={expandedSections.hero}
           onToggle={() => toggleSection('hero')}
           id="hero"
+          sectionsData={sectionsData}
         />
   );
 
@@ -14988,7 +18902,7 @@ ${mainHtml}
 };
 
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth={false} sx={{ maxWidth: '100%', px: 2 }}>
       <Paper sx={{ p: 3 }}>
         {aiParserBlock}
         {headerEditorBlock}

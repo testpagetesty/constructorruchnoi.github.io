@@ -27,6 +27,7 @@ const MotionDiv = dynamic(() => import('framer-motion').then(mod => mod.motion.d
 import AnimationWrapper from './AnimationWrapper';
 import AnimationControls from './AnimationControls';
 import EditableElementWrapper from './EditableElementWrapper';
+import ColorSettings from './TextComponents/ColorSettings';
 
 // Иконки
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
@@ -283,6 +284,7 @@ export const QRCodeGenerator = ({
     includeMargin: true, 
     fgColor: propFgColor || '#000000', 
     bgColor: propBgColor || '#ffffff', 
+    colorSettings: {},
     animationSettings 
   });
 
@@ -361,6 +363,25 @@ export const QRCodeGenerator = ({
               onUpdate={handleAnimationUpdate}
             />
           )}
+          
+          {/* Настройки цветов */}
+          <Box sx={{ mb: 2 }}>
+            <ColorSettings
+              title="Настройки цветов QR кода"
+              colorSettings={editData.colorSettings || {}}
+              onUpdate={(newColorSettings) => setEditData({ ...editData, colorSettings: newColorSettings })}
+              availableFields={[
+                { name: 'title', label: 'Заголовок', description: 'Цвет заголовка QR кода', defaultColor: '#333333' },
+                { name: 'background', label: 'Фон', description: 'Цвет фона QR кода', defaultColor: '#ffffff' },
+                { name: 'foreground', label: 'QR код', description: 'Цвет самого QR кода', defaultColor: '#000000' }
+              ]}
+              defaultColors={{
+                title: '#333333',
+                background: '#ffffff',
+                foreground: '#000000'
+              }}
+            />
+          </Box>
           
           <Box sx={{ display: 'flex', gap: 1 }}>
             <button onClick={handleSave} style={{ flex: 1, padding: '8px', backgroundColor: '#4caf50', color: 'white', border: 'none', borderRadius: '4px' }}>
@@ -642,6 +663,7 @@ export const RatingComponent = ({
   onUpdate = () => {},
   onSave = null,
   onCancel = null,
+  colorSettings = {},
   animationSettings = {
     animationType: 'fadeIn',
     delay: 0,
@@ -687,17 +709,10 @@ export const RatingComponent = ({
     rating: propCurrentRating || 3,
     maxRating: propMaxRating || 5,
     readonly: false,
-    titleColor: '#333333',
-    labelColor: '#666666',
-    ratingTextColor: '#999999',
-    starColor: '#ffc107',
-    backgroundColor: '#ffffff',
-    backgroundType: 'solid', // 'solid' или 'gradient'
-    gradientColors: ['#ffffff', '#f5f5f5'],
-    gradientDirection: 'to bottom',
-    showBackground: true,
-    borderRadius: 8,
-    padding: 20,
+    showTitle: true,
+    showLabel: true,
+    interactive: true,
+    colorSettings: {},
     animationSettings
   });
 
@@ -714,22 +729,84 @@ export const RatingComponent = ({
     setRating(editData.rating);
     setMaxRating(editData.maxRating);
     setReadonly(editData.readonly);
-    setTitleColor(editData.titleColor);
-    setLabelColor(editData.labelColor);
-    setRatingTextColor(editData.ratingTextColor);
-    setStarColor(editData.starColor);
-    setBackgroundColor(editData.backgroundColor);
-    setBackgroundType(editData.backgroundType);
-    setGradientColors(editData.gradientColors);
-    setGradientDirection(editData.gradientDirection);
-    setShowBackground(editData.showBackground);
-    setBorderRadius(editData.borderRadius);
-    setPadding(editData.padding);
+    
+    // 🔥 ИСПРАВЛЕНИЕ: Обновляем локальные цвета из colorSettings
+    if (editData.colorSettings?.textFields) {
+      setTitleColor(editData.colorSettings.textFields.title || '#333333');
+      setLabelColor(editData.colorSettings.textFields.text || '#666666');
+      setRatingTextColor(editData.colorSettings.textFields.text || '#999999');
+      setStarColor(editData.colorSettings.textFields.star || '#ffc107');
+    }
+    
+    // 🔥 ИСПРАВЛЕНИЕ: Обновляем локальные настройки фона из colorSettings
+    console.log('⭐ [RatingComponent] handleSave - colorSettings:', editData.colorSettings);
+    
+    if (editData.colorSettings?.sectionBackground?.enabled) {
+      const { sectionBackground } = editData.colorSettings;
+      console.log('⭐ [RatingComponent] handleSave - sectionBackground enabled:', sectionBackground);
+      
+      if (sectionBackground.useGradient) {
+        console.log('⭐ [RatingComponent] handleSave - Setting gradient background');
+        setBackgroundType('gradient');
+        setGradientColors([sectionBackground.gradientColor1 || 'rgba(0,0,0,0.85)', sectionBackground.gradientColor2 || 'rgba(0,0,0,0.75)']);
+        setGradientDirection(sectionBackground.gradientDirection || 'to right');
+      } else {
+        console.log('⭐ [RatingComponent] handleSave - Setting solid background');
+        setBackgroundType('solid');
+        setBackgroundColor(sectionBackground.solidColor || 'rgba(0,0,0,0.85)');
+      }
+      setShowBackground(true);
+      setBorderRadius(editData.colorSettings.borderRadius || 8);
+      setPadding(editData.colorSettings.padding || 20);
+      
+      console.log('⭐ [RatingComponent] handleSave - Updated local background settings');
+    } else {
+      // Fallback на старые настройки
+      console.log('⭐ [RatingComponent] handleSave - Using fallback background settings');
+      setBackgroundColor(editData.backgroundColor);
+      setBackgroundType(editData.backgroundType);
+      setGradientColors(editData.gradientColors);
+      setGradientDirection(editData.gradientDirection);
+      setShowBackground(editData.showBackground);
+      setBorderRadius(editData.borderRadius);
+      setPadding(editData.padding);
+    }
+    
+    // 🔥 ИСПРАВЛЕНИЕ: Создаем полный объект данных для экспорта
+    const saveData = {
+      title: editData.title,
+      label: editData.label,
+      rating: editData.rating,
+      maxRating: editData.maxRating,
+      readonly: editData.readonly,
+      showTitle: editData.showTitle !== false,
+      showLabel: editData.showLabel !== false,
+      interactive: editData.interactive !== false,
+      colorSettings: editData.colorSettings || {},
+      animationSettings: editData.animationSettings
+    };
+    
+    console.log('⭐ [RatingComponent] Saving data:', saveData);
+    
+    // 🔥 ИСПРАВЛЕНИЕ: Логируем финальные локальные настройки
+    console.log('⭐ [RatingComponent] Final local settings after save:', {
+      titleColor,
+      labelColor,
+      ratingTextColor,
+      starColor,
+      backgroundColor,
+      backgroundType,
+      gradientColors,
+      gradientDirection,
+      showBackground,
+      borderRadius,
+      padding
+    });
     
     if (onSave) {
-      onSave(editData);
+      onSave(saveData);
     } else {
-      onUpdate(editData);
+      onUpdate(saveData);
     }
   };
 
@@ -741,6 +818,9 @@ export const RatingComponent = ({
       rating: propCurrentRating || 3,
       maxRating: propMaxRating || 5,
       readonly: false,
+      showTitle: true,
+      showLabel: true,
+      interactive: true,
       titleColor: '#333333',
       labelColor: '#666666',
       ratingTextColor: '#999999',
@@ -765,16 +845,48 @@ export const RatingComponent = ({
 
   // Функция для получения стиля фона
   const getBackgroundStyle = (data = editData) => {
-    if (!data.showBackground) return {};
+    console.log('⭐ [RatingComponent] getBackgroundStyle called with:', { 
+      data, 
+      localSettings: { showBackground, backgroundType, backgroundColor, gradientColors, gradientDirection },
+      colorSettings: data.colorSettings 
+    });
     
-    if (data.backgroundType === 'gradient') {
-      return {
-        background: `linear-gradient(${data.gradientDirection}, ${data.gradientColors[0]}, ${data.gradientColors[1]})`
+    // 🔥 ИСПРАВЛЕНИЕ: Приоритет colorSettings.sectionBackground
+    if (data.colorSettings?.sectionBackground?.enabled) {
+      const { sectionBackground } = data.colorSettings;
+      console.log('⭐ [RatingComponent] Using colorSettings.sectionBackground:', sectionBackground);
+      
+      if (sectionBackground.useGradient) {
+        const gradientStyle = {
+          background: `linear-gradient(${sectionBackground.gradientDirection || 'to right'}, ${sectionBackground.gradientColor1 || 'rgba(0,0,0,0.85)'}, ${sectionBackground.gradientColor2 || 'rgba(0,0,0,0.75)'})`
+        };
+        console.log('⭐ [RatingComponent] Returning gradient style:', gradientStyle);
+        return gradientStyle;
+      } else {
+        const solidStyle = {
+          backgroundColor: sectionBackground.solidColor || 'rgba(0,0,0,0.85)'
+        };
+        console.log('⭐ [RatingComponent] Returning solid style:', solidStyle);
+        return solidStyle;
+      }
+    }
+    
+    // Fallback на локальные настройки (после сохранения)
+    console.log('⭐ [RatingComponent] Using local settings fallback');
+    if (!showBackground) return {};
+    
+    if (backgroundType === 'gradient') {
+      const localGradientStyle = {
+        background: `linear-gradient(${gradientDirection}, ${gradientColors[0]}, ${gradientColors[1]})`
       };
+      console.log('⭐ [RatingComponent] Returning local gradient style:', localGradientStyle);
+      return localGradientStyle;
     } else {
-      return {
-        backgroundColor: data.backgroundColor
+      const localSolidStyle = {
+        backgroundColor: backgroundColor
       };
+      console.log('⭐ [RatingComponent] Returning local solid style:', localSolidStyle);
+      return localSolidStyle;
     }
   };
 
@@ -792,6 +904,17 @@ export const RatingComponent = ({
 
   const isCurrentlyEditing = isEditing || localEditing;
 
+  // 🔄 РЕАКТИВНОСТЬ: Обновляем локальные настройки при изменении colorSettings
+  useEffect(() => {
+    if (JSON.stringify(colorSettings) !== JSON.stringify(editData.colorSettings)) {
+      console.log('🔄 [RatingComponent] Обновление colorSettings:', colorSettings);
+      setEditData(prev => ({
+        ...prev,
+        colorSettings: colorSettings || {}
+      }));
+    }
+  }, [colorSettings]);
+
   return (
     <EditableElementWrapper 
       editable={constructorMode} 
@@ -806,6 +929,14 @@ export const RatingComponent = ({
             borderRadius: `${editData.borderRadius || borderRadius}px`,
             ...getBackgroundStyle(),
             ...(editData.showBackground || showBackground ? {} : { boxShadow: 'none', background: 'transparent' })
+          }}
+          onRender={() => {
+            console.log('⭐ [RatingComponent] Paper rendered with styles:', {
+              padding: editData.padding || padding,
+              borderRadius: editData.borderRadius || borderRadius,
+              backgroundStyle: getBackgroundStyle(),
+              showBackground: editData.showBackground || showBackground
+            });
           }}
         >
           {isCurrentlyEditing ? (
@@ -871,140 +1002,64 @@ export const RatingComponent = ({
                   label="Только для чтения"
                   sx={{ mb: 2 }}
                 />
+                
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={editData.showTitle !== false}
+                      onChange={(e) => setEditData({ ...editData, showTitle: e.target.checked })}
+                    />
+                  }
+                  label="Показывать заголовок"
+                  sx={{ mb: 2 }}
+                />
+                
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={editData.showLabel !== false}
+                      onChange={(e) => setEditData({ ...editData, showLabel: e.target.checked })}
+                    />
+                  }
+                  label="Показывать подпись"
+                  sx={{ mb: 2 }}
+                />
+                
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={editData.interactive !== false}
+                      onChange={(e) => setEditData({ ...editData, interactive: e.target.checked })}
+                    />
+                  }
+                  label="Интерактивный рейтинг (выбор звезд)"
+                  sx={{ mb: 2 }}
+                />
               </Box>
 
               {/* Настройки цветов */}
               <Box sx={{ mb: 3 }}>
                 <Typography variant="subtitle2" gutterBottom>Настройки цветов:</Typography>
-                
-                <Grid container spacing={2}>
-                  <Grid item xs={6} sm={3}>
-                    <Typography variant="body2" gutterBottom>Цвет заголовка:</Typography>
-                    <SketchPicker
-                      color={editData.titleColor}
-                      onChange={(color) => setEditData({ ...editData, titleColor: color.hex })}
-                      width="100%"
-                      disableAlpha
-                    />
-                  </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <Typography variant="body2" gutterBottom>Цвет подписи:</Typography>
-                    <SketchPicker
-                      color={editData.labelColor}
-                      onChange={(color) => setEditData({ ...editData, labelColor: color.hex })}
-                      width="100%"
-                      disableAlpha
-                    />
-                  </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <Typography variant="body2" gutterBottom>Цвет рейтинга:</Typography>
-                    <SketchPicker
-                      color={editData.ratingTextColor}
-                      onChange={(color) => setEditData({ ...editData, ratingTextColor: color.hex })}
-                      width="100%"
-                      disableAlpha
-                    />
-                  </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <Typography variant="body2" gutterBottom>Цвет звезд:</Typography>
-                    <SketchPicker
-                      color={editData.starColor}
-                      onChange={(color) => setEditData({ ...editData, starColor: color.hex })}
-                      width="100%"
-                      disableAlpha
-                    />
-                  </Grid>
-                </Grid>
-              </Box>
-
-              {/* Настройки фона */}
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="subtitle2" gutterBottom>Настройки фона:</Typography>
-                
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={editData.showBackground}
-                      onChange={(e) => setEditData({ ...editData, showBackground: e.target.checked })}
-                    />
-                  }
-                  label="Показать фон"
-                  sx={{ mb: 2 }}
+                <ColorSettings
+                  title="Настройки цветов рейтинга"
+                  colorSettings={editData.colorSettings || {}}
+                  onUpdate={(newColorSettings) => setEditData({ ...editData, colorSettings: newColorSettings })}
+                  availableFields={[
+                    { name: 'title', label: 'Заголовок', description: 'Цвет заголовка рейтинга', defaultColor: '#333333' },
+                    { name: 'text', label: 'Текст', description: 'Цвет текста рейтинга', defaultColor: '#666666' },
+                    { name: 'star', label: 'Звезды', description: 'Цвет активных звезд', defaultColor: '#ffc107' },
+                    { name: 'emptyStar', label: 'Пустые звезды', description: 'Цвет неактивных звезд', defaultColor: '#e0e0e0' }
+                  ]}
+                  defaultColors={{
+                    title: '#333333',
+                    text: '#666666',
+                    star: '#ffc107',
+                    emptyStar: '#e0e0e0'
+                  }}
                 />
-
-                {editData.showBackground && (
-                  <>
-                    <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-                      <InputLabel>Тип фона</InputLabel>
-                      <Select
-                        value={editData.backgroundType}
-                        onChange={(e) => setEditData({ ...editData, backgroundType: e.target.value })}
-                        label="Тип фона"
-                      >
-                        <MenuItem value="solid">Сплошной цвет</MenuItem>
-                        <MenuItem value="gradient">Градиент</MenuItem>
-                      </Select>
-                    </FormControl>
-
-                    {editData.backgroundType === 'solid' ? (
-                      <Box sx={{ mb: 2 }}>
-                        <Typography variant="body2" gutterBottom>Цвет фона:</Typography>
-                        <SketchPicker
-                          color={editData.backgroundColor}
-                          onChange={(color) => setEditData({ ...editData, backgroundColor: color.hex })}
-                          width="100%"
-                          disableAlpha
-                        />
-                      </Box>
-                    ) : (
-                      <Box sx={{ mb: 2 }}>
-                        <Typography variant="body2" gutterBottom>Цвета градиента:</Typography>
-                        <Grid container spacing={2} sx={{ mb: 2 }}>
-                          <Grid item xs={6}>
-                            <Typography variant="body2" gutterBottom>Первый цвет:</Typography>
-                            <SketchPicker
-                              color={editData.gradientColors[0]}
-                              onChange={(color) => setEditData({ 
-                                ...editData, 
-                                gradientColors: [color.hex, editData.gradientColors[1]]
-                              })}
-                              width="100%"
-                              disableAlpha
-                            />
-                          </Grid>
-                          <Grid item xs={6}>
-                            <Typography variant="body2" gutterBottom>Второй цвет:</Typography>
-                            <SketchPicker
-                              color={editData.gradientColors[1]}
-                              onChange={(color) => setEditData({ 
-                                ...editData, 
-                                gradientColors: [editData.gradientColors[0], color.hex]
-                              })}
-                              width="100%"
-                              disableAlpha
-                            />
-                          </Grid>
-                        </Grid>
-                        
-                        <FormControl fullWidth size="small">
-                          <InputLabel>Направление градиента</InputLabel>
-                          <Select
-                            value={editData.gradientDirection}
-                            onChange={(e) => setEditData({ ...editData, gradientDirection: e.target.value })}
-                            label="Направление градиента"
-                          >
-                            {gradientDirections.map((dir) => (
-                              <MenuItem key={dir.value} value={dir.value}>
-                                {dir.label}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      </Box>
-                    )}
-                  </>
-                )}
               </Box>
+
+
 
               {/* Настройки отступов и радиуса */}
               <Box sx={{ mb: 3 }}>
@@ -1058,51 +1113,59 @@ export const RatingComponent = ({
             </Box>
           ) : (
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <Typography 
-                variant="h5" 
-                sx={{ 
-                  mb: 1,
-                  color: editData.titleColor || titleColor,
-                  fontWeight: 'bold'
-                }}
-              >
-                {editData.title || title}
-              </Typography>
-              <Typography 
-                variant="body1" 
-                sx={{ 
-                  mb: 2,
-                  color: editData.labelColor || labelColor
-                }}
-              >
-                {editData.label || label}
-              </Typography>
+              {(editData.showTitle !== false) && (
+                <Typography 
+                  variant="h5" 
+                  sx={{ 
+                    mb: 1,
+                    color: editData.colorSettings?.textFields?.title || editData.titleColor || titleColor,
+                    fontWeight: 'bold'
+                  }}
+                >
+                  {editData.title || title}
+                </Typography>
+              )}
+              
+              {(editData.showLabel !== false) && (
+                <Typography 
+                  variant="body1" 
+                  sx={{ 
+                    mb: 2,
+                    color: editData.colorSettings?.textFields?.text || editData.labelColor || labelColor
+                  }}
+                >
+                  {editData.label || label}
+                </Typography>
+              )}
               <Rating
                 name="rating"
                 value={editData.rating || rating}
                 max={editData.maxRating || maxRating}
                 onChange={(event, newValue) => {
-                  if (!(editData.readonly || readonly)) {
+                  if (!(editData.readonly || readonly) && (editData.interactive !== false)) {
                     setRating(newValue);
                     setEditData({ ...editData, rating: newValue });
                   }
                 }}
-                readOnly={editData.readonly || readonly}
+                readOnly={editData.readonly || readonly || (editData.interactive === false)}
                 size="large"
                 sx={{
                   mb: 1,
                   '& .MuiRating-icon': {
-                    color: editData.starColor || starColor
+                    color: editData.colorSettings?.textFields?.star || editData.starColor || starColor
                   },
                   '& .MuiRating-iconEmpty': {
-                    color: '#e0e0e0'
+                    color: editData.colorSettings?.textFields?.emptyStar || '#e0e0e0'
+                  },
+                  '& .MuiRating-root': {
+                    cursor: (editData.readonly || readonly || (editData.interactive === false)) ? 'default' : 'pointer'
                   }
                 }}
               />
               <Typography 
                 variant="body2" 
                 sx={{ 
-                  color: editData.ratingTextColor || ratingTextColor,
+                  color: editData.colorSettings?.textFields?.text || editData.ratingTextColor || ratingTextColor,
                   fontWeight: 'medium'
                 }}
               >
@@ -1732,6 +1795,7 @@ export const ProgressBars = ({
   onUpdate = () => {},
   onSave = null,
   onCancel = null,
+  colorSettings = {},
   animationSettings = {
     animationType: 'fadeIn',
     delay: 0,
@@ -1776,19 +1840,20 @@ export const ProgressBars = ({
     progress: propProgress || 45,
     title: propTitle || 'Индикаторы прогресса',
     label: propCaption || 'Прогресс загрузки',
-    titleColor,
-    labelColor,
-    progressColor,
-    backgroundColor,
-    backgroundType,
-    containerBgColor,
-    gradientColors,
-    gradientDirection,
-    borderRadius,
-    padding,
-    progressHeight,
-    circularSize,
-    circularThickness,
+    colorSettings: {},
+    titleColor: '#333333',
+    labelColor: '#666666',
+    progressColor: '#1976d2',
+    backgroundColor: '#e0e0e0',
+    backgroundType: 'none',
+    containerBgColor: '#ffffff',
+    gradientColors: ['#ffffff', '#f5f5f5'],
+    gradientDirection: 'to bottom',
+    borderRadius: 8,
+    padding: 20,
+    progressHeight: 10,
+    circularSize: 60,
+    circularThickness: 4,
     showLinear,
     showCircular,
     showColoredProgress: false,
@@ -1865,6 +1930,31 @@ export const ProgressBars = ({
 
   // Функция для получения стиля фона контейнера
   const getContainerBackgroundStyle = (data = editData) => {
+    // 🔥 ИСПРАВЛЕНИЕ: Приоритет colorSettings.sectionBackground
+    if (data.colorSettings?.sectionBackground?.enabled) {
+      const { sectionBackground } = data.colorSettings;
+      console.log('🔄 [ProgressBars] Using colorSettings.sectionBackground:', sectionBackground);
+      
+      if (sectionBackground.useGradient) {
+        const gradientStyle = {
+          background: `linear-gradient(${sectionBackground.gradientDirection || 'to right'}, ${sectionBackground.gradientColor1 || '#0a0a2e'}, ${sectionBackground.gradientColor2 || '#16213e'})`
+        };
+        if (sectionBackground.opacity !== undefined) {
+          gradientStyle.opacity = sectionBackground.opacity;
+        }
+        return gradientStyle;
+      } else {
+        const solidStyle = {
+          backgroundColor: sectionBackground.solidColor || '#0a0a2e'
+        };
+        if (sectionBackground.opacity !== undefined) {
+          solidStyle.opacity = sectionBackground.opacity;
+        }
+        return solidStyle;
+      }
+    }
+    
+    // Fallback на старые настройки
     if (data.backgroundType === 'none') return {};
     
     if (data.backgroundType === 'gradient') {
@@ -1891,6 +1981,17 @@ export const ProgressBars = ({
   ];
 
   const isCurrentlyEditing = isEditing || localEditing;
+
+  // 🔄 РЕАКТИВНОСТЬ: Обновляем локальные настройки при изменении colorSettings
+  useEffect(() => {
+    if (JSON.stringify(colorSettings) !== JSON.stringify(editData.colorSettings)) {
+      console.log('🔄 [ProgressBars] Обновление colorSettings:', colorSettings);
+      setEditData(prev => ({
+        ...prev,
+        colorSettings: colorSettings || {}
+      }));
+    }
+  }, [colorSettings]);
 
   return (
     <EditableElementWrapper 
@@ -1995,45 +2096,23 @@ export const ProgressBars = ({
               {/* Настройки цветов */}
               <Box sx={{ mb: 3 }}>
                 <Typography variant="subtitle2" gutterBottom>Настройки цветов:</Typography>
-                
-                <Grid container spacing={2}>
-                  <Grid item xs={6} sm={3}>
-                    <Typography variant="body2" gutterBottom>Цвет заголовка:</Typography>
-                    <SketchPicker
-                      color={editData.titleColor}
-                      onChange={(color) => setEditData({ ...editData, titleColor: color.hex })}
-                      width="100%"
-                      disableAlpha
-                    />
-                  </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <Typography variant="body2" gutterBottom>Цвет подписи:</Typography>
-                    <SketchPicker
-                      color={editData.labelColor}
-                      onChange={(color) => setEditData({ ...editData, labelColor: color.hex })}
-                      width="100%"
-                      disableAlpha
-                    />
-                  </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <Typography variant="body2" gutterBottom>Цвет прогресса:</Typography>
-                    <SketchPicker
-                      color={editData.progressColor}
-                      onChange={(color) => setEditData({ ...editData, progressColor: color.hex })}
-                      width="100%"
-                      disableAlpha
-                    />
-                  </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <Typography variant="body2" gutterBottom>Цвет фона прогресса:</Typography>
-                    <SketchPicker
-                      color={editData.backgroundColor}
-                      onChange={(color) => setEditData({ ...editData, backgroundColor: color.hex })}
-                      width="100%"
-                      disableAlpha
-                    />
-                  </Grid>
-                </Grid>
+                <ColorSettings
+                  title="Настройки цветов индикатора прогресса"
+                  colorSettings={editData.colorSettings || {}}
+                  onUpdate={(newColorSettings) => setEditData({ ...editData, colorSettings: newColorSettings })}
+                  availableFields={[
+                    { name: 'title', label: 'Заголовок', description: 'Цвет заголовка индикатора', defaultColor: '#333333' },
+                    { name: 'text', label: 'Текст', description: 'Цвет текста процентов', defaultColor: '#666666' },
+                    { name: 'background', label: 'Фон', description: 'Цвет фона индикатора', defaultColor: '#e0e0e0' },
+                    { name: 'progress', label: 'Прогресс', description: 'Цвет заполненной части', defaultColor: '#1976d2' }
+                  ]}
+                  defaultColors={{
+                    title: '#333333',
+                    text: '#666666',
+                    background: '#e0e0e0',
+                    progress: '#1976d2'
+                  }}
+                />
               </Box>
 
               {/* Настройки фона контейнера */}
@@ -2193,7 +2272,7 @@ export const ProgressBars = ({
                 variant="h5" 
                 sx={{ 
                   mb: 2,
-                  color: editData.titleColor || titleColor,
+                  color: editData.colorSettings?.textFields?.title || editData.titleColor || titleColor,
                   fontWeight: 'bold'
                 }}
               >
@@ -2207,7 +2286,7 @@ export const ProgressBars = ({
                       variant="body2" 
                       sx={{ 
                         mb: 1,
-                        color: editData.labelColor || labelColor
+                        color: editData.colorSettings?.textFields?.text || editData.labelColor || labelColor
                       }}
                     >
                       {editData.label || label}: {editData.progress || progress}%
@@ -2218,9 +2297,9 @@ export const ProgressBars = ({
                       sx={{ 
                         height: editData.progressHeight || progressHeight, 
                         borderRadius: (editData.progressHeight || progressHeight) / 2,
-                        backgroundColor: editData.backgroundColor || backgroundColor,
+                        backgroundColor: editData.colorSettings?.textFields?.background || editData.backgroundColor || backgroundColor,
                         '& .MuiLinearProgress-bar': {
-                          backgroundColor: editData.progressColor || progressColor
+                          backgroundColor: editData.colorSettings?.textFields?.progress || editData.progressColor || progressColor
                         }
                       }}
                     />
@@ -2236,7 +2315,7 @@ export const ProgressBars = ({
                         size={editData.circularSize || circularSize}
                         thickness={editData.circularThickness || circularThickness}
                         sx={{
-                          color: editData.progressColor || progressColor,
+                          color: editData.colorSettings?.textFields?.progress || editData.progressColor || progressColor,
                           '& .MuiCircularProgress-circle': {
                             strokeLinecap: 'round'
                           }
@@ -2258,7 +2337,7 @@ export const ProgressBars = ({
                           variant="caption" 
                           component="div" 
                           sx={{ 
-                            color: editData.progressColor || progressColor,
+                            color: editData.colorSettings?.textFields?.progress || editData.progressColor || progressColor,
                             fontWeight: 'bold',
                             fontSize: `${Math.max(12, (editData.circularSize || circularSize) / 6)}px`
                           }}
@@ -2276,7 +2355,7 @@ export const ProgressBars = ({
                       variant="body2" 
                       sx={{ 
                         mb: 1,
-                        color: editData.labelColor || labelColor
+                        color: editData.colorSettings?.textFields?.text || editData.labelColor || labelColor
                       }}
                     >
                       Динамический цвет: {editData.progress || progress}%
@@ -2287,7 +2366,7 @@ export const ProgressBars = ({
                       sx={{ 
                         height: (editData.progressHeight || progressHeight) - 2, 
                         borderRadius: ((editData.progressHeight || progressHeight) - 2) / 2,
-                        backgroundColor: editData.backgroundColor || backgroundColor,
+                        backgroundColor: editData.colorSettings?.textFields?.background || editData.backgroundColor || backgroundColor,
                         '& .MuiLinearProgress-bar': {
                           backgroundColor: (editData.progress || progress) < 30 ? '#f44336' : 
                                          (editData.progress || progress) < 70 ? '#ff9800' : '#4caf50'

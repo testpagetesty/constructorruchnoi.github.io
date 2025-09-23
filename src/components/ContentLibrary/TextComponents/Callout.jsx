@@ -89,11 +89,16 @@ const Callout = ({
       setCurrentTitle(title);
       setCurrentContent(content);
       setCurrentFootnote(footnote);
-      setCurrentColorSettings(colorSettings || {});
+      
+      // Обновляем colorSettings только если они действительно изменились
+      if (JSON.stringify(currentColorSettings) !== JSON.stringify(colorSettings || {})) {
+        setCurrentColorSettings(colorSettings || {});
+      }
+      
       setIsCustomType(isCustomType);
       setCustomTypeName(customTypeName);
     }
-  }, [title, content, footnote, colorSettings, isCustomType, customTypeName, localEditing, isSaving]);
+  }, [title, content, footnote, colorSettings, isCustomType, customTypeName]);
 
 
 

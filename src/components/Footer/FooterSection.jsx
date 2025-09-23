@@ -106,7 +106,7 @@ const FooterSection = ({
         marginTop: 'auto'
       }}
     >
-      <Container maxWidth="lg">
+      <Container maxWidth={false} sx={{ maxWidth: '100%', px: 2 }}>
         <Grid container spacing={4}>
           <Grid item xs={12} md={4}>
             <Typography variant="h6" gutterBottom>

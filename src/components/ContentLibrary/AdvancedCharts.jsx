@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Typography, Paper, TextField, Button, Select, MenuItem, FormControl, InputLabel, Grid, Switch, FormControlLabel, Chip, IconButton, Divider, Accordion, AccordionSummary, AccordionDetails, Slider, RadioGroup, Radio, Card, CardContent } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -10,6 +10,7 @@ import { SketchPicker } from 'react-color';
 import EditableElementWrapper from './EditableElementWrapper';
 import AnimationWrapper from './AnimationWrapper';
 import AnimationControls from './AnimationControls';
+import ColorSettings from './TextComponents/ColorSettings';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, AreaChart, Area, ScatterChart, Scatter, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ComposedChart } from 'recharts';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip as ChartTooltip, Legend as ChartLegend, ArcElement, PointElement, LineElement, RadialLinearScale, Filler } from 'chart.js';
 import { Bar as ChartBar, Doughnut as ChartDoughnut, Polar, Radar as ChartRadar } from 'react-chartjs-2';
@@ -57,6 +58,7 @@ export const AdvancedLineChart = ({
   onCancel = null,
   onUpdate = () => {},
   title: initialTitle = 'Линейный график',
+  description: initialDescription = '',
   data: initialData = lineData,
   strokeWidth = 2,
   showGrid = true,
@@ -76,6 +78,9 @@ export const AdvancedLineChart = ({
   borderRadius = 8,
   padding = 24,
   chartHeight = 300,
+  chartWidth = '100%',
+  maxWidth = '100%',
+  colorSettings = {},
   animationSettings = {
     type: 'fadeIn',
     duration: 0.8,
@@ -84,11 +89,13 @@ export const AdvancedLineChart = ({
 }) => {
   const [data, setData] = useState(initialData);
   const [title, setTitle] = useState(initialTitle);
+  const [description, setDescription] = useState(initialDescription);
   const [localEditing, setLocalEditing] = useState(false);
   const [colorPickerOpen, setColorPickerOpen] = useState(null);
   const [editData, setEditData] = useState({
     title: initialTitle,
-    data: initialData,
+    description,
+    data,
     strokeWidth,
     showGrid,
     showLegend,
@@ -107,8 +114,143 @@ export const AdvancedLineChart = ({
     borderRadius,
     padding,
     chartHeight,
+    chartWidth,
+    maxWidth,
+    colorSettings: {
+      ...colorSettings,
+      lineColors: {
+        line1: lineColors[0] || '#8884d8',
+        line2: lineColors[1] || '#82ca9d'
+      }
+    },
     animationSettings
   });
+
+  // Синхронизируем colorSettings.lineColors с editData.lineColors
+  useEffect(() => {
+    if (colorSettings?.lineColors) {
+      const newLineColors = [];
+      const colorKeys = ['primary', 'secondary', 'tertiary', 'quaternary', 'quinary', 'senary', 'septenary', 'octonary'];
+      
+      for (let i = 0; i < colorKeys.length; i++) {
+        const colorKey = colorKeys[i];
+        if (colorSettings.lineColors[colorKey]) {
+          newLineColors[i] = colorSettings.lineColors[colorKey];
+        }
+      }
+      
+      if (newLineColors.length > 0) {
+        setEditData(prev => ({
+          ...prev,
+          lineColors: newLineColors
+        }));
+        console.log('🔥 [AdvancedLineChart] Обновили lineColors из colorSettings:', newLineColors);
+      }
+    }
+  }, [colorSettings?.lineColors]);
+
+  // Синхронизируем colorSettings.textFields с editData цветами
+  useEffect(() => {
+    if (colorSettings?.textFields) {
+      const updates = {};
+      
+      if (colorSettings.textFields.title) {
+        updates.titleColor = colorSettings.textFields.title;
+      }
+      if (colorSettings.textFields.grid) {
+        updates.gridColor = colorSettings.textFields.grid;
+      }
+      if (colorSettings.textFields.legend) {
+        updates.legendColor = colorSettings.textFields.legend;
+      }
+      if (colorSettings.textFields.axis) {
+        updates.axisColor = colorSettings.textFields.axis;
+      }
+      if (colorSettings.textFields.tooltip) {
+        updates.tooltipBg = colorSettings.textFields.tooltip;
+      }
+      
+      if (Object.keys(updates).length > 0) {
+        setEditData(prev => ({
+          ...prev,
+          ...updates
+        }));
+        console.log('🔥 [AdvancedLineChart] Обновили текстовые цвета из colorSettings:', updates);
+      }
+    }
+  }, [colorSettings?.textFields]);
+
+  // Синхронизируем colorSettings.sectionBackground с editData
+  useEffect(() => {
+    if (colorSettings?.sectionBackground?.enabled) {
+      const { sectionBackground } = colorSettings;
+      
+      let backgroundType = 'solid';
+      let backgroundColor = sectionBackground.solidColor;
+      let gradientStart = sectionBackground.gradientColor1;
+      let gradientEnd = sectionBackground.gradientColor2;
+      let gradientDirection = sectionBackground.gradientDirection;
+      
+      if (sectionBackground.useGradient) {
+        backgroundType = 'gradient';
+      }
+      
+      setEditData(prev => ({
+        ...prev,
+        backgroundType,
+        backgroundColor,
+        gradientStart,
+        gradientEnd,
+        gradientDirection
+      }));
+      console.log('🔥 [AdvancedLineChart] Обновили фон из colorSettings:', { backgroundType, backgroundColor, gradientStart, gradientEnd, gradientDirection });
+    }
+  }, [colorSettings?.sectionBackground]);
+
+  // Синхронизируем colorSettings.borderSettings с editData
+  useEffect(() => {
+    if (colorSettings?.borderSettings) {
+      const { borderSettings } = colorSettings;
+      
+      const updates = {};
+      if (borderSettings.enabled) {
+        if (borderSettings.color) {
+          updates.borderColor = borderSettings.color;
+        }
+        if (borderSettings.width) {
+          updates.borderWidth = borderSettings.width;
+        }
+      }
+      
+      if (Object.keys(updates).length > 0) {
+        setEditData(prev => ({
+          ...prev,
+          ...updates
+        }));
+        console.log('🔥 [AdvancedLineChart] Обновили настройки границ из colorSettings:', updates);
+      }
+    }
+  }, [colorSettings?.borderSettings]);
+
+  // Синхронизируем colorSettings.borderRadius и padding с editData
+  useEffect(() => {
+    const updates = {};
+    
+    if (colorSettings?.borderRadius) {
+      updates.borderRadius = colorSettings.borderRadius;
+    }
+    if (colorSettings?.padding) {
+      updates.padding = colorSettings.padding;
+    }
+    
+    if (Object.keys(updates).length > 0) {
+      setEditData(prev => ({
+        ...prev,
+        ...updates
+      }));
+      console.log('🔥 [AdvancedLineChart] Обновили borderRadius и padding из colorSettings:', updates);
+    }
+  }, [colorSettings?.borderRadius, colorSettings?.padding]);
 
   const handleDoubleClick = () => {
     if (constructorMode) {
@@ -119,6 +261,7 @@ export const AdvancedLineChart = ({
   const handleSave = () => {
     setLocalEditing(false);
     setTitle(editData.title);
+    setDescription(editData.description);
     setData(editData.data);
     if (onSave) {
       onSave(editData);
@@ -132,6 +275,7 @@ export const AdvancedLineChart = ({
     setColorPickerOpen(null);
     setEditData({
       title,
+      description,
       data,
       strokeWidth,
       showGrid,
@@ -151,6 +295,15 @@ export const AdvancedLineChart = ({
       borderRadius,
       padding,
       chartHeight,
+      chartWidth,
+      maxWidth,
+      colorSettings: {
+        ...colorSettings,
+        lineColors: {
+          line1: lineColors[0] || '#8884d8',
+          line2: lineColors[1] || '#82ca9d'
+        }
+      },
       animationSettings
     });
     if (onCancel) {
@@ -169,11 +322,48 @@ export const AdvancedLineChart = ({
     }
   };
 
+  const handleColorUpdate = (newColorSettings) => {
+    // Обновляем colorSettings и синхронизируем lineColors
+    const updatedEditData = { ...editData, colorSettings: newColorSettings };
+    
+    // Синхронизируем цвета линий из ColorSettings
+    if (newColorSettings.lineColors) {
+      updatedEditData.lineColors = [
+        newColorSettings.lineColors.line1 || '#8884d8',
+        newColorSettings.lineColors.line2 || '#82ca9d'
+      ];
+    }
+    
+    setEditData(updatedEditData);
+  };
+
+  // Вспомогательная функция для получения цветов с приоритетом colorSettings
+  const getColor = (fieldName, fallbackValue) => {
+    return editData.colorSettings?.textFields?.[fieldName] || fallbackValue;
+  };
+
   const handleAnimationUpdate = (newSettings) => {
     setEditData({ ...editData, animationSettings: newSettings });
   };
 
   const getBackgroundStyle = () => {
+    // Приоритет для colorSettings
+    if (editData.colorSettings?.sectionBackground?.enabled) {
+      const { sectionBackground } = editData.colorSettings;
+      if (sectionBackground.useGradient) {
+        return {
+          background: `linear-gradient(${sectionBackground.gradientDirection || 'to bottom'}, ${sectionBackground.gradientColor1}, ${sectionBackground.gradientColor2})`,
+          opacity: sectionBackground.opacity || 1
+        };
+      } else {
+        return {
+          backgroundColor: sectionBackground.solidColor,
+          opacity: sectionBackground.opacity || 1
+        };
+      }
+    }
+    
+    // Fallback на старые настройки
     if (editData.backgroundType === 'gradient') {
       return {
         background: `linear-gradient(${editData.gradientDirection}, ${editData.gradientStart}, ${editData.gradientEnd})`
@@ -198,6 +388,8 @@ export const AdvancedLineChart = ({
             mb: 2,
             borderRadius: `${editData.borderRadius}px`,
             overflow: 'hidden',
+            maxWidth: editData.maxWidth || '100%',
+            width: editData.chartWidth || '100%',
             ...getBackgroundStyle()
           }}
         >
@@ -274,6 +466,18 @@ export const AdvancedLineChart = ({
                         size="small"
                       />
                     </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        label="Описание графика"
+                        value={editData.description}
+                        onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+                        fullWidth
+                        multiline
+                        rows={3}
+                        size="small"
+                        placeholder="Введите описание графика..."
+                      />
+                    </Grid>
                     <Grid item xs={6}>
                       <Box>
                         <Typography variant="body2" gutterBottom>Высота графика: {editData.chartHeight}px</Typography>
@@ -284,6 +488,22 @@ export const AdvancedLineChart = ({
                           max={600}
                           size="small"
                         />
+                      </Box>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Box>
+                        <Typography variant="body2" gutterBottom>Ширина графика: {editData.chartWidth}</Typography>
+                        <Select
+                          value={editData.chartWidth}
+                          onChange={(e) => setEditData({ ...editData, chartWidth: e.target.value })}
+                          size="small"
+                          fullWidth
+                        >
+                          <MenuItem value="100%">100% (полная ширина)</MenuItem>
+                          <MenuItem value="800px">800px (фиксированная)</MenuItem>
+                          <MenuItem value="600px">600px (компактная)</MenuItem>
+                          <MenuItem value="400px">400px (узкая)</MenuItem>
+                        </Select>
                       </Box>
                     </Grid>
                     <Grid item xs={6}>
@@ -324,234 +544,65 @@ export const AdvancedLineChart = ({
                 </AccordionDetails>
               </Accordion>
 
-              {/* Настройки цветов */}
+
+
+              {/* Настройки цветов и фона */}
               <Accordion sx={{ mb: 2 }}>
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <PaletteIcon />
-                    <Typography variant="subtitle1">Цвета и стили</Typography>
+                    <Typography variant="subtitle1">Настройки цветов и фона</Typography>
                   </Box>
                 </AccordionSummary>
                 <AccordionDetails>
-                  <Grid container spacing={2}>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" gutterBottom>Цвет заголовка</Typography>
-                      <Box
-                        onClick={() => setColorPickerOpen('titleColor')}
-                        sx={{
-                          width: '100%',
-                          height: 40,
-                          backgroundColor: editData.titleColor,
-                          border: '1px solid #ccc',
-                          borderRadius: 1,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                      >
-                        <Typography variant="body2" sx={{ color: 'white', textShadow: '1px 1px 1px rgba(0,0,0,0.5)' }}>
-                          {editData.titleColor}
-                        </Typography>
-                      </Box>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" gutterBottom>Цвет сетки</Typography>
-                      <Box
-                        onClick={() => setColorPickerOpen('gridColor')}
-                        sx={{
-                          width: '100%',
-                          height: 40,
-                          backgroundColor: editData.gridColor,
-                          border: '1px solid #ccc',
-                          borderRadius: 1,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                      >
-                        <Typography variant="body2" sx={{ color: 'white', textShadow: '1px 1px 1px rgba(0,0,0,0.5)' }}>
-                          {editData.gridColor}
-                        </Typography>
-                      </Box>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" gutterBottom>Цвет осей</Typography>
-                      <Box
-                        onClick={() => setColorPickerOpen('axisColor')}
-                        sx={{
-                          width: '100%',
-                          height: 40,
-                          backgroundColor: editData.axisColor,
-                          border: '1px solid #ccc',
-                          borderRadius: 1,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                      >
-                        <Typography variant="body2" sx={{ color: 'white', textShadow: '1px 1px 1px rgba(0,0,0,0.5)' }}>
-                          {editData.axisColor}
-                        </Typography>
-                      </Box>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" gutterBottom>Цвет легенды</Typography>
-                      <Box
-                        onClick={() => setColorPickerOpen('legendColor')}
-                        sx={{
-                          width: '100%',
-                          height: 40,
-                          backgroundColor: editData.legendColor,
-                          border: '1px solid #ccc',
-                          borderRadius: 1,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                      >
-                        <Typography variant="body2" sx={{ color: 'white', textShadow: '1px 1px 1px rgba(0,0,0,0.5)' }}>
-                          {editData.legendColor}
-                        </Typography>
-                      </Box>
-                    </Grid>
+                  <ColorSettings
+                    title="Настройки цветов линейного графика"
+                    colorSettings={{
+                      ...editData.colorSettings,
+                      lineColors: {
+                        line1: editData.lineColors[0] || '#8884d8',
+                        line2: editData.lineColors[1] || '#82ca9d'
+                      }
+                    }}
+                    onUpdate={handleColorUpdate}
+                    availableFields={[
+                      {
+                        name: 'title',
+                        label: 'Цвет заголовка',
+                        description: 'Цвет заголовка графика',
+                        defaultColor: getColor('title', editData.titleColor || '#1976d2')
+                      },
+                      {
+                        name: 'grid',
+                        label: 'Цвет сетки',
+                        description: 'Цвет линий сетки графика',
+                        defaultColor: getColor('grid', editData.gridColor || '#e0e0e0')
+                      },
+                      {
+                        name: 'legend',
+                        label: 'Цвет легенды',
+                        description: 'Цвет текста легенды',
+                        defaultColor: getColor('legend', editData.legendColor || '#333333')
+                      },
+                      {
+                        name: 'axis',
+                        label: 'Цвет осей',
+                        description: 'Цвет осей координат',
+                        defaultColor: getColor('axis', editData.axisColor || '#666666')
+                      }
+                    ]}
+                    defaultColors={{
+                      title: getColor('title', editData.titleColor || '#1976d2'),
+                      grid: getColor('grid', editData.gridColor || '#e0e0e0'),
+                      legend: getColor('legend', editData.legendColor || '#333333'),
+                      axis: getColor('axis', editData.axisColor || '#666666')
+                    }}
+                  />
+                  
 
-                    {/* Цвета линий */}
-                    <Grid item xs={12}>
-                      <Typography variant="body2" gutterBottom>Цвета линий</Typography>
-                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                        {editData.lineColors.map((color, index) => (
-                          <Box key={index} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                            <Typography variant="caption">Линия {index + 1}</Typography>
-                            <Box
-                              onClick={() => setColorPickerOpen(`lineColors-${index}`)}
-                              sx={{
-                                width: 60,
-                                height: 30,
-                                backgroundColor: color,
-                                border: '1px solid #ccc',
-                                borderRadius: 1,
-                                cursor: 'pointer'
-                              }}
-                            />
-                          </Box>
-                        ))}
-                      </Box>
-                    </Grid>
-                  </Grid>
-                </AccordionDetails>
-              </Accordion>
-
-              {/* Настройки фона */}
-              <Accordion sx={{ mb: 2 }}>
-                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <Typography variant="subtitle1">Настройки фона</Typography>
-                </AccordionSummary>
-                <AccordionDetails>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12}>
-                      <Typography variant="body2" gutterBottom>Тип фона</Typography>
-                      <RadioGroup
-                        value={editData.backgroundType}
-                        onChange={(e) => setEditData({ ...editData, backgroundType: e.target.value })}
-                        row
-                      >
-                        <FormControlLabel value="solid" control={<Radio />} label="Сплошной" />
-                        <FormControlLabel value="gradient" control={<Radio />} label="Градиент" />
-                      </RadioGroup>
-                    </Grid>
-                    
-                    {editData.backgroundType === 'solid' ? (
-                      <Grid item xs={12}>
-                        <Typography variant="body2" gutterBottom>Цвет фона</Typography>
-                        <Box
-                          onClick={() => setColorPickerOpen('backgroundColor')}
-                          sx={{
-                            width: '100%',
-                            height: 40,
-                            backgroundColor: editData.backgroundColor,
-                            border: '1px solid #ccc',
-                            borderRadius: 1,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}
-                        >
-                          <Typography variant="body2" sx={{ color: 'white', textShadow: '1px 1px 1px rgba(0,0,0,0.5)' }}>
-                            {editData.backgroundColor}
-                          </Typography>
-                        </Box>
-                      </Grid>
-                    ) : (
-                      <>
-                        <Grid item xs={6}>
-                          <Typography variant="body2" gutterBottom>Начальный цвет</Typography>
-                          <Box
-                            onClick={() => setColorPickerOpen('gradientStart')}
-                            sx={{
-                              width: '100%',
-                              height: 40,
-                              backgroundColor: editData.gradientStart,
-                              border: '1px solid #ccc',
-                              borderRadius: 1,
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center'
-                            }}
-                          >
-                            <Typography variant="body2" sx={{ color: 'white', textShadow: '1px 1px 1px rgba(0,0,0,0.5)' }}>
-                              {editData.gradientStart}
-                            </Typography>
-                          </Box>
-                        </Grid>
-                        <Grid item xs={6}>
-                          <Typography variant="body2" gutterBottom>Конечный цвет</Typography>
-                          <Box
-                            onClick={() => setColorPickerOpen('gradientEnd')}
-                            sx={{
-                              width: '100%',
-                              height: 40,
-                              backgroundColor: editData.gradientEnd,
-                              border: '1px solid #ccc',
-                              borderRadius: 1,
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center'
-                            }}
-                          >
-                            <Typography variant="body2" sx={{ color: 'white', textShadow: '1px 1px 1px rgba(0,0,0,0.5)' }}>
-                              {editData.gradientEnd}
-                            </Typography>
-                          </Box>
-                        </Grid>
-                        <Grid item xs={12}>
-                          <FormControl fullWidth size="small">
-                            <InputLabel>Направление градиента</InputLabel>
-                            <Select
-                              value={editData.gradientDirection}
-                              onChange={(e) => setEditData({ ...editData, gradientDirection: e.target.value })}
-                              label="Направление градиента"
-                            >
-                              <MenuItem value="to bottom">Сверху вниз</MenuItem>
-                              <MenuItem value="to top">Снизу вверх</MenuItem>
-                              <MenuItem value="to right">Слева направо</MenuItem>
-                              <MenuItem value="to left">Справа налево</MenuItem>
-                              <MenuItem value="to bottom right">По диагонали ↘</MenuItem>
-                              <MenuItem value="to bottom left">По диагонали ↙</MenuItem>
-                              <MenuItem value="to top right">По диагонали ↗</MenuItem>
-                              <MenuItem value="to top left">По диагонали ↖</MenuItem>
-                            </Select>
-                          </FormControl>
-                        </Grid>
-                      </>
-                    )}
-
+                  
+                  {/* Дополнительные настройки стилей */}
+                  <Grid container spacing={2} sx={{ mt: 2 }}>
                     <Grid item xs={6}>
                       <Box>
                         <Typography variant="body2" gutterBottom>Радиус скругления: {editData.borderRadius}px</Typography>
@@ -723,26 +774,44 @@ export const AdvancedLineChart = ({
             <Typography 
               variant="h6" 
               sx={{ 
-                mb: 2, 
-                color: editData.titleColor,
+                mb: description ? 1 : 2, 
+                color: getColor('title', editData.titleColor),
                 textAlign: 'center'
               }}
             >
               {title}
             </Typography>
-            <ResponsiveContainer width="100%" height={editData.chartHeight}>
+            
+            {/* Описание */}
+            {description && (
+              <Typography 
+                variant="body2" 
+                align="center" 
+                sx={{ 
+                  color: getColor('legend', editData.legendColor), 
+                  mb: 2,
+                  fontSize: '0.9rem',
+                  lineHeight: 1.5,
+                  maxWidth: '800px',
+                  mx: 'auto'
+                }}
+              >
+                {description}
+              </Typography>
+            )}
+            <ResponsiveContainer width={editData.chartWidth || "100%"} height={editData.chartHeight}>
               <LineChart data={data}>
-                {editData.showGrid && <CartesianGrid strokeDasharray="3 3" stroke={editData.gridColor} />}
+                {editData.showGrid && <CartesianGrid strokeDasharray="3 3" stroke={getColor('grid', editData.gridColor)} />}
                 <XAxis 
                   dataKey="name" 
-                  tick={{ fill: editData.axisColor }}
-                  axisLine={{ stroke: editData.axisColor }}
-                  tickLine={{ stroke: editData.axisColor }}
+                  tick={{ fill: getColor('axis', editData.axisColor) }}
+                  axisLine={{ stroke: getColor('axis', editData.axisColor) }}
+                  tickLine={{ stroke: getColor('axis', editData.axisColor) }}
                 />
                 <YAxis 
-                  tick={{ fill: editData.axisColor }}
-                  axisLine={{ stroke: editData.axisColor }}
-                  tickLine={{ stroke: editData.axisColor }}
+                  tick={{ fill: getColor('axis', editData.axisColor) }}
+                  axisLine={{ stroke: getColor('axis', editData.axisColor) }}
+                  tickLine={{ stroke: getColor('axis', editData.axisColor) }}
                 />
                 <Tooltip 
                   contentStyle={{ 
@@ -753,7 +822,7 @@ export const AdvancedLineChart = ({
                 />
                 {editData.showLegend && (
                   <Legend 
-                    wrapperStyle={{ color: editData.legendColor }}
+                    wrapperStyle={{ color: getColor('legend', editData.legendColor) }}
                   />
                 )}
                 <Line 
@@ -1459,6 +1528,7 @@ export const AdvancedPieChart = ({
   padding = 1,
   chartSize = 700,
   showLegend = true,
+  colorSettings = {},
   animationSettings = {
     animationType: 'fadeIn',
     delay: 0,
@@ -1490,6 +1560,7 @@ export const AdvancedPieChart = ({
     padding,
     chartSize,
     showLegend,
+    colorSettings,
     animationSettings
   });
 
@@ -1531,12 +1602,30 @@ export const AdvancedPieChart = ({
       padding,
       chartSize,
       showLegend,
+      colorSettings,
       animationSettings
     });
     if (onCancel) {
       onCancel();
     }
   };
+
+  // Синхронизируем colorSettings с editData для всех настроек
+  useEffect(() => {
+    console.log('🔥 [AdvancedPieChart] useEffect для colorSettings вызван с:', colorSettings);
+    if (colorSettings) {
+      setEditData(prev => {
+        console.log('🔥 [AdvancedPieChart] Обновляем editData.colorSettings с:', colorSettings);
+        return {
+          ...prev,
+          colorSettings: {
+            ...prev.colorSettings,
+            ...colorSettings
+          }
+        };
+      });
+    }
+  }, [colorSettings]);
 
   const handleColorChange = (colorKey, color) => {
     if (colorKey === 'pieColors') {
@@ -1556,7 +1645,96 @@ export const AdvancedPieChart = ({
     }));
   };
 
+  const handleColorUpdate = (newColorSettings) => {
+    // Обновляем colorSettings
+    setEditData(prev => ({
+      ...prev,
+      colorSettings: newColorSettings
+    }));
+    
+    // Если обновились цвета сегментов, обновляем pieColors
+    if (newColorSettings.segmentColors) {
+      // Динамически обновляем pieColors на основе количества сегментов в данных
+      const newPieColors = [];
+      const maxSegments = Math.max(editData.data.length, Object.keys(newColorSettings.segmentColors).length);
+      
+      for (let i = 0; i < maxSegments; i++) {
+        const segmentKey = `segment${i + 1}`;
+        const newColor = newColorSettings.segmentColors[segmentKey];
+        if (newColor) {
+          newPieColors[i] = newColor;
+        } else {
+          // Fallback на стандартные цвета
+          const defaultColors = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#0088fe', '#00c49f', '#ffbb28', '#ff8042'];
+          newPieColors[i] = defaultColors[i % defaultColors.length];
+        }
+      }
+      
+      setEditData(prev => ({
+        ...prev,
+        pieColors: newPieColors
+      }));
+    }
+  };
+
+  // Синхронизируем colorSettings.segmentColors с editData.pieColors
+  useEffect(() => {
+    console.log('🔥 [AdvancedPieChart] useEffect вызван с colorSettings:', colorSettings);
+    console.log('🔥 [AdvancedPieChart] segmentColors:', colorSettings?.segmentColors);
+    console.log('🔥 [AdvancedPieChart] editData.pieColors:', editData.pieColors);
+    
+    if (colorSettings?.segmentColors) {
+      const newPieColors = [];
+      const maxSegments = Math.max(editData.data.length, Object.keys(colorSettings.segmentColors).length);
+      
+      console.log('🔥 [AdvancedPieChart] maxSegments:', maxSegments);
+      console.log('🔥 [AdvancedPieChart] editData.data.length:', editData.data.length);
+      console.log('🔥 [AdvancedPieChart] Object.keys(colorSettings.segmentColors).length:', Object.keys(colorSettings.segmentColors).length);
+      
+      for (let i = 0; i < maxSegments; i++) {
+        const segmentKey = `segment${i + 1}`;
+        const newColor = colorSettings.segmentColors[segmentKey];
+        if (newColor) {
+          newPieColors[i] = newColor;
+        } else {
+          // Fallback на стандартные цвета
+          const defaultColors = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#0088fe', '#00c49f', '#ffbb28', '#ff8042'];
+          newPieColors[i] = defaultColors[i % defaultColors.length];
+        }
+      }
+      
+      console.log('🔥 [AdvancedPieChart] newPieColors:', newPieColors);
+      
+      if (newPieColors.length > 0) {
+        setEditData(prev => {
+          console.log('🔥 [AdvancedPieChart] Обновляем editData с новыми pieColors:', newPieColors);
+          return {
+            ...prev,
+            pieColors: newPieColors
+          };
+        });
+        console.log('🔥 [AdvancedPieChart] Обновили pieColors из colorSettings:', newPieColors);
+      }
+    } else {
+      console.log('🔥 [AdvancedPieChart] colorSettings.segmentColors не найден или пустой');
+    }
+  }, [colorSettings?.segmentColors, colorSettings]);
+
   const getBackgroundStyle = () => {
+    // Приоритет: colorSettings > старые настройки
+    if (editData.colorSettings?.sectionBackground?.enabled) {
+      if (editData.colorSettings.sectionBackground.useGradient) {
+        return {
+          background: `linear-gradient(${editData.colorSettings.sectionBackground.gradientDirection}, ${editData.colorSettings.sectionBackground.gradientColor1}, ${editData.colorSettings.sectionBackground.gradientColor2})`
+        };
+      } else {
+        return {
+          backgroundColor: editData.colorSettings.sectionBackground.solidColor
+        };
+      }
+    }
+    
+    // Fallback на старые настройки
     if (editData.backgroundType === 'gradient') {
       return {
         background: `linear-gradient(${editData.gradientDirection}, ${editData.gradientStart}, ${editData.gradientEnd})`
@@ -1734,200 +1912,52 @@ export const AdvancedPieChart = ({
               </AccordionDetails>
             </Accordion>
 
-            {/* Настройки цветов */}
+            {/* Настройки цветов через ColorSettings */}
             <Accordion sx={{ mb: 2 }}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <PaletteIcon />
-                  <Typography variant="subtitle1">Цвета и стили</Typography>
+                  <Typography variant="subtitle1">Настройки цветов и фона</Typography>
                 </Box>
               </AccordionSummary>
               <AccordionDetails>
-                <Grid container spacing={2}>
-                  <Grid item xs={6}>
-                    <Typography variant="body2" gutterBottom>Цвет заголовка</Typography>
-                    <Box
-                      onClick={() => setColorPickerOpen('titleColor')}
-                      sx={{
-                        width: '100%',
-                        height: 40,
-                        backgroundColor: editData.titleColor,
-                        border: '1px solid #ccc',
-                        borderRadius: 1,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                    >
-                      <Typography variant="body2" sx={{ color: 'white', textShadow: '1px 1px 1px rgba(0,0,0,0.5)' }}>
-                        {editData.titleColor}
-                      </Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="body2" gutterBottom>Цвет легенды</Typography>
-                    <Box
-                      onClick={() => setColorPickerOpen('legendColor')}
-                      sx={{
-                        width: '100%',
-                        height: 40,
-                        backgroundColor: editData.legendColor,
-                        border: '1px solid #ccc',
-                        borderRadius: 1,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                    >
-                      <Typography variant="body2" sx={{ color: 'white', textShadow: '1px 1px 1px rgba(0,0,0,0.5)' }}>
-                        {editData.legendColor}
-                      </Typography>
-                    </Box>
-                  </Grid>
-
-                  {/* Цвета сегментов */}
-                  <Grid item xs={12}>
-                    <Typography variant="body2" gutterBottom>Цвета сегментов</Typography>
-                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                      {editData.pieColors.map((color, index) => (
-                        <Box key={index} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                          <Typography variant="caption">Сегмент {index + 1}</Typography>
-                          <Box
-                            onClick={() => setColorPickerOpen(`pieColors-${index}`)}
-                            sx={{
-                              width: 60,
-                              height: 30,
-                              backgroundColor: color,
-                              border: '1px solid #ccc',
-                              borderRadius: 1,
-                              cursor: 'pointer'
-                            }}
-                          />
-                        </Box>
-                      ))}
-                    </Box>
-                  </Grid>
-                </Grid>
+                <ColorSettings
+                  title="Настройки цветов круговой диаграммы"
+                  colorSettings={{
+                    ...editData.colorSettings,
+                    segmentColors: (() => {
+                      // Динамически создаем объект цветов сегментов на основе данных
+                      const segmentColors = {};
+                      editData.data.forEach((item, index) => {
+                        const segmentKey = `segment${index + 1}`;
+                        segmentColors[segmentKey] = editData.pieColors[index] || ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#0088fe', '#00c49f', '#ffbb28', '#ff8042'][index % 8];
+                      });
+                      return segmentColors;
+                    })()
+                  }}
+                  onUpdate={handleColorUpdate}
+                  availableFields={[
+                    {
+                      name: 'title',
+                      label: 'Цвет заголовка',
+                      description: 'Цвет заголовка диаграммы',
+                      defaultColor: editData.titleColor || '#1976d2'
+                    }
+                  ]}
+                  defaultColors={{
+                    title: editData.titleColor || '#1976d2'
+                  }}
+                  // Передаем данные для динамического создания названий сегментов
+                  segmentData={editData.data}
+                  // Скрываем неприменимые для круговой диаграммы настройки
+                  hideCardBackground={true}
+                  hideAreaColors={true}
+                  hideSegmentColors={false}
+                />
               </AccordionDetails>
             </Accordion>
 
-            {/* Настройки фона */}
-            <Accordion sx={{ mb: 2 }}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography variant="subtitle1">Настройки фона</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Grid container spacing={2}>
-                  <Grid item xs={12}>
-                    <Typography variant="body2" gutterBottom>Тип фона</Typography>
-                    <RadioGroup
-                      value={editData.backgroundType}
-                      onChange={(e) => setEditData({ ...editData, backgroundType: e.target.value })}
-                      row
-                    >
-                      <FormControlLabel value="solid" control={<Radio />} label="Сплошной" />
-                      <FormControlLabel value="gradient" control={<Radio />} label="Градиент" />
-                    </RadioGroup>
-                  </Grid>
-                  
-                  {editData.backgroundType === 'solid' ? (
-                    <Grid item xs={12}>
-                      <Typography variant="body2" gutterBottom>Цвет фона</Typography>
-                      <Box
-                        onClick={() => setColorPickerOpen('backgroundColor')}
-                        sx={{
-                          width: '100%',
-                          height: 40,
-                          backgroundColor: editData.backgroundColor,
-                          border: '1px solid #ccc',
-                          borderRadius: 1,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                      >
-                        <Typography variant="body2" sx={{ color: 'white', textShadow: '1px 1px 1px rgba(0,0,0,0.5)' }}>
-                          {editData.backgroundColor}
-                        </Typography>
-                      </Box>
-                    </Grid>
-                  ) : (
-                    <>
-                      <Grid item xs={6}>
-                        <Typography variant="body2" gutterBottom>Начальный цвет</Typography>
-                        <Box
-                          onClick={() => setColorPickerOpen('gradientStart')}
-                          sx={{
-                            width: '100%',
-                            height: 40,
-                            backgroundColor: editData.gradientStart,
-                            border: '1px solid #ccc',
-                            borderRadius: 1,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}
-                        >
-                          <Typography variant="body2" sx={{ color: 'white', textShadow: '1px 1px 1px rgba(0,0,0,0.5)' }}>
-                            {editData.gradientStart}
-                          </Typography>
-                        </Box>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Typography variant="body2" gutterBottom>Конечный цвет</Typography>
-                        <Box
-                          onClick={() => setColorPickerOpen('gradientEnd')}
-                          sx={{
-                            width: '100%',
-                            height: 40,
-                            backgroundColor: editData.gradientEnd,
-                            border: '1px solid #ccc',
-                            borderRadius: 1,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}
-                        >
-                          <Typography variant="body2" sx={{ color: 'white', textShadow: '1px 1px 1px rgba(0,0,0,0.5)' }}>
-                            {editData.gradientEnd}
-                          </Typography>
-                        </Box>
-                      </Grid>
-                    </>
-                  )}
 
-                  <Grid item xs={6}>
-                    <Box>
-                      <Typography variant="body2" gutterBottom>Радиус скругления: {editData.borderRadius}px</Typography>
-                      <Slider
-                        value={editData.borderRadius}
-                        onChange={(e, value) => setEditData({ ...editData, borderRadius: value })}
-                        min={0}
-                        max={20}
-                        size="small"
-                      />
-                    </Box>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Box>
-                      <Typography variant="body2" gutterBottom>Отступы: {editData.padding}px</Typography>
-                      <Slider
-                        value={editData.padding}
-                        onChange={(e, value) => setEditData({ ...editData, padding: value })}
-                        min={8}
-                        max={48}
-                        size="small"
-                      />
-                    </Box>
-                  </Grid>
-                </Grid>
-              </AccordionDetails>
-            </Accordion>
 
             {/* Данные диаграммы */}
             <Accordion sx={{ mb: 2 }}>
@@ -2060,7 +2090,7 @@ export const AdvancedPieChart = ({
                 variant="h6" 
                 sx={{ 
                   mb: 2, 
-                  color: editData.titleColor,
+                  color: editData.colorSettings?.textFields?.title || editData.titleColor,
                   textAlign: 'center'
                 }}
               >
@@ -2097,7 +2127,7 @@ export const AdvancedPieChart = ({
                     />
                     {editData.showLegend && (
                       <Legend 
-                        wrapperStyle={{ color: editData.legendColor }}
+                        wrapperStyle={{ color: editData.colorSettings?.textFields?.legend || editData.legendColor }}
                       />
                     )}
                   </PieChart>
@@ -2124,6 +2154,23 @@ export const AdvancedAreaChart = ({
   showLegend = true,
   stacked = true,
   areaNames = ['Область 1', 'Область 2'],
+  titleColor = '#1976d2',
+  backgroundColor = '#ffffff',
+  backgroundType = 'solid',
+  gradientStart = '#f5f5f5',
+  gradientEnd = '#e0e0e0',
+  gradientDirection = 'to bottom',
+  areaColors = ['#8884d8', '#82ca9d'],
+  gridColor = '#e0e0e0',
+  axisColor = '#666666',
+  tooltipBg = '#ffffff',
+  legendColor = '#333333',
+  borderRadius = 8,
+  padding = 24,
+  chartHeight = 300,
+  chartWidth = '100%',
+  maxWidth = '100%',
+  colorSettings = {},
   animationSettings = {
     animationType: 'fadeIn',
     delay: 0,
@@ -2136,6 +2183,7 @@ export const AdvancedAreaChart = ({
   const [data, setData] = useState(initialData);
   const [title, setTitle] = useState(initialTitle);
   const [localEditing, setLocalEditing] = useState(false);
+  const [forceUpdate, setForceUpdate] = useState(0);
   const [editData, setEditData] = useState({
     title: initialTitle,
     data: initialData,
@@ -2143,6 +2191,23 @@ export const AdvancedAreaChart = ({
     showLegend,
     stacked,
     areaNames,
+    titleColor,
+    backgroundColor,
+    backgroundType,
+    gradientStart,
+    gradientEnd,
+    gradientDirection,
+    areaColors,
+    gridColor,
+    axisColor,
+    tooltipBg,
+    legendColor,
+    borderRadius,
+    padding,
+    chartHeight,
+    chartWidth,
+    maxWidth,
+    colorSettings,
     animationSettings
   });
 
@@ -2153,13 +2218,47 @@ export const AdvancedAreaChart = ({
   };
 
   const handleSave = () => {
+    console.log('🔍 [AdvancedAreaChart] handleSave called with editData:', editData);
+    
     setLocalEditing(false);
     setTitle(editData.title);
     setData(editData.data);
+    
+    // Обновляем все настройки, включая colorSettings
+    const updatedData = {
+      ...editData,
+      title: editData.title,
+      data: editData.data,
+      showGrid: editData.showGrid,
+      showLegend: editData.showLegend,
+      stacked: editData.stacked,
+      areaNames: editData.areaNames,
+      titleColor: editData.titleColor,
+      backgroundColor: editData.backgroundColor,
+      backgroundType: editData.backgroundType,
+      gradientStart: editData.gradientStart,
+      gradientEnd: editData.gradientEnd,
+      gradientDirection: editData.gradientDirection,
+      areaColors: editData.areaColors,
+      gridColor: editData.gridColor,
+      axisColor: editData.axisColor,
+      tooltipBg: editData.tooltipBg,
+      legendColor: editData.legendColor,
+      borderRadius: editData.borderRadius,
+      padding: editData.padding,
+      chartHeight: editData.chartHeight,
+      chartWidth: editData.chartWidth,
+      maxWidth: editData.maxWidth,
+      colorSettings: editData.colorSettings,
+      animationSettings: editData.animationSettings
+    };
+    
+    console.log('🔍 [AdvancedAreaChart] Final updatedData to save:', updatedData);
+    
     if (onSave) {
-      onSave(editData);
+      onSave(updatedData);
     } else {
-      onUpdate(editData);
+      onUpdate(updatedData);
     }
   };
 
@@ -2172,6 +2271,23 @@ export const AdvancedAreaChart = ({
       showLegend,
       stacked,
       areaNames,
+      titleColor,
+      backgroundColor,
+      backgroundType,
+      gradientStart,
+      gradientEnd,
+      gradientDirection,
+      areaColors,
+      gridColor,
+      axisColor,
+      tooltipBg,
+      legendColor,
+      borderRadius,
+      padding,
+      chartHeight,
+      chartWidth,
+      maxWidth,
+      colorSettings,
       animationSettings
     });
     if (onCancel) {
@@ -2186,6 +2302,144 @@ export const AdvancedAreaChart = ({
     }));
   };
 
+  const handleColorUpdate = (newColorSettings) => {
+    console.log('🔍 [AdvancedAreaChart] handleColorUpdate called with:', newColorSettings);
+    
+    // Обновляем colorSettings и синхронизируем areaColors
+    const updatedEditData = { ...editData, colorSettings: newColorSettings };
+    
+    // Синхронизируем цвета областей из ColorSettings
+    if (newColorSettings.areaColors) {
+      // Динамически создаем массив цветов областей на основе количества данных
+      const newAreaColors = [];
+      const maxAreas = Math.max(editData.data.length, Object.keys(newColorSettings.areaColors).length);
+      
+      console.log('🔍 [AdvancedAreaChart] maxAreas:', maxAreas);
+      console.log('🔍 [AdvancedAreaChart] editData.data.length:', editData.data.length);
+      console.log('🔍 [AdvancedAreaChart] Object.keys(colorSettings.areaColors).length:', Object.keys(newColorSettings.areaColors).length);
+      
+      for (let i = 0; i < maxAreas; i++) {
+        const areaKey = `area${i + 1}`;
+        const newColor = newColorSettings.areaColors[areaKey];
+        if (newColor) {
+          newAreaColors[i] = newColor;
+        } else {
+          // Fallback на стандартные цвета
+          const defaultColors = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#0088fe', '#00c49f', '#ffbb28', '#ff8042'];
+          newAreaColors[i] = defaultColors[i % defaultColors.length];
+        }
+      }
+      
+      updatedEditData.areaColors = newAreaColors;
+      console.log('🔍 [AdvancedAreaChart] Updated areaColors:', updatedEditData.areaColors);
+    }
+    
+    console.log('🔍 [AdvancedAreaChart] Final updatedEditData:', updatedEditData);
+    setEditData(updatedEditData);
+  };
+
+  // Вспомогательная функция для получения цветов с приоритетом colorSettings
+  const getColorValue = (fieldName, fallbackValue) => {
+    const colorValue = editData.colorSettings?.textFields?.[fieldName] || fallbackValue;
+    console.log(`🔍 [AdvancedAreaChart] getColorValue(${fieldName}):`, colorValue, 'from colorSettings:', editData.colorSettings?.textFields?.[fieldName], 'fallback:', fallbackValue);
+    return colorValue;
+  };
+
+  // Синхронизируем colorSettings с editData для всех настроек
+  useEffect(() => {
+    console.log('🔥 [AdvancedAreaChart] useEffect для colorSettings вызван с:', colorSettings);
+    if (colorSettings) {
+      setEditData(prev => {
+        console.log('🔥 [AdvancedAreaChart] Обновляем editData.colorSettings с:', colorSettings);
+        return {
+          ...prev,
+          colorSettings: {
+            ...prev.colorSettings,
+            ...colorSettings
+          }
+        };
+      });
+    }
+  }, [colorSettings]);
+
+  // Синхронизируем colorSettings.textFields с editData цветами
+  useEffect(() => {
+    if (colorSettings?.textFields) {
+      const updates = {};
+      
+      if (colorSettings.textFields.title) {
+        updates.titleColor = colorSettings.textFields.title;
+      }
+      if (colorSettings.textFields.grid) {
+        updates.gridColor = colorSettings.textFields.grid;
+      }
+      if (colorSettings.textFields.legend) {
+        updates.legendColor = colorSettings.textFields.legend;
+      }
+      if (colorSettings.textFields.axis) {
+        updates.axisColor = colorSettings.textFields.axis;
+      }
+      
+      if (Object.keys(updates).length > 0) {
+        setEditData(prev => ({
+          ...prev,
+          ...updates
+        }));
+        console.log('🔥 [AdvancedAreaChart] Обновили цвета текстовых полей:', updates);
+      }
+    }
+  }, [colorSettings?.textFields]);
+
+  // Синхронизируем colorSettings.areaColors с editData.areaColors
+  useEffect(() => {
+    console.log('🔥 [AdvancedAreaChart] useEffect для areaColors вызван с:', colorSettings?.areaColors);
+    if (colorSettings?.areaColors) {
+      const newAreaColors = [];
+      const maxAreas = Math.max(editData.data.length, Object.keys(colorSettings.areaColors).length);
+      
+      console.log('🔥 [AdvancedAreaChart] maxAreas:', maxAreas);
+      console.log('🔥 [AdvancedAreaChart] editData.data.length:', editData.data.length);
+      console.log('🔥 [AdvancedAreaChart] Object.keys(colorSettings.areaColors).length:', Object.keys(colorSettings.areaColors).length);
+      
+      for (let i = 0; i < maxAreas; i++) {
+        const areaKey = `area${i + 1}`;
+        const newColor = colorSettings.areaColors[areaKey];
+        if (newColor) {
+          newAreaColors[i] = newColor;
+        } else {
+          // Fallback на стандартные цвета
+          const defaultColors = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#0088fe', '#00c49f', '#ffbb28', '#ff8042'];
+          newAreaColors[i] = defaultColors[i % defaultColors.length];
+        }
+      }
+      
+      console.log('🔥 [AdvancedAreaChart] newAreaColors:', newAreaColors);
+      
+      if (newAreaColors.length > 0) {
+        setEditData(prev => {
+          console.log('🔥 [AdvancedAreaChart] Обновляем editData.areaColors с:', newAreaColors);
+          return {
+            ...prev,
+            areaColors: newAreaColors
+          };
+        });
+        console.log('🔥 [AdvancedAreaChart] Обновили areaColors из colorSettings:', newAreaColors);
+        
+        // Принудительно обновляем ColorSettings
+        setForceUpdate(prev => prev + 1);
+      }
+    } else {
+      console.log('🔥 [AdvancedAreaChart] colorSettings.areaColors не найден или пустой');
+    }
+  }, [colorSettings?.areaColors, editData.data.length]);
+
+  // Принудительное обновление ColorSettings при изменении editData
+  useEffect(() => {
+    setForceUpdate(prev => prev + 1);
+    console.log('🔥 [AdvancedAreaChart] Принудительное обновление ColorSettings:', forceUpdate + 1);
+    console.log('🔥 [AdvancedAreaChart] Текущие areaColors:', editData.areaColors);
+  }, [editData.titleColor, editData.gridColor, editData.legendColor, editData.axisColor, editData.areaColors]);
+
   const isCurrentlyEditing = isEditing || localEditing;
 
   return (
@@ -2195,7 +2449,23 @@ export const AdvancedAreaChart = ({
       isEditing={isCurrentlyEditing}
     >
       <AnimationWrapper {...(editData.animationSettings || animationSettings)}>
-        <Paper sx={{ p: 3, mb: 2 }}>
+        <Paper sx={{ 
+        p: 3, 
+        mb: 2,
+        ...(editData.colorSettings?.sectionBackground?.enabled && {
+          ...(editData.colorSettings.sectionBackground.useGradient ? {
+            background: `linear-gradient(${editData.colorSettings.sectionBackground.gradientDirection}, ${editData.colorSettings.sectionBackground.gradientColor1}, ${editData.colorSettings.sectionBackground.gradientColor2})`
+          } : {
+            backgroundColor: editData.colorSettings.sectionBackground.solidColor
+          }),
+          border: `${editData.colorSettings.borderWidth || 1}px solid ${editData.colorSettings.borderColor || '#e0e0e0'}`,
+          borderRadius: `${editData.colorSettings.borderRadius || 8}px`,
+          padding: `${editData.colorSettings.padding || 16}px`,
+          ...(editData.colorSettings.boxShadow && {
+            boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
+          })
+        })
+      }}>
           {isCurrentlyEditing ? (
             <Box>
               <Typography variant="h6" color="primary" sx={{ mb: 2 }}>
@@ -2273,6 +2543,73 @@ export const AdvancedAreaChart = ({
                 />
               </Box>
             </Box>
+
+            {/* Настройки цветов через ColorSettings */}
+            <Accordion sx={{ mb: 2 }}>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <PaletteIcon />
+                  <Typography variant="subtitle1">Настройки цветов и фона</Typography>
+                </Box>
+              </AccordionSummary>
+              <AccordionDetails>
+                <ColorSettings
+                  key={`color-settings-${forceUpdate}-${editData.titleColor}-${editData.gridColor}-${editData.legendColor}-${editData.axisColor}-${editData.areaColors?.join('-')}`}
+                  title="Настройки цветов диаграммы с областями"
+                  colorSettings={{
+                    ...editData.colorSettings,
+                    areaColors: (() => {
+                      // Динамически создаем объект цветов областей на основе количества данных
+                      const areaColors = {};
+                      const maxAreas = Math.max(editData.data.length, editData.areaColors?.length || 0);
+                      
+                      for (let i = 0; i < maxAreas; i++) {
+                        const areaKey = `area${i + 1}`;
+                        areaColors[areaKey] = editData.areaColors[i] || ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#0088fe', '#00c49f', '#ffbb28', '#ff8042'][i % 8];
+                      }
+                      
+                      return areaColors;
+                    })()
+                  }}
+                  onUpdate={handleColorUpdate}
+                  availableFields={[
+                    {
+                      name: 'title',
+                      label: 'Цвет заголовка',
+                      description: 'Цвет заголовка диаграммы',
+                      defaultColor: editData.titleColor || '#1976d2'
+                    },
+                    {
+                      name: 'grid',
+                      label: 'Цвет сетки',
+                      description: 'Цвет линий сетки диаграммы',
+                      defaultColor: editData.gridColor || '#e0e0e0'
+                    },
+                    {
+                      name: 'legend',
+                      label: 'Цвет легенды',
+                      description: 'Цвет текста легенды',
+                      defaultColor: editData.legendColor || '#333333'
+                    },
+                    {
+                      name: 'axis',
+                      label: 'Цвет осей',
+                      description: 'Цвет осей координат',
+                      defaultColor: editData.axisColor || '#666666'
+                    }
+                  ]}
+                  defaultColors={{
+                    title: editData.titleColor || '#1976d2',
+                    grid: editData.gridColor || '#e0e0e0',
+                    legend: editData.legendColor || '#333333',
+                    axis: editData.axisColor || '#666666'
+                  }}
+                  hideCardBackground={true}
+                  hideAreaColors={false}
+                  hideSegmentColors={true}
+                />
+              </AccordionDetails>
+            </Accordion>
             
             {/* Данные диаграммы */}
             <Typography variant="subtitle2" gutterBottom>Данные диаграммы:</Typography>
@@ -2357,7 +2694,15 @@ export const AdvancedAreaChart = ({
         ) : (
           <AnimationWrapper {...(editData.animationSettings || animationSettings)}>
             <Box>
-              <Typography variant="h6" sx={{ mb: 2 }}>{title}</Typography>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  mb: 2,
+                  color: getColorValue('title', editData.titleColor)
+                }}
+              >
+                {title}
+              </Typography>
               {!isPreview && !constructorMode && (
                 <Box sx={{ mb: 2 }}>
                   <TextField
@@ -2371,25 +2716,46 @@ export const AdvancedAreaChart = ({
               )}
               <ResponsiveContainer width="100%" height={300}>
                 <AreaChart data={data}>
-                  {editData.showGrid && <CartesianGrid strokeDasharray="3 3" />}
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  {editData.showLegend && <Legend />}
+                  {editData.showGrid && (
+                    <CartesianGrid 
+                      strokeDasharray="3 3" 
+                      stroke={getColorValue('grid', editData.gridColor)}
+                    />
+                  )}
+                  <XAxis 
+                    dataKey="name" 
+                    stroke={getColorValue('axis', editData.axisColor)}
+                  />
+                  <YAxis 
+                    stroke={getColorValue('axis', editData.axisColor)}
+                  />
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: editData.tooltipBg,
+                      border: '1px solid #ccc'
+                    }}
+                  />
+                  {editData.showLegend && (
+                    <Legend 
+                      wrapperStyle={{ 
+                        color: getColorValue('legend', editData.legendColor) 
+                      }}
+                    />
+                  )}
                   <Area 
                     type="monotone" 
                     dataKey="value" 
                     stackId={editData.stacked ? "1" : "a"} 
-                    stroke="#8884d8" 
-                    fill="#8884d8" 
+                    stroke={editData.colorSettings?.areaColors?.area1 || editData.areaColors[0] || '#8884d8'} 
+                    fill={editData.colorSettings?.areaColors?.area1 || editData.areaColors[0] || '#8884d8'} 
                     name={editData.areaNames[0] || 'Область 1'}
                   />
                   <Area 
                     type="monotone" 
                     dataKey="value2" 
                     stackId={editData.stacked ? "1" : "b"} 
-                    stroke="#82ca9d" 
-                    fill="#82ca9d" 
+                    stroke={editData.colorSettings?.areaColors?.area2 || editData.areaColors[1] || '#82ca9d'} 
+                    fill={editData.colorSettings?.areaColors?.area2 || editData.areaColors[1] || '#82ca9d'} 
                     name={editData.areaNames[1] || 'Область 2'}
                   />
                 </AreaChart>

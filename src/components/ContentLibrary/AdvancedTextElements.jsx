@@ -86,18 +86,33 @@ export const GradientText = ({
 
   const isCurrentlyEditing = isEditing || localEditing;
 
+  // 🔄 РЕАКТИВНОСТЬ: Обновляем локальные настройки при изменении colorSettings
+  useEffect(() => {
+    if (JSON.stringify(colorSettings) !== JSON.stringify(editData.colorSettings)) {
+      console.log('🔄 [GradientText] Обновление colorSettings:', colorSettings);
+      setEditData(prev => ({
+        ...prev,
+        colorSettings: colorSettings || {}
+      }));
+    }
+  }, [colorSettings]);
+
   // Получаем цвета градиента из ColorSettings или fallback на старые значения
-  const gradientColor1 = editData.colorSettings?.textFields?.gradient1 || editData.color1 || '#ff6b6b';
-  const gradientColor2 = editData.colorSettings?.textFields?.gradient2 || editData.color2 || '#4ecdc4';
+  const gradientColor1 = editData.colorSettings?.textFields?.gradientStart || editData.colorSettings?.textGradient?.gradientStart || editData.color1 || '#ff6b6b';
+  const gradientColor2 = editData.colorSettings?.textFields?.gradientEnd || editData.colorSettings?.textGradient?.gradientEnd || editData.color2 || '#4ecdc4';
+  
+  // Получаем направление градиента
+  const gradientDirection = editData.colorSettings?.textGradient?.gradientDirection || editData.direction || 'to right';
 
   const StyledGradientText = styled(Typography)({
-    background: `linear-gradient(${editData.direction}, ${gradientColor1}, ${gradientColor2})`,
+    background: `linear-gradient(${gradientDirection}, ${gradientColor1}, ${gradientColor2})`,
     WebkitBackgroundClip: 'text',
     WebkitTextFillColor: 'transparent',
     backgroundClip: 'text',
     fontSize: `${editData.fontSize}px`,
     fontWeight: editData.fontWeight,
     cursor: isPreview ? 'default' : 'pointer',
+    color: 'transparent',
     '&:hover': {
       opacity: isPreview ? 1 : 0.8
     }
@@ -371,6 +386,17 @@ export const AnimatedCounter = ({
   };
 
   const isCurrentlyEditing = isEditing || localEditing;
+
+  // 🔄 РЕАКТИВНОСТЬ: Обновляем локальные настройки при изменении colorSettings
+  useEffect(() => {
+    if (JSON.stringify(colorSettings) !== JSON.stringify(editData.colorSettings)) {
+      console.log('🔄 [AnimatedCounter] Обновление colorSettings:', colorSettings);
+      setEditData(prev => ({
+        ...prev,
+        colorSettings: colorSettings || {}
+      }));
+    }
+  }, [colorSettings]);
 
   useEffect(() => {
     const startTime = Date.now();
@@ -684,6 +710,17 @@ export const TypewriterText = ({
 
   const isCurrentlyEditing = isEditing || localEditing;
 
+  // 🔄 РЕАКТИВНОСТЬ: Обновляем локальные настройки при изменении colorSettings
+  useEffect(() => {
+    if (JSON.stringify(colorSettings) !== JSON.stringify(editData.colorSettings)) {
+      console.log('🔄 [TypewriterText] Обновление colorSettings:', colorSettings);
+      setEditData(prev => ({
+        ...prev,
+        colorSettings: colorSettings || {}
+      }));
+    }
+  }, [colorSettings]);
+
   useEffect(() => {
     if (isCurrentlyEditing) return; // Останавливаем анимацию в режиме редактирования
     
@@ -710,7 +747,7 @@ export const TypewriterText = ({
         setCurrentTextIndex((currentTextIndex + 1) % editData.texts.length);
       }
     }
-  }, [currentTextIndex, currentCharIndex, isDeleting, editData.texts, editData.speed, editData.pauseTime, editData.repeat, isCurrentlyEditing]);
+  }, [currentTextIndex, currentCharIndex, isDeleting, editData.texts, editData.speed, editData.pauseTime, editData.repeat, isEditing, localEditing]);
 
   const currentText = editData.texts[currentTextIndex];
   const displayText = currentText ? currentText.substring(0, currentCharIndex) : '';
@@ -1041,6 +1078,17 @@ export const HighlightText = ({
   };
 
   const isCurrentlyEditing = isEditing || localEditing;
+
+  // 🔄 РЕАКТИВНОСТЬ: Обновляем локальные настройки при изменении colorSettings
+  useEffect(() => {
+    if (JSON.stringify(colorSettings) !== JSON.stringify(editData.colorSettings)) {
+      console.log('🔄 [HighlightText] Обновление colorSettings:', colorSettings);
+      setEditData(prev => ({
+        ...prev,
+        colorSettings: colorSettings || {}
+      }));
+    }
+  }, [colorSettings]);
 
   // Применяем настройки фона из colorSettings
   const currentColorSettings = editData.colorSettings || {};

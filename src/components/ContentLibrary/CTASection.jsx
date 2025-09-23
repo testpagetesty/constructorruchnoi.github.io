@@ -23,10 +23,10 @@ import {
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import EditIcon from '@mui/icons-material/Edit';
-import { SketchPicker } from 'react-color';
 import AnimationWrapper from './AnimationWrapper';
 import AnimationControls from './AnimationControls';
 import EditableElementWrapper from './EditableElementWrapper';
+import ColorSettings from './TextComponents/ColorSettings';
 
 const CTASection = ({ 
   title = "Ознакомьтесь с нашими услугами",
@@ -34,7 +34,7 @@ const CTASection = ({
   buttonText = "Перейти к услугам",
   targetPage = "services",
   alignment = "center",
-  backgroundType = "solid", // solid, gradient, transparent
+  backgroundType = "solid",
   backgroundColor = "#1976d2",
   gradientColor1 = "#1976d2",
   gradientColor2 = "#42a5f5",
@@ -42,8 +42,8 @@ const CTASection = ({
   textColor = "#ffffff",
   titleColor = "#ffffff",
   descriptionColor = "#ffffff",
-  buttonColor = "#ffd700",
-  buttonTextColor = "#000000",
+  buttonColor = "#ffffff",
+  buttonTextColor = "#333333",
   borderRadius = 12,
   padding = 48,
   buttonBorderRadius = 8,
@@ -55,6 +55,30 @@ const CTASection = ({
     triggerOnce: true,
     threshold: 0.1,
     disabled: false
+  },
+  colorSettings = {
+    textFields: {
+      title: '#ffffff',
+      description: '#ffffff',
+      background: '#1976d2',
+      border: 'transparent',
+      button: '#ffffff',
+      buttonText: '#333333',
+      buttonBorderRadius: 8
+    },
+    sectionBackground: {
+      enabled: false,
+      useGradient: false,
+      solidColor: '#1976d2',
+      gradientColor1: '#1976d2',
+      gradientColor2: '#42a5f5',
+      gradientDirection: 'to right'
+    },
+    borderColor: 'transparent',
+    borderWidth: 0,
+    borderRadius: 12,
+    padding: 48,
+    boxShadow: false
   },
   availablePages = [], // Новый prop для реальных страниц из preview
   editable = false,
@@ -85,7 +109,31 @@ const CTASection = ({
     padding,
     buttonBorderRadius,
     showShadow,
-    animationSettings
+    animationSettings,
+    colorSettings: colorSettings || {
+              textFields: {
+          title: '#ffffff',
+          description: '#ffffff',
+          background: '#1976d2',
+          border: 'transparent',
+          button: '#ffffff',
+          buttonText: '#333333',
+          buttonBorderRadius: 8
+        },
+      sectionBackground: {
+        enabled: false,
+        useGradient: false,
+        solidColor: '#1976d2',
+        gradientColor1: '#1976d2',
+        gradientColor2: '#42a5f5',
+        gradientDirection: 'to right'
+      },
+      borderColor: 'transparent',
+      borderWidth: 0,
+      borderRadius: 12,
+      padding: 48,
+      boxShadow: false
+    }
   });
 
   // Обновляем локальные состояния при изменении props
@@ -110,9 +158,33 @@ const CTASection = ({
       padding,
       buttonBorderRadius,
       showShadow,
-      animationSettings
+      animationSettings,
+      colorSettings: colorSettings || {
+        textFields: {
+          title: '#ffffff',
+          description: '#ffffff',
+          background: '#1976d2',
+          border: 'transparent',
+          button: '#ffffff',
+          buttonText: '#333333',
+          buttonBorderRadius: 8
+        },
+        sectionBackground: {
+          enabled: false,
+          useGradient: false,
+          solidColor: '#1976d2',
+          gradientColor1: '#1976d2',
+          gradientColor2: '#42a5f5',
+          gradientDirection: 'to right'
+        },
+        borderColor: 'transparent',
+        borderWidth: 0,
+        borderRadius: 12,
+        padding: 48,
+        boxShadow: false
+      }
     });
-  }, [title, description, buttonText, targetPage, alignment, backgroundType, backgroundColor, gradientColor1, gradientColor2, gradientDirection, textColor, titleColor, descriptionColor, buttonColor, buttonTextColor, borderRadius, padding, buttonBorderRadius, showShadow, animationSettings]);
+  }, [title, description, buttonText, targetPage, alignment, backgroundType, backgroundColor, gradientColor1, gradientColor2, gradientDirection, textColor, titleColor, descriptionColor, buttonColor, buttonTextColor, borderRadius, padding, buttonBorderRadius, showShadow, animationSettings, colorSettings]);
 
   // Функция для получения иконки страницы
   const getPageIcon = (pageId) => {
@@ -167,15 +239,25 @@ const CTASection = ({
   ];
 
   const handleSave = () => {
-    console.log('[CTASection] Saving data:', editData);
+    // Обновляем локальное состояние, чтобы изменения сохранились в превью
+    setEditData(prev => ({
+      ...prev,
+      ...editData
+    }));
+    
     setIsEditing(false);
+    
     if (onSave) {
       onSave(editData);
+    }
+    
+    // Вызываем onUpdate для обновления родительского компонента
+    if (onUpdate) {
+      onUpdate(editData);
     }
   };
 
   const handleCancel = () => {
-    console.log('[CTASection] Canceling edit');
     setIsEditing(false);
     // Сброс к исходным значениям
     setEditData({
@@ -198,7 +280,8 @@ const CTASection = ({
       padding,
       buttonBorderRadius,
       showShadow,
-      animationSettings
+      animationSettings,
+      colorSettings
     });
     if (onCancel) {
       onCancel();
@@ -219,6 +302,16 @@ const CTASection = ({
     }));
   };
 
+  const handleColorSettingsUpdate = (newColorSettings) => {
+    setEditData(prev => {
+      const updated = {
+        ...prev,
+        colorSettings: newColorSettings
+      };
+      return updated;
+    });
+  };
+
   const handleDoubleClick = () => {
     if (constructorMode) {
       setIsEditing(true);
@@ -227,11 +320,8 @@ const CTASection = ({
 
   const handleButtonClick = () => {
     if (editData.targetPage && !isEditing) {
-      console.log('[CTASection] Button clicked, target page:', editData.targetPage);
-      
       // В режиме preview просто логируем (можно добавить коллбэк для навигации)
       if (isPreview || constructorMode) {
-        console.log('[CTASection] Preview mode - would navigate to:', editData.targetPage);
         // Здесь можно добавить коллбэк для навигации в preview режиме
         return;
       }
@@ -242,8 +332,21 @@ const CTASection = ({
     }
   };
 
-  // Функция для генерации стиля фона
   const getBackgroundStyle = () => {
+    // Приоритет colorSettings, если они включены
+    if (editData.colorSettings?.sectionBackground?.enabled) {
+      if (editData.colorSettings.sectionBackground.useGradient) {
+        return {
+          background: `linear-gradient(${editData.colorSettings.sectionBackground.gradientDirection}, ${editData.colorSettings.sectionBackground.gradientColor1}, ${editData.colorSettings.sectionBackground.gradientColor2})`
+        };
+      } else {
+        return {
+          backgroundColor: editData.colorSettings.sectionBackground.solidColor
+        };
+      }
+    }
+    
+    // Fallback на старые настройки
     switch (editData.backgroundType) {
       case 'gradient':
         return {
@@ -355,170 +458,11 @@ const CTASection = ({
             </AccordionDetails>
           </Accordion>
 
-          <Accordion defaultExpanded={false}>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography variant="subtitle1">🎨 Настройки фона</Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Grid container spacing={2}>
-                <Grid item xs={12}>
-                  <FormControl fullWidth size="small">
-                    <InputLabel>Тип фона</InputLabel>
-                    <Select
-                      value={editData.backgroundType}
-                      onChange={(e) => handleEditDataChange('backgroundType', e.target.value)}
-                      label="Тип фона"
-                    >
-                      <MenuItem value="solid">Сплошной цвет</MenuItem>
-                      <MenuItem value="gradient">Градиент</MenuItem>
-                      <MenuItem value="transparent">Прозрачный</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
 
-                {/* Настройки для сплошного цвета */}
-                {editData.backgroundType === 'solid' && (
-                  <Grid item xs={12}>
-                    <Typography variant="body2" gutterBottom>Цвет фона:</Typography>
-                    <SketchPicker
-                      color={editData.backgroundColor}
-                      onChange={(color) => handleEditDataChange('backgroundColor', color.hex)}
-                      width="100%"
-                      disableAlpha
-                    />
-                  </Grid>
-                )}
 
-                {/* Настройки для градиента */}
-                {editData.backgroundType === 'gradient' && (
-                  <>
-                    <Grid item xs={12} sm={6}>
-                      <Typography variant="body2" gutterBottom>Первый цвет:</Typography>
-                      <SketchPicker
-                        color={editData.gradientColor1}
-                        onChange={(color) => handleEditDataChange('gradientColor1', color.hex)}
-                        width="100%"
-                        disableAlpha
-                      />
-                    </Grid>
-                    
-                    <Grid item xs={12} sm={6}>
-                      <Typography variant="body2" gutterBottom>Второй цвет:</Typography>
-                      <SketchPicker
-                        color={editData.gradientColor2}
-                        onChange={(color) => handleEditDataChange('gradientColor2', color.hex)}
-                        width="100%"
-                        disableAlpha
-                      />
-                    </Grid>
-                    
-                    <Grid item xs={12}>
-                      <FormControl fullWidth size="small">
-                        <InputLabel>Направление</InputLabel>
-                        <Select
-                          value={editData.gradientDirection}
-                          onChange={(e) => handleEditDataChange('gradientDirection', e.target.value)}
-                          label="Направление"
-                        >
-                          {gradientDirections.map((direction) => (
-                            <MenuItem key={direction.value} value={direction.value}>
-                              {direction.label}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                  </>
-                )}
-              </Grid>
-            </AccordionDetails>
-          </Accordion>
 
-          <Accordion defaultExpanded={false}>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography variant="subtitle1">🎨 Настройки цветов текста</Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={4}>
-                  <Typography variant="body2" gutterBottom>Цвет заголовка:</Typography>
-                  <SketchPicker
-                    color={editData.titleColor}
-                    onChange={(color) => handleEditDataChange('titleColor', color.hex)}
-                    width="100%"
-                    disableAlpha
-                  />
-                </Grid>
-                
-                <Grid item xs={12} sm={4}>
-                  <Typography variant="body2" gutterBottom>Цвет описания:</Typography>
-                  <SketchPicker
-                    color={editData.descriptionColor}
-                    onChange={(color) => handleEditDataChange('descriptionColor', color.hex)}
-                    width="100%"
-                    disableAlpha
-                  />
-                </Grid>
 
-                <Grid item xs={12} sm={4}>
-                  <Typography variant="body2" gutterBottom>Общий цвет текста:</Typography>
-                  <SketchPicker
-                    color={editData.textColor}
-                    onChange={(color) => {
-                      handleEditDataChange('textColor', color.hex);
-                      // Также обновляем цвета заголовка и описания
-                      handleEditDataChange('titleColor', color.hex);
-                      handleEditDataChange('descriptionColor', color.hex);
-                    }}
-                    width="100%"
-                    disableAlpha
-                  />
-                </Grid>
-              </Grid>
-            </AccordionDetails>
-          </Accordion>
 
-          <Accordion defaultExpanded={false}>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography variant="subtitle1">🔘 Настройки кнопки</Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
-                  <Typography variant="body2" gutterBottom>Цвет кнопки:</Typography>
-                  <SketchPicker
-                    color={editData.buttonColor}
-                    onChange={(color) => handleEditDataChange('buttonColor', color.hex)}
-                    width="100%"
-                    disableAlpha
-                  />
-                </Grid>
-                
-                <Grid item xs={12} sm={6}>
-                  <Typography variant="body2" gutterBottom>Цвет текста кнопки:</Typography>
-                  <SketchPicker
-                    color={editData.buttonTextColor}
-                    onChange={(color) => handleEditDataChange('buttonTextColor', color.hex)}
-                    width="100%"
-                    disableAlpha
-                  />
-                </Grid>
-
-                <Grid item xs={12}>
-                  <Typography variant="body2" gutterBottom>
-                    Радиус скругления кнопки: {editData.buttonBorderRadius}px
-                  </Typography>
-                  <Slider
-                    value={editData.buttonBorderRadius}
-                    onChange={(e, value) => handleEditDataChange('buttonBorderRadius', value)}
-                    min={0}
-                    max={30}
-                    size="small"
-                  />
-                </Grid>
-              </Grid>
-            </AccordionDetails>
-          </Accordion>
 
           <Accordion defaultExpanded={false}>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -579,6 +523,72 @@ const CTASection = ({
             </AccordionDetails>
           </Accordion>
 
+          {/* Настройки цветов через ColorSettings */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle2" gutterBottom>Настройки цветов через ColorSettings:</Typography>
+            <ColorSettings
+              title="Настройки цветов CTA секции"
+              colorSettings={editData.colorSettings}
+              onUpdate={handleColorSettingsUpdate}
+              hideAreaColors={true}
+              hideLineColors={true}
+              hideSegmentColors={true}
+              availableFields={[
+                {
+                  name: 'title',
+                  label: 'Цвет заголовка',
+                  description: 'Цвет заголовка CTA секции',
+                  defaultColor: '#ffffff'
+                },
+                {
+                  name: 'description',
+                  label: 'Цвет описания',
+                  description: 'Цвет описания CTA секции',
+                  defaultColor: '#ffffff'
+                },
+                {
+                  name: 'background',
+                  label: 'Цвет фона',
+                  description: 'Цвет фона CTA секции',
+                  defaultColor: '#1976d2'
+                },
+                {
+                  name: 'border',
+                  label: 'Цвет границы',
+                  description: 'Цвет границы CTA секции',
+                  defaultColor: 'transparent'
+                },
+                {
+                  name: 'button',
+                  label: 'Цвет кнопки',
+                  description: 'Цвет фона кнопки CTA секции',
+                  defaultColor: '#ffffff'
+                },
+                {
+                  name: 'buttonText',
+                  label: 'Цвет текста кнопки',
+                  description: 'Цвет текста кнопки CTA секции',
+                  defaultColor: '#333333'
+                },
+                {
+                  name: 'buttonBorderRadius',
+                  label: 'Радиус скругления кнопки',
+                  description: 'Радиус скругления углов кнопки CTA секции',
+                  defaultColor: 8
+                }
+              ]}
+              defaultColors={{
+                title: '#ffffff',
+                description: '#ffffff',
+                background: '#1976d2',
+                border: 'transparent',
+                button: '#ffffff',
+                buttonText: '#333333',
+                buttonBorderRadius: 8
+              }}
+            />
+          </Box>
+
           <Divider sx={{ my: 3 }} />
           
           <Stack direction="row" spacing={2}>
@@ -605,10 +615,10 @@ const CTASection = ({
             textAlign: editData.alignment,
             py: `${editData.padding / 8}px`,
             px: 4,
-            borderRadius: `${editData.borderRadius}px`,
+            borderRadius: `${editData.colorSettings?.borderRadius || editData.borderRadius}px`,
             border: '2px dashed #2196f3',
             opacity: 0.9,
-            ...(editData.showShadow ? { 
+            ...(editData.colorSettings?.boxShadow || editData.showShadow ? { 
               boxShadow: '0 8px 32px rgba(0,0,0,0.2)' 
             } : {})
           }}
@@ -620,7 +630,7 @@ const CTASection = ({
             sx={{
               fontWeight: 'bold',
               mb: 2,
-              color: editData.titleColor
+              color: editData.colorSettings?.textFields?.title || editData.titleColor
             }}
           >
             {editData.title}
@@ -633,7 +643,7 @@ const CTASection = ({
               opacity: 0.9,
               maxWidth: '600px',
               mx: 'auto',
-              color: editData.descriptionColor
+              color: editData.colorSettings?.textFields?.description || editData.descriptionColor
             }}
           >
             {editData.description}
@@ -644,12 +654,12 @@ const CTASection = ({
             size="large"
             disabled
             sx={{
-              backgroundColor: editData.buttonColor,
-              color: editData.buttonTextColor,
+              backgroundColor: editData.colorSettings?.textFields?.button || editData.buttonColor,
+              color: editData.colorSettings?.textFields?.buttonText || editData.buttonTextColor,
               fontSize: '1.1rem',
               px: 4,
               py: 1.5,
-              borderRadius: `${editData.buttonBorderRadius}px`,
+              borderRadius: `${editData.colorSettings?.textFields?.buttonBorderRadius || editData.buttonBorderRadius}px`,
               fontWeight: 'bold',
               textTransform: 'none',
               opacity: 0.7
@@ -663,6 +673,7 @@ const CTASection = ({
   }
 
   // Обычный режим просмотра
+  
   return (
     <EditableElementWrapper 
       editable={constructorMode} 
@@ -679,10 +690,11 @@ const CTASection = ({
               textAlign: editData.alignment,
               py: `${editData.padding / 8}px`,
               px: 4,
-              borderRadius: `${editData.borderRadius}px`,
+              borderRadius: `${editData.colorSettings?.borderRadius || editData.borderRadius}px`,
               cursor: 'default',
               transition: 'all 0.3s ease',
-              ...(editData.showShadow ? { 
+              border: editData.colorSettings?.borderWidth > 0 ? `${editData.colorSettings.borderWidth}px solid ${editData.colorSettings.borderColor}` : 'none',
+              ...(editData.colorSettings?.boxShadow || editData.showShadow ? { 
                 boxShadow: '0 8px 32px rgba(0,0,0,0.2)' 
               } : {}),
               '&:hover .edit-button': {
@@ -727,7 +739,7 @@ const CTASection = ({
               sx={{
                 fontWeight: 'bold',
                 mb: 2,
-                color: editData.titleColor
+                color: editData.colorSettings?.textFields?.title || editData.titleColor
               }}
             >
               {editData.title}
@@ -740,7 +752,7 @@ const CTASection = ({
                 opacity: 0.9,
                 maxWidth: '600px',
                 mx: 'auto',
-                color: editData.descriptionColor
+                color: editData.colorSettings?.textFields?.description || editData.descriptionColor
               }}
             >
               {editData.description}
@@ -751,16 +763,16 @@ const CTASection = ({
               size="large"
               onClick={handleButtonClick}
               sx={{
-                backgroundColor: editData.buttonColor,
-                color: editData.buttonTextColor,
+                backgroundColor: editData.colorSettings?.textFields?.button || editData.buttonColor,
+                color: editData.colorSettings?.textFields?.buttonText || editData.buttonTextColor,
                 fontSize: '1.1rem',
                 px: 4,
                 py: 1.5,
-                borderRadius: `${editData.buttonBorderRadius}px`,
+                borderRadius: `${editData.colorSettings?.textFields?.buttonBorderRadius || editData.buttonBorderRadius}px`,
                 fontWeight: 'bold',
                 textTransform: 'none',
                 '&:hover': {
-                  backgroundColor: editData.buttonColor,
+                  backgroundColor: editData.colorSettings?.textFields?.button || editData.buttonColor,
                   opacity: 0.9,
                   transform: 'translateY(-2px)',
                   boxShadow: '0 6px 20px rgba(0,0,0,0.3)'

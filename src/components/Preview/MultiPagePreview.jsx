@@ -147,6 +147,22 @@ const MultiPagePreview = ({
   selectedElement = null,
   onElementSelect = () => {}
 }) => {
+  // 🔍 ОТЛАДКА: Отслеживаем обновления sectionsData
+  console.log('🔍 [MultiPagePreview] РЕНДЕР КОМПОНЕНТА с sectionsData:', sectionsData);
+  console.log('🔍 [MultiPagePreview] heroData:', heroData);
+  console.log('🔍 [MultiPagePreview] homePageSettings:', heroData?.homePageSettings);
+  console.log('🔍 [MultiPagePreview] showSectionsPreview:', heroData?.homePageSettings?.showSectionsPreview);
+  console.log('🔍 [MultiPagePreview] showFeaturedSection:', heroData?.homePageSettings?.showFeaturedSection);
+  console.log('🔍 [MultiPagePreview] featuredSectionId:', heroData?.homePageSettings?.featuredSectionId);
+  
+  if (sectionsData && sectionsData.о_нас && sectionsData.о_нас.elements) {
+    const multipleCardsElements = sectionsData.о_нас.elements.filter(el => el.type === 'multiple-cards');
+    console.log('🔍 [MultiPagePreview] multiple-cards элементы в sectionsData:', multipleCardsElements);
+    multipleCardsElements.forEach((el, index) => {
+      console.log(`🔍 [MultiPagePreview] multiple-cards #${index} colorSettings:`, el.colorSettings);
+    });
+  }
+  
   const [currentPage, setCurrentPage] = useState('index');
   const [fadeKey, setFadeKey] = useState(0);
   const [editingElement, setEditingElement] = useState(null);
@@ -323,16 +339,23 @@ const MultiPagePreview = ({
       }
     };
 
-    // Универсальная функция для создания onUpdate с поддержкой customStyles
+    // Универсальная функция для создания onUpdate с поддержкой customStyles и colorSettings
     const createOnUpdateFunction = (elementType) => {
       return (updatedData) => {
         console.log(`🎨 ${elementType} onUpdate called:`, updatedData);
         
         // Обновляем состояние секции через onElementUpdate
         if (onElementUpdate) {
-          console.log('🎯 Calling onElementUpdate with:', { sectionId, elementId: element.id, field: 'customStyles', value: updatedData.customStyles });
-          onElementUpdate(sectionId, element.id, 'customStyles', updatedData.customStyles);
-          console.log('🎨 Updated element customStyles:', updatedData.customStyles);
+          // Для BarChart используем colorSettings, для остальных - customStyles
+          if (elementType === 'BarChart' && updatedData.colorSettings) {
+            console.log('🎯 Calling onElementUpdate with colorSettings:', { sectionId, elementId: element.id, field: 'colorSettings', value: updatedData.colorSettings });
+            onElementUpdate(sectionId, element.id, 'colorSettings', updatedData.colorSettings);
+            console.log('🎨 Updated element colorSettings:', updatedData.colorSettings);
+          } else if (updatedData.customStyles) {
+            console.log('🎯 Calling onElementUpdate with customStyles:', { sectionId, elementId: element.id, field: 'customStyles', value: updatedData.customStyles });
+            onElementUpdate(sectionId, element.id, 'customStyles', updatedData.customStyles);
+            console.log('🎨 Updated element customStyles:', updatedData.customStyles);
+          }
         }
       };
     };
@@ -382,6 +405,22 @@ const MultiPagePreview = ({
       elementProps.title = element.data.title;
     } else if (element.title) {
       elementProps.title = element.title;
+    }
+    
+    // 🔥 ОБЩАЯ ОБРАБОТКА colorSettings для всех элементов
+    elementProps.colorSettings = element.colorSettings || element.data?.colorSettings || {};
+    console.log(`🔍 [MultiPagePreview] Элемент ${element.type} получил colorSettings:`, elementProps.colorSettings);
+    
+    // 🔍 СПЕЦИАЛЬНАЯ ОТЛАДКА для multiple-cards
+    if (element.type === 'multiple-cards') {
+      console.log('🔍 [MultiPagePreview] MULTIPLE-CARDS ДЕТАЛЬНАЯ ОТЛАДКА:', {
+        elementId: element.id,
+        'element.colorSettings': element.colorSettings,
+        'element.data?.colorSettings': element.data?.colorSettings,
+        'final elementProps.colorSettings': elementProps.colorSettings,
+        'element keys': Object.keys(element),
+        'element.data keys': element.data ? Object.keys(element.data) : null
+      });
     }
     
     // Специальная обработка для callout - добавляем недостающие поля
@@ -527,22 +566,46 @@ const MultiPagePreview = ({
     // Специальная обработка для bar-chart - копируем данные диаграммы
     if (element.type === 'bar-chart') {
       elementProps.title = element.title || 'Диаграмма';
+      elementProps.description = element.description || element.data?.description || ''; // Добавляем поле description
       elementProps.data = element.data || [];
       elementProps.showValues = element.showValues !== undefined ? element.showValues : true;
       elementProps.showGrid = element.showGrid !== undefined ? element.showGrid : true;
+      elementProps.showLegend = element.showLegend !== undefined ? element.showLegend : false;
+      elementProps.showStatistics = element.showStatistics !== undefined ? element.showStatistics : false;
       elementProps.animate = element.animate !== undefined ? element.animate : true;
       elementProps.orientation = element.orientation || 'vertical';
       elementProps.height = element.height || 300;
-      // Используем только пользовательские стили, без принудительных дефолтов
-      elementProps.customStyles = element.customStyles || element.data?.customStyles || {};
       
-      // Дополнительная проверка для глубоко вложенных стилей
-      if (element.data && element.data.data && element.data.data.customStyles) {
-        elementProps.customStyles = { ...elementProps.customStyles, ...element.data.data.customStyles };
-      }
+      // Используем новую систему colorSettings
+      elementProps.colorSettings = element.colorSettings || element.data?.colorSettings || element.data?.data?.colorSettings || {};
       
-      // Добавляем функцию onUpdate для сохранения изменений
-      elementProps.onUpdate = createOnUpdateFunction('BarChart');
+      // Добавляем специальную функцию onUpdate для BarChart
+      elementProps.onUpdate = (updatedData) => {
+        console.log('🎨 BarChart onUpdate called:', updatedData);
+        
+        // Обновляем состояние секции через onElementUpdate
+        if (onElementUpdate) {
+          // Сохраняем все данные BarChart
+          const barChartData = {
+            title: updatedData.title,
+            description: updatedData.description, // Добавляем description в обновляемые данные
+            data: updatedData.data,
+            showValues: updatedData.showValues,
+            showGrid: updatedData.showGrid,
+            showLegend: updatedData.showLegend,
+            showStatistics: updatedData.showStatistics,
+            animate: updatedData.animate,
+            orientation: updatedData.orientation,
+            height: updatedData.height,
+            colorSettings: updatedData.colorSettings,
+            animationSettings: updatedData.animationSettings
+          };
+          
+          console.log('🎯 Calling onElementUpdate for BarChart with data:', { sectionId, elementId: element.id, field: 'data', value: barChartData });
+          onElementUpdate(sectionId, element.id, 'data', barChartData);
+          console.log('🎨 Updated BarChart data:', barChartData);
+        }
+      };
       elementProps.animationSettings = element.animationSettings || {
         animationType: 'fadeIn',
         delay: 0,
@@ -551,37 +614,54 @@ const MultiPagePreview = ({
         threshold: 0.1,
         disabled: false
       };
+      
+      console.log('[MultiPagePreview] 🎯 BAR-CHART PROPS PREPARED:', elementProps);
     }
     
     // Специальная обработка для advanced-line-chart - копируем данные линейного графика
     if (element.type === 'advanced-line-chart') {
-      elementProps.title = element.title || 'Линейный график';
-      elementProps.data = element.data || [];
-      elementProps.strokeWidth = element.strokeWidth || 2;
-      elementProps.showGrid = element.showGrid !== undefined ? element.showGrid : true;
-      elementProps.showLegend = element.showLegend !== undefined ? element.showLegend : true;
-      elementProps.titleColor = element.titleColor || '#1976d2';
-      elementProps.backgroundColor = element.backgroundColor || '#ffffff';
-      elementProps.backgroundType = element.backgroundType || 'solid';
-      elementProps.gradientStart = element.gradientStart || '#f5f5f5';
-      elementProps.gradientEnd = element.gradientEnd || '#e0e0e0';
-      elementProps.gradientDirection = element.gradientDirection || 'to bottom';
-      elementProps.lineColors = element.lineColors || ['#8884d8', '#82ca9d'];
-      elementProps.lineNames = element.lineNames || ['Линия 1', 'Линия 2'];
-      elementProps.gridColor = element.gridColor || '#e0e0e0';
-      elementProps.axisColor = element.axisColor || '#666666';
-      elementProps.tooltipBg = element.tooltipBg || '#ffffff';
-      elementProps.legendColor = element.legendColor || '#333333';
-      elementProps.borderRadius = element.borderRadius || 8;
-      elementProps.padding = element.padding || 24;
-      elementProps.chartHeight = element.chartHeight || 300;
-      elementProps.animationSettings = element.animationSettings || {
+      // Извлекаем данные из разных источников с приоритетом
+      const chartData = element.data?.data || element.data || [];
+      const chartTitle = element.data?.title || element.title || 'Линейный график';
+      
+      elementProps.title = chartTitle;
+      elementProps.description = element.data?.description || element.description || '';
+      elementProps.data = chartData;
+      elementProps.strokeWidth = element.data?.strokeWidth || element.strokeWidth || 2;
+      elementProps.showGrid = element.data?.showGrid !== undefined ? element.data.showGrid : (element.showGrid !== undefined ? element.showGrid : true);
+      elementProps.showLegend = element.data?.showLegend !== undefined ? element.data.showLegend : (element.showLegend !== undefined ? element.showLegend : true);
+      elementProps.chartWidth = element.data?.chartWidth || element.chartWidth || '100%';
+      elementProps.maxWidth = element.data?.maxWidth || element.maxWidth || '100%';
+      
+      // Поддержка colorSettings с fallback на старые настройки
+      elementProps.colorSettings = element.colorSettings || element.data?.colorSettings || {};
+      elementProps.titleColor = element.data?.titleColor || element.titleColor || '#1976d2';
+      elementProps.backgroundColor = element.data?.backgroundColor || element.backgroundColor || '#ffffff';
+      elementProps.backgroundType = element.data?.backgroundType || element.backgroundType || 'solid';
+      elementProps.gradientStart = element.data?.gradientStart || element.gradientStart || '#f5f5f5';
+      elementProps.gradientEnd = element.data?.gradientEnd || element.gradientEnd || '#e0e0e0';
+      elementProps.gradientDirection = element.data?.gradientDirection || element.gradientDirection || 'to bottom';
+      elementProps.lineColors = [
+        element.colorSettings?.lineColors?.line1 || element.data?.lineColors?.[0] || element.lineColors?.[0] || '#8884d8',
+        element.colorSettings?.lineColors?.line2 || element.data?.lineColors?.[1] || element.lineColors?.[1] || '#82ca9d'
+      ];
+      elementProps.lineNames = element.data?.lineNames || element.lineNames || ['Линия 1', 'Линия 2'];
+      elementProps.gridColor = element.data?.gridColor || element.gridColor || '#e0e0e0';
+      elementProps.axisColor = element.data?.axisColor || element.axisColor || '#666666';
+      elementProps.tooltipBg = element.data?.tooltipBg || element.tooltipBg || '#ffffff';
+      elementProps.legendColor = element.data?.legendColor || element.legendColor || '#333333';
+      elementProps.borderRadius = element.data?.borderRadius || element.borderRadius || 8;
+      elementProps.padding = element.data?.padding || element.padding || 24;
+      elementProps.chartHeight = element.data?.chartHeight || element.chartHeight || 300;
+      elementProps.animationSettings = element.data?.animationSettings || element.animationSettings || {
         type: 'fadeIn',
         duration: 0.8,
         delay: 0.2
       };
       // Добавляем функцию onUpdate для сохранения изменений
       elementProps.onUpdate = createOnUpdateFunction('AdvancedLineChart');
+      
+      console.log('[MultiPagePreview] 🎯 ADVANCED-LINE-CHART PROPS PREPARED:', elementProps);
     }
     
     // Специальная обработка для advanced-pie-chart - копируем данные круговой диаграммы
@@ -601,7 +681,7 @@ const MultiPagePreview = ({
       elementProps.legendColor = element.legendColor || '#333333';
       elementProps.borderRadius = element.borderRadius || 1;
       elementProps.padding = element.padding || 1;
-              elementProps.chartSize = element.chartSize || 700;
+      elementProps.chartSize = element.chartSize || 700;
       elementProps.showLegend = element.showLegend !== undefined ? element.showLegend : true;
       elementProps.animationSettings = element.animationSettings || {
         animationType: 'fadeIn',
@@ -623,6 +703,18 @@ const MultiPagePreview = ({
       elementProps.showLegend = element.showLegend !== undefined ? element.showLegend : true;
       elementProps.stacked = element.stacked !== undefined ? element.stacked : true;
       elementProps.areaNames = element.areaNames || ['Область 1', 'Область 2'];
+      
+      // Добавляем colorSettings и связанные настройки
+      elementProps.colorSettings = element.colorSettings || element.data?.colorSettings || {};
+      elementProps.areaColors = element.areaColors || element.data?.areaColors || ['#8884d8', '#82ca9d'];
+      elementProps.titleColor = element.titleColor || element.data?.titleColor || '#1976d2';
+      elementProps.backgroundColor = element.backgroundColor || element.data?.backgroundColor || '#ffffff';
+      elementProps.gridColor = element.gridColor || element.data?.gridColor || '#e0e0e0';
+      elementProps.axisColor = element.axisColor || element.data?.axisColor || '#666666';
+      elementProps.legendColor = element.legendColor || element.data?.legendColor || '#333333';
+      elementProps.borderRadius = element.borderRadius || element.data?.borderRadius || 8;
+      elementProps.padding = element.padding || element.data?.padding || 24;
+      
       elementProps.animationSettings = element.animationSettings || {
         animationType: 'fadeIn',
         delay: 0,
@@ -764,6 +856,7 @@ const MultiPagePreview = ({
       borderRadius: elementProps.borderRadius,
       padding: elementProps.padding,
       chartHeight: elementProps.chartHeight,
+      colorSettings: elementProps.colorSettings,
       // Добавляем поля для advanced-pie-chart
       showLabels: elementProps.showLabels,
       showPercentage: elementProps.showPercentage,
@@ -1129,6 +1222,7 @@ const MultiPagePreview = ({
             cardType={element.data?.cardType || element.cardType || 'image-card'}
             gridSize={element.data?.gridSize || element.gridSize || 'medium'}
             sectionStyles={element.data?.sectionStyles || element.sectionStyles}
+            colorSettings={element.data?.colorSettings || element.colorSettings}
             onSave={handleElementSave}
             onCancel={handleElementCancel}
             isPreview={true}
@@ -1153,6 +1247,11 @@ const MultiPagePreview = ({
               title={element.data?.title || element.title}
               description={element.data?.description || element.description}
               sectionStyles={element.data?.sectionStyles || element.sectionStyles}
+              colorSettings={(() => {
+                const colorSettings = element.colorSettings || element.data?.colorSettings || {};
+                console.log('🔥 [MultiPagePreview] ПРЯМОЙ РЕНДЕР MultipleCardsSection с colorSettings:', colorSettings);
+                return colorSettings;
+              })()}
               onEdit={() => {}}
               onDelete={() => {}}
               editable={false}
@@ -1327,7 +1426,38 @@ const MultiPagePreview = ({
       // Расширенные графики Recharts
       case 'advanced-line-chart':
         try {
-          return <AdvancedLineChart {...elementProps} />;
+          // Специальная обработка для AdvancedLineChart
+          const lineChartProps = {
+            ...elementProps,
+            title: elementProps.title || element.title || 'Линейный график',
+            data: elementProps.data || element.data || [],
+            showGrid: elementProps.showGrid !== undefined ? elementProps.showGrid : true,
+            showLegend: elementProps.showLegend !== undefined ? elementProps.showLegend : true,
+            
+            // Поддержка colorSettings с fallback на старые настройки
+            colorSettings: elementProps.colorSettings || element.colorSettings || element.data?.colorSettings || {},
+            lineColors: elementProps.lineColors || element.lineColors || element.data?.lineColors || ['#8884d8', '#82ca9d'],
+            titleColor: elementProps.titleColor || element.titleColor || element.data?.titleColor || '#1976d2',
+            backgroundColor: elementProps.backgroundColor || element.backgroundColor || element.data?.backgroundColor || '#ffffff',
+            gridColor: elementProps.gridColor || element.gridColor || element.data?.gridColor || '#e0e0e0',
+            axisColor: elementProps.axisColor || element.axisColor || element.data?.axisColor || '#666666',
+            legendColor: elementProps.legendColor || element.legendColor || element.data?.legendColor || '#333333',
+            borderRadius: elementProps.borderRadius || element.borderRadius || element.data?.borderRadius || 8,
+            padding: elementProps.padding || element.padding || element.data?.padding || 24,
+            
+            animationSettings: elementProps.animationSettings || element.animationSettings || {
+              animationType: 'fadeIn',
+              delay: 0,
+              triggerOnView: true,
+              triggerOnce: true,
+              threshold: 0.1,
+              disabled: false
+            }
+          };
+          
+          console.log('[MultiPagePreview] AdvancedLineChart props:', lineChartProps);
+          
+          return <AdvancedLineChart {...lineChartProps} />;
         } catch (error) {
           console.error('[MultiPagePreview] Error rendering AdvancedLineChart:', error);
           return <Box sx={{ p: 2, border: '1px dashed #ff0000', borderRadius: 1, mb: 2 }}>
@@ -1343,7 +1473,7 @@ const MultiPagePreview = ({
             <Typography variant="body2" color="error">Ошибка рендеринга AdvancedBarChart</Typography>
           </Box>;
         }
-      case 'advanced-pie-chart':
+            case 'advanced-pie-chart':
         try {
           // Убеждаемся, что все необходимые props передаются
           const pieChartProps = {
@@ -1354,7 +1484,18 @@ const MultiPagePreview = ({
             showPercentage: elementProps.showPercentage !== undefined ? elementProps.showPercentage : true,
             pieColors: elementProps.pieColors || element.pieColors || ['#8884d8', '#82ca9d', '#ffc658', '#ff7300'],
             showLegend: elementProps.showLegend !== undefined ? elementProps.showLegend : true,
-                          chartSize: elementProps.chartSize || element.chartSize || 700,
+            chartSize: elementProps.chartSize || element.chartSize || 700,
+            // Поддержка colorSettings с fallback на старые настройки
+            colorSettings: element.colorSettings || element.data?.colorSettings || {},
+            titleColor: element.data?.titleColor || element.titleColor || '#1976d2',
+            backgroundColor: element.data?.backgroundColor || element.backgroundColor || '#ffffff',
+            backgroundType: element.data?.backgroundType || element.backgroundType || 'solid',
+            gradientStart: element.data?.gradientStart || element.gradientStart || '#f5f5f5',
+            gradientEnd: element.data?.gradientEnd || element.gradientEnd || '#e0e0e0',
+            gradientDirection: element.data?.gradientDirection || element.gradientDirection || 'to bottom',
+            legendColor: element.data?.legendColor || element.legendColor || '#333333',
+            borderRadius: element.data?.borderRadius || element.borderRadius || 1,
+            padding: element.data?.padding || element.padding || 1,
             animationSettings: elementProps.animationSettings || element.animationSettings || {
               animationType: 'fadeIn',
               delay: 0,
@@ -1385,6 +1526,18 @@ const MultiPagePreview = ({
             showLegend: elementProps.showLegend !== undefined ? elementProps.showLegend : true,
             stacked: elementProps.stacked !== undefined ? elementProps.stacked : true,
             areaNames: elementProps.areaNames || ['Область 1', 'Область 2'],
+            
+            // Поддержка colorSettings с fallback на старые настройки
+            colorSettings: elementProps.colorSettings || element.colorSettings || element.data?.colorSettings || {},
+            areaColors: elementProps.areaColors || element.areaColors || element.data?.areaColors || ['#8884d8', '#82ca9d'],
+            titleColor: elementProps.titleColor || element.titleColor || element.data?.titleColor || '#1976d2',
+            backgroundColor: elementProps.backgroundColor || element.backgroundColor || element.data?.backgroundColor || '#ffffff',
+            gridColor: elementProps.gridColor || element.gridColor || element.data?.gridColor || '#e0e0e0',
+            axisColor: elementProps.axisColor || element.axisColor || element.data?.axisColor || '#666666',
+            legendColor: elementProps.legendColor || element.legendColor || element.data?.legendColor || '#333333',
+            borderRadius: elementProps.borderRadius || element.borderRadius || element.data?.borderRadius || 8,
+            padding: elementProps.padding || element.padding || element.data?.padding || 24,
+            
             animationSettings: elementProps.animationSettings || {
               animationType: 'fadeIn',
               delay: 0,
@@ -1614,33 +1767,116 @@ const MultiPagePreview = ({
   };
 
   // Функция для отображения главной страницы (главная)
-  const renderIndexPage = () => (
-    <PageContainer>
-      <Header 
-        headerData={headerData} 
-        onMenuClick={(id) => setCurrentPage(id)}
-        contactData={contactData}
-      />
-      <PageContent>
-        <Container maxWidth="lg">
-          {renderBreadcrumbs()}
-          <HeroSection 
-            title={heroData.title}
-            subtitle={heroData.subtitle}
-            backgroundType={heroData.backgroundType}
-            backgroundImage={heroImageUrl || heroData.backgroundImage}
-            backgroundColor={heroData.backgroundColor}
-            gradientColor1={heroData.gradientColor1}
-            gradientColor2={heroData.gradientColor2}
-            gradientDirection={heroData.gradientDirection}
-            titleColor={heroData.titleColor}
-            subtitleColor={heroData.subtitleColor}
-            animationType={heroData.animationType}
-            enableOverlay={heroData.enableOverlay}
-            overlayOpacity={heroData.overlayOpacity}
-            enableBlur={heroData.enableBlur}
-            blurAmount={heroData.blurAmount}
-          />
+  const renderIndexPage = () => {
+    // Упрощаем логику условий
+    const homePageSettings = heroData.homePageSettings || {};
+    const shouldShowFeatured = homePageSettings.showFeaturedSection && homePageSettings.featuredSectionId;
+    const shouldShowSectionsPreview = homePageSettings.showSectionsPreview;
+    const shouldShowContactPreview = homePageSettings.showContactPreview && contactData;
+    const shouldShowRegularSections = !shouldShowSectionsPreview;
+    
+    console.log('🔍 [MultiPagePreview] renderIndexPage - Settings:', {
+      shouldShowFeatured,
+      shouldShowSectionsPreview,
+      shouldShowContactPreview,
+      shouldShowRegularSections
+    });
+
+    return (
+      <PageContainer>
+        <Header 
+          headerData={headerData} 
+          onMenuClick={(id) => setCurrentPage(id)}
+          contactData={contactData}
+        />
+        <PageContent>
+          <Container maxWidth={false} sx={{ maxWidth: '100%', px: 2 }}>
+            {renderBreadcrumbs()}
+            <HeroSection 
+              title={heroData.title}
+              subtitle={heroData.subtitle}
+              backgroundType={heroData.backgroundType}
+              backgroundImage={heroImageUrl || heroData.backgroundImage}
+              backgroundColor={heroData.backgroundColor}
+              gradientColor1={heroData.gradientColor1}
+              gradientColor2={heroData.gradientColor2}
+              gradientDirection={heroData.gradientDirection}
+              titleColor={heroData.titleColor}
+              subtitleColor={heroData.subtitleColor}
+              animationType={heroData.animationType}
+              enableOverlay={heroData.enableOverlay}
+              overlayOpacity={heroData.overlayOpacity}
+              enableBlur={heroData.enableBlur}
+              blurAmount={heroData.blurAmount}
+            />
+          
+          {/* Выделенный раздел в полном виде */}
+          {shouldShowFeatured && (
+            <Box sx={{ mt: 6 }}>
+              {(() => {
+                const featuredSection = sections.find(s => s.id === heroData.homePageSettings.featuredSectionId);
+                if (!featuredSection) return null;
+                
+                return (
+                  <Box>
+                    <Typography variant="h4" gutterBottom sx={{ color: '#1976d2', textAlign: 'center' }}>
+                      {featuredSection.title}
+                    </Typography>
+                    {featuredSection.data?.elements && featuredSection.data.elements.length > 0 ? (
+                      <Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            startIcon={<AddIcon />}
+                            onClick={() => handleOpenLibrary(featuredSection.id)}
+                            sx={{ borderRadius: 2 }}
+                          >
+                            Добавить элемент
+                          </Button>
+                        </Box>
+                        {featuredSection.data.elements.map((element) => (
+                          <Box key={element.id} sx={{ mb: 3 }}>
+                            {renderContentElement(element, featuredSection.id)}
+                          </Box>
+                        ))}
+                      </Box>
+                    ) : (
+                      <Box sx={{ textAlign: 'center', py: 4 }}>
+                        <Typography variant="h6" sx={{ color: '#666', mb: 2 }}>
+                          Пока нет элементов контента
+                        </Typography>
+                        <Button
+                          variant="outlined"
+                          startIcon={<LibraryBooksIcon />}
+                          onClick={() => handleOpenLibrary(featuredSection.id)}
+                          sx={{ borderRadius: 2 }}
+                        >
+                          Добавить первый элемент
+                        </Button>
+                      </Box>
+                    )}
+                  </Box>
+                );
+              })()}
+            </Box>
+          )}
+          
+          {/* Превью разделов */}
+          {shouldShowSectionsPreview && (
+            <SectionsPreview 
+              sectionsData={sectionsData}
+              headerData={headerData}
+              homePageSettings={heroData.homePageSettings}
+            />
+          )}
+          
+          {/* Превью контактов */}
+          {shouldShowContactPreview && (
+            <ContactPreview 
+              contactData={contactData}
+            />
+          )}
           {console.log('[MultiPagePreview] 🏗️ HeroSection rendered with:', {
             backgroundType: heroData.backgroundType,
             backgroundImage: heroImageUrl || heroData.backgroundImage,
@@ -1660,8 +1896,8 @@ const MultiPagePreview = ({
             </Button>
           </Box>
           
-          {/* Секции */}
-          {sections.map((section) => {
+          {/* Обычные секции - показываем только если не включено превью разделов */}
+          {shouldShowRegularSections && sections.map((section) => {
             console.log(`[MultiPagePreview] 🔍 Processing section:`, section.id, 'data:', section.data);
             console.log(`[MultiPagePreview] 🔍 Section elements:`, section.data?.elements);
             return (
@@ -1715,7 +1951,8 @@ const MultiPagePreview = ({
         headerData={headerData}
       />
     </PageContainer>
-  );
+    );
+  };
 
   // Функция для отображения страницы секции
   const renderSectionPage = (sectionData) => (
@@ -1726,7 +1963,7 @@ const MultiPagePreview = ({
         contactData={contactData}
       />
       <PageContent>
-        <Container maxWidth="lg">
+        <Container maxWidth={false} sx={{ maxWidth: '100%', px: 2 }}>
           {renderBreadcrumbs()}
           <Typography 
             variant="h2" 
@@ -1747,7 +1984,7 @@ const MultiPagePreview = ({
                 mb: 4, 
                 textAlign: 'center',
                 color: sectionData?.descriptionColor || '#666',
-                maxWidth: '800px',
+                maxWidth: '1200px',
                 margin: '0 auto 2rem auto'
               }}
             >
@@ -1792,7 +2029,18 @@ const MultiPagePreview = ({
           
           {/* Отображение элементов контента */}
           {sectionData?.contentElements && sectionData.contentElements.length > 0 && (
-            <Box sx={{ mt: 4 }}>
+            <Box sx={{ 
+              mt: 4,
+              // Обработка sectionBackground для фона секции
+              ...(sectionData.contentElements[0]?.colorSettings?.sectionBackground?.enabled ? {
+                background: sectionData.contentElements[0].colorSettings.sectionBackground.useGradient 
+                  ? `linear-gradient(${sectionData.contentElements[0].colorSettings.sectionBackground.gradientDirection || 'to right'}, ${sectionData.contentElements[0].colorSettings.sectionBackground.gradientColor1}, ${sectionData.contentElements[0].colorSettings.sectionBackground.gradientColor2})`
+                  : sectionData.contentElements[0].colorSettings.sectionBackground.solidColor,
+                borderRadius: '16px',
+                padding: '24px',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+              } : {})
+            }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                 <Typography variant="h4" sx={{ color: '#1976d2' }}>
                   Элементы контента
@@ -1852,7 +2100,7 @@ const MultiPagePreview = ({
         contactData={contactData}
       />
       <PageContent>
-        <Container maxWidth="lg">
+        <Container maxWidth={false} sx={{ maxWidth: '100%', px: 2 }}>
           {renderBreadcrumbs()}
           <ContactSection 
             contactData={contactData}
@@ -1888,7 +2136,7 @@ const MultiPagePreview = ({
           contactData={contactData}
         />
         <PageContent>
-          <Container maxWidth="lg">
+          <Container maxWidth={false} sx={{ maxWidth: '100%', px: 2 }}>
             {renderBreadcrumbs()}
             <Paper sx={{ p: 4 }}>
               <Typography variant="h3" component="h1" sx={{ mb: 3, textAlign: 'center' }}>
@@ -1992,8 +2240,8 @@ const MultiPagePreview = ({
         }}
         PaperProps={{
           sx: {
-            width: '400px',
-            maxWidth: '90vw'
+            width: '500px',
+            maxWidth: '95vw'
           }
         }}
       >
@@ -2029,6 +2277,369 @@ const MultiPagePreview = ({
           />
         </Box>
       </Drawer>
+    </Box>
+  );
+};
+
+// Компонент для превью выделенного раздела
+const FeaturedSectionPreview = ({ featuredSectionId, sectionsData, headerData }) => {
+  const featuredSection = sectionsData[featuredSectionId];
+  
+  if (!featuredSection) {
+    return null;
+  }
+  
+  const sectionTitle = featuredSection.title || featuredSectionId;
+  const sectionDescription = featuredSection.description || '';
+  
+  // Получаем настройки цветов секции
+  const sectionColorSettings = featuredSection.colorSettings || {};
+  const titleColor = sectionColorSettings?.textFields?.title || '#1a237e';
+  const descriptionColor = sectionColorSettings?.textFields?.description || '#455a64';
+  const contentColor = sectionColorSettings?.textFields?.content || '#455a64';
+  
+  // Получаем изображения секции
+  const hasImages = Array.isArray(featuredSection.images) && featuredSection.images.length > 0;
+  const hasSingleImage = featuredSection.imagePath && !hasImages;
+  
+  return (
+    <Box sx={{ 
+      padding: '4rem 0',
+      background: sectionColorSettings?.sectionBackground?.enabled ? 
+        (sectionColorSettings.sectionBackground.useGradient ? 
+          `linear-gradient(${sectionColorSettings.sectionBackground.gradientDirection}, ${sectionColorSettings.sectionBackground.gradientColor1}, ${sectionColorSettings.sectionBackground.gradientColor2})` :
+          sectionColorSettings.sectionBackground.solidColor) : 
+        '#f8f9fa',
+      margin: 0
+    }}>
+      <Container maxWidth="lg">
+        <Box sx={{
+          display: 'grid',
+          gridTemplateColumns: hasImages || hasSingleImage ? '1fr 1fr' : '1fr',
+          gap: '3rem',
+          alignItems: 'center'
+        }}>
+          <Box>
+            <Typography variant="h2" sx={{
+              color: titleColor,
+              fontSize: '2.5rem',
+              fontWeight: 700,
+              marginBottom: '1.5rem',
+              fontFamily: 'Montserrat, sans-serif'
+            }}>
+              {sectionTitle}
+            </Typography>
+            
+            {sectionDescription && (
+              <Typography sx={{
+                color: descriptionColor,
+                fontSize: '1.2rem',
+                lineHeight: 1.6,
+                marginBottom: '2rem',
+                fontFamily: 'Montserrat, sans-serif'
+              }}>
+                {sectionDescription}
+              </Typography>
+            )}
+            
+            <Box sx={{ color: contentColor, fontFamily: 'Montserrat, sans-serif' }}>
+              {/* Здесь можно добавить элементы контента */}
+            </Box>
+            
+            <Box sx={{ marginTop: '2rem' }}>
+              <Button 
+                variant="contained" 
+                sx={{
+                  padding: '1rem 2rem',
+                  background: '#1976d2',
+                  color: 'white',
+                  borderRadius: '8px',
+                  fontWeight: 600,
+                  '&:hover': {
+                    background: '#1565c0',
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 8px 25px rgba(25, 118, 210, 0.3)'
+                  }
+                }}
+              >
+                Подробнее о {sectionTitle}
+              </Button>
+            </Box>
+          </Box>
+          
+          {(hasImages || hasSingleImage) && (
+            <Box>
+              {hasImages ? (
+                featuredSection.images.map((image, index) => (
+                  <Box key={index} sx={{
+                    borderRadius: '15px',
+                    overflow: 'hidden',
+                    boxShadow: '0 15px 35px rgba(0,0,0,0.1)',
+                    marginBottom: '1rem'
+                  }}>
+                    <img 
+                      src={image.url || image} 
+                      alt={image.alt || sectionTitle} 
+                      style={{
+                        width: '100%',
+                        height: 'auto',
+                        display: 'block',
+                        transition: 'transform 0.3s ease'
+                      }}
+                    />
+                  </Box>
+                ))
+              ) : (
+                <Box sx={{
+                  borderRadius: '15px',
+                  overflow: 'hidden',
+                  boxShadow: '0 15px 35px rgba(0,0,0,0.1)'
+                }}>
+                  <img 
+                    src={featuredSection.imagePath} 
+                    alt={sectionTitle} 
+                    style={{
+                      width: '100%',
+                      height: 'auto',
+                      display: 'block',
+                      transition: 'transform 0.3s ease'
+                    }}
+                  />
+                </Box>
+              )}
+            </Box>
+          )}
+        </Box>
+      </Container>
+    </Box>
+  );
+};
+
+// Компонент для превью разделов
+const SectionsPreview = ({ sectionsData, headerData, homePageSettings }) => {
+  console.log('🔍 [SectionsPreview] RENDER START');
+  console.log('🔍 [SectionsPreview] sectionsData:', sectionsData);
+  console.log('🔍 [SectionsPreview] homePageSettings:', homePageSettings);
+  
+  const maxSections = homePageSettings.maxSectionsToShow || 6;
+  const displayMode = homePageSettings.sectionsDisplayMode || 'cards';
+  
+  console.log('🔍 [SectionsPreview] maxSections:', maxSections);
+  console.log('🔍 [SectionsPreview] displayMode:', displayMode);
+  
+  // Фильтруем разделы (исключаем выделенный раздел)
+  const filteredSections = Object.entries(sectionsData).filter(([sectionId, sectionData]) => {
+    const isNotFeatured = sectionId !== homePageSettings.featuredSectionId;
+    console.log(`🔍 [SectionsPreview] Section ${sectionId} is not featured:`, isNotFeatured);
+    return isNotFeatured;
+  }).slice(0, maxSections);
+  
+  console.log('🔍 [SectionsPreview] filteredSections:', filteredSections);
+  console.log('🔍 [SectionsPreview] filteredSections.length:', filteredSections.length);
+  
+  if (filteredSections.length === 0) {
+    console.log('🔍 [SectionsPreview] No sections to show, returning null');
+    return null;
+  }
+  
+  const getGridClass = () => {
+    return {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+      gap: '2rem'
+    };
+  };
+  
+  const getCardStyle = () => {
+    return {
+      background: 'white',
+      borderRadius: '15px',
+      padding: '2rem',
+      boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+      transition: 'all 0.3s ease',
+      border: '1px solid #e9ecef',
+      '&:hover': {
+        transform: 'translateY(-10px)',
+        boxShadow: '0 20px 40px rgba(0,0,0,0.15)'
+      }
+    };
+  };
+  
+  return (
+    <Box sx={{ padding: '4rem 0', background: '#f8f9fa' }}>
+      <Container maxWidth="lg">
+        <Typography variant="h2" sx={{
+          textAlign: 'center',
+          fontSize: '2.5rem',
+          marginBottom: '3rem',
+          color: '#2c3e50',
+          fontFamily: 'Montserrat, sans-serif'
+        }}>
+          Наши разделы
+        </Typography>
+        
+        <Box sx={getGridClass()}>
+          {filteredSections.map(([sectionId, sectionData]) => {
+            const displayName = sectionData.title || sectionId;
+            
+            // Получаем изображение для карточки
+            const cardImage = sectionData.imagePath || 
+                             (Array.isArray(sectionData.images) && sectionData.images.length > 0 ? sectionData.images[0].url || sectionData.images[0] : '') ||
+                             '';
+            
+            // Стандартный рендеринг для карточек
+            return (
+              <Box key={sectionId} sx={getCardStyle()}>
+                {cardImage && (
+                  <Box sx={{
+                    width: '100%',
+                    height: '150px',
+                    borderRadius: '8px',
+                    overflow: 'hidden',
+                    marginBottom: '1rem'
+                  }}>
+                    <img 
+                      src={cardImage} 
+                      alt={displayName} 
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover'
+                      }}
+                    />
+                  </Box>
+                )}
+                
+                <Box>
+                  <Typography variant="h3" sx={{
+                    color: '#2c3e50',
+                    fontSize: '1.5rem',
+                    marginBottom: '0.5rem'
+                  }}>
+                    {displayName}
+                  </Typography>
+                  
+                  <Typography sx={{
+                    color: '#6c757d',
+                    lineHeight: 1.5,
+                    marginBottom: '1rem',
+                    fontSize: '1rem'
+                  }}>
+                    {sectionData.description || 'Узнайте больше в этом разделе'}
+                  </Typography>
+                  
+                  <Button 
+                    variant="contained" 
+                    sx={{
+                      background: '#007bff',
+                      color: 'white',
+                      padding: '0.75rem 1.5rem',
+                      borderRadius: '8px',
+                      fontWeight: 500,
+                      textTransform: 'none',
+                      '&:hover': {
+                        background: '#0056b3',
+                        transform: 'translateY(-2px)'
+                      }
+                    }}
+                    onClick={() => onSectionClick(sectionId)}
+                  >
+                    ...
+                  </Button>
+                </Box>
+              </Box>
+            );
+          })}
+        </Box>
+      </Container>
+    </Box>
+  );
+};
+
+// Компонент для превью контактов
+const ContactPreview = ({ contactData }) => {
+  console.log('🔍 [ContactPreview] RENDER START');
+  console.log('🔍 [ContactPreview] contactData:', contactData);
+  
+  return (
+    <Box sx={{ padding: '4rem 0', background: '#ffffff' }}>
+      <Container maxWidth="lg">
+        <Box sx={{
+          textAlign: 'center',
+          padding: '3rem',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          borderRadius: '20px',
+          color: 'white'
+        }}>
+          <Typography variant="h2" sx={{
+            fontSize: '2.5rem',
+            marginBottom: '1.5rem',
+            fontFamily: 'Montserrat, sans-serif'
+          }}>
+            {contactData.title || 'Свяжитесь с нами'}
+          </Typography>
+          
+          <Typography sx={{
+            fontSize: '1.2rem',
+            marginBottom: '2rem',
+            opacity: 0.9,
+            fontFamily: 'Montserrat, sans-serif'
+          }}>
+            {contactData.description || 'Мы всегда готовы ответить на ваши вопросы'}
+          </Typography>
+          
+          <Box sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '3rem',
+            marginBottom: '2rem',
+            flexWrap: 'wrap'
+          }}>
+            {contactData.phone && (
+              <Box>
+                <Typography sx={{ fontWeight: 'bold' }}>Телефон:</Typography>
+                <Typography component="a" href={`tel:${contactData.phone}`} sx={{
+                  color: 'white',
+                  textDecoration: 'none'
+                }}>
+                  {contactData.phone}
+                </Typography>
+              </Box>
+            )}
+            
+            {contactData.email && (
+              <Box>
+                <Typography sx={{ fontWeight: 'bold' }}>Email:</Typography>
+                <Typography component="a" href={`mailto:${contactData.email}`} sx={{
+                  color: 'white',
+                  textDecoration: 'none'
+                }}>
+                  {contactData.email}
+                </Typography>
+              </Box>
+            )}
+          </Box>
+          
+          <Button 
+            variant="contained" 
+            sx={{
+              padding: '1rem 2rem',
+              background: 'rgba(255,255,255,0.2)',
+              color: 'white',
+              borderRadius: '8px',
+              fontWeight: 600,
+              border: '2px solid rgba(255,255,255,0.3)',
+              '&:hover': {
+                background: 'rgba(255,255,255,0.3)',
+                transform: 'translateY(-2px)',
+                boxShadow: '0 8px 25px rgba(255,255,255,0.2)'
+              }
+            }}
+          >
+            Перейти к контактам
+          </Button>
+        </Box>
+      </Container>
     </Box>
   );
 };

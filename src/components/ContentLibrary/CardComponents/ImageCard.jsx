@@ -148,11 +148,20 @@ const ImageCard = ({
     };
   });
   
-  // Получаем цвета из customStyles (приоритет) или colorSettings
-  const titleColorFromSettings = customStyles?.titleColor || currentColorSettings.textFields?.title || titleColor;
-  const textColorFromSettings = customStyles?.textColor || currentColorSettings.textFields?.text || contentColor;
-  const backgroundColorFromSettings = customStyles?.backgroundColor || currentColorSettings.textFields?.background || backgroundColor;
-  const borderColorFromSettings = customStyles?.borderColor || currentColorSettings.textFields?.border || borderColor;
+  // 🔥 ИСПРАВЛЕНИЕ: Приоритет переданных пропсов над currentColorSettings
+  const titleColorFromSettings = currentColorSettings?.textFields?.cardTitle || currentColorSettings?.textFields?.title || customStyles?.titleColor || '#333333';
+  const textColorFromSettings = currentColorSettings?.textFields?.cardText || currentColorSettings?.textFields?.text || customStyles?.textColor || '#666666';
+  const backgroundColorFromSettings = 
+    (currentColorSettings?.cardBackground?.enabled
+      ? (currentColorSettings.cardBackground.useGradient
+          ? `linear-gradient(${currentColorSettings.cardBackground.gradientDirection || 'to right'}, ${currentColorSettings.cardBackground.gradientColor1 || '#ffffff'}, ${currentColorSettings.cardBackground.gradientColor2 || '#f5f5f5'})`
+          : currentColorSettings.cardBackground.solidColor || '#ffffff')
+      : currentColorSettings?.sectionBackground?.enabled
+      ? (currentColorSettings.sectionBackground.useGradient
+          ? `linear-gradient(${currentColorSettings.sectionBackground.gradientDirection || 'to right'}, ${currentColorSettings.sectionBackground.gradientColor1 || '#ffffff'}, ${currentColorSettings.sectionBackground.gradientColor2 || '#f5f5f5'})`
+          : currentColorSettings.sectionBackground.solidColor || '#ffffff')
+      : customStyles?.backgroundColor || '#ffffff');
+  const borderColorFromSettings = currentColorSettings?.textFields?.border || customStyles?.borderColor || '#e0e0e0';
   const [isEditing, setIsEditing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
@@ -336,24 +345,24 @@ const ImageCard = ({
     // Определяем фон карточки
     let backgroundStyle = {};
     
-    // Применяем настройки фона из customStyles (приоритет) или colorSettings
-    if (customStyles?.backgroundType === 'gradient') {
-      backgroundStyle = {
-        background: `linear-gradient(${customStyles.gradientDirection || 'to right'}, ${customStyles.gradientColor1 || '#ffffff'}, ${customStyles.gradientColor2 || '#f5f5f5'})`
-      };
-    } else if (currentColorSettings.sectionBackground?.enabled) {
+    // 🔥 ИСПРАВЛЕНИЕ: Приоритет colorSettings над customStyles для фона
+    if (currentColorSettings.sectionBackground?.enabled) {
       if (currentColorSettings.sectionBackground.useGradient) {
         backgroundStyle = {
-          background: `linear-gradient(${currentColorSettings.sectionBackground.gradientDirection}, ${currentColorSettings.sectionBackground.gradientColor1}, ${currentColorSettings.sectionBackground.gradientColor2})`
+          background: `linear-gradient(${currentColorSettings.sectionBackground.gradientDirection || 'to right'}, ${currentColorSettings.sectionBackground.gradientColor1 || '#ffffff'}, ${currentColorSettings.sectionBackground.gradientColor2 || '#f5f5f5'})`
         };
       } else {
         backgroundStyle = {
-          backgroundColor: currentColorSettings.sectionBackground.solidColor
+          backgroundColor: currentColorSettings.sectionBackground.solidColor || '#ffffff'
         };
       }
       if (currentColorSettings.sectionBackground.opacity !== undefined) {
         backgroundStyle.opacity = currentColorSettings.sectionBackground.opacity;
       }
+    } else if (customStyles?.backgroundType === 'gradient') {
+      backgroundStyle = {
+        background: `linear-gradient(${customStyles.gradientDirection || 'to right'}, ${customStyles.gradientColor1 || '#ffffff'}, ${customStyles.gradientColor2 || '#f5f5f5'})`
+      };
     } else if (currentUseGradient) {
       backgroundStyle = {
         background: `linear-gradient(${currentGradientDirection}, ${currentGradientStart}, ${currentGradientEnd})`
@@ -364,22 +373,22 @@ const ImageCard = ({
       };
     }
 
-    // Применяем настройки границы из customStyles (приоритет) или colorSettings
+    // 🔥 ИСПРАВЛЕНИЕ: Приоритет colorSettings над customStyles для границ
     let borderStyle = {};
-    if (customStyles?.borderColor) {
+    if (currentColorSettings?.textFields?.border) {
+      borderStyle = {
+        border: `${currentColorSettings.borderWidth || 1}px solid ${currentColorSettings.textFields.border}`,
+        borderRadius: `${currentColorSettings.borderRadius || 8}px`
+      };
+    } else if (customStyles?.borderColor) {
       borderStyle = {
         border: `${customStyles.borderWidth || 1}px solid ${customStyles.borderColor}`,
         borderRadius: `${customStyles.borderRadius || 8}px`
       };
-    } else if (currentColorSettings.borderColor) {
-      borderStyle = {
-        border: `${currentColorSettings.borderWidth || 1}px solid ${currentColorSettings.borderColor}`,
-        borderRadius: `${currentColorSettings.borderRadius || 8}px`
-      };
     } else if (currentVariant === 'outlined') {
       borderStyle = {
         border: `1px solid ${borderColorFromSettings}`,
-        borderRadius: `${customStyles?.borderRadius || currentColorSettings.borderRadius || 8}px`
+        borderRadius: `${currentColorSettings?.borderRadius || customStyles?.borderRadius || 8}px`
       };
     }
 
@@ -1002,6 +1011,14 @@ const ImageCard = ({
       setIsEditing(true);
     }
   };
+
+  // 🔄 РЕАКТИВНОСТЬ: Обновляем локальные настройки при изменении colorSettings
+  useEffect(() => {
+    if (JSON.stringify(colorSettings) !== JSON.stringify(currentColorSettings)) {
+      console.log('🔄 [ImageCard] Обновление colorSettings:', colorSettings);
+      setCurrentColorSettings(colorSettings || {});
+    }
+  }, [colorSettings]);
 
   const handleVariantChange = (e) => {
     console.log('Изменение варианта карточки:', e.target.value);

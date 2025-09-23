@@ -92,11 +92,20 @@ const BasicCard = ({
     };
   });
   
-  // Получаем цвета из customStyles (приоритет) или colorSettings
-  const titleColorFromSettings = customStyles?.titleColor || currentColorSettings.textFields?.title || '#ffd700';
-  const textColorFromSettings = customStyles?.textColor || currentColorSettings.textFields?.text || '#ffffff';
-  const backgroundColorFromSettings = customStyles?.backgroundColor || currentColorSettings.textFields?.background || 'rgba(0,0,0,0.85)';
-  const borderColorFromSettings = customStyles?.borderColor || currentColorSettings.textFields?.border || '#c41e3a';
+  // 🔥 ИСПРАВЛЕНИЕ: Приоритет переданных пропсов над currentColorSettings
+  const titleColorFromSettings = currentColorSettings?.textFields?.cardTitle || currentColorSettings?.textFields?.title || customStyles?.titleColor || '#ffd700';
+  const textColorFromSettings = currentColorSettings?.textFields?.cardText || currentColorSettings?.textFields?.text || customStyles?.textColor || '#ffffff';
+  const backgroundColorFromSettings = 
+    (currentColorSettings?.cardBackground?.enabled
+      ? (currentColorSettings.cardBackground.useGradient
+          ? `linear-gradient(${currentColorSettings.cardBackground.gradientDirection || 'to right'}, ${currentColorSettings.cardBackground.gradientColor1 || '#ffffff'}, ${currentColorSettings.cardBackground.gradientColor2 || '#f5f5f5'})`
+          : currentColorSettings.cardBackground.solidColor || 'rgba(0,0,0,0.85)')
+      : currentColorSettings?.sectionBackground?.enabled
+      ? (currentColorSettings.sectionBackground.useGradient
+          ? `linear-gradient(${currentColorSettings.sectionBackground.gradientDirection || 'to right'}, ${currentColorSettings.sectionBackground.gradientColor1 || '#ffffff'}, ${currentColorSettings.sectionBackground.gradientColor2 || '#f5f5f5'})`
+          : currentColorSettings.sectionBackground.solidColor || 'rgba(0,0,0,0.85)')
+      : customStyles?.backgroundColor || 'rgba(0,0,0,0.85)');
+  const borderColorFromSettings = currentColorSettings?.textFields?.border || customStyles?.borderColor || '#c41e3a';
   const [localEditing, setLocalEditing] = useState(false);
   const [currentAnimationSettings, setCurrentAnimationSettings] = useState(animationSettings || {
     animationType: 'fadeIn',
@@ -193,47 +202,47 @@ const BasicCard = ({
     // Определяем фон карточки
     let backgroundStyle = {};
     
-    // Применяем настройки фона из customStyles (приоритет) или colorSettings
-    if (customStyles?.backgroundType === 'gradient') {
-      backgroundStyle = {
-        background: `linear-gradient(${customStyles.gradientDirection || 'to right'}, ${customStyles.gradientColor1 || '#ffffff'}, ${customStyles.gradientColor2 || '#f5f5f5'})`
-      };
-    } else if (currentColorSettings.sectionBackground?.enabled) {
+    // 🔥 ИСПРАВЛЕНИЕ: Приоритет colorSettings над customStyles для фона
+    if (currentColorSettings.sectionBackground?.enabled) {
       const { sectionBackground } = currentColorSettings;
       if (sectionBackground.useGradient) {
         backgroundStyle = {
-          background: `linear-gradient(${sectionBackground.gradientDirection}, ${sectionBackground.gradientColor1}, ${sectionBackground.gradientColor2})`
+          background: `linear-gradient(${sectionBackground.gradientDirection || 'to right'}, ${sectionBackground.gradientColor1 || '#ffffff'}, ${sectionBackground.gradientColor2 || '#f5f5f5'})`
         };
       } else {
         backgroundStyle = {
-          backgroundColor: sectionBackground.solidColor
+          backgroundColor: sectionBackground.solidColor || 'rgba(0,0,0,0.85)'
         };
       }
       if (sectionBackground.opacity !== undefined) {
         backgroundStyle.opacity = sectionBackground.opacity;
       }
+    } else if (customStyles?.backgroundType === 'gradient') {
+      backgroundStyle = {
+        background: `linear-gradient(${customStyles.gradientDirection || 'to right'}, ${customStyles.gradientColor1 || '#ffffff'}, ${customStyles.gradientColor2 || '#f5f5f5'})`
+      };
     } else {
       backgroundStyle = {
         backgroundColor: backgroundColorFromSettings
       };
     }
 
-    // Применяем настройки границы из customStyles (приоритет) или colorSettings
+    // 🔥 ИСПРАВЛЕНИЕ: Приоритет colorSettings над customStyles для границ
     let borderStyle = {};
-    if (customStyles?.borderColor) {
+    if (currentColorSettings?.textFields?.border) {
+      borderStyle = {
+        border: `${currentColorSettings.borderWidth || 1}px solid ${currentColorSettings.textFields.border}`,
+        borderRadius: `${currentColorSettings.borderRadius || 8}px`
+      };
+    } else if (customStyles?.borderColor) {
       borderStyle = {
         border: `${customStyles.borderWidth || 1}px solid ${customStyles.borderColor}`,
         borderRadius: `${customStyles.borderRadius || 8}px`
       };
-    } else if (currentColorSettings.borderColor) {
-      borderStyle = {
-        border: `${currentColorSettings.borderWidth || 1}px solid ${currentColorSettings.borderColor}`,
-        borderRadius: `${currentColorSettings.borderRadius || 8}px`
-      };
     } else if (currentVariant === 'outlined') {
       borderStyle = {
         border: `1px solid ${borderColorFromSettings}`,
-        borderRadius: `${customStyles?.borderRadius || currentColorSettings.borderRadius || 8}px`
+        borderRadius: `${currentColorSettings?.borderRadius || customStyles?.borderRadius || 8}px`
       };
     }
 
@@ -520,6 +529,14 @@ const BasicCard = ({
   );
 
   const isCurrentlyEditing = isEditing || localEditing;
+
+  // 🔄 РЕАКТИВНОСТЬ: Обновляем локальные настройки при изменении colorSettings
+  useEffect(() => {
+    if (JSON.stringify(colorSettings) !== JSON.stringify(currentColorSettings)) {
+      console.log('🔄 [BasicCard] Обновление colorSettings:', colorSettings);
+      setCurrentColorSettings(colorSettings || {});
+    }
+  }, [colorSettings]);
 
   return (
     <AnimationWrapper {...currentAnimationSettings}>

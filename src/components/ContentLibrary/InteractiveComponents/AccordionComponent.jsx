@@ -19,7 +19,7 @@ import {
   Tooltip
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import EditIcon from '@mui/icons-material/Edit';
+
 import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -27,6 +27,7 @@ import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import EditableElementWrapper from '../EditableElementWrapper';
 import AnimationWrapper from '../AnimationWrapper';
 import AnimationControls from '../AnimationControls';
+import ColorSettings from '../TextComponents/ColorSettings';
 
 const AccordionComponent = ({
   initialPanels = [
@@ -54,6 +55,8 @@ const AccordionComponent = ({
   defaultExpanded = null,
   showIcons = true,
   customStyles = {},
+  // Настройки цветов через ColorSettings
+  colorSettings = {},
   onUpdate,
   editable = true,
   // Пропсы для совместимости с системой редактирования
@@ -86,6 +89,39 @@ const AccordionComponent = ({
   const [currentSize, setCurrentSize] = useState(size);
   const [currentSpacing, setCurrentSpacing] = useState(spacing);
   const [showAccordionIcons, setShowAccordionIcons] = useState(showIcons);
+  // Настройки цветов через ColorSettings (как в базовой карточке)
+  const [currentColorSettings, setCurrentColorSettings] = useState(() => {
+    // Приоритет: colorSettings пропс > customStyles.colorSettings > дефолтные значения
+    if (colorSettings && Object.keys(colorSettings).length > 0) {
+      return colorSettings;
+    }
+    if (customStyles?.colorSettings && Object.keys(customStyles.colorSettings).length > 0) {
+      return customStyles.colorSettings;
+    }
+    return {
+      textFields: {
+        title: '#ffd700',
+        text: '#ffffff',
+        background: 'rgba(0,0,0,0.85)',
+        border: '#c41e3a'
+      },
+      sectionBackground: {
+        enabled: false,
+        useGradient: false,
+        solidColor: 'rgba(0,0,0,0.85)',
+        gradientColor1: '#c41e3a',
+        gradientColor2: '#ffd700',
+        gradientDirection: 'to right',
+        opacity: 1
+      },
+      borderColor: '#c41e3a',
+      borderWidth: 1,
+      borderRadius: 8,
+      padding: 16,
+      boxShadow: false
+    };
+  });
+
   const [accordionStyles, setAccordionStyles] = useState({
     backgroundColor: 'rgba(0,0,0,0.85)',
     titleColor: '#ffd700',
@@ -93,7 +129,7 @@ const AccordionComponent = ({
     hoverColor: 'rgba(196,30,58,0.15)',
     ...customStyles
   });
-  const [isEditingInternal, setIsEditingInternal] = useState(false);
+
   const [editingPanelId, setEditingPanelId] = useState(null);
   const [localEditing, setLocalEditing] = useState(false);
   const [editData, setEditData] = useState({
@@ -104,13 +140,14 @@ const AccordionComponent = ({
     spacing,
     showIcons,
     customStyles,
+    colorSettings: currentColorSettings,
     animationSettings,
     title,
     showTitle
   });
 
   // Объединяем внутреннее редактирование и внешнее
-  const isCurrentlyEditing = isEditing || isEditingInternal || localEditing;
+
 
   // Эффект для синхронизации состояния expanded при изменении allowMultipleExpanded
   useEffect(() => {
@@ -199,22 +236,35 @@ const AccordionComponent = ({
     const sizeConfig = sizes.find(s => s.value === currentSize) || sizes[1];
     const spacingConfig = spacings.find(s => s.value === currentSpacing) || spacings[1];
 
+
+    // Приоритет ColorSettings над customStyles
+    const titleColor = currentColorSettings?.textFields?.title || accordionStyles.titleColor || '#ffd700';
+    const textColor = currentColorSettings?.textFields?.text || accordionStyles.contentColor || '#ffffff';
+    const backgroundColor = currentColorSettings?.textFields?.background || accordionStyles.backgroundColor || 'rgba(0,0,0,0.85)';
+    const borderColor = currentColorSettings?.textFields?.border || '#c41e3a';
+    const hoverColor = currentColorSettings?.textFields?.hover || '#4ecdc4';
+
+    // Фон строк аккордеона - используем textFields.background
+    const accordionBackground = backgroundColor;
+
     return {
       spacing: spacingConfig.gap,
       summary: {
         padding: sizeConfig.padding,
         fontSize: sizeConfig.fontSize,
-        backgroundColor: accordionStyles.backgroundColor,
-        color: accordionStyles.titleColor,
+        backgroundColor: accordionBackground,
+        color: titleColor,
         '&:hover': {
-          backgroundColor: accordionStyles.hoverColor
+          backgroundColor: hoverColor,
+          transition: 'background-color 0.3s ease'
         }
       },
       content: {
         padding: sizeConfig.padding,
-        color: accordionStyles.contentColor,
-        backgroundColor: accordionStyles.backgroundColor
-      }
+        color: textColor,
+        backgroundColor: accordionBackground
+      },
+      borderColor: borderColor
     };
   };
 
@@ -225,8 +275,37 @@ const AccordionComponent = ({
     }
   };
 
+  // 🔄 РЕАКТИВНОСТЬ: Обновляем локальные настройки при изменении colorSettings
+  useEffect(() => {
+    if (JSON.stringify(colorSettings) !== JSON.stringify(currentColorSettings)) {
+      console.log('🔄 [AccordionComponent] Обновление colorSettings:', colorSettings);
+      setCurrentColorSettings(colorSettings || {});
+      
+      // Обновляем accordionStyles на основе новых colorSettings
+      if (colorSettings && Object.keys(colorSettings).length > 0) {
+        setAccordionStyles(prev => ({
+          ...prev,
+          backgroundColor: colorSettings.textFields?.background || prev.backgroundColor,
+          titleColor: colorSettings.textFields?.title || prev.titleColor,
+          contentColor: colorSettings.textFields?.text || prev.contentColor,
+          borderColor: colorSettings.textFields?.border || prev.borderColor
+        }));
+      }
+      
+      // 🔥 ИСПРАВЛЕНИЕ: Обновляем editData.colorSettings для синхронизации с редактором
+      setEditData(prev => ({
+        ...prev,
+        colorSettings: colorSettings || prev.colorSettings
+      }));
+    }
+  }, [colorSettings]);
+
   const handleAnimationUpdate = (newAnimationSettings) => {
     setEditData({ ...editData, animationSettings: newAnimationSettings });
+  };
+
+  const handleColorUpdate = (newColorSettings) => {
+    setEditData({ ...editData, colorSettings: newColorSettings });
   };
 
   const handleSaveConstructor = () => {
@@ -238,10 +317,23 @@ const AccordionComponent = ({
     setCurrentSpacing(editData.spacing);
     setShowAccordionIcons(editData.showIcons);
     setAccordionStyles(editData.customStyles);
+    setCurrentColorSettings(editData.colorSettings || currentColorSettings);
+    
+    // Формируем данные для сохранения с поддержкой экспорта
+    const saveData = {
+      ...editData,
+      // Данные для экспорта (совместимость с multiPageSiteExporter)
+      accordionItems: editData.accordionItems,
+      colorSettings: editData.colorSettings || currentColorSettings,
+      title: editData.title,
+      showTitle: editData.showTitle,
+      allowMultiple: editData.allowMultiple
+    };
+    
     if (onSave) {
-      onSave(editData);
+      onSave(saveData);
     } else if (onUpdate) {
-      onUpdate(editData);
+      onUpdate(saveData);
     }
   };
 
@@ -287,36 +379,7 @@ const AccordionComponent = ({
 
     return (
       <Box sx={{ position: 'relative' }}>
-        {/* Кнопка редактирования */}
-        {editable && (
-          <Box
-            sx={{
-              position: 'absolute',
-              top: -8,
-              right: -8,
-              opacity: 0,
-              transition: 'opacity 0.2s ease',
-              zIndex: 10,
-              '.accordion-container:hover &': {
-                opacity: 1
-              }
-            }}
-          >
-            <Tooltip title="Редактировать аккордеон">
-              <IconButton
-                size="small"
-                onClick={() => setIsEditingInternal(true)}
-                sx={{
-                  backgroundColor: 'rgba(255,255,255,0.9)',
-                  boxShadow: 2,
-                  '&:hover': { backgroundColor: 'rgba(255,255,255,1)' }
-                }}
-              >
-                <EditIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        )}
+
 
         {/* Заголовок элемента */}
         {showTitle && title && (
@@ -325,7 +388,7 @@ const AccordionComponent = ({
             component="h3"
             sx={{
               fontSize: '24px',
-              color: accordionStyles.titleColor || '#ffd700',
+              color: currentColorSettings?.textFields?.title || accordionStyles.titleColor || '#ffd700',
               fontWeight: 'bold',
               margin: 0,
               marginBottom: '16px',
@@ -346,8 +409,9 @@ const AccordionComponent = ({
               variant={currentVariant}
               sx={{
                 border: currentVariant === 'outlined' ? 
-                  `1px solid ${accordionStyles.borderColor}` : 'none',
+                  `1px solid ${styles.borderColor}` : 'none',
                 borderRadius: '8px !important',
+                backgroundColor: styles.summary.backgroundColor,
                 '&:before': {
                   display: 'none'
                 },
@@ -410,7 +474,7 @@ const AccordionComponent = ({
       <EditableElementWrapper 
         editable={constructorMode} 
         onStartEdit={handleDoubleClick}
-        isEditing={isCurrentlyEditing}
+        isEditing={localEditing}
       >
         <Box className="accordion-container">
           {/* Режим конструктора */}
@@ -427,7 +491,7 @@ const AccordionComponent = ({
           )}
 
           {/* Превью */}
-          {!isCurrentlyEditing && renderAccordion()}
+          {!localEditing && renderAccordion()}
 
         {/* Редактор для режима конструктора */}
         {localEditing && (
@@ -469,6 +533,30 @@ const AccordionComponent = ({
               <AnimationControls
                 animationSettings={editData.animationSettings || animationSettings}
                 onUpdate={handleAnimationUpdate}
+              />
+            </Box>
+
+            {/* Настройки цветов */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="subtitle2" gutterBottom>Настройки цветов:</Typography>
+              <ColorSettings
+                title="Настройки цветов аккордеона"
+                colorSettings={editData.colorSettings || currentColorSettings}
+                onUpdate={handleColorUpdate}
+                availableFields={[
+                  { name: 'title', label: 'Заголовок', description: 'Цвет заголовка аккордеона', defaultColor: '#ffd700' },
+                  { name: 'text', label: 'Текст', description: 'Цвет содержимого элементов', defaultColor: '#ffffff' },
+                  { name: 'background', label: 'Фон', description: 'Цвет фона аккордеона', defaultColor: 'rgba(0,0,0,0.85)' },
+                  { name: 'border', label: 'Граница', description: 'Цвет границ элементов', defaultColor: '#c41e3a' },
+                  { name: 'hover', label: 'При наведении', description: 'Цвет фона при наведении', defaultColor: '#4ecdc4' }
+                ]}
+                defaultColors={{
+                  title: '#ffd700',
+                  text: '#ffffff',
+                  background: 'rgba(0,0,0,0.85)',
+                  border: '#c41e3a',
+                  hover: '#4ecdc4'
+                }}
               />
             </Box>
 
@@ -547,235 +635,6 @@ const AccordionComponent = ({
               </Button>
             </Box>
           </Paper>
-        )}
-
-        {/* Редактор для обычного режима */}
-        {isEditingInternal && (
-        <Paper sx={{ p: 3, border: '2px solid #1976d2' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-            <ExpandMoreIcon color="primary" />
-            <Typography variant="h6" color="primary">
-              Редактирование аккордеона
-            </Typography>
-            <Chip label="Активно" color="primary" size="small" />
-          </Box>
-
-          {/* Заголовок элемента */}
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="subtitle2" gutterBottom>Заголовок элемента:</Typography>
-            <TextField
-              fullWidth
-              label="Заголовок элемента"
-              value={title || ''}
-              onChange={(e) => {
-                if (onUpdate) {
-                  onUpdate({
-                    ...onUpdate,
-                    title: e.target.value
-                  });
-                }
-              }}
-              placeholder="Введите заголовок элемента..."
-              size="small"
-              sx={{ mb: 1 }}
-            />
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={showTitle}
-                  onChange={(e) => {
-                    if (onUpdate) {
-                      onUpdate({
-                        ...onUpdate,
-                        showTitle: e.target.checked
-                      });
-                    }
-                  }}
-                />
-              }
-              label="Показывать заголовок"
-            />
-          </Box>
-
-          {/* Общие настройки */}
-          <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-            <FormControl fullWidth>
-              <InputLabel>Вариант</InputLabel>
-              <Select
-                value={currentVariant}
-                label="Вариант"
-                onChange={(e) => setCurrentVariant(e.target.value)}
-              >
-                {variants.map(variant => (
-                  <MenuItem key={variant.value} value={variant.value}>
-                    <Box>
-                      <Typography variant="body2">{variant.label}</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {variant.description}
-                      </Typography>
-                    </Box>
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            <FormControl fullWidth>
-              <InputLabel>Размер</InputLabel>
-              <Select
-                value={currentSize}
-                label="Размер"
-                onChange={(e) => setCurrentSize(e.target.value)}
-              >
-                {sizes.map(size => (
-                  <MenuItem key={size.value} value={size.value}>
-                    {size.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            <FormControl fullWidth>
-              <InputLabel>Интервал</InputLabel>
-              <Select
-                value={currentSpacing}
-                label="Интервал"
-                onChange={(e) => setCurrentSpacing(e.target.value)}
-              >
-                {spacings.map(spacing => (
-                  <MenuItem key={spacing.value} value={spacing.value}>
-                    {spacing.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Box>
-
-          {/* Дополнительные настройки */}
-          <Box sx={{ mb: 3 }}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={allowMultipleExpanded}
-                  onChange={(e) => setAllowMultipleExpanded(e.target.checked)}
-                />
-              }
-              label="Разрешить открытие нескольких панелей"
-            />
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={showAccordionIcons}
-                  onChange={(e) => setShowAccordionIcons(e.target.checked)}
-                />
-              }
-              label="Показывать иконки раскрытия"
-            />
-          </Box>
-
-          {/* Цвета */}
-          <Typography variant="subtitle2" gutterBottom>
-            Настройки цветов:
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-            <TextField
-              fullWidth
-              type="color"
-              label="Фон"
-              value={accordionStyles.backgroundColor}
-              onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
-            />
-            <TextField
-              fullWidth
-              type="color"
-              label="Цвет заголовка"
-              value={accordionStyles.titleColor}
-              onChange={(e) => handleStyleChange('titleColor', e.target.value)}
-            />
-            <TextField
-              fullWidth
-              type="color"
-              label="Цвет содержимого"
-              value={accordionStyles.contentColor}
-              onChange={(e) => handleStyleChange('contentColor', e.target.value)}
-            />
-            <TextField
-              fullWidth
-              type="color"
-              label="Цвет при наведении"
-              value={accordionStyles.hoverColor}
-              onChange={(e) => handleStyleChange('hoverColor', e.target.value)}
-            />
-          </Box>
-
-          {/* Редактирование панелей */}
-          <Typography variant="subtitle2" gutterBottom>
-            Панели аккордеона:
-          </Typography>
-          <Box sx={{ mb: 3 }}>
-            {panels.map((panel, index) => (
-              <Paper key={panel.id} sx={{ p: 2, mb: 2, border: '1px solid #e0e0e0' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                  <DragIndicatorIcon sx={{ color: '#ccc', cursor: 'grab' }} />
-                  <Chip label={`Панель ${index + 1}`} size="small" />
-                  <Box sx={{ flex: 1 }} />
-                  <IconButton
-                    size="small"
-                    color="error"
-                    onClick={() => handleDeletePanel(panel.id)}
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </Box>
-
-                <TextField
-                  fullWidth
-                  value={panel.title}
-                  onChange={(e) => handlePanelChange(panel.id, 'title', e.target.value)}
-                  label="Заголовок панели"
-                  sx={{ mb: 2 }}
-                />
-
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={3}
-                  value={panel.content}
-                  onChange={(e) => handlePanelChange(panel.id, 'content', e.target.value)}
-                  label="Содержимое панели"
-                />
-              </Paper>
-            ))}
-
-            <Button
-              variant="outlined"
-              startIcon={<AddIcon />}
-              onClick={handleAddPanel}
-              sx={{ mt: 1 }}
-            >
-              Добавить панель
-            </Button>
-          </Box>
-
-          {/* Предварительный просмотр */}
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="subtitle2" gutterBottom>
-              Предварительный просмотр:
-            </Typography>
-            <Box sx={{ border: '1px dashed #ccc', borderRadius: 1, p: 2 }}>
-              {renderAccordion()}
-            </Box>
-          </Box>
-
-          {/* Кнопки */}
-          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-            <Button onClick={() => setIsEditingInternal(false)}>
-              Отмена
-            </Button>
-            <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSave}>
-              Сохранить
-            </Button>
-          </Box>
-        </Paper>
         )}
         </Box>
       </EditableElementWrapper>

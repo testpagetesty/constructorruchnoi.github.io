@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { theme } from './theme';
-import Home from './pages/index';
+import Home from './pages/index.jsx';
 import PrivacyPolicy from './pages/privacy-policy';
 import CookiePolicy from './pages/cookie-policy';
 import TermsOfService from './pages/terms-of-service';

@@ -21,6 +21,7 @@ const MultipleCardsSection = ({
   cardType = 'image-card',
   title = 'Секция с карточками',
   description = '',
+  colorSettings = {},
   sectionStyles = {
     titleColor: '#1976d2',
     descriptionColor: '#666666',
@@ -48,7 +49,27 @@ const MultipleCardsSection = ({
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedCard, setSelectedCard] = useState(null);
   const [maxTitleHeight, setMaxTitleHeight] = useState(0);
+  const [currentColorSettings, setCurrentColorSettings] = useState(colorSettings || {});
   const gridRef = useRef(null);
+
+  // 🔄 РЕАКТИВНОСТЬ: Обновляем локальные настройки при изменении colorSettings
+  useEffect(() => {
+    console.log('🔍 [MultipleCardsSection] useEffect ВЫЗВАН:', {
+      'props.colorSettings': colorSettings,
+      'state.currentColorSettings': currentColorSettings,
+      'props type': typeof colorSettings,
+      'props keys': colorSettings ? Object.keys(colorSettings) : [],
+      'props textFields': colorSettings?.textFields,
+      'equal': JSON.stringify(colorSettings) === JSON.stringify(currentColorSettings)
+    });
+    
+    if (JSON.stringify(colorSettings) !== JSON.stringify(currentColorSettings)) {
+      console.log('🔄 [MultipleCardsSection] ОБНОВЛЯЕМ colorSettings:', colorSettings);
+      setCurrentColorSettings(colorSettings || {});
+    } else {
+      console.log('⚠️ [MultipleCardsSection] colorSettings НЕ ИЗМЕНИЛИСЬ');
+    }
+  }, [colorSettings]);
   
   // Функция для определения количества столбцов на основе размера сетки
   const getColumnsCount = () => {
@@ -109,9 +130,25 @@ const MultipleCardsSection = ({
       return;
     }
     
-
+    // 🔥 ИСПРАВЛЕНИЕ: Применяем стили к карточке перед передачей в модальное окно
+    const titleColor = currentColorSettings?.textFields?.cardTitle || colorSettings?.textFields?.cardTitle || '#333333';
+    const contentColor = currentColorSettings?.textFields?.cardText || colorSettings?.textFields?.cardText || '#666666';
+    const borderColor = currentColorSettings?.textFields?.border || colorSettings?.textFields?.border || '#e0e0e0';
+    const backgroundColor = (currentColorSettings?.cardBackground?.enabled || colorSettings?.cardBackground?.enabled) ? 
+      ((currentColorSettings?.cardBackground?.useGradient || colorSettings?.cardBackground?.useGradient) ? 
+        `linear-gradient(${(currentColorSettings?.cardBackground?.gradientDirection || colorSettings?.cardBackground?.gradientDirection) || 'to right'}, ${(currentColorSettings?.cardBackground?.gradientColor1 || colorSettings?.cardBackground?.gradientColor1) || '#ffffff'}, ${(currentColorSettings?.cardBackground?.gradientColor2 || colorSettings?.cardBackground?.gradientColor2) || '#f0f0f0'})` :
+        (currentColorSettings?.cardBackground?.solidColor || colorSettings?.cardBackground?.solidColor) || '#ffffff'
+      ) : '#ffffff';
     
-    setSelectedCard(card);
+    const cardWithStyles = {
+      ...card,
+      titleColor,
+      contentColor,
+      backgroundColor,
+      borderColor
+    };
+    
+    setSelectedCard(cardWithStyles);
     setModalOpen(true);
   };
 
@@ -124,6 +161,32 @@ const MultipleCardsSection = ({
   const getSectionBackgroundStyle = () => {
     const styles = {};
     
+    // 🔥 ИСПРАВЛЕНИЕ: Приоритет colorSettings над sectionStyles
+    // Проверяем наличие sectionBackground в colorSettings, независимо от enabled
+    if (currentColorSettings?.sectionBackground) {
+      const { sectionBackground } = currentColorSettings;
+      console.log('🎨 [MultipleCardsSection] Применяем sectionBackground из colorSettings:', sectionBackground);
+      
+      if (sectionBackground.useGradient) {
+        const direction = sectionBackground.gradientDirection || 'to right';
+        const startColor = sectionBackground.gradientColor1 || '#0a0a2e';
+        const endColor = sectionBackground.gradientColor2 || '#16213e';
+        styles.background = `linear-gradient(${direction}, ${startColor}, ${endColor})`;
+        if (sectionBackground.opacity !== undefined) {
+          styles.opacity = sectionBackground.opacity;
+        }
+        console.log('🎨 [MultipleCardsSection] Применили градиент:', styles.background);
+      } else {
+        styles.backgroundColor = sectionBackground.solidColor || 'transparent';
+        if (sectionBackground.opacity !== undefined) {
+          styles.opacity = sectionBackground.opacity;
+        }
+        console.log('🎨 [MultipleCardsSection] Применили сплошной цвет:', styles.backgroundColor);
+      }
+      return styles;
+    }
+    
+    // Fallback на sectionStyles
     if (!sectionStyles || typeof sectionStyles !== 'object') {
       return { backgroundColor: 'transparent' };
     }
@@ -179,21 +242,27 @@ const MultipleCardsSection = ({
   }, []);
 
   const renderCard = (card) => {
-    // Применяем стили из customStyles к основным пропсам карточки
+    // 🔥 ИСПРАВЛЕНИЕ: Применяем настройки карточек из colorSettings
     const cardWithAppliedStyles = {
       ...card,
-      // Применяем цвета из customStyles к основным пропсам
-      titleColor: card.customStyles?.titleColor || card.titleColor || '#333333',
-      contentColor: card.customStyles?.textColor || card.contentColor || '#666666',
-      backgroundColor: card.customStyles?.backgroundColor || card.backgroundColor || '#ffffff',
-      borderColor: card.customStyles?.borderColor || card.borderColor || '#e0e0e0',
-      // Для градиентов
-      useGradient: card.customStyles?.backgroundType === 'gradient',
-      gradientStart: card.customStyles?.gradientColor1 || card.gradientStart || '#ffffff',
-      gradientEnd: card.customStyles?.gradientColor2 || card.gradientEnd || '#f5f5f5',
-      gradientDirection: card.customStyles?.gradientDirection || card.gradientDirection || 'to right'
+      // Цвета из colorSettings или дефолтные
+      titleColor: colorSettings?.textFields?.cardTitle || '#333333',
+      contentColor: colorSettings?.textFields?.cardText || '#666666',
+      borderColor: colorSettings?.textFields?.border || '#e0e0e0',
+      
+      // Фон карточки из cardBackground настроек
+      backgroundColor: colorSettings?.cardBackground?.enabled ? 
+        (colorSettings.cardBackground.useGradient ? 
+          `linear-gradient(${colorSettings.cardBackground.gradientDirection || 'to right'}, ${colorSettings.cardBackground.gradientColor1 || '#ffffff'}, ${colorSettings.cardBackground.gradientColor2 || '#f0f0f0'})` :
+          colorSettings.cardBackground.solidColor || '#ffffff'
+        ) : '#ffffff',
+      useGradient: colorSettings?.cardBackground?.enabled && colorSettings.cardBackground.useGradient,
+      gradientStart: colorSettings?.cardBackground?.gradientColor1 || '#ffffff',
+      gradientEnd: colorSettings?.cardBackground?.gradientColor2 || '#f0f0f0',
+      gradientDirection: colorSettings?.cardBackground?.gradientDirection || 'to right',
+      opacity: colorSettings?.cardBackground?.opacity || 1
     };
-
+    
     const commonProps = {
       key: card.id,
       id: card.id,
@@ -221,6 +290,8 @@ const MultipleCardsSection = ({
       },
       // Передаем customStyles для применения цветов
       customStyles: card.customStyles || {},
+      // 🔥 НОВОЕ: Передаем colorSettings для приоритетного применения стилей
+      colorSettings: card.colorSettings || {},
       // Добавляем специальные стили для множественных карточек
       sx: {
         height: 'auto !important', // Автоматическая высота
@@ -263,7 +334,7 @@ const MultipleCardsSection = ({
   };
 
   const sectionBoxStyles = {
-    padding: sectionStyles?.padding || '20px',
+    padding: currentColorSettings.padding ? `${currentColorSettings.padding}px` : (sectionStyles?.padding || '20px'),
     borderRadius: sectionStyles?.borderRadius || '0px',
     minHeight: sectionStyles?.backgroundType !== 'transparent' ? '100px' : 'auto',
     ...getSectionBackgroundStyle()
@@ -276,12 +347,36 @@ const MultipleCardsSection = ({
         {(title || description) && (
           <Box sx={{ mb: 3, textAlign: 'center' }}>
             {title && (
-              <Typography variant="h4" gutterBottom sx={{ color: sectionStyles?.titleColor || '#1976d2', fontWeight: 'bold' }}>
+              <Typography variant="h4" gutterBottom sx={{ 
+                color: (() => {
+                  const titleColor = currentColorSettings.textFields?.title || sectionStyles?.titleColor || '#1976d2';
+                  console.log('🎯 [MultipleCardsSection] Заголовок секции цвет:', {
+                    titleColor,
+                    currentColorSettings: currentColorSettings,
+                    textFields: currentColorSettings.textFields,
+                    sectionStyles: sectionStyles
+                  });
+                  return titleColor;
+                })(),
+                fontWeight: 'bold' 
+              }}>
                 {title}
               </Typography>
             )}
             {description && (
-              <Typography variant="body1" sx={{ color: sectionStyles?.descriptionColor || '#666666', mb: 2 }}>
+              <Typography variant="body1" sx={{ 
+                color: (() => {
+                  const textColor = currentColorSettings.textFields?.text || currentColorSettings.textFields?.description || sectionStyles?.descriptionColor || '#666666';
+                  console.log('🎯 [MultipleCardsSection] Описание секции цвет:', {
+                    textColor,
+                    currentColorSettings: currentColorSettings,
+                    textFields: currentColorSettings.textFields,
+                    sectionStyles: sectionStyles
+                  });
+                  return textColor;
+                })(),
+                mb: 2 
+              }}>
                 {description}
               </Typography>
             )}

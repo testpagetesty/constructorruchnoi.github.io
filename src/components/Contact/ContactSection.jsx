@@ -158,7 +158,7 @@ const ContactSection = React.forwardRef(({
         zIndex: 2 // Выше обычных секций (z-index: 1) но ниже глобального z-index: 10
       }}
     >
-      <Container maxWidth="lg">
+      <Container maxWidth={false} sx={{ maxWidth: '100%', px: 2 }}>
         <Box sx={{ textAlign: 'center', mb: 6 }}>
           <Typography
             variant="h2"

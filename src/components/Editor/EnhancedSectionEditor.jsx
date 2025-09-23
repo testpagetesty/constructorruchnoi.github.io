@@ -126,6 +126,9 @@ const EnhancedSectionEditor = ({
                              selectedElement.sectionId === sectionId && 
                              selectedElement.elementId === element.id}
                   onElementChange={(elementId, field, value) => {
+                    console.log('🔧 [EnhancedSectionEditor] onElementChange called:', { elementId, field, value });
+                    console.log('🔧 [EnhancedSectionEditor] current element:', section.contentElements.find(el => el.id === elementId));
+                    
                     const updatedElements = section.contentElements.map(el => 
                       el.id === elementId 
                         ? { 
@@ -140,6 +143,8 @@ const EnhancedSectionEditor = ({
                           }
                         : el
                     );
+                    
+                    console.log('🔧 [EnhancedSectionEditor] updated elements:', updatedElements);
                     onSectionChange(sectionId, 'contentElements', updatedElements);
                   }}
                   onElementDelete={(elementId) => {

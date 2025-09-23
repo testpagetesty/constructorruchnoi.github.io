@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography as MuiTypography,
@@ -68,6 +68,37 @@ const Typography = ({
     ...customStyles
   });
   const [currentColorSettings, setCurrentColorSettings] = useState(colorSettings || {});
+
+  // Принудительное обновление при изменении colorSettings
+  useEffect(() => {
+    console.log('🔄 [Typography] colorSettings изменились:', colorSettings);
+    
+    // Принудительно обновляем состояние ТОЛЬКО если действительно изменились
+    if (JSON.stringify(currentColorSettings) !== JSON.stringify(colorSettings || {})) {
+      setCurrentColorSettings(colorSettings || {});
+    }
+    
+  }, [colorSettings]);
+
+  // Принудительное обновление при изменении customStyles
+  useEffect(() => {
+    console.log('🔄 [Typography] customStyles изменились:', customStyles);
+    
+    // Принудительно обновляем состояние ТОЛЬКО если действительно изменились
+    if (JSON.stringify(customStyles) !== JSON.stringify(styles)) {
+      setStyles(prev => ({
+        ...prev,
+        ...customStyles
+      }));
+    }
+    
+  }, [customStyles]);
+
+  // Принудительное обновление при изменении text
+  useEffect(() => {
+    console.log('🔄 [Typography] text изменился:', text);
+    setCurrentText(text);
+  }, [text]);
 
   const handleStyleChange = (property, value) => {
     const newStyles = { ...styles, [property]: value };
@@ -192,8 +223,26 @@ const Typography = ({
   ];
 
   const renderTypography = () => {
-    // Применяем цвета из настроек
-    const textColor = currentColorSettings.textFields?.text || styles.color;
+    // ПРИНУДИТЕЛЬНОЕ ПРИМЕНЕНИЕ COLOR SETTINGS (максимальный приоритет)
+    const textColor = currentColorSettings.textFields?.text || 
+                     currentColorSettings.textFields?.content || 
+                     currentColorSettings.textFields?.title || 
+                     styles.color;
+    
+    // ПРИНУДИТЕЛЬНОЕ ПРИМЕНЕНИЕ РАЗМЕРА И ВЕСА ШРИФТА
+    const fontSize = currentColorSettings.textFields?.fontSize || styles.fontSize;
+    const fontWeight = currentColorSettings.textFields?.fontWeight || styles.fontWeight;
+    const fontFamily = currentColorSettings.textFields?.fontFamily || styles.fontFamily;
+    
+    // Логирование для отладки
+    console.log('🎨 [Typography] Применяем стили:', {
+      currentColorSettings,
+      textColor,
+      fontSize,
+      fontWeight,
+      fontFamily,
+      styles
+    });
     
     // Стили контейнера с фоном
     const containerStyles = {};
@@ -214,9 +263,9 @@ const Typography = ({
     }
 
     const textStyles = {
-      fontFamily: styles.fontFamily,
-      fontSize: styles.fontSize === 'inherit' ? undefined : styles.fontSize,
-      fontWeight: styles.fontWeight,
+      fontFamily: fontFamily,
+      fontSize: fontSize === 'inherit' ? undefined : fontSize,
+      fontWeight: fontWeight,
       fontStyle: styles.fontStyle,
       textDecoration: styles.textDecoration,
       textAlign: styles.textAlign,

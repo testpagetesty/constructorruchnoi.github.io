@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -60,6 +60,17 @@ const ListComponent = ({
   const [currentIconType, setCurrentIconType] = useState(iconType);
   const [currentColorSettings, setCurrentColorSettings] = useState(colorSettings || {});
   const [isEditing, setIsEditing] = useState(false);
+
+  // Принудительное обновление при изменении colorSettings
+  useEffect(() => {
+    console.log('🔄 [ListComponent] colorSettings изменились:', colorSettings);
+    
+    // Принудительно обновляем состояние ТОЛЬКО если действительно изменились
+    if (JSON.stringify(currentColorSettings) !== JSON.stringify(colorSettings || {})) {
+      setCurrentColorSettings(colorSettings || {});
+    }
+    
+  }, [colorSettings]);
   const [editingIndex, setEditingIndex] = useState(-1);
   const [newItemText, setNewItemText] = useState('');
 
@@ -182,14 +193,17 @@ const ListComponent = ({
 
   const renderIcon = (index) => {
     // Получаем цвет маркера из colorSettings или используем стандартный цвет
-    const markerColor = currentColorSettings?.textFields?.marker || '#1976d2';
+    const markerColor = currentColorSettings?.textFields?.marker || 
+                       currentColorSettings?.textFields?.bullet || 
+                       currentColorSettings?.textFields?.title || 
+                       '#1976d2';
 
     if (currentListType === 'checklist') {
       return (
         <CheckCircleIcon 
           sx={{ 
             color: markerColor, 
-            fontSize: '20px' 
+            fontSize: currentColorSettings?.textFields?.fontSize || '20px' 
           }} 
         />
       );
@@ -201,7 +215,7 @@ const ListComponent = ({
         <IconComponent 
           sx={{ 
             color: markerColor, 
-            fontSize: '20px' 
+            fontSize: currentColorSettings?.textFields?.fontSize || '20px' 
           }} 
         />
       );
@@ -212,7 +226,9 @@ const ListComponent = ({
         <Typography 
           sx={{ 
             color: markerColor, 
-            fontWeight: 'bold',
+            fontWeight: currentColorSettings?.textFields?.fontWeight || 'bold',
+            fontSize: currentColorSettings?.textFields?.fontSize || 'inherit',
+            fontFamily: currentColorSettings?.textFields?.fontFamily || 'inherit',
             minWidth: '24px'
           }}
         >
@@ -226,7 +242,9 @@ const ListComponent = ({
       <Typography 
         sx={{ 
           color: markerColor, 
-          fontSize: '18px',
+          fontSize: currentColorSettings?.textFields?.fontSize || '18px',
+          fontWeight: currentColorSettings?.textFields?.fontWeight || 'normal',
+          fontFamily: currentColorSettings?.textFields?.fontFamily || 'inherit',
           lineHeight: 1
         }}
       >
@@ -321,15 +339,28 @@ const ListComponent = ({
       <List sx={getListStyles()}>
         {items.map((item, index) => (
           <ListItem key={index} sx={{ alignItems: 'flex-start' }}>
-            <ListItemIcon sx={{ minWidth: '32px', marginTop: '2px' }}>
+            <ListItemIcon sx={{ 
+              minWidth: '32px', 
+              marginTop: '2px',
+              color: currentColorSettings?.textFields?.bullet || 
+                     currentColorSettings?.textFields?.marker || 
+                     currentColorSettings?.textFields?.title || 
+                     'inherit'
+            }}>
               {renderIcon(index)}
             </ListItemIcon>
             <ListItemText
               primary={
                 <Typography
                   sx={{
-                    color: currentColorSettings?.textFields?.item || '#333333',
-                    lineHeight: 1.6
+                    color: currentColorSettings?.textFields?.listItem || 
+                           currentColorSettings?.textFields?.text || 
+                           currentColorSettings?.textFields?.content || 
+                           '#333333',
+                    fontSize: currentColorSettings?.textFields?.fontSize || 'inherit',
+                    fontWeight: currentColorSettings?.textFields?.fontWeight || 'normal',
+                    fontFamily: currentColorSettings?.textFields?.fontFamily || 'inherit',
+                    lineHeight: currentColorSettings?.textFields?.lineHeight || 1.6
                   }}
                 >
                   {item}

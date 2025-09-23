@@ -1858,28 +1858,44 @@ const generateSections = (siteData) => {
 };
 
 function generateSectionHTML(section) {
-  // RADICALLY CHANGED CODE FOR TESTING
+  // Получаем настройки фона секции из элементов
+  const sectionColorSettings = section.elements?.find(el => el.colorSettings?.sectionBackground?.enabled)?.colorSettings;
+  
+  // Генерируем стили для контейнера секции
+  let sectionStyles = '';
+  if (sectionColorSettings?.sectionBackground?.enabled) {
+    const { sectionBackground } = sectionColorSettings;
+    const backgroundStyle = sectionBackground.useGradient 
+      ? `linear-gradient(${sectionBackground.gradientDirection}, ${sectionBackground.gradientColor1}, ${sectionBackground.gradientColor2})`
+      : sectionBackground.solidColor;
+    
+    sectionStyles = `style="
+      background: ${backgroundStyle};
+      opacity: ${sectionBackground.opacity || 1};
+      border-radius: ${sectionColorSettings.borderRadius || 20}px;
+      padding: ${sectionColorSettings.padding || 24}px;
+      margin: 2rem auto;
+      max-width: 1200px;
+      box-shadow: ${sectionColorSettings.boxShadow ? '0 4px 20px rgba(0,0,0,0.1)' : '0 10px 30px rgba(0,0,0,0.08)'};
+    "`;
+  }
+
   if (section.cardType === 'none') {
-    // Very noticeable red background
     return `
-      <section style="background: #ff0000; padding: 20px; color: white; border: 10px solid yellow;">
-        <h1 style="color: white; font-size: 36px; text-align: center;">⚠️ CHANGED ⚠️</h1>
-        <h2 style="color: yellow; font-size: 24px;">${section.title || 'SECTION CHANGED'}</h2>
-        ${section.description ? `<p style="color: white; font-size: 18px;">${section.description}</p>` : ''}
-        <div style="margin-top: 20px;">
-          ${(section.cards || []).map(card => `
-            <div style="background: rgba(0,0,0,0.5); padding: 15px; margin: 10px 0; border-radius: 10px;">
-              <h3 style="color: yellow; font-size: 20px;">${card.title || 'TITLE'}</h3>
-              <p style="color: white;">${card.text || card.content || 'TEXT CHANGED'}</p>
-            </div>
-          `).join('')}
+      <section class="section" ${sectionStyles}>
+        <div class="section-content">
+          <h2 class="section-title">${section.title || ''}</h2>
+          ${section.description ? `<p class="section-description">${section.description}</p>` : ''}
+          <div class="section-elements">
+            ${(section.elements || []).map(element => generateElementHTML(element)).join('')}
+          </div>
         </div>
       </section>
     `;
   }
 
   return `
-    <section class="section">
+    <section class="section" ${sectionStyles}>
       <div class="section-content">
         <h2 class="section-title">${section.title || ''}</h2>
         ${section.description ? `
@@ -1891,6 +1907,88 @@ function generateSectionHTML(section) {
       </div>
     </section>
   `;
+}
+
+// Функция для генерации HTML элементов контента
+function generateElementHTML(element) {
+  if (!element || !element.type) return '';
+  
+  const elementId = `element-${element.id}`;
+  const elementData = element.data || element;
+  
+  // Функция для применения настроек цветов из ColorSettings
+  const applyColorSettings = (colorSettings, defaultStyles = {}) => {
+    let containerStyles = { ...defaultStyles };
+    let styles = {};
+    
+    // Применяем настройки фона секции
+    if (colorSettings?.sectionBackground?.enabled) {
+      const { sectionBackground } = colorSettings;
+      if (sectionBackground.useGradient) {
+        containerStyles.background = `linear-gradient(${sectionBackground.gradientDirection}, ${sectionBackground.gradientColor1}, ${sectionBackground.gradientColor2})`;
+      } else {
+        containerStyles.backgroundColor = sectionBackground.solidColor;
+      }
+      containerStyles.opacity = sectionBackground.opacity || 1;
+      containerStyles.border = `${colorSettings.borderWidth || 1}px solid ${colorSettings.borderColor || '#e0e0e0'}`;
+      containerStyles.borderRadius = `${colorSettings.borderRadius || 8}px`;
+      containerStyles.padding = `${colorSettings.padding || 16}px`;
+      if (colorSettings.boxShadow) {
+        containerStyles.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+      }
+    }
+    
+    // Применяем цвета текстовых полей
+    if (colorSettings?.textFields) {
+      Object.keys(colorSettings.textFields).forEach(fieldName => {
+        styles[`${fieldName}Color`] = colorSettings.textFields[fieldName];
+      });
+    }
+    
+    return { containerStyles, textStyles: styles };
+  };
+  
+  const { containerStyles, textStyles } = applyColorSettings(element.colorSettings);
+  
+  switch (element.type) {
+    case 'accordion':
+      const accordionItems = element.items || [];
+      const accordionHTML = accordionItems.map((item, index) => `
+        <div class="accordion-item" style="margin-bottom: 8px; border: 1px solid ${textStyles.borderColor || '#e0e0e0'}; border-radius: 8px;">
+          <div class="accordion-header" style="
+            background: ${containerStyles.background || containerStyles.backgroundColor || '#f5f5f5'};
+            color: ${textStyles.titleColor || '#333'};
+            padding: 16px;
+            cursor: pointer;
+            border-radius: 8px 8px 0 0;
+            font-weight: bold;
+          ">
+            ${item.title || ''}
+          </div>
+          <div class="accordion-content" style="
+            background: ${containerStyles.background || containerStyles.backgroundColor || '#fff'};
+            color: ${textStyles.textColor || '#333'};
+            padding: 16px;
+            border-radius: 0 0 8px 8px;
+            display: none;
+          ">
+            ${item.content || ''}
+          </div>
+        </div>
+      `).join('');
+      
+      return `
+        <div class="accordion-container" style="
+          ${Object.entries(containerStyles).map(([key, value]) => `${key.replace(/([A-Z])/g, '-$1').toLowerCase()}: ${value}`).join('; ')}
+        ">
+          <h3 style="color: ${textStyles.titleColor || '#333'}; margin-bottom: 16px;">${element.title || ''}</h3>
+          ${accordionHTML}
+        </div>
+      `;
+    
+    default:
+      return `<div class="element-${element.type}">${element.title || ''}</div>`;
+  }
 }
 
 function generateCardHTML(card, cardType, index) {

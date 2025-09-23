@@ -46,7 +46,7 @@ const DataTable = ({
     { id: 2, name: 'Элемент 2', value: '200', description: 'Описание второго элемента' },
     { id: 3, name: 'Элемент 3', value: '150', description: 'Описание третьего элемента' }
   ],
-  striped = true,
+  striped = false,
   bordered = true,
   hover = true,
   dense = false,
@@ -93,6 +93,8 @@ const DataTable = ({
     rows: elementData.rows || initialRows
   } : null;
 
+
+
   const [columns, setColumns] = useState(processedColumns || processedElementData?.columns || initialColumns);
   const [rows, setRows] = useState(processedRows || processedElementData?.rows || initialRows);
   const [isStriped, setIsStriped] = useState(striped);
@@ -100,6 +102,27 @@ const DataTable = ({
   const [isHover, setIsHover] = useState(hover);
   const [isDense, setIsDense] = useState(dense);
   const [isSortable, setIsSortable] = useState(sortable);
+
+  // Синхронизируем локальное состояние с пропсами
+  useEffect(() => {
+    setIsStriped(striped);
+  }, [striped]);
+
+  useEffect(() => {
+    setIsBordered(bordered);
+  }, [bordered]);
+
+  useEffect(() => {
+    setIsHover(hover);
+  }, [hover]);
+
+  useEffect(() => {
+    setIsDense(dense);
+  }, [dense]);
+
+  useEffect(() => {
+    setIsSortable(sortable);
+  }, [sortable]);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [tableStyles, setTableStyles] = useState({
     headerBgColor: 'rgba(0,0,0,0.85)',
@@ -231,7 +254,7 @@ const DataTable = ({
         ...tableRows // Данные
       ];
 
-      onUpdate({
+      const saveData = {
         title: propTitle || 'Таблица данных',
         headers: headers,
         rows: tableRows,
@@ -261,7 +284,11 @@ const DataTable = ({
           sortable: isSortable,
           sortConfig: sortConfig
         }
-      });
+      };
+      
+
+      
+      onUpdate(saveData);
     }
   };
 
@@ -298,6 +325,14 @@ const DataTable = ({
     }
   }, [propHeaders]);
 
+  // 🔄 РЕАКТИВНОСТЬ: Обновляем локальные настройки при изменении colorSettings
+  useEffect(() => {
+    if (JSON.stringify(colorSettings) !== JSON.stringify(currentColorSettings)) {
+      console.log('🔄 [DataTable] Обновление colorSettings:', colorSettings);
+      setCurrentColorSettings(colorSettings || {});
+    }
+  }, [colorSettings]);
+
   useEffect(() => {
     if (propRows && propRows.length > 0) {
       const newRows = propRows.map((row, index) => {
@@ -321,6 +356,8 @@ const DataTable = ({
     const hoverColor = currentColorSettings?.textFields?.hover || tableStyles.hoverColor;
     const textColor = currentColorSettings?.textFields?.text || tableStyles.textColor;
 
+
+
     return {
       border: isBordered ? `1px solid ${borderColor}` : 'none',
     '& .MuiTableCell-head': {
@@ -333,9 +370,15 @@ const DataTable = ({
         borderBottom: isBordered ? `1px solid ${borderColor}` : 'none',
         color: textColor
     },
+    // Применяем фон для строк
     '& .MuiTableRow-root:nth-of-type(even)': isStriped ? {
         backgroundColor: rowAltBgColor
-    } : {},
+    } : {
+        backgroundColor: rowBgColor
+    },
+    '& .MuiTableRow-root:nth-of-type(odd)': {
+        backgroundColor: rowBgColor
+    },
     '& .MuiTableRow-root:hover': isHover ? {
         backgroundColor: `${hoverColor} !important`
       } : {},
@@ -346,6 +389,7 @@ const DataTable = ({
   };
 
   const renderTable = () => {
+    
     // Проверяем, что у нас есть данные для отображения
     if (!columns || columns.length === 0) {
       return (
@@ -358,23 +402,40 @@ const DataTable = ({
     }
 
     return (
-      <Box>
+      <Box sx={{
+        // Применяем фон раздела если включен
+        ...(currentColorSettings?.sectionBackground?.enabled && {
+          background: currentColorSettings.sectionBackground.useGradient
+            ? `linear-gradient(${currentColorSettings.sectionBackground.gradientDirection || 'to right'}, ${currentColorSettings.sectionBackground.gradientColor1 || '#ffffff'}, ${currentColorSettings.sectionBackground.gradientColor2 || '#f5f5f5'})`
+            : currentColorSettings.sectionBackground.solidColor || '#ffffff',
+          opacity: currentColorSettings.sectionBackground.opacity || 1,
+          padding: '1rem',
+          borderRadius: '8px',
+          marginBottom: '1rem'
+        })
+      }}>
         {/* Заголовок таблицы */}
         {propTitle && (
           <Box sx={{ 
             p: 2, 
-            backgroundColor: currentColorSettings?.textFields?.headerBg || tableStyles.headerBgColor || 'rgba(0,0,0,0.85)',
-            color: currentColorSettings?.textFields?.headerText || currentColorSettings?.textFields?.title || tableStyles.headerTextColor || '#ffd700',
+            backgroundColor: currentColorSettings?.textFields?.titleBg || 'transparent',
+            color: currentColorSettings?.textFields?.title || currentColorSettings?.textFields?.headerText || tableStyles.headerTextColor || '#333333',
             borderTopLeftRadius: 4,
             borderTopRightRadius: 4,
-            borderBottom: `2px solid ${currentColorSettings?.textFields?.border || tableStyles.borderColor || '#c41e3a'}`
+            ...(currentColorSettings?.textFields?.titleBorder && {
+              border: `2px solid ${currentColorSettings.textFields.titleBorder}`,
+              borderRadius: '8px',
+              marginBottom: '1rem'
+            })
           }}>
             <Typography 
               variant="h6" 
               sx={{ 
                 fontWeight: 'bold',
                 textAlign: 'center',
-                m: 0
+                m: 0,
+                fontSize: '1.5rem',
+                fontFamily: '"Montserrat", sans-serif'
               }}
             >
               {propTitle}
@@ -565,7 +626,6 @@ const DataTable = ({
               { name: 'headerBg', label: 'Фон заголовка', description: 'Цвет фона заголовка таблицы', defaultColor: 'rgba(0,0,0,0.85)' },
               { name: 'headerText', label: 'Текст заголовка', description: 'Цвет текста заголовка таблицы', defaultColor: '#ffd700' },
               { name: 'rowBg', label: 'Фон строк', description: 'Цвет фона обычных строк', defaultColor: 'rgba(0,0,0,0.7)' },
-              { name: 'rowAltBg', label: 'Фон четных строк', description: 'Цвет фона четных строк (полосатые)', defaultColor: 'rgba(0,0,0,0.85)' },
               { name: 'border', label: 'Границы', description: 'Цвет границ таблицы', defaultColor: '#c41e3a' },
               { name: 'hover', label: 'При наведении', description: 'Цвет при наведении на строки', defaultColor: 'rgba(196,30,58,0.15)' },
               { name: 'text', label: 'Текст', description: 'Цвет основного текста в ячейках', defaultColor: '#fff' }

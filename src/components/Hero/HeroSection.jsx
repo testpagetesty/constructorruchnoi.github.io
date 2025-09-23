@@ -82,7 +82,7 @@ const HeroContent = styled(Box)(({ theme }) => ({
   zIndex: 3,
   textAlign: 'center',
   padding: theme.spacing(4),
-  maxWidth: '800px',
+  maxWidth: '1200px',
   margin: '0 auto'
 }));
 
@@ -186,7 +186,7 @@ const HeroSection = ({
             borderRadius: '20px',
             border: '1px solid rgba(255, 255, 255, 0.1)',
             boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
-            maxWidth: '800px',
+            maxWidth: '1200px',
             margin: '0 auto',
           }}
         >

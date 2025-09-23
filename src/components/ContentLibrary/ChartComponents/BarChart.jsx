@@ -35,9 +35,11 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import EditableElementWrapper from '../EditableElementWrapper';
 import AnimationWrapper from '../AnimationWrapper';
 import AnimationControls from '../AnimationControls';
+import ColorSettings from '../TextComponents/ColorSettings';
 
 const BarChart = ({
   title = 'Диаграмма',
+  description = '',
   data = [
     { label: 'Январь', value: 65, color: '#1976d2' },
     { label: 'Февраль', value: 45, color: '#2196f3' },
@@ -46,6 +48,8 @@ const BarChart = ({
   ],
   showValues = true,
   showGrid = true,
+  showLegend = false,
+  showStatistics = false,
   animate = true,
   orientation = 'vertical',
   height = 300,
@@ -63,46 +67,74 @@ const BarChart = ({
   onSave = null,
   onCancel = null,
   onUpdate,
-  editable = true
+  editable = true,
+  colorSettings = {}
 }) => {
   // Нормализуем данные - поддерживаем как 'label', так и 'name'
   const normalizeData = (data) => {
+    // Красивая палитра цветов для столбцов
+    const beautifulColors = [
+      '#1976d2', '#2196f3', '#03a9f4', '#00bcd4', '#009688', 
+      '#4caf50', '#8bc34a', '#cddc39', '#ffeb3b', '#ffc107', 
+      '#ff9800', '#ff5722', '#f44336', '#e91e63', '#9c27b0', 
+      '#673ab7', '#3f51b5', '#2196f3', '#00bcd4', '#009688'
+    ];
+    
     // Проверяем, что data является массивом
     if (!Array.isArray(data)) {
       console.warn('BarChart: data is not an array, using default data');
       return [
-        { label: 'Январь', value: 65, color: '#1976d2' },
-        { label: 'Февраль', value: 45, color: '#2196f3' },
-        { label: 'Март', value: 80, color: '#03a9f4' },
-        { label: 'Апрель', value: 55, color: '#00bcd4' }
+        { label: 'Январь', value: 65, color: beautifulColors[0] },
+        { label: 'Февраль', value: 45, color: beautifulColors[1] },
+        { label: 'Март', value: 80, color: beautifulColors[2] },
+        { label: 'Апрель', value: 55, color: beautifulColors[3] }
       ];
     }
     
-    return data.map(item => ({
+    return data.map((item, index) => ({
       ...item,
       label: item.label || item.name || 'Без названия',
       name: item.name || item.label || 'Без названия',
       value: Number(item.value) || 0,
-      color: item.color || '#1976d2'
+      color: item.color || beautifulColors[index % beautifulColors.length]
     }));
   };
 
   const [chartTitle, setChartTitle] = useState(title);
+  const [chartDescription, setChartDescription] = useState(description);
   const [chartData, setChartData] = useState(normalizeData(data));
   const [showValueLabels, setShowValueLabels] = useState(showValues);
   const [showGridLines, setShowGridLines] = useState(showGrid);
-  const [showLegend, setShowLegend] = useState(false);
-  const [showStatistics, setShowStatistics] = useState(false);
+  const [showLegendState, setShowLegend] = useState(showLegend);
+  const [showStatisticsState, setShowStatistics] = useState(showStatistics);
   const [isAnimated, setIsAnimated] = useState(animate);
   const [chartOrientation, setChartOrientation] = useState(orientation);
   const [chartHeight, setChartHeight] = useState(height);
   const [barWidth, setBarWidth] = useState(60);
   const [barSpacing, setBarSpacing] = useState(16);
   const [borderRadius, setBorderRadius] = useState(4);
-  const [chartStyles, setChartStyles] = useState(
-    // Используем только пользовательские стили, без принудительных дефолтных значений
-    customStyles || {}
-  );
+  const [currentColorSettings, setCurrentColorSettings] = useState(colorSettings || {
+    // Настройки по умолчанию для ColorSettings
+    sectionBackground: {
+      enabled: false,
+      useGradient: false,
+      solidColor: '#ffffff',
+      gradientColor1: '#ffffff',
+      gradientColor2: '#f0f0f0',
+      gradientDirection: 'to right',
+      opacity: 1
+    },
+    textFields: {
+      title: '#1976d2',
+      grid: 'rgba(0,0,0,0.1)',
+      legend: '#1976d2'
+    },
+    borderColor: '#e0e0e0',
+    borderWidth: 0,
+    borderRadius: 16,
+    padding: 24,
+    boxShadow: true
+  });
   const [chartAnimationSettings, setChartAnimationSettings] = useState(animationSettings || {
     animationType: 'fadeIn',
     delay: 0,
@@ -133,33 +165,24 @@ const BarChart = ({
     }
   }, [title]);
 
-  // Эффект для обновления стилей
+  // Эффект для обновления описания
   useEffect(() => {
-    if (customStyles) {
-      setChartStyles(prev => ({
-        ...prev,
-        ...customStyles
-      }));
+    setChartDescription(description);
+  }, [description]);
+
+  // Эффект для обновления цветовых настроек
+  useEffect(() => {
+    if (colorSettings) {
+      setCurrentColorSettings(colorSettings);
     }
-  }, [customStyles]);
+  }, [colorSettings]);
 
   const maxValue = chartData && chartData.length > 0 ? Math.max(...chartData.map(item => item.value)) : 0;
 
   const handleDataChange = (index, field, value) => {
     const newData = chartData.map((item, i) => {
       if (i === index) {
-        const updatedItem = { ...item, [field]: value };
-        // Синхронизируем label и name
-        if (field === 'label') {
-          updatedItem.name = value;
-        } else if (field === 'name') {
-          updatedItem.label = value;
-        }
-        // Убеждаемся, что значение - число
-        if (field === 'value') {
-          updatedItem.value = Number(value) || 0;
-        }
-        return updatedItem;
+        return { ...item, [field]: value };
       }
       return item;
     });
@@ -169,43 +192,53 @@ const BarChart = ({
     if (onUpdate) {
       onUpdate({
         title: chartTitle,
+        description: chartDescription,
         data: newData,
         showValues: showValueLabels,
         showGrid: showGridLines,
+        showLegend: showLegendState,
+        showStatistics: showStatisticsState,
         animate: isAnimated,
         orientation: chartOrientation,
         height: chartHeight,
-        customStyles: chartStyles,
+        colorSettings: currentColorSettings,
         animationSettings: chartAnimationSettings
       });
     }
   };
 
   const handleAddDataPoint = () => {
-    const newLabel = `Элемент ${chartData.length + 1}`;
-    const colors = ['#1976d2', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4caf50', '#8bc34a', '#cddc39', '#ffeb3b', '#ffc107', '#ff9800', '#ff5722', '#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5'];
-    const newColor = colors[chartData.length % colors.length];
+    // Красивая палитра цветов для столбцов
+    const beautifulColors = [
+      '#1976d2', '#2196f3', '#03a9f4', '#00bcd4', '#009688', 
+      '#4caf50', '#8bc34a', '#cddc39', '#ffeb3b', '#ffc107', 
+      '#ff9800', '#ff5722', '#f44336', '#e91e63', '#9c27b0', 
+      '#673ab7', '#3f51b5', '#2196f3', '#00bcd4', '#009688'
+    ];
     
-    const newData = [...chartData, {
-      label: newLabel,
-      name: newLabel,
-      value: 50,
-      color: newColor
-    }];
+    const newDataPoint = {
+      label: `Категория ${chartData.length + 1}`,
+      value: Math.floor(Math.random() * 100) + 10,
+      color: beautifulColors[chartData.length % beautifulColors.length]
+    };
     
+    const newData = [...chartData, newDataPoint];
     setChartData(newData);
     
     // Вызываем onUpdate для сохранения изменений
     if (onUpdate) {
       onUpdate({
         title: chartTitle,
+        description: chartDescription,
         data: newData,
         showValues: showValueLabels,
         showGrid: showGridLines,
+        showLegend: showLegendState,
+        showStatistics: showStatisticsState,
         animate: isAnimated,
         orientation: chartOrientation,
         height: chartHeight,
-        customStyles: chartStyles,
+        colorSettings: currentColorSettings,
         animationSettings: chartAnimationSettings
       });
     }
@@ -219,41 +252,41 @@ const BarChart = ({
     if (onUpdate) {
       onUpdate({
         title: chartTitle,
+        description: chartDescription,
         data: newData,
         showValues: showValueLabels,
         showGrid: showGridLines,
+        showLegend: showLegendState,
+        showStatistics: showStatisticsState,
         animate: isAnimated,
         orientation: chartOrientation,
         height: chartHeight,
-        customStyles: chartStyles,
+        colorSettings: currentColorSettings,
         animationSettings: chartAnimationSettings
       });
     }
   };
 
-  const handleStyleChange = (property, value) => {
-    const newStyles = { ...chartStyles, [property]: value };
-    setChartStyles(newStyles);
-    
-    console.log('🎨 BarChart handleStyleChange:', { property, value, newStyles });
-    
-    // Вызываем onUpdate для сохранения изменений
+  const handleColorUpdate = (newColorSettings) => {
+    console.log('[BarChart] Color settings updated:', newColorSettings);
+    setCurrentColorSettings(newColorSettings);
     if (onUpdate) {
       onUpdate({
         title: chartTitle,
+        description: chartDescription,
         data: chartData,
         showValues: showValueLabels,
         showGrid: showGridLines,
+        showLegend: showLegendState,
+        showStatistics: showStatisticsState,
         animate: isAnimated,
         orientation: chartOrientation,
         height: chartHeight,
-        customStyles: newStyles,
+        colorSettings: newColorSettings,
         animationSettings: chartAnimationSettings
       });
     }
   };
-
-
 
   const handleAnimationUpdate = (newAnimationSettings) => {
     setChartAnimationSettings(newAnimationSettings);
@@ -274,25 +307,31 @@ const BarChart = ({
     if (onSave) {
       onSave({
         title: chartTitle,
+        description: chartDescription,
         data: chartData,
         showValues: showValueLabels,
         showGrid: showGridLines,
+        showLegend: showLegendState,
+        showStatistics: showStatisticsState,
         animate: isAnimated,
         orientation: chartOrientation,
         height: chartHeight,
-        customStyles: chartStyles,
+        colorSettings: currentColorSettings,
         animationSettings: chartAnimationSettings
       });
     } else {
       onUpdate({
         title: chartTitle,
+        description: chartDescription,
         data: chartData,
         showValues: showValueLabels,
         showGrid: showGridLines,
+        showLegend: showLegendState,
+        showStatistics: showStatisticsState,
         animate: isAnimated,
         orientation: chartOrientation,
         height: chartHeight,
-        customStyles: chartStyles,
+        colorSettings: currentColorSettings,
         animationSettings: chartAnimationSettings
       });
     }
@@ -313,10 +352,12 @@ const BarChart = ({
         data: chartData,
         showValues: showValueLabels,
         showGrid: showGridLines,
+        showLegend: showLegendState,
+        showStatistics: showStatisticsState,
         animate: isAnimated,
         orientation: chartOrientation,
         height: chartHeight,
-        customStyles: chartStyles,
+        colorSettings: currentColorSettings,
         animationSettings: chartAnimationSettings
       });
     }
@@ -328,13 +369,21 @@ const BarChart = ({
     return (
       <Paper 
         sx={{ 
-          p: chartStyles.padding / 8,
-          backgroundColor: chartStyles.backgroundColor,
+          p: currentColorSettings.padding || 24,
           position: 'relative',
-          border: chartStyles.borderWidth > 0 ? `${chartStyles.borderWidth}px solid ${chartStyles.borderColor}` : 'none',
-          borderRadius: 2,
+          border: currentColorSettings.borderWidth > 0 ? `${currentColorSettings.borderWidth}px solid ${currentColorSettings.borderColor}` : 'none',
+          borderRadius: currentColorSettings.borderRadius || 8,
           '&:hover .chart-overlay': editable ? { opacity: 1 } : {},
-          '& .chart-overlay': editable ? { opacity: 0.7 } : {}
+          '& .chart-overlay': editable ? { opacity: 0.7 } : {},
+          // Применяем настройки фона из colorSettings
+          ...(currentColorSettings.sectionBackground?.enabled ? {
+            background: currentColorSettings.sectionBackground.useGradient 
+              ? `linear-gradient(${currentColorSettings.sectionBackground.gradientDirection}, ${currentColorSettings.sectionBackground.gradientColor1}, ${currentColorSettings.sectionBackground.gradientColor2})`
+              : currentColorSettings.sectionBackground.solidColor,
+            opacity: currentColorSettings.sectionBackground.opacity || 1
+          } : {
+            backgroundColor: '#ffffff'
+          })
         }}
       >
         {/* Overlay для редактирования */}
@@ -373,14 +422,33 @@ const BarChart = ({
           align="center" 
           gutterBottom 
           sx={{ 
-            color: chartStyles.titleColor, 
-            mb: 3,
+            color: currentColorSettings.textFields?.title || '#1976d2', 
+            mb: chartDescription ? 2 : 3,
             fontWeight: 'bold',
             fontSize: '1.25rem'
           }}
         >
           {chartTitle}
         </Typography>
+
+        {/* Описание */}
+        {chartDescription && (
+          <Typography 
+            variant="body2" 
+            align="center" 
+            sx={{ 
+              color: currentColorSettings.textFields?.legend || '#666666', 
+              mb: 3,
+              fontSize: '0.9rem',
+              lineHeight: 1.5,
+              maxWidth: '800px',
+              mx: 'auto'
+            }}
+          >
+            {chartDescription}
+          </Typography>
+        )}
+
 
         {/* Диаграмма */}
         <Box 
@@ -439,7 +507,7 @@ const BarChart = ({
                     right: 0,
                     bottom: `${percent}%`,
                     height: '1px',
-                    backgroundColor: chartStyles.gridColor,
+                    backgroundColor: currentColorSettings.textFields?.grid || 'rgba(0,0,0,0.1)',
                     opacity: 0.3
                   }}
                 />
@@ -522,7 +590,7 @@ const BarChart = ({
                       variant="caption"
                       sx={{
                         position: 'absolute',
-                        color: 'white',
+                        color: '#ffffff', // Фиксированный белый цвет для лучшей читаемости
                         fontWeight: 'bold',
                         left: '50%',
                         top: '12px',
@@ -610,7 +678,7 @@ const BarChart = ({
         </Box>
 
         {/* Легенда с значениями */}
-        {showLegend && (
+        {showLegendState && (
           <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 1 }}>
             {chartData.map((item, index) => (
               <Chip
@@ -632,12 +700,12 @@ const BarChart = ({
         )}
 
         {/* Статистика */}
-        {showStatistics && (
-          <Box sx={{ mt: 2, pt: 2, borderTop: `1px solid ${chartStyles.gridColor}` }}>
+        {showStatisticsState && (
+          <Box sx={{ mt: 2, pt: 2, borderTop: `1px solid ${currentColorSettings.textFields?.grid || 'rgba(0,0,0,0.1)'}` }}>
             <Typography 
               variant="caption" 
               sx={{ 
-                color: chartStyles.legendColor,
+                color: currentColorSettings.textFields?.legend || '#1976d2',
                 display: 'block',
                 textAlign: 'center',
                 fontSize: '11px'
@@ -697,8 +765,19 @@ const BarChart = ({
                   fullWidth
                   type="color"
                   label="Цвет заголовка"
-                  value={chartStyles.titleColor || '#ffffff'}
-                  onChange={(e) => handleStyleChange('titleColor', e.target.value)}
+                  value={currentColorSettings.textFields?.title || '#ffffff'}
+                  onChange={(e) => handleColorUpdate({ ...currentColorSettings, textFields: { ...currentColorSettings.textFields, title: e.target.value } })}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={3}
+                  value={chartDescription}
+                  onChange={(e) => setChartDescription(e.target.value)}
+                  label="Описание диаграммы"
+                  placeholder="Введите описание диаграммы..."
                 />
               </Grid>
             </Grid>
@@ -745,7 +824,7 @@ const BarChart = ({
                           label="Название категории"
                         />
                       </Grid>
-                      <Grid item xs={6} md={3}>
+                      <Grid item xs={6} md={6}>
                         <TextField
                           fullWidth
                           size="small"
@@ -754,16 +833,6 @@ const BarChart = ({
                           onChange={(e) => handleDataChange(index, 'value', parseFloat(e.target.value) || 0)}
                           label="Значение"
                           inputProps={{ min: 0, max: 100, step: 1 }}
-                        />
-                      </Grid>
-                      <Grid item xs={6} md={3}>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          type="color"
-                          value={item.color || '#1976d2'}
-                          onChange={(e) => handleDataChange(index, 'color', e.target.value)}
-                          label="Цвет"
                         />
                       </Grid>
                     </Grid>
@@ -788,19 +857,108 @@ const BarChart = ({
                 Настройки цветов
               </Typography>
               
+              <ColorSettings
+                title="Настройки цветов диаграммы"
+                colorSettings={currentColorSettings}
+                onUpdate={handleColorUpdate}
+                availableFields={[
+                  {
+                    name: 'title',
+                    label: 'Цвет заголовка',
+                    description: 'Цвет заголовка диаграммы',
+                    defaultColor: '#1976d2'
+                  },
+                  {
+                    name: 'grid',
+                    label: 'Цвет сетки',
+                    description: 'Цвет линий сетки диаграммы',
+                    defaultColor: 'rgba(0,0,0,0.1)'
+                  },
+                  {
+                    name: 'legend',
+                    label: 'Цвет легенды',
+                    description: 'Цвет текста легенды и статистики',
+                    defaultColor: '#1976d2'
+                  }
+                ]}
+                defaultColors={{
+                  title: '#1976d2',
+                  grid: 'rgba(0,0,0,0.1)',
+                  legend: '#1976d2'
+                }}
+              />
+              
+              {/* Настройки цветов столбцов */}
+              <Box sx={{ mt: 3, p: 2, border: '1px solid #e0e0e0', borderRadius: 2, backgroundColor: '#fafafa' }}>
+                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                  <PaletteIcon color="primary" />
+                  Цвета столбцов
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Выберите цвет для каждого столбца. Цвет текста под столбцом будет автоматически соответствовать выбранному цвету.
+              </Typography>
+              
               <Grid container spacing={2}>
-                <Grid item xs={12}>
+                  {chartData.map((item, index) => (
+                    <Grid item xs={12} sm={6} md={4} key={index}>
+                      <Box sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 2, 
+                        p: 2, 
+                        border: '1px solid #e0e0e0', 
+                        borderRadius: 1,
+                        backgroundColor: 'white'
+                      }}>
+                        <Box sx={{ 
+                          width: 20, 
+                          height: 20, 
+                          backgroundColor: item.color || '#1976d2',
+                          borderRadius: '50%',
+                          border: '2px solid #fff',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                        }} />
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant="body2" sx={{ 
+                            fontWeight: 600, 
+                            color: item.color || '#1976d2',
+                            textShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                          }}>
+                            {item.label || item.name}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Значение: {item.value}
+                          </Typography>
+                        </Box>
                   <TextField
-                    fullWidth
                     type="color"
-                    label="Цвет фона диаграммы"
-                    value={chartStyles.backgroundColor || '#ffffff'}
-                    onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
-                    helperText="Цвет фона области диаграммы"
+                          value={item.color || '#1976d2'}
+                          onChange={(e) => handleDataChange(index, 'color', e.target.value)}
                     size="small"
-                  />
+                          sx={{ 
+                            '& .MuiInputBase-input': { 
+                              padding: '4px',
+                              width: '40px',
+                              height: '32px'
+                            }
+                          }}
+                        />
+                      </Box>
                 </Grid>
+                  ))}
               </Grid>
+                
+                <Box sx={{ mt: 2, textAlign: 'center' }}>
+                  <Button
+                    variant="outlined"
+                    startIcon={<AddIcon />}
+                    onClick={handleAddDataPoint}
+                    size="small"
+                  >
+                    Добавить столбец
+                  </Button>
+                </Box>
+              </Box>
             </Box>
 
             {/* Настройки анимации */}
@@ -862,8 +1020,19 @@ const BarChart = ({
                       fullWidth
                       type="color"
                       label="Цвет заголовка"
-                      value={chartStyles.titleColor || '#ffffff'}
-                      onChange={(e) => handleStyleChange('titleColor', e.target.value)}
+                      value={currentColorSettings.textFields?.title || '#ffffff'}
+                      onChange={(e) => handleColorUpdate({ ...currentColorSettings, textFields: { ...currentColorSettings.textFields, title: e.target.value } })}
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      multiline
+                      rows={3}
+                      value={chartDescription}
+                      onChange={(e) => setChartDescription(e.target.value)}
+                      label="Описание диаграммы"
+                      placeholder="Введите описание диаграммы..."
                     />
                   </Grid>
                   <Grid item xs={6}>
@@ -951,13 +1120,13 @@ const BarChart = ({
                   </Grid>
                   <Grid item xs={6}>
                     <FormControlLabel
-                      control={<Switch checked={showLegend} onChange={(e) => setShowLegend(e.target.checked)} />}
+                      control={<Switch checked={showLegendState} onChange={(e) => setShowLegend(e.target.checked)} />}
                       label="Показывать легенду"
                     />
                   </Grid>
                   <Grid item xs={6}>
                     <FormControlLabel
-                      control={<Switch checked={showStatistics} onChange={(e) => setShowStatistics(e.target.checked)} />}
+                      control={<Switch checked={showStatisticsState} onChange={(e) => setShowStatistics(e.target.checked)} />}
                       label="Показывать статистику"
                     />
                   </Grid>
@@ -980,101 +1149,108 @@ const BarChart = ({
                 </Box>
               </AccordionSummary>
               <AccordionDetails>
-                <Grid container spacing={2}>
-                  <Grid item xs={6}>
-            <TextField
-                      fullWidth
-                      label="Цвет фона"
-              value={chartStyles.backgroundColor}
-              onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
-                      placeholder="rgba(0, 0, 0, 0.8)"
-            />
-                  </Grid>
-                  <Grid item xs={6}>
-            <TextField
-                      fullWidth
-              type="color"
-                      label="Цвет заголовка"
-                      value={chartStyles.titleColor || '#ffffff'}
-                      onChange={(e) => handleStyleChange('titleColor', e.target.value)}
-                    />
-                  </Grid>
-                  <Grid item xs={6}>
-                    <TextField
-                      fullWidth
-                      type="color"
-                      label="Цвет текста"
-                      value={chartStyles.textColor || '#ffffff'}
-              onChange={(e) => handleStyleChange('textColor', e.target.value)}
-            />
-                  </Grid>
-                  <Grid item xs={6}>
-            <TextField
-                      fullWidth
-              type="color"
-                      label="Цвет легенды"
-                      value={chartStyles.legendColor || '#ffffff'}
-                      onChange={(e) => handleStyleChange('legendColor', e.target.value)}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Divider sx={{ my: 2 }} />
-                    <Typography variant="subtitle2" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <PaletteIcon fontSize="small" />
-                      Дополнительные настройки
+                <ColorSettings
+                  title="Настройки цветов диаграммы"
+                  colorSettings={currentColorSettings}
+                  onUpdate={handleColorUpdate}
+                                  availableFields={[
+                  {
+                    name: 'title',
+                    label: 'Цвет заголовка',
+                    description: 'Цвет заголовка диаграммы',
+                    defaultColor: '#1976d2'
+                  },
+                  {
+                    name: 'grid',
+                    label: 'Цвет сетки',
+                    description: 'Цвет линий сетки диаграммы',
+                    defaultColor: 'rgba(0,0,0,0.1)'
+                  },
+                  {
+                    name: 'legend',
+                    label: 'Цвет легенды',
+                    description: 'Цвет текста легенды и статистики',
+                    defaultColor: '#1976d2'
+                  }
+                ]}
+                defaultColors={{
+                  title: '#1976d2',
+                  grid: 'rgba(0,0,0,0.1)',
+                  legend: '#1976d2'
+                }}
+                />
+                
+                {/* Настройки цветов столбцов */}
+                <Box sx={{ mt: 3, p: 2, border: '1px solid #e0e0e0', borderRadius: 2, backgroundColor: '#fafafa' }}>
+                  <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                    <PaletteIcon color="primary" />
+                    Цвета столбцов
                     </Typography>
-                  </Grid>
-                  <Grid item xs={12}>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Выберите цвет для каждого столбца. Цвет текста под столбцом будет автоматически соответствовать выбранному цвету.
+                  </Typography>
+                  
+                  <Grid container spacing={2}>
+                    {chartData.map((item, index) => (
+                      <Grid item xs={12} sm={6} md={4} key={index}>
+                        <Box sx={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: 2, 
+                          p: 2, 
+                          border: '1px solid #e0e0e0', 
+                          borderRadius: 1,
+                          backgroundColor: 'white'
+                        }}>
+                          <Box sx={{ 
+                            width: 20, 
+                            height: 20, 
+                            backgroundColor: item.color || '#1976d2',
+                            borderRadius: '50%',
+                            border: '2px solid #fff',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                          }} />
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography variant="body2" sx={{ 
+                              fontWeight: 600, 
+                              color: item.color || '#1976d2',
+                              textShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                            }}>
+                              {item.label || item.name}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Значение: {item.value}
+                            </Typography>
+                          </Box>
                     <TextField
-                      fullWidth
                       type="color"
-                      label="Цвет фона диаграммы"
-                      value={chartStyles.backgroundColor || '#ffffff'}
-                      onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
-                      helperText="Цвет фона области диаграммы"
-                    />
+                            value={item.color || '#1976d2'}
+                            onChange={(e) => handleDataChange(index, 'color', e.target.value)}
+                            size="small"
+                            sx={{ 
+                              '& .MuiInputBase-input': { 
+                                padding: '4px',
+                                width: '40px',
+                                height: '32px'
+                              }
+                            }}
+                          />
+                        </Box>
                   </Grid>
-                  <Grid item xs={6}>
-                    <TextField
-                      fullWidth
-                      label="Цвет сетки"
-              value={chartStyles.gridColor}
-              onChange={(e) => handleStyleChange('gridColor', e.target.value)}
-                      placeholder="rgba(255, 255, 255, 0.1)"
-                    />
+                    ))}
                   </Grid>
-                  <Grid item xs={6}>
-                    <TextField
-                      fullWidth
-                      type="color"
-                      label="Цвет рамки"
-                      value={chartStyles.borderColor === 'transparent' ? '#000000' : chartStyles.borderColor}
-                      onChange={(e) => handleStyleChange('borderColor', e.target.value)}
-                    />
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography gutterBottom>Толщина рамки: {chartStyles.borderWidth}px</Typography>
-                    <Slider
-                      value={chartStyles.borderWidth}
-                      onChange={(_, value) => handleStyleChange('borderWidth', value)}
-                      min={0}
-                      max={5}
-                      step={1}
-                      valueLabelDisplay="auto"
-                    />
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography gutterBottom>Отступы: {chartStyles.padding}px</Typography>
-                    <Slider
-                      value={chartStyles.padding}
-                      onChange={(_, value) => handleStyleChange('padding', value)}
-                      min={8}
-                      max={48}
-                      step={4}
-                      valueLabelDisplay="auto"
-                    />
-                  </Grid>
-                </Grid>
+                  
+                  <Box sx={{ mt: 2, textAlign: 'center' }}>
+                    <Button
+                      variant="outlined"
+                      startIcon={<AddIcon />}
+                      onClick={handleAddDataPoint}
+                      size="small"
+                    >
+                      Добавить столбец
+                    </Button>
+                  </Box>
+                </Box>
               </AccordionDetails>
             </Accordion>
 
@@ -1139,7 +1315,7 @@ const BarChart = ({
                               fullWidth
                     size="small"
                     type="color"
-                    value={item.color}
+                    value={item.color || '#1976d2'}
                     onChange={(e) => handleDataChange(index, 'color', e.target.value)}
                     label="Цвет"
                             />

@@ -23,6 +23,7 @@ import {
   Stack,
   Collapse,
   ListItemText,
+  ListItemIcon,
   List,
   ListItem,
   Chip,
@@ -43,6 +44,8 @@ import ExpandLess from '@mui/icons-material/ExpandLess';
 import TuneIcon from '@mui/icons-material/Tune';
 import StyleIcon from '@mui/icons-material/Style';
 import ShuffleIcon from '@mui/icons-material/Shuffle';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import CircularProgress from '@mui/material/CircularProgress';
 import { CARD_TYPES } from '../../utils/configUtils';
 import GlobalSettings, { WEBSITE_THEMES, LANGUAGES, CONTENT_STYLES } from './GlobalSettings';
 import SiteStyleManager from '../SiteStyleSettings/SiteStyleManager';
@@ -628,7 +631,7 @@ const WordRangeEditor = ({ section, ranges, onChange }) => {
 
 
 // Добавляем компонент настройки промпта полного сайта
-const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, currentStep, setCurrentStep, completedSteps, setCompletedSteps }) => {
+const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, currentStep, setCurrentStep, completedSteps, setCompletedSteps, showPromptModal, setShowPromptModal, generatedPrompt, setGeneratedPrompt, globalSettings, getCurrentLanguage, getCurrentTheme, setParserMessage }) => {
   const [settings, setSettings] = useState(initialSettings);
   const [promptType, setPromptType] = useState('optimized');
   const [selectedElements, setSelectedElements] = useState({});
@@ -781,6 +784,11 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
 
 
   const handleElementToggle = (section, elementKey) => {
+    // Проверяем, не отключен ли элемент
+    if (DISABLED_ELEMENTS.has(elementKey)) {
+      return; // Не позволяем выбирать отключенные элементы
+    }
+    
     setSelectedElements(prev => {
       const newElements = { ...prev };
       if (!newElements[section]) {
@@ -810,17 +818,26 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
     'apex-line', 'advanced-contact-form', 'cta-section'
   ];
 
+  // Список отключенных элементов
+  const DISABLED_ELEMENTS = new Set([
+    'qr-code', 'chartjs-bar', 'chartjs-doughnut', 'apex-line', 'advanced-contact-form'
+  ]);
+
   // Функция для случайного выбора элементов в разделе
   const handleRandomSelection = (section, elements) => {
     if (!elements || elements.length === 0) return;
 
+    // Фильтруем отключенные элементы
+    const availableElements = elements.filter(element => !DISABLED_ELEMENTS.has(element));
+    if (availableElements.length === 0) return;
+
     // Определяем количество элементов для выбора (3-5)
     const minElements = 3;
-    const maxElements = Math.min(5, elements.length);
+    const maxElements = Math.min(5, availableElements.length);
     const elementsToSelect = Math.floor(Math.random() * (maxElements - minElements + 1)) + minElements;
 
     // Перемешиваем элементы и выбираем случайные
-    const shuffled = [...elements].sort(() => 0.5 - Math.random());
+    const shuffled = [...availableElements].sort(() => 0.5 - Math.random());
     const selectedKeys = shuffled.slice(0, elementsToSelect);
 
     // Применяем выбор
@@ -844,6 +861,11 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
 
   // Функция для обычного режима (без разделов)
   const handleElementToggleLegacy = (elementKey) => {
+    // Проверяем, не отключен ли элемент
+    if (DISABLED_ELEMENTS.has(elementKey)) {
+      return; // Не позволяем выбирать отключенные элементы
+    }
+    
     setSelectedElements(prev => {
       const newElements = { ...prev };
       if (!newElements['GLOBAL']) {
@@ -918,7 +940,7 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
       }
     });
     
-    onSave(filteredSettings, promptType, filteredSelectedElements, customPrompts, elementSettings, currentStep);
+    onSave(filteredSettings, promptType, filteredSelectedElements, customPrompts, elementSettings, currentStep, customSectionLabels);
     onClose();
   };
   
@@ -967,7 +989,13 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
     return 'pending';
   };
 
-  const sectionLabels = {
+  // Состояние для пользовательских названий разделов
+  const [customSectionLabels, setCustomSectionLabels] = useState({});
+  const [showSectionLabelsEditor, setShowSectionLabelsEditor] = useState(false);
+  const [isGeneratingNames, setIsGeneratingNames] = useState(false);
+  const [aiResponseText, setAiResponseText] = useState('');
+
+  const defaultSectionLabels = {
     HERO: 'Hero секция',
     ABOUT: 'О нас',
     SERVICES: 'Услуги',
@@ -980,6 +1008,192 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
     LEGAL: 'Правовые документы',
     UNIVERSAL: 'Универсальная секция'
   };
+
+  // Функция для получения названия раздела (пользовательское или по умолчанию)
+  const getSectionLabel = (section) => {
+    return customSectionLabels[section] || defaultSectionLabels[section];
+  };
+
+  // Функция для обновления названия раздела
+  const handleSectionLabelChange = (section, newLabel) => {
+    setCustomSectionLabels(prev => ({
+      ...prev,
+      [section]: newLabel
+    }));
+  };
+
+  // Функция для обработки ответа от нейросети
+  const handleAiResponse = () => {
+    try {
+      // Пытаемся распарсить JSON ответ
+      const response = JSON.parse(aiResponseText);
+      
+      // Применяем названия к разделам
+      const newLabels = {};
+      Object.keys(response).forEach(section => {
+        if (defaultSectionLabels[section] && response[section]) {
+          newLabels[section] = response[section];
+        }
+      });
+
+      setCustomSectionLabels(prev => ({
+        ...prev,
+        ...newLabels
+      }));
+
+      setParserMessage(`Применены названия разделов из ответа нейросети. Обновлено разделов: ${Object.keys(newLabels).length}`);
+      setAiResponseText(''); // Очищаем поле после применения
+      
+    } catch (error) {
+      console.error('Ошибка при парсинге ответа нейросети:', error);
+      setParserMessage('Ошибка: Неверный формат JSON. Убедитесь, что ответ содержит корректный JSON с названиями разделов.');
+    }
+  };
+
+
+  // Функция AI-парсера для генерации названий разделов
+  const generateSectionNamesWithAI = async (siteTheme, language) => {
+    setIsGeneratingNames(true);
+    try {
+      // Разделы, которые НЕ нужно переименовывать
+      const excludedSections = ['HERO', 'CONTACTS', 'MERCI', 'LEGAL'];
+      
+      // Разделы для переименования
+      const sectionsToRename = Object.keys(defaultSectionLabels).filter(
+        section => !excludedSections.includes(section)
+      );
+
+      // Создаем промпт для GPT
+      const aiPrompt = `Ты - эксперт по веб-дизайну и UX. Создай подходящие названия разделов для сайта на основе тематики и языка.
+
+ТЕМАТИКА САЙТА: ${siteTheme}
+ЯЗЫК: ${language}
+
+Создай названия для следующих разделов (на выбранном языке):
+- РАЗДЕЛ1 (ABOUT) - раздел о компании/о нас
+- РАЗДЕЛ2 (SERVICES) - раздел с услугами/каталогом
+- РАЗДЕЛ3 (FEATURES) - раздел с преимуществами/особенностями
+- РАЗДЕЛ4 (NEWS) - раздел с новостями/актуальной информацией
+- РАЗДЕЛ5 (FAQ) - раздел с вопросами и ответами/помощью
+- РАЗДЕЛ6 (TESTIMONIALS) - раздел с отзывами/мнениями клиентов
+- РАЗДЕЛ7 (UNIVERSAL) - дополнительный раздел/еще информация
+
+ТРЕБОВАНИЯ:
+1. Названия должны подходить под тематику сайта
+2. Названия должны быть краткими (1-2 слова)
+3. Названия должны быть понятными для пользователей
+4. Используй выбранный язык
+5. НЕ используй стандартные названия - придумай уникальные, подходящие именно для этой тематики
+
+ОТВЕТ В ФОРМАТЕ JSON:
+{
+  "ABOUT": "название",
+  "SERVICES": "название", 
+  "FEATURES": "название",
+  "NEWS": "название",
+  "FAQ": "название",
+  "TESTIMONIALS": "название",
+  "UNIVERSAL": "название"
+}`;
+
+      // Здесь должен быть вызов к GPT API
+      // Пока что возвращаем заглушку
+      console.log('AI Prompt:', aiPrompt);
+      
+      // Заглушка для тестирования - генерируем названия на основе тематики
+      const generateMockNames = (theme) => {
+        const themeLower = theme.toLowerCase();
+        
+        if (themeLower.includes('юридическ') || themeLower.includes('правов')) {
+          return {
+            "ABOUT": "О компании",
+            "SERVICES": "Услуги", 
+            "FEATURES": "Преимущества",
+            "NEWS": "Новости",
+            "FAQ": "Вопросы",
+            "TESTIMONIALS": "Отзывы",
+            "UNIVERSAL": "Дополнительно"
+          };
+        } else if (themeLower.includes('ресторан') || themeLower.includes('кафе') || themeLower.includes('еда')) {
+          return {
+            "ABOUT": "О нас",
+            "SERVICES": "Меню", 
+            "FEATURES": "Особенности",
+            "NEWS": "Новости",
+            "FAQ": "Вопросы",
+            "TESTIMONIALS": "Отзывы",
+            "UNIVERSAL": "Дополнительно"
+          };
+        } else if (themeLower.includes('магазин') || themeLower.includes('интернет-магазин') || themeLower.includes('торгов')) {
+          return {
+            "ABOUT": "О магазине",
+            "SERVICES": "Каталог", 
+            "FEATURES": "Преимущества",
+            "NEWS": "Новости",
+            "FAQ": "Вопросы",
+            "TESTIMONIALS": "Отзывы",
+            "UNIVERSAL": "Дополнительно"
+          };
+        } else {
+          return {
+            "ABOUT": "О компании",
+            "SERVICES": "Услуги", 
+            "FEATURES": "Преимущества",
+            "NEWS": "Новости",
+            "FAQ": "Вопросы",
+            "TESTIMONIALS": "Отзывы",
+            "UNIVERSAL": "Дополнительно"
+          };
+        }
+      };
+
+      const mockResponse = generateMockNames(siteTheme);
+
+      // Сохраняем промпт для показа в модальном окне
+      setGeneratedPrompt(aiPrompt);
+      
+      // Открываем редактор названий разделов, чтобы показать поле для ввода ответа
+      setShowSectionLabelsEditor(true);
+      
+      // Копируем промпт в буфер обмена
+      let copySuccess = false;
+      try {
+        await navigator.clipboard.writeText(aiPrompt);
+        console.log('AI промпт скопирован в буфер обмена');
+        copySuccess = true;
+      } catch (err) {
+        console.error('Ошибка при копировании промпта:', err);
+        // Альтернативный способ копирования
+        const textArea = document.createElement('textarea');
+        textArea.value = aiPrompt;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+          document.execCommand('copy');
+          copySuccess = true;
+        } catch (fallbackErr) {
+          console.error('Альтернативное копирование не удалось:', fallbackErr);
+        }
+        document.body.removeChild(textArea);
+      }
+      
+      // Показываем уведомление
+      if (copySuccess) {
+        setParserMessage(`Сгенерирован промпт для тематики "${siteTheme}". Промпт скопирован в буфер обмена. Вставьте его в нейросеть, получите ответ в формате JSON и вставьте в поле ниже.`);
+      } else {
+        setParserMessage(`Сгенерирован промпт для тематики "${siteTheme}". Промпт НЕ скопирован автоматически. Нажмите "Показать промпт" для копирования вручную.`);
+        setShowPromptModal(true);
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Ошибка при генерации названий разделов:', error);
+      return null;
+    } finally {
+      setIsGeneratingNames(false);
+    }
+  };
+
 
   const randomizeAllSettings = () => {
     // Рандомизируем количество карточек
@@ -1250,6 +1464,18 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
           </FormControl>
         </Box>
         
+        {/* Информация об отключенных элементах */}
+        {promptType === 'manual_elements' && (
+          <Box sx={{ mb: 3, p: 2, backgroundColor: '#fff3e0', border: '1px solid #ff9800', borderRadius: 1 }}>
+            <Typography variant="body2" sx={{ color: '#e65100', fontWeight: 'bold', mb: 1 }}>
+              ℹ️ Информация об отключенных элементах
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Следующие элементы временно отключены и недоступны для выбора: <strong>QR код</strong>, <strong>Chart.js столбцы</strong>, <strong>Пончиковая диаграмма</strong>, <strong>ApexCharts линии</strong>, <strong>Расширенная контактная форма</strong>.
+            </Typography>
+          </Box>
+        )}
+        
         {promptType !== 'legal_only' && promptType !== 'manual_elements' && (
           <>
             <Divider sx={{ mb: 3 }} />
@@ -1257,6 +1483,121 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
               <Typography variant="subtitle1" gutterBottom>
                 Выберите разделы для включения в промпт:
               </Typography>
+              <Box sx={{ mb: 2, p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
+                <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+                  💡 Вы можете переименовать разделы, чтобы они лучше подходили для вашего сайта
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  <Button 
+                    size="small" 
+                    variant="outlined" 
+                    onClick={() => setShowSectionLabelsEditor(!showSectionLabelsEditor)}
+                    startIcon={<EditIcon />}
+                  >
+                    {showSectionLabelsEditor ? 'Скрыть редактор' : 'Переименовать разделы'}
+                  </Button>
+                  <Button 
+                    size="small" 
+                    variant="contained" 
+                    onClick={() => {
+                      const siteTheme = getCurrentTheme();
+                      const language = getCurrentLanguage();
+                      generateSectionNamesWithAI(siteTheme, language);
+                    }}
+                    disabled={isGeneratingNames}
+                    startIcon={isGeneratingNames ? <CircularProgress size={16} /> : <AutoAwesomeIcon />}
+                    color="primary"
+                    title={`Тематика: ${getCurrentTheme()}, Язык: ${getCurrentLanguage()}`}
+                  >
+                    {isGeneratingNames ? 'Генерируем...' : `AI-генерация (${getCurrentTheme()})`}
+                  </Button>
+                  {generatedPrompt && (
+                    <Button 
+                      size="small" 
+                      variant="outlined" 
+                      onClick={() => setShowPromptModal(true)}
+                      color="secondary"
+                    >
+                      Показать промпт
+                    </Button>
+                  )}
+                  {Object.keys(customSectionLabels).length > 0 && (
+                    <Button 
+                      size="small" 
+                      variant="text" 
+                      onClick={() => setCustomSectionLabels({})}
+                      color="secondary"
+                    >
+                      Сбросить к умолчанию
+                    </Button>
+                  )}
+                </Box>
+              </Box>
+              
+              {showSectionLabelsEditor && (
+                <Box sx={{ mb: 3, p: 2, backgroundColor: '#fff', border: '1px solid #ddd', borderRadius: 1 }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Редактор названий разделов:
+                  </Typography>
+                  
+                  {/* Поле для ввода ответа от нейросети */}
+                  <Box sx={{ mb: 3, p: 2, backgroundColor: '#f8f9fa', border: '1px solid #e9ecef', borderRadius: 1 }}>
+                    <Typography variant="subtitle3" gutterBottom sx={{ fontWeight: 'bold', color: '#495057' }}>
+                      🤖 Ответ от нейросети (JSON формат):
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                      Вставьте сюда ответ от нейросети в формате JSON. Пример: {"{"}"ABOUT": "О компании", "SERVICES": "Услуги"{"}"}
+                    </Typography>
+                    <TextField
+                      fullWidth
+                      multiline
+                      rows={4}
+                      value={aiResponseText}
+                      onChange={(e) => setAiResponseText(e.target.value)}
+                      placeholder='{"ABOUT": "О компании", "SERVICES": "Услуги", "FEATURES": "Преимущества", "NEWS": "Новости", "FAQ": "Вопросы", "TESTIMONIALS": "Отзывы", "UNIVERSAL": "Дополнительно"}'
+                      variant="outlined"
+                      size="small"
+                      sx={{ mb: 2 }}
+                    />
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Button 
+                        size="small" 
+                        variant="contained" 
+                        onClick={handleAiResponse}
+                        disabled={!aiResponseText.trim()}
+                        color="primary"
+                      >
+                        Применить названия
+                      </Button>
+                      <Button 
+                        size="small" 
+                        variant="outlined" 
+                        onClick={() => setAiResponseText('')}
+                        color="secondary"
+                      >
+                        Очистить
+                      </Button>
+                    </Box>
+                  </Box>
+                  
+                  <Grid container spacing={2}>
+                    {Object.keys(settings.includedSections).map((section) => (
+                      <Grid item xs={12} sm={6} key={section}>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label={`Название раздела "${defaultSectionLabels[section]}"`}
+                          value={customSectionLabels[section] || ''}
+                          onChange={(e) => handleSectionLabelChange(section, e.target.value)}
+                          placeholder={defaultSectionLabels[section]}
+                          helperText="Оставьте пустым для использования названия по умолчанию"
+                        />
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Box>
+              )}
+              
           <Grid container spacing={2}>
             {Object.keys(settings.includedSections).map((section) => (
               <Grid item xs={6} sm={4} key={section}>
@@ -1268,7 +1609,7 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
                       disabled={section === 'HERO'} // Hero секция всегда включена
                     />
                   }
-                  label={sectionLabels[section]}
+                  label={getSectionLabel(section)}
                 />
               </Grid>
             ))}
@@ -1311,7 +1652,7 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
             settings.includedSections[section] && (
               <Grid item xs={12} sm={6} key={section}>
                 <Typography id={`${section}-slider-label`}>
-                  {sectionLabels[section]}: {settings.cardCounts[section]}
+                  {getSectionLabel(section)}: {settings.cardCounts[section]}
                 </Typography>
                 <Slider
                   value={settings.cardCounts[section]}
@@ -1432,7 +1773,7 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
                                   whiteSpace: 'nowrap'
                                 }}
                               >
-                                {sectionLabels[section]}
+                                {getSectionLabel(section)}
                               </Box>
                             ))}
                           </Box>
@@ -1452,7 +1793,7 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
                 </Typography>
               </Alert>
               
-              <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+              <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
                 <Button 
                   variant="outlined" 
                   size="small"
@@ -1461,7 +1802,118 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
                 >
                   Активировать разделы этапа {currentStep}
                 </Button>
+                <Button 
+                  size="small" 
+                  variant="outlined" 
+                  onClick={() => setShowSectionLabelsEditor(!showSectionLabelsEditor)}
+                  startIcon={<EditIcon />}
+                  sx={{ fontSize: '0.75rem' }}
+                >
+                  {showSectionLabelsEditor ? 'Скрыть редактор' : 'Переименовать разделы'}
+                </Button>
+                <Button 
+                  size="small" 
+                  variant="contained" 
+                  onClick={() => {
+                    const siteTheme = getCurrentTheme();
+                    const language = getCurrentLanguage();
+                    generateSectionNamesWithAI(siteTheme, language);
+                  }}
+                  disabled={isGeneratingNames}
+                  startIcon={isGeneratingNames ? <CircularProgress size={16} /> : <AutoAwesomeIcon />}
+                  color="primary"
+                  sx={{ fontSize: '0.75rem' }}
+                  title={`Тематика: ${getCurrentTheme()}, Язык: ${getCurrentLanguage()}`}
+                >
+                  {isGeneratingNames ? 'Генерируем...' : `AI (${getCurrentTheme()})`}
+                </Button>
+                {generatedPrompt && (
+                  <Button 
+                    size="small" 
+                    variant="outlined" 
+                    onClick={() => setShowPromptModal(true)}
+                    color="secondary"
+                    sx={{ fontSize: '0.75rem' }}
+                  >
+                    Показать промпт
+                  </Button>
+                )}
+                {Object.keys(customSectionLabels).length > 0 && (
+                  <Button 
+                    size="small" 
+                    variant="text" 
+                    onClick={() => setCustomSectionLabels({})}
+                    color="secondary"
+                    sx={{ fontSize: '0.75rem' }}
+                  >
+                    Сбросить к умолчанию
+                  </Button>
+                )}
               </Box>
+              
+              {showSectionLabelsEditor && (
+                <Box sx={{ mb: 3, p: 2, backgroundColor: '#fff', border: '1px solid #ddd', borderRadius: 1 }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Редактор названий разделов:
+                  </Typography>
+                  
+                  {/* Поле для ввода ответа от нейросети */}
+                  <Box sx={{ mb: 3, p: 2, backgroundColor: '#f8f9fa', border: '1px solid #e9ecef', borderRadius: 1 }}>
+                    <Typography variant="subtitle3" gutterBottom sx={{ fontWeight: 'bold', color: '#495057' }}>
+                      🤖 Ответ от нейросети (JSON формат):
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                      Вставьте сюда ответ от нейросети в формате JSON. Пример: {"{"}"ABOUT": "О компании", "SERVICES": "Услуги"{"}"}
+                    </Typography>
+                    <TextField
+                      fullWidth
+                      multiline
+                      rows={4}
+                      value={aiResponseText}
+                      onChange={(e) => setAiResponseText(e.target.value)}
+                      placeholder='{"ABOUT": "О компании", "SERVICES": "Услуги", "FEATURES": "Преимущества", "NEWS": "Новости", "FAQ": "Вопросы", "TESTIMONIALS": "Отзывы", "UNIVERSAL": "Дополнительно"}'
+                      variant="outlined"
+                      size="small"
+                      sx={{ mb: 2 }}
+                    />
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Button 
+                        size="small" 
+                        variant="contained" 
+                        onClick={handleAiResponse}
+                        disabled={!aiResponseText.trim()}
+                        color="primary"
+                      >
+                        Применить названия
+                      </Button>
+                      <Button 
+                        size="small" 
+                        variant="outlined" 
+                        onClick={() => setAiResponseText('')}
+                        color="secondary"
+                      >
+                        Очистить
+                      </Button>
+                    </Box>
+                  </Box>
+                  
+                  <Grid container spacing={2}>
+                    {Object.keys(settings.includedSections).map((section) => (
+                      <Grid item xs={12} sm={6} key={section}>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label={`Название раздела "${defaultSectionLabels[section]}"`}
+                          value={customSectionLabels[section] || ''}
+                          onChange={(e) => handleSectionLabelChange(section, e.target.value)}
+                          placeholder={defaultSectionLabels[section]}
+                          helperText="Оставьте пустым для использования названия по умолчанию"
+                        />
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Box>
+              )}
             </Box>
             
             <Box sx={{ mb: 3 }}>
@@ -1496,7 +1948,7 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
                           disabled={section === 'HERO'} // Hero секция всегда включена
                         />
                       }
-                      label={sectionLabels[section]}
+                      label={getSectionLabel(section)}
                     />
                   </Grid>
                 ))}
@@ -1518,7 +1970,7 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
                 <Box sx={{ mb: 3, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                     <Typography variant="h6">
-                      ℹ️ О нас
+                      ℹ️ {getSectionLabel('ABOUT')}
                     </Typography>
                     <Button
                       size="small"
@@ -1530,18 +1982,42 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
                     </Button>
                   </Box>
                   <FormGroup row>
-                    {ALL_ELEMENTS.map(element => (
-                      <FormControlLabel
-                        key={element}
-                        control={
-                          <Checkbox
-                            checked={selectedElements.ABOUT?.has(element) || false}
-                            onChange={() => handleElementToggle('ABOUT', element)}
-                          />
-                        }
-                        label={ELEMENT_PROMPTS[element]?.name || element}
-                      />
-                    ))}
+                    {ALL_ELEMENTS.map(element => {
+                      const isDisabled = DISABLED_ELEMENTS.has(element);
+                      return (
+                        <FormControlLabel
+                          key={element}
+                          control={
+                            <Checkbox
+                              checked={selectedElements.ABOUT?.has(element) || false}
+                              onChange={() => handleElementToggle('ABOUT', element)}
+                              disabled={isDisabled}
+                              sx={{
+                                opacity: isDisabled ? 0.5 : 1,
+                                '&.Mui-disabled': {
+                                  opacity: 0.5
+                                }
+                              }}
+                            />
+                          }
+                          label={
+                            <Typography
+                              sx={{
+                                color: isDisabled ? 'text.disabled' : 'text.primary',
+                                textDecoration: isDisabled ? 'line-through' : 'none'
+                              }}
+                            >
+                              {ELEMENT_PROMPTS[element]?.name || element}
+                              {isDisabled && ' (отключено)'}
+                            </Typography>
+                          }
+                          sx={{
+                            opacity: isDisabled ? 0.6 : 1,
+                            cursor: isDisabled ? 'not-allowed' : 'pointer'
+                          }}
+                        />
+                      );
+                    })}
                   </FormGroup>
                 </Box>
               )}
@@ -1551,7 +2027,7 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
                 <Box sx={{ mb: 3, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                     <Typography variant="h6">
-                      🛠️ Услуги
+                      🛠️ {getSectionLabel('SERVICES')}
                     </Typography>
                     <Button
                       size="small"
@@ -1563,18 +2039,42 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
                     </Button>
                   </Box>
                   <FormGroup row>
-                    {ALL_ELEMENTS.map(element => (
-                      <FormControlLabel
-                        key={element}
-                        control={
-                          <Checkbox
-                            checked={selectedElements.SERVICES?.has(element) || false}
-                            onChange={() => handleElementToggle('SERVICES', element)}
-                          />
-                        }
-                        label={ELEMENT_PROMPTS[element]?.name || element}
-                      />
-                    ))}
+                    {ALL_ELEMENTS.map(element => {
+                      const isDisabled = DISABLED_ELEMENTS.has(element);
+                      return (
+                        <FormControlLabel
+                          key={element}
+                          control={
+                            <Checkbox
+                              checked={selectedElements.SERVICES?.has(element) || false}
+                              onChange={() => handleElementToggle('SERVICES', element)}
+                              disabled={isDisabled}
+                              sx={{
+                                opacity: isDisabled ? 0.5 : 1,
+                                '&.Mui-disabled': {
+                                  opacity: 0.5
+                                }
+                              }}
+                            />
+                          }
+                          label={
+                            <Typography
+                              sx={{
+                                color: isDisabled ? 'text.disabled' : 'text.primary',
+                                textDecoration: isDisabled ? 'line-through' : 'none'
+                              }}
+                            >
+                              {ELEMENT_PROMPTS[element]?.name || element}
+                              {isDisabled && ' (отключено)'}
+                            </Typography>
+                          }
+                          sx={{
+                            opacity: isDisabled ? 0.6 : 1,
+                            cursor: isDisabled ? 'not-allowed' : 'pointer'
+                          }}
+                        />
+                      );
+                    })}
                   </FormGroup>
                 </Box>
               )}
@@ -1584,7 +2084,7 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
                 <Box sx={{ mb: 3, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                     <Typography variant="h6">
-                      ⭐ Преимущества
+                      ⭐ {getSectionLabel('FEATURES')}
                     </Typography>
                     <Button
                       size="small"
@@ -1596,18 +2096,42 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
                     </Button>
                   </Box>
                   <FormGroup row>
-                    {ALL_ELEMENTS.map(element => (
-                      <FormControlLabel
-                        key={element}
-                        control={
-                          <Checkbox
-                            checked={selectedElements.FEATURES?.has(element) || false}
-                            onChange={() => handleElementToggle('FEATURES', element)}
-                          />
-                        }
-                        label={ELEMENT_PROMPTS[element]?.name || element}
-                      />
-                    ))}
+                    {ALL_ELEMENTS.map(element => {
+                      const isDisabled = DISABLED_ELEMENTS.has(element);
+                      return (
+                        <FormControlLabel
+                          key={element}
+                          control={
+                            <Checkbox
+                              checked={selectedElements.FEATURES?.has(element) || false}
+                              onChange={() => handleElementToggle('FEATURES', element)}
+                              disabled={isDisabled}
+                              sx={{
+                                opacity: isDisabled ? 0.5 : 1,
+                                '&.Mui-disabled': {
+                                  opacity: 0.5
+                                }
+                              }}
+                            />
+                          }
+                          label={
+                            <Typography
+                              sx={{
+                                color: isDisabled ? 'text.disabled' : 'text.primary',
+                                textDecoration: isDisabled ? 'line-through' : 'none'
+                              }}
+                            >
+                              {ELEMENT_PROMPTS[element]?.name || element}
+                              {isDisabled && ' (отключено)'}
+                            </Typography>
+                          }
+                          sx={{
+                            opacity: isDisabled ? 0.6 : 1,
+                            cursor: isDisabled ? 'not-allowed' : 'pointer'
+                          }}
+                        />
+                      );
+                    })}
                   </FormGroup>
                 </Box>
               )}
@@ -1617,7 +2141,7 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
                 <Box sx={{ mb: 3, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                     <Typography variant="h6">
-                      📰 Новости
+                      📰 {getSectionLabel('NEWS')}
                     </Typography>
                     <Button
                       size="small"
@@ -1629,18 +2153,42 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
                     </Button>
                   </Box>
                   <FormGroup row>
-                    {ALL_ELEMENTS.map(element => (
-                      <FormControlLabel
-                        key={element}
-                        control={
-                          <Checkbox
-                            checked={selectedElements.NEWS?.has(element) || false}
-                            onChange={() => handleElementToggle('NEWS', element)}
-                          />
-                        }
-                        label={ELEMENT_PROMPTS[element]?.name || element}
-                      />
-                    ))}
+                    {ALL_ELEMENTS.map(element => {
+                      const isDisabled = DISABLED_ELEMENTS.has(element);
+                      return (
+                        <FormControlLabel
+                          key={element}
+                          control={
+                            <Checkbox
+                              checked={selectedElements.NEWS?.has(element) || false}
+                              onChange={() => handleElementToggle('NEWS', element)}
+                              disabled={isDisabled}
+                              sx={{
+                                opacity: isDisabled ? 0.5 : 1,
+                                '&.Mui-disabled': {
+                                  opacity: 0.5
+                                }
+                              }}
+                            />
+                          }
+                          label={
+                            <Typography
+                              sx={{
+                                color: isDisabled ? 'text.disabled' : 'text.primary',
+                                textDecoration: isDisabled ? 'line-through' : 'none'
+                              }}
+                            >
+                              {ELEMENT_PROMPTS[element]?.name || element}
+                              {isDisabled && ' (отключено)'}
+                            </Typography>
+                          }
+                          sx={{
+                            opacity: isDisabled ? 0.6 : 1,
+                            cursor: isDisabled ? 'not-allowed' : 'pointer'
+                          }}
+                        />
+                      );
+                    })}
                   </FormGroup>
                 </Box>
               )}
@@ -1650,7 +2198,7 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
                 <Box sx={{ mb: 3, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                     <Typography variant="h6">
-                      ❓ Вопросы и ответы
+                      ❓ {getSectionLabel('FAQ')}
                     </Typography>
                     <Button
                       size="small"
@@ -1662,18 +2210,42 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
                     </Button>
                   </Box>
                   <FormGroup row>
-                    {ALL_ELEMENTS.map(element => (
-                      <FormControlLabel
-                        key={element}
-                        control={
-                          <Checkbox
-                            checked={selectedElements.FAQ?.has(element) || false}
-                            onChange={() => handleElementToggle('FAQ', element)}
-                          />
-                        }
-                        label={ELEMENT_PROMPTS[element]?.name || element}
-                      />
-                    ))}
+                    {ALL_ELEMENTS.map(element => {
+                      const isDisabled = DISABLED_ELEMENTS.has(element);
+                      return (
+                        <FormControlLabel
+                          key={element}
+                          control={
+                            <Checkbox
+                              checked={selectedElements.FAQ?.has(element) || false}
+                              onChange={() => handleElementToggle('FAQ', element)}
+                              disabled={isDisabled}
+                              sx={{
+                                opacity: isDisabled ? 0.5 : 1,
+                                '&.Mui-disabled': {
+                                  opacity: 0.5
+                                }
+                              }}
+                            />
+                          }
+                          label={
+                            <Typography
+                              sx={{
+                                color: isDisabled ? 'text.disabled' : 'text.primary',
+                                textDecoration: isDisabled ? 'line-through' : 'none'
+                              }}
+                            >
+                              {ELEMENT_PROMPTS[element]?.name || element}
+                              {isDisabled && ' (отключено)'}
+                            </Typography>
+                          }
+                          sx={{
+                            opacity: isDisabled ? 0.6 : 1,
+                            cursor: isDisabled ? 'not-allowed' : 'pointer'
+                          }}
+                        />
+                      );
+                    })}
                   </FormGroup>
                 </Box>
               )}
@@ -1683,7 +2255,7 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
                 <Box sx={{ mb: 3, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                     <Typography variant="h6">
-                      💬 Отзывы
+                      💬 {getSectionLabel('TESTIMONIALS')}
                     </Typography>
                     <Button
                       size="small"
@@ -1695,18 +2267,42 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
                     </Button>
                   </Box>
                   <FormGroup row>
-                    {ALL_ELEMENTS.map(element => (
-                      <FormControlLabel
-                        key={element}
-                        control={
-                          <Checkbox
-                            checked={selectedElements.TESTIMONIALS?.has(element) || false}
-                            onChange={() => handleElementToggle('TESTIMONIALS', element)}
-                          />
-                        }
-                        label={ELEMENT_PROMPTS[element]?.name || element}
-                      />
-                    ))}
+                    {ALL_ELEMENTS.map(element => {
+                      const isDisabled = DISABLED_ELEMENTS.has(element);
+                      return (
+                        <FormControlLabel
+                          key={element}
+                          control={
+                            <Checkbox
+                              checked={selectedElements.TESTIMONIALS?.has(element) || false}
+                              onChange={() => handleElementToggle('TESTIMONIALS', element)}
+                              disabled={isDisabled}
+                              sx={{
+                                opacity: isDisabled ? 0.5 : 1,
+                                '&.Mui-disabled': {
+                                  opacity: 0.5
+                                }
+                              }}
+                            />
+                          }
+                          label={
+                            <Typography
+                              sx={{
+                                color: isDisabled ? 'text.disabled' : 'text.primary',
+                                textDecoration: isDisabled ? 'line-through' : 'none'
+                              }}
+                            >
+                              {ELEMENT_PROMPTS[element]?.name || element}
+                              {isDisabled && ' (отключено)'}
+                            </Typography>
+                          }
+                          sx={{
+                            opacity: isDisabled ? 0.6 : 1,
+                            cursor: isDisabled ? 'not-allowed' : 'pointer'
+                          }}
+                        />
+                      );
+                    })}
                   </FormGroup>
                 </Box>
               )}
@@ -1716,7 +2312,7 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
                 <Box sx={{ mb: 3, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                     <Typography variant="h6">
-                      🌟 Универсальная секция
+                      🌟 {getSectionLabel('UNIVERSAL')}
                     </Typography>
                     <Button
                       size="small"
@@ -1728,18 +2324,42 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
                     </Button>
                   </Box>
                   <FormGroup row>
-                    {ALL_ELEMENTS.map(element => (
-                      <FormControlLabel
-                        key={element}
-                        control={
-                          <Checkbox
-                            checked={selectedElements.UNIVERSAL?.has(element) || false}
-                            onChange={() => handleElementToggle('UNIVERSAL', element)}
-                          />
-                        }
-                        label={ELEMENT_PROMPTS[element]?.name || element}
-                      />
-                    ))}
+                    {ALL_ELEMENTS.map(element => {
+                      const isDisabled = DISABLED_ELEMENTS.has(element);
+                      return (
+                        <FormControlLabel
+                          key={element}
+                          control={
+                            <Checkbox
+                              checked={selectedElements.UNIVERSAL?.has(element) || false}
+                              onChange={() => handleElementToggle('UNIVERSAL', element)}
+                              disabled={isDisabled}
+                              sx={{
+                                opacity: isDisabled ? 0.5 : 1,
+                                '&.Mui-disabled': {
+                                  opacity: 0.5
+                                }
+                              }}
+                            />
+                          }
+                          label={
+                            <Typography
+                              sx={{
+                                color: isDisabled ? 'text.disabled' : 'text.primary',
+                                textDecoration: isDisabled ? 'line-through' : 'none'
+                              }}
+                            >
+                              {ELEMENT_PROMPTS[element]?.name || element}
+                              {isDisabled && ' (отключено)'}
+                            </Typography>
+                          }
+                          sx={{
+                            opacity: isDisabled ? 0.6 : 1,
+                            cursor: isDisabled ? 'not-allowed' : 'pointer'
+                          }}
+                        />
+                      );
+                    })}
                   </FormGroup>
                 </Box>
               )}
@@ -2006,6 +2626,10 @@ const AiParser = ({
   const [editingPromptType, setEditingPromptType] = useState(null);
   const [editingPromptText, setEditingPromptText] = useState('');
   
+  // Состояния для AI-парсера названий разделов
+  const [showPromptModal, setShowPromptModal] = useState(false);
+  const [generatedPrompt, setGeneratedPrompt] = useState('');
+  
   // Добавляем состояния для глобальных настроек
   const [showGlobalSettings, setShowGlobalSettings] = useState(false);
   const [globalSettings, setGlobalSettings] = useState({
@@ -2021,11 +2645,67 @@ const AiParser = ({
     customInstructions: '',
     customLanguage: ''
   });
+
+  // Функция для получения текущего языка
+  const getCurrentLanguage = () => {
+    if (globalSettings.language === 'CUSTOM' && globalSettings.customLanguage) {
+      return globalSettings.customLanguage;
+    } else if (globalSettings.language) {
+      const langObj = LANGUAGES.find(lang => lang.code === globalSettings.language);
+      if (langObj) {
+        return langObj.label.split(' - ')[0]; // Берем русское название до " - "
+      }
+    }
+    return 'русский';
+  };
+
+  // Функция для получения текущей тематики сайта
+  const getCurrentTheme = () => {
+    if (globalSettings.theme === 'CUSTOM' && globalSettings.customTheme) {
+      return globalSettings.customTheme;
+    } else if (globalSettings.theme && WEBSITE_THEMES[globalSettings.theme]) {
+      return WEBSITE_THEMES[globalSettings.theme];
+    }
+    return 'общая тематика';
+  };
   
   // Добавляем состояние для настроек промпта полного сайта
   const [showFullSiteSettings, setShowFullSiteSettings] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState([]);
+  
+  // Состояния для системы выбора элементов с чекбоксами
+  const [scannedElements, setScannedElements] = useState([]);
+  const [selectedElements, setSelectedElements] = useState(new Set());
+  const [showElementSelector, setShowElementSelector] = useState(false);
+  const [elementGroups, setElementGroups] = useState({});
+  
+  // Состояния для отслеживания обработанных элементов
+  const [processedElements, setProcessedElements] = useState(new Set());
+  const [processingHistory, setProcessingHistory] = useState([]);
+  const [jsonMode, setJsonMode] = useState('ready'); // 'template' для GPT, 'ready' для готового
+  
+  // Состояние для пользовательских названий разделов
+  const [customSectionLabels, setCustomSectionLabels] = useState({});
+  
+  const defaultSectionLabels = {
+    HERO: 'Hero секция',
+    ABOUT: 'О нас',
+    SERVICES: 'Услуги',
+    FEATURES: 'Преимущества',
+    NEWS: 'Новости',
+    FAQ: 'Вопросы и ответы',
+    TESTIMONIALS: 'Отзывы',
+    CONTACTS: 'Контакты',
+    MERCI: 'Сообщение благодарности',
+    LEGAL: 'Правовые документы',
+    UNIVERSAL: 'Универсальная секция'
+  };
+
+  // Функция для получения названия раздела (пользовательское или по умолчанию)
+  const getSectionLabel = (section) => {
+    return customSectionLabels[section] || defaultSectionLabels[section];
+  };
   const [fullSiteSettings, setFullSiteSettings] = useState({
     includedSections: {
       HERO: true, // Hero секция всегда включена
@@ -2097,6 +2777,50 @@ const AiParser = ({
   
   // Добавляем состояние для переключателя стилей
   const [singleStyleMode, setSingleStyleMode] = useState(true);
+  
+  // Добавляем состояния для AI Дизайн Системы
+  const [generatedDesignSystem, setGeneratedDesignSystem] = useState(null);
+  const [showDesignSystemDialog, setShowDesignSystemDialog] = useState(false);
+  const [gpt5JsonInput, setGpt5JsonInput] = useState('');
+  const [jsonPromptDescription, setJsonPromptDescription] = useState(`Требования к цветовому стилю:
+- Используйте современные градиенты и контрастные цвета
+- Применяйте темные фоны с яркими акцентами
+- Обеспечьте хорошую читаемость текста
+- Используйте цветовую схему: основные цвета #00d4ff, #ff6b6b, #facc15
+- Применяйте градиенты для фонов секций
+- Добавляйте тени и скругления для современного вида
+
+ДЕТАЛЬНЫЕ ТРЕБОВАНИЯ ДЛЯ GPT-5:
+1. УНИКАЛЬНОСТЬ ПОЛЕЙ: Каждое текстовое поле должно иметь уникальный цвет из палитры:
+   - title: #00d4ff (голубой) - для главных заголовков
+   - text: #ffffff (белый) - для основного текста на темном фоне
+   - description: #facc15 (желтый) - для описаний и подзаголовков
+   - cardTitle: #ff6b6b (красный) - для заголовков карточек
+   - cardText: #e0e0e0 (светло-серый) - для текста в карточках
+   - cardContent: #4ecdc4 (бирюзовый) - для контента карточек
+
+2. КОНТРАСТНОСТЬ: Обеспечьте минимальный контраст 4.5:1 между текстом и фоном:
+   - Белый текст (#ffffff) на темных фонах (#1a1a2e, #16213e)
+   - Светлые цвета для текста на темных градиентах
+   - Темные цвета для текста на светлых элементах
+
+3. ФОНОВЫЕ ГРАДИЕНТЫ:
+   - sectionBackground: градиент от #1a1a2e к #16213e
+   - cardBackground: градиент от #0a0a0f к #1a1a2e
+   - Используйте направление "to right" или "to bottom right"
+
+4. ДОПОЛНИТЕЛЬНЫЕ ЭФФЕКТЫ:
+   - borderColor: #00d4ff для границ карточек
+   - boxShadow: true для объемности
+   - borderRadius: 8px для скругления углов
+   - borderWidth: 1-2px для четкости границ
+
+5. ПРИМЕНЕНИЕ К JSON: В сгенерированном JSON каждое поле colorSettings должно содержать:
+   - Уникальный цвет для каждого текстового поля
+   - Соответствующий фон с градиентом
+   - Настройки границ и теней
+   - Обеспечение читаемости на всех фонах`);
+  const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   
   // Используем состояние из EditorPanel через пропсы
   // const [constructorMode, setConstructorMode] = useState(true); // Удалено - используем пропсы
@@ -2346,11 +3070,53 @@ const AiParser = ({
   };
   
   // Функция для генерации промпта полного сайта с учетом настроек
-  const generateFullSitePrompt = (settings) => {
+  const generateFullSitePrompt = (settings, getSectionLabelFn = null) => {
     const getWordRange = (section, field) => {
       const range = settings.wordRanges[section]?.[field];
       if (!range) return '';
       return `(${range.min}-${range.max} слов)`;
+    };
+
+    // Функция для получения названия раздела для промта
+    const getSectionNameForPrompt = (section) => {
+      if (getSectionLabelFn) {
+        return getSectionLabelFn(section);
+      }
+      return getSectionLabel(section);
+    };
+
+    // Функция для генерации NAME PAGE на основе названия раздела
+    const generateNamePage = (section) => {
+      const sectionName = getSectionNameForPrompt(section);
+      
+      // Словарь для перевода русских названий в английские
+      const translations = {
+        'О нас': 'about-us',
+        'Услуги': 'services', 
+        'Преимущества': 'features',
+        'Новости': 'news',
+        'Вопросы и ответы': 'faq',
+        'Отзывы': 'testimonials',
+        'Контакты': 'contacts',
+        'Универсальная секция': 'universal',
+        'Hero секция': 'hero',
+        'Сообщение благодарности': 'thank-you',
+        'Правовые документы': 'legal'
+      };
+      
+      // Если есть точный перевод, используем его
+      if (translations[sectionName]) {
+        return translations[sectionName];
+      }
+      
+      // Иначе генерируем на основе названия (максимум 2 слова)
+      const words = sectionName.toLowerCase()
+        .replace(/[^\w\s]/g, '') // убираем знаки препинания
+        .split(/\s+/)
+        .filter(word => word.length > 0)
+        .slice(0, 2); // берем максимум 2 слова
+      
+      return words.join('-');
     };
 
     // Получаем информацию о выбранном языке из глобальных настроек
@@ -2371,13 +3137,14 @@ const AiParser = ({
 
 КРИТИЧЕСКИ ВАЖНО: 
 1. Весь контент, включая ID секций, ДОЛЖЕН быть на одном языке (который указан в настройках)
-2. ID секций: буквы "ID" всегда на английском языке, название секции после двоеточия - на ${languageName}
-3. Не использовать смешанные языки или транслитерацию
-4. КАЖДЫЙ раздел ОБЯЗАТЕЛЬНО должен начинаться с "=== РАЗДЕЛ: ИМЯ ===" и ОБЯЗАТЕЛЬНО заканчиваться "=== КОНЕЦ РАЗДЕЛА ==="
-5. НЕ ИСПОЛЬЗУЙТЕ символы экранирования (\) перед разделителями === 
-6. Разделители должны быть точно: === РАЗДЕЛ: ИМЯ === и === КОНЕЦ РАЗДЕЛА ===
-7. ОБЯЗАТЕЛЬНО: Каждый раздел должен иметь закрывающий разделитель "=== КОНЕЦ РАЗДЕЛА ===" - это критически важно для корректной обработки
-8. ОБЯЗАТЕЛЬНО указывайте ключевое слово "ТИП:" перед каждым AI элементом!
+2. ⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE - для КАЖДОГО раздела указывайте имя HTML страницы на английском языке, подходящее под название раздела (максимум 2 слова, через дефис). ЭТО ПОЛЕ ОБЯЗАТЕЛЬНО ДЛЯ ВСЕХ РАЗДЕЛОВ!
+3. ID секций: буквы "ID" всегда на английском языке, название секции после двоеточия - на ${languageName}
+4. Не использовать смешанные языки или транслитерацию
+5. КАЖДЫЙ раздел ОБЯЗАТЕЛЬНО должен начинаться с "=== РАЗДЕЛ: ИМЯ ===" и ОБЯЗАТЕЛЬНО заканчиваться "=== КОНЕЦ РАЗДЕЛА ==="
+6. НЕ ИСПОЛЬЗУЙТЕ символы экранирования (\) перед разделителями ===
+7. Разделители должны быть точно: === РАЗДЕЛ: ИМЯ === и === КОНЕЦ РАЗДЕЛА ===
+8. ОБЯЗАТЕЛЬНО: Каждый раздел должен иметь закрывающий разделитель "=== КОНЕЦ РАЗДЕЛА ===" - это критически важно для корректной обработки
+9. ОБЯЗАТЕЛЬНО указывайте ключевое слово "ТИП:" перед каждым AI элементом!
 
 ВАЖНО: Не добавляйте обратные слеши (\) перед символами ===. Используйте точно такой формат:
 === РАЗДЕЛ: HERO ===
@@ -2387,7 +3154,7 @@ const AiParser = ({
 ВНИМАНИЕ: Отсутствие разделителя "=== КОНЕЦ РАЗДЕЛА ===" приведет к ошибке обработки контента!\n\n`;
 
     // Добавляем Hero секцию в начало
-    sectionsPrompt += `=== РАЗДЕЛ: HERO ===
+    sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('HERO')} ===
 1. Первая строка - название сайта (1-2 слова, легко запоминающееся)
 2. Вторая строка - заголовок hero секции ${getWordRange('HERO', 'title')}
 3. Третья строка - описание ${getWordRange('HERO', 'description')}
@@ -2399,7 +3166,9 @@ const AiParser = ({
 === КОНЕЦ РАЗДЕЛА ===\n\n`;
 
     if (settings.includedSections.ABOUT) {
-      sectionsPrompt += `=== РАЗДЕЛ: О НАС ===
+      const sectionName = getSectionNameForPrompt('ABOUT');
+      sectionsPrompt += `=== РАЗДЕЛ: ${sectionName} ===
+⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('ABOUT')} (подходящее имя на английском языке, максимум 2 слова)
 [Заголовок раздела ${getWordRange('ABOUT', 'sectionTitle')}]
 [Описание раздела ${getWordRange('ABOUT', 'sectionDescription')}]
 
@@ -2414,8 +3183,9 @@ const AiParser = ({
     }
 
     if (settings.includedSections.SERVICES) {
-      sectionsPrompt += `=== РАЗДЕЛ: УСЛУГИ ===
-ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('SERVICES')} ===
+⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('SERVICES')} (подходящее имя на английском языке, максимум 2 слова)
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
 [Заголовок раздела ${getWordRange('SERVICES', 'sectionTitle')}]
 [Описание раздела ${getWordRange('SERVICES', 'sectionDescription')}]
 
@@ -2439,8 +3209,9 @@ ID: [название секции на ${languageName}, при этом бук�
     }
 
     if (settings.includedSections.FEATURES) {
-      sectionsPrompt += `=== РАЗДЕЛ: ПРЕИМУЩЕСТВА ===
-ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('FEATURES')} ===
+⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('FEATURES')} (подходящее имя на английском языке, максимум 2 слова)
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
 [Заголовок раздела ${getWordRange('FEATURES', 'sectionTitle')}]
 [Описание раздела ${getWordRange('FEATURES', 'sectionDescription')}]
 
@@ -2460,8 +3231,9 @@ ID: [название секции на ${languageName}, при этом бук�
     }
 
     if (settings.includedSections.NEWS) {
-      sectionsPrompt += `=== РАЗДЕЛ: НОВОСТИ ===
-ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('NEWS')} ===
+⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('NEWS')} (подходящее имя на английском языке, максимум 2 слова)
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
 [Заголовок раздела ${getWordRange('NEWS', 'sectionTitle')}]
 [Описание раздела ${getWordRange('NEWS', 'sectionDescription')}]
 
@@ -2481,8 +3253,9 @@ ID: [название секции на ${languageName}, при этом бук�
     }
 
     if (settings.includedSections.FAQ) {
-      sectionsPrompt += `=== РАЗДЕЛ: ВОПРОСЫ ===
-ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('FAQ')} ===
+⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('FAQ')} (подходящее имя на английском языке, максимум 2 слова)
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
 [Заголовок раздела ${getWordRange('FAQ', 'sectionTitle')}]
 [Описание раздела ${getWordRange('FAQ', 'sectionDescription')}]
 
@@ -2498,8 +3271,9 @@ ID: [название секции на ${languageName}, при этом бук�
     }
 
     if (settings.includedSections.TESTIMONIALS) {
-      sectionsPrompt += `=== РАЗДЕЛ: ОТЗЫВЫ ===
-ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('TESTIMONIALS')} ===
+⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('TESTIMONIALS')} (подходящее имя на английском языке, максимум 2 слова)
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
 [Заголовок раздела ${getWordRange('TESTIMONIALS', 'sectionTitle')}]
 [Описание раздела ${getWordRange('TESTIMONIALS', 'sectionDescription')}]
 
@@ -2523,8 +3297,9 @@ ID: [название секции на ${languageName}, при этом бук�
     }
 
     if (settings.includedSections.UNIVERSAL) {
-      sectionsPrompt += `=== РАЗДЕЛ: УНИВЕРСАЛЬНАЯ СЕКЦИЯ ===
-ID: [короткое название секции на ${languageName}, желательно одно слово, при этом буквы "ID" всегда на английском]
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('UNIVERSAL')} ===
+⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('UNIVERSAL')} (подходящее имя на английском языке, максимум 2 слова)
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
 [Заголовок раздела ${getWordRange('UNIVERSAL', 'sectionTitle')}]
 [Описание раздела ${getWordRange('UNIVERSAL', 'sectionDescription')}]
 
@@ -2544,7 +3319,8 @@ ID: [короткое название секции на ${languageName}, жел
     }
 
     if (settings.includedSections.CONTACTS) {
-      sectionsPrompt += `=== РАЗДЕЛ: КОНТАКТЫ ===
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('CONTACTS')} ===
+⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('CONTACTS')} (подходящее имя на английском языке, максимум 2 слова)
 [Заголовок раздела на выбранном языке]
 
 ([Описание на выбранном языке, 15-20 слов, пример: "Свяжитесь с нами для оформления заявки или получения бесплатной консультации по вашему вопросу"])
@@ -2588,7 +3364,7 @@ info@company.com
     }
 
     if (settings.includedSections.MERCI) {
-      sectionsPrompt += `=== РАЗДЕЛ: MERCI ===
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('MERCI')} ===
 [Текст сообщения на выбранном языке, пример: "Спасибо за обращение, с вами свяжется в ближайшее время наш специалист"]
 
 [Текст кнопки на выбранном языке, пример: "Закрыть"]
@@ -2597,7 +3373,7 @@ info@company.com
     }
 
     if (settings.includedSections.LEGAL) {
-      sectionsPrompt += `=== РАЗДЕЛ: ПРАВОВЫЕ ДОКУМЕНТЫ ===
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('LEGAL')} ===
 Создайте три юридических документа для сайта:
 - Политика конфиденциальности (Privacy Policy)
 - Пользовательское соглашение (Terms of Use)
@@ -2786,11 +3562,19 @@ info@company.com
   };
 
   // Улучшенная функция генерации промпта полного сайта (без правовых документов)
-  const generateOptimizedFullSitePrompt = (settings) => {
+  const generateOptimizedFullSitePrompt = (settings, getSectionLabelFn = null) => {
     const getWordRange = (section, field) => {
       const range = settings.wordRanges[section]?.[field];
       if (!range) return '';
       return `(${range.min}-${range.max} слов)`;
+    };
+
+    // Функция для получения названия раздела для промта
+    const getSectionNameForPrompt = (section) => {
+      if (getSectionLabelFn) {
+        return getSectionLabelFn(section);
+      }
+      return getSectionLabel(section);
     };
 
     // Получаем информацию о выбранном языке из глобальных настроек
@@ -2815,13 +3599,14 @@ info@company.com
 === КОНЕЦ РАЗДЕЛА ===
 
 ВАЖНО: 
-1. Каждый раздел ОБЯЗАТЕЛЬНО должен заканчиваться "=== КОНЕЦ РАЗДЕЛА ==="
-2. ОБЯЗАТЕЛЬНО указывайте ключевое слово "ТИП:" перед каждым AI элементом!
+1. ⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE - для КАЖДОГО раздела указывайте имя HTML страницы на английском языке (например: "about-us", "services", "contact", "get-in-touch"). ЭТО ПОЛЕ ОБЯЗАТЕЛЬНО ДЛЯ ВСЕХ РАЗДЕЛОВ!
+2. Каждый раздел ОБЯЗАТЕЛЬНО должен заканчиваться "=== КОНЕЦ РАЗДЕЛА ==="
+3. ОБЯЗАТЕЛЬНО указывайте ключевое слово "ТИП:" перед каждым AI элементом!
 
 `;
 
     // Добавляем Hero секцию
-    sectionsPrompt += `=== РАЗДЕЛ: HERO ===
+    sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('HERO')} ===
 1. Название сайта (1-2 слова)
 2. Заголовок hero секции ${getWordRange('HERO', 'title')}
 3. Описание ${getWordRange('HERO', 'description')}
@@ -2831,7 +3616,8 @@ info@company.com
 
     // Добавляем остальные секции с новым форматом AI элементов
     if (settings.includedSections.ABOUT) {
-      sectionsPrompt += `=== РАЗДЕЛ: О НАС ===
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('ABOUT')} ===
+⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('ABOUT')} (подходящее имя на английском языке, максимум 2 слова)
 [Заголовок ${getWordRange('ABOUT', 'sectionTitle')}]
 [Описание ${getWordRange('ABOUT', 'sectionDescription')}]
 
@@ -2848,8 +3634,9 @@ info@company.com
     }
 
     if (settings.includedSections.SERVICES) {
-      sectionsPrompt += `=== РАЗДЕЛ: УСЛУГИ ===
-ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('SERVICES')} ===
+⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('SERVICES')} (подходящее имя на английском языке, максимум 2 слова)
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
 [Заголовок ${getWordRange('SERVICES', 'sectionTitle')}]
 [Описание ${getWordRange('SERVICES', 'sectionDescription')}]
 
@@ -2869,8 +3656,9 @@ ID: [название секции на ${languageName}, при этом бук�
     }
 
     if (settings.includedSections.FEATURES) {
-      sectionsPrompt += `=== РАЗДЕЛ: ПРЕИМУЩЕСТВА ===
-ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('FEATURES')} ===
+⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('FEATURES')} (подходящее имя на английском языке, максимум 2 слова)
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
 [Заголовок ${getWordRange('FEATURES', 'sectionTitle')}]
 [Описание ${getWordRange('FEATURES', 'sectionDescription')}]
 
@@ -2882,8 +3670,9 @@ ID: [название секции на ${languageName}, при этом бук�
     }
 
     if (settings.includedSections.NEWS) {
-      sectionsPrompt += `=== РАЗДЕЛ: НОВОСТИ ===
-ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('NEWS')} ===
+⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('NEWS')} (подходящее имя на английском языке, максимум 2 слова)
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
 [Заголовок ${getWordRange('NEWS', 'sectionTitle')}]
 [Описание ${getWordRange('NEWS', 'sectionDescription')}]
 
@@ -2895,8 +3684,9 @@ ID: [название секции на ${languageName}, при этом бук�
     }
 
     if (settings.includedSections.FAQ) {
-      sectionsPrompt += `=== РАЗДЕЛ: ВОПРОСЫ ===
-ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('FAQ')} ===
+⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('FAQ')} (подходящее имя на английском языке, максимум 2 слова)
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
 [Заголовок ${getWordRange('FAQ', 'sectionTitle')}]
 [Описание ${getWordRange('FAQ', 'sectionDescription')}]
 
@@ -2908,8 +3698,9 @@ ID: [название секции на ${languageName}, при этом бук�
     }
 
     if (settings.includedSections.TESTIMONIALS) {
-      sectionsPrompt += `=== РАЗДЕЛ: ОТЗЫВЫ ===
-ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('TESTIMONIALS')} ===
+⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('TESTIMONIALS')} (подходящее имя на английском языке, максимум 2 слова)
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
 [Заголовок ${getWordRange('TESTIMONIALS', 'sectionTitle')}]
 [Описание ${getWordRange('TESTIMONIALS', 'sectionDescription')}]
 
@@ -2921,8 +3712,9 @@ ID: [название секции на ${languageName}, при этом бук�
     }
 
     if (settings.includedSections.UNIVERSAL) {
-      sectionsPrompt += `=== РАЗДЕЛ: УНИВЕРСАЛЬНАЯ СЕКЦИЯ ===
-ID: [короткое название секции на ${languageName}, желательно одно слово, при этом буквы "ID" всегда на английском]
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('UNIVERSAL')} ===
+⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('UNIVERSAL')} (подходящее имя на английском языке, максимум 2 слова)
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
 [Заголовок ${getWordRange('UNIVERSAL', 'sectionTitle')}]
 [Описание ${getWordRange('UNIVERSAL', 'sectionDescription')}]
 
@@ -2934,7 +3726,8 @@ ID: [короткое название секции на ${languageName}, жел
     }
 
     if (settings.includedSections.CONTACTS) {
-      sectionsPrompt += `=== РАЗДЕЛ: КОНТАКТЫ ===
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('CONTACTS')} ===
+⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('CONTACTS')} (подходящее имя на английском языке, максимум 2 слова)
 [Заголовок на выбранном языке]
 
 ([Описание, 15-20 слов])
@@ -2962,7 +3755,7 @@ ID: [короткое название секции на ${languageName}, жел
     }
 
     if (settings.includedSections.MERCI) {
-      sectionsPrompt += `=== РАЗДЕЛ: MERCI ===
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('MERCI')} ===
 [Текст сообщения на выбранном языке, пример: "Спасибо за обращение, с вами свяжется в ближайшее время наш специалист"]
 
 [Текст кнопки на выбранном языке, пример: "Закрыть"]
@@ -2973,8 +3766,9 @@ ID: [короткое название секции на ${languageName}, жел
     }
 
     if (settings.includedSections.UNIVERSAL) {
-      sectionsPrompt += `=== РАЗДЕЛ: УНИВЕРСАЛЬНАЯ СЕКЦИЯ ===
-ID: [короткое название секции на ${languageName}, желательно одно слово, при этом буквы "ID" всегда на английском]
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('UNIVERSAL')} ===
+⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('UNIVERSAL')} (подходящее имя на английском языке, максимум 2 слова)
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
 [Заголовок ${getWordRange('UNIVERSAL', 'sectionTitle')}]
 [Описание ${getWordRange('UNIVERSAL', 'sectionDescription')}]
 
@@ -2997,11 +3791,19 @@ ID: [короткое название секции на ${languageName}, жел
   };
 
   // Функция генерации базового промпта БЕЗ предустановленных элементов
-  const generateBasicFullSitePrompt = (settings) => {
+  const generateBasicFullSitePrompt = (settings, getSectionLabelFn = null) => {
     const getWordRange = (section, field) => {
       const range = settings.wordRanges[section]?.[field];
       if (!range) return '';
       return `(${range.min}-${range.max} слов)`;
+    };
+
+    // Функция для получения названия раздела для промта
+    const getSectionNameForPrompt = (section) => {
+      if (getSectionLabelFn) {
+        return getSectionLabelFn(section);
+      }
+      return getSectionLabel(section);
     };
 
     // Получаем информацию о выбранном языке из глобальных настроек
@@ -3020,11 +3822,12 @@ ID: [короткое название секции на ${languageName}, жел
 
 КРИТИЧЕСКИ ВАЖНО: 
 1. Весь контент, включая ID секций, ДОЛЖЕН быть на одном языке (который указан в настройках)
-2. ID секций: буквы "ID" всегда на английском языке, название секции после двоеточия - на ${languageName}
-3. Не использовать смешанные языки или транслитерацию
-4. КАЖДЫЙ раздел ОБЯЗАТЕЛЬНО должен начинаться с "=== РАЗДЕЛ: ИМЯ ===" и ОБЯЗАТЕЛЬНО заканчиваться "=== КОНЕЦ РАЗДЕЛА ==="
-5. НЕ ИСПОЛЬЗУЙТЕ символы экранирования (\) перед разделителями === 
-6. ОБЯЗАТЕЛЬНО указывайте ключевое слово "ТИП:" перед каждым AI элементом!
+2. ⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE - для КАЖДОГО раздела указывайте имя HTML страницы на английском языке, подходящее под название раздела (максимум 2 слова, через дефис). ЭТО ПОЛЕ ОБЯЗАТЕЛЬНО ДЛЯ ВСЕХ РАЗДЕЛОВ!
+3. ID секций: буквы "ID" всегда на английском языке, название секции после двоеточия - на ${languageName}
+4. Не использовать смешанные языки или транслитерацию
+5. КАЖДЫЙ раздел ОБЯЗАТЕЛЬНО должен начинаться с "=== РАЗДЕЛ: ИМЯ ===" и ОБЯЗАТЕЛЬНО заканчиваться "=== КОНЕЦ РАЗДЕЛА ==="
+6. НЕ ИСПОЛЬЗУЙТЕ символы экранирования (\) перед разделителями === 
+7. ОБЯЗАТЕЛЬНО указывайте ключевое слово "ТИП:" перед каждым AI элементом!
 
 AI ЭЛЕМЕНТЫ - ИСПОЛЬЗУЙТЕ ТОЛЬКО ВЫБРАННЫЕ:
 
@@ -3033,14 +3836,15 @@ AI ЭЛЕМЕНТЫ - ИСПОЛЬЗУЙТЕ ТОЛЬКО ВЫБРАННЫЕ:
 \n\n`;
 
     // Добавляем Hero секцию в начало
-    sectionsPrompt += `=== РАЗДЕЛ: HERO ===
+    sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('HERO')} ===
 1. Первая строка - название сайта (1-2 слова)
 2. Вторая строка - заголовок hero секции ${getWordRange('HERO', 'title')}
 3. Третья строка - описание ${getWordRange('HERO', 'description')}
 === КОНЕЦ РАЗДЕЛА ===\n\n`;
 
     if (settings.includedSections.ABOUT) {
-      sectionsPrompt += `=== РАЗДЕЛ: О НАС ===
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('ABOUT')} ===
+⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('ABOUT')} (подходящее имя на английском языке, максимум 2 слова)
 [Заголовок раздела ${getWordRange('ABOUT', 'sectionTitle')}]
 [Описание раздела ${getWordRange('ABOUT', 'sectionDescription')}]
 
@@ -3049,8 +3853,9 @@ AI ЭЛЕМЕНТЫ - ИСПОЛЬЗУЙТЕ ТОЛЬКО ВЫБРАННЫЕ:
     }
 
     if (settings.includedSections.SERVICES) {
-      sectionsPrompt += `=== РАЗДЕЛ: УСЛУГИ ===
-ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('SERVICES')} ===
+⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('SERVICES')} (подходящее имя на английском языке, максимум 2 слова)
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
 [Заголовок раздела ${getWordRange('SERVICES', 'sectionTitle')}]
 [Описание раздела ${getWordRange('SERVICES', 'sectionDescription')}]
 
@@ -3059,8 +3864,9 @@ ID: [название секции на ${languageName}, при этом бук�
     }
 
     if (settings.includedSections.FEATURES) {
-      sectionsPrompt += `=== РАЗДЕЛ: ПРЕИМУЩЕСТВА ===
-ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('FEATURES')} ===
+⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('FEATURES')} (подходящее имя на английском языке, максимум 2 слова)
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
 [Заголовок раздела ${getWordRange('FEATURES', 'sectionTitle')}]
 [Описание раздела ${getWordRange('FEATURES', 'sectionDescription')}]
 
@@ -3069,8 +3875,9 @@ ID: [название секции на ${languageName}, при этом бук�
     }
 
     if (settings.includedSections.NEWS) {
-      sectionsPrompt += `=== РАЗДЕЛ: НОВОСТИ ===
-ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('NEWS')} ===
+⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('NEWS')} (подходящее имя на английском языке, максимум 2 слова)
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
 [Заголовок раздела ${getWordRange('NEWS', 'sectionTitle')}]
 [Описание раздела ${getWordRange('NEWS', 'sectionDescription')}]
 
@@ -3079,8 +3886,9 @@ ID: [название секции на ${languageName}, при этом бук�
     }
 
     if (settings.includedSections.UNIVERSAL) {
-      sectionsPrompt += `=== РАЗДЕЛ: УНИВЕРСАЛЬНАЯ СЕКЦИЯ ===
-ID: [короткое название секции на ${languageName}, желательно одно слово, при этом буквы "ID" всегда на английском]
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('UNIVERSAL')} ===
+⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('UNIVERSAL')} (подходящее имя на английском языке, максимум 2 слова)
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
 [Заголовок раздела ${getWordRange('UNIVERSAL', 'sectionTitle')}]
 [Описание раздела ${getWordRange('UNIVERSAL', 'sectionDescription')}]
 
@@ -3089,8 +3897,9 @@ ID: [короткое название секции на ${languageName}, жел
     }
 
     if (settings.includedSections.FAQ) {
-      sectionsPrompt += `=== РАЗДЕЛ: ВОПРОСЫ ===
-ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('FAQ')} ===
+⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('FAQ')} (подходящее имя на английском языке, максимум 2 слова)
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
 [Заголовок раздела ${getWordRange('FAQ', 'sectionTitle')}]
 [Описание раздела ${getWordRange('FAQ', 'sectionDescription')}]
 
@@ -3099,8 +3908,9 @@ ID: [название секции на ${languageName}, при этом бук�
     }
 
     if (settings.includedSections.TESTIMONIALS) {
-      sectionsPrompt += `=== РАЗДЕЛ: ОТЗЫВЫ ===
-ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('TESTIMONIALS')} ===
+⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('TESTIMONIALS')} (подходящее имя на английском языке, максимум 2 слова)
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
 [Заголовок раздела ${getWordRange('TESTIMONIALS', 'sectionTitle')}]
 [Описание раздела ${getWordRange('TESTIMONIALS', 'sectionDescription')}]
 
@@ -3109,7 +3919,8 @@ ID: [название секции на ${languageName}, при этом бук�
     }
 
     if (settings.includedSections.CONTACTS) {
-      sectionsPrompt += `=== РАЗДЕЛ: КОНТАКТЫ ===
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('CONTACTS')} ===
+⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('CONTACTS')} (подходящее имя на английском языке, максимум 2 слова)
 [Заголовок раздела на выбранном языке]
 ([Описание на выбранном языке, 15-20 слов])
 [Полный адрес в стандартном формате страны]
@@ -3119,7 +3930,7 @@ ID: [название секции на ${languageName}, при этом бук�
     }
 
     if (settings.includedSections.MERCI) {
-      sectionsPrompt += `=== РАЗДЕЛ: MERCI ===
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('MERCI')} ===
 [Текст сообщения на выбранном языке]
 [Текст кнопки на выбранном языке]
 === КОНЕЦ РАЗДЕЛА ===\n\n`;
@@ -3137,15 +3948,57 @@ ID: [название секции на ${languageName}, при этом бук�
   };
 
   // Функция генерации промпта с выбранными элементами для полного сайта  
-  const generateFullSitePromptWithElements = (settings, selectedElements, customPrompts = {}, elementSettings = {}) => {
+  const generateFullSitePromptWithElements = (settings, selectedElements, customPrompts = {}, elementSettings = {}, getSectionLabelFn = null) => {
     console.log('[generateFullSitePromptWithElements] Called with selectedElements:', selectedElements);
     console.log('[generateFullSitePromptWithElements] Custom prompts count:', Object.keys(customPrompts).length);
+
+    // Функция для получения названия раздела для промта
+    const getSectionNameForPrompt = (section) => {
+      if (getSectionLabelFn) {
+        return getSectionLabelFn(section);
+      }
+      return getSectionLabel(section);
+    };
+
+    // Функция для генерации NAME PAGE на основе названия раздела
+    const generateNamePage = (section) => {
+      const sectionName = getSectionNameForPrompt(section);
+      
+      // Словарь для перевода русских названий в английские
+      const translations = {
+        'О нас': 'about-us',
+        'Услуги': 'services', 
+        'Преимущества': 'features',
+        'Новости': 'news',
+        'Вопросы и ответы': 'faq',
+        'Отзывы': 'testimonials',
+        'Контакты': 'contacts',
+        'Универсальная секция': 'universal',
+        'Hero секция': 'hero',
+        'Сообщение благодарности': 'thank-you',
+        'Правовые документы': 'legal'
+      };
+      
+      // Если есть точный перевод, используем его
+      if (translations[sectionName]) {
+        return translations[sectionName];
+      }
+      
+      // Иначе генерируем на основе названия (максимум 2 слова)
+      const words = sectionName.toLowerCase()
+        .replace(/[^\w\s]/g, '') // убираем знаки препинания
+        .split(/\s+/)
+        .filter(word => word.length > 0)
+        .slice(0, 2); // берем максимум 2 слова
+      
+      return words.join('-');
+    };
     console.log('[generateFullSitePromptWithElements] Element settings:', elementSettings);
     
     if (selectedElements.GLOBAL && selectedElements.GLOBAL.size > 0) {
       // Если элементы выбраны, используем базовый промпт БЕЗ предустановленных элементов
       console.log('[generateFullSitePromptWithElements] Using custom elements, generating basic prompt');
-      let basePrompt = generateBasicFullSitePrompt(settings);
+      let basePrompt = generateBasicFullSitePrompt(settings, getSectionLabelFn);
       
       basePrompt += 'AI ЭЛЕМЕНТЫ:\n';
       basePrompt += 'Используйте ВСЕ выбранные элементы минимум 1 раз каждый.\n\n';
@@ -3262,18 +4115,60 @@ ID: [название секции на ${languageName}, при этом бук�
       return basePrompt;
     } else {
       // Если элементы не выбраны, используем стандартный промпт с предустановленными элементами
-      return generateFullSitePrompt(settings);
+      return generateFullSitePrompt(settings, getSectionLabelFn);
     }
     
     return basePrompt;
   };
 
   // Функция генерации оптимизированного промпта с выбранными элементами
-  const generateManualElementsPrompt = (settings, selectedElements, customPrompts = {}, elementSettings = {}) => {
+  const generateManualElementsPrompt = (settings, selectedElements, customPrompts = {}, elementSettings = {}, getSectionLabelFn = null, defaultLabels = {}) => {
     const getWordRange = (section, field) => {
       const range = settings.wordRanges[section]?.[field];
       if (!range) return '';
       return `(${range.min}-${range.max} слов)`;
+    };
+
+    // Функция для получения названия раздела для промта
+    const getSectionNameForPrompt = (section) => {
+      if (getSectionLabelFn) {
+        return getSectionLabelFn(section);
+      }
+      return defaultLabels[section] || section;
+    };
+
+    // Функция для генерации NAME PAGE на основе названия раздела
+    const generateNamePage = (section) => {
+      const sectionName = getSectionNameForPrompt(section);
+      
+      // Словарь для перевода русских названий в английские
+      const translations = {
+        'О нас': 'about-us',
+        'Услуги': 'services', 
+        'Преимущества': 'features',
+        'Новости': 'news',
+        'Вопросы и ответы': 'faq',
+        'Отзывы': 'testimonials',
+        'Контакты': 'contacts',
+        'Универсальная секция': 'universal',
+        'Hero секция': 'hero',
+        'Сообщение благодарности': 'thank-you',
+        'Правовые документы': 'legal'
+      };
+      
+      // Если есть точный перевод, используем его
+      if (translations[sectionName]) {
+        return translations[sectionName];
+      }
+      
+      // Иначе генерируем на основе названия (максимум 2 слова)
+      const words = sectionName.toLowerCase()
+        .replace(/[^\w\s]/g, '') // убираем знаки препинания
+        .split(/\s+/)
+        .filter(word => word.length > 0)
+        .slice(0, 2); // берем максимум 2 слова
+      
+      return words.join('-');
     };
 
     // Функция для генерации полного промпта элемента
@@ -3304,7 +4199,7 @@ ID: [название секции на ${languageName}, при этом бук�
         
         // Если нашли начало, продолжаем собирать пример
         if (foundExample) {
-          if (line.includes('ЗАГОЛОВОК:') || line.includes('СОДЕРЖИМОЕ:') || 
+          if (line.includes('ЗАГОЛОВОК:') || line.includes('ОПИСАНИЕ:') || line.includes('СОДЕРЖИМОЕ:') || 
               line.includes('ФОРМАТ:') || line.includes('НАБОР_ДАННЫХ') ||
               line.includes('МЕТКИ_ОСИ') || line.includes('ТИП_ВЫНОСКИ:') ||
               line.includes('ЛИНИЯ_1:') || line.includes('ЛИНИЯ_2:') ||
@@ -3387,7 +4282,7 @@ ID: [название секции на ${languageName}, при этом бук�
 
     // Генерируем разделы с ручным выбором элементов (исключая стандартные)
     if (settings.includedSections.HERO) {
-      sectionsPrompt += `=== РАЗДЕЛ: HERO ===
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('HERO')} ===
 Требуемый формат:
 1. Первая строка - название сайта
 - Максимум 2 слова
@@ -3425,8 +4320,9 @@ ID: [название секции на ${languageName}, при этом бук�
       const aboutElements = Array.from(selectedElements.ABOUT || []);
       console.log(`[generateManualElementsPrompt] ABOUT section elements:`, aboutElements);
       
-      sectionsPrompt += `=== РАЗДЕЛ: О НАС ===
-ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('ABOUT')} ===
+⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('ABOUT')} (подходящее имя на английском языке, максимум 2 слова)
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
 [Заголовок раздела ${getWordRange('ABOUT', 'sectionTitle')}]
 [Описание раздела ${getWordRange('ABOUT', 'sectionDescription')}]
 
@@ -3438,8 +4334,9 @@ ${aboutElements.map(element => generateElementPrompt(element)).join('\n\n')}
     if (settings.includedSections.SERVICES) {
       const servicesElements = Array.from(selectedElements.SERVICES || []);
       
-      sectionsPrompt += `=== РАЗДЕЛ: УСЛУГИ ===
-ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('SERVICES')} ===
+⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('SERVICES')} (подходящее имя на английском языке, максимум 2 слова)
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
 [Заголовок раздела ${getWordRange('SERVICES', 'sectionTitle')}]
 [Описание раздела ${getWordRange('SERVICES', 'sectionDescription')}]
 
@@ -3451,8 +4348,9 @@ ${servicesElements.map(element => generateElementPrompt(element)).join('\n\n')}
     if (settings.includedSections.FEATURES) {
       const featuresElements = Array.from(selectedElements.FEATURES || []);
       
-      sectionsPrompt += `=== РАЗДЕЛ: ПРЕИМУЩЕСТВА ===
-ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('FEATURES')} ===
+⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('FEATURES')} (подходящее имя на английском языке, максимум 2 слова)
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
 [Заголовок раздела ${getWordRange('FEATURES', 'sectionTitle')}]
 [Описание раздела ${getWordRange('FEATURES', 'sectionDescription')}]
 
@@ -3464,8 +4362,9 @@ ${featuresElements.map(element => generateElementPrompt(element)).join('\n\n')}
     if (settings.includedSections.NEWS) {
       const newsElements = Array.from(selectedElements.NEWS || []);
       
-      sectionsPrompt += `=== РАЗДЕЛ: НОВОСТИ ===
-ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('NEWS')} ===
+⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('NEWS')} (подходящее имя на английском языке, максимум 2 слова)
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
 [Заголовок раздела ${getWordRange('NEWS', 'sectionTitle')}]
 [Описание раздела ${getWordRange('NEWS', 'sectionDescription')}]
 
@@ -3477,8 +4376,9 @@ ${newsElements.map(element => generateElementPrompt(element)).join('\n\n')}
     if (settings.includedSections.FAQ) {
       const faqElements = Array.from(selectedElements.FAQ || []);
       
-      sectionsPrompt += `=== РАЗДЕЛ: ВОПРОСЫ ===
-ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('FAQ')} ===
+⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('FAQ')} (подходящее имя на английском языке, максимум 2 слова)
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
 [Заголовок раздела ${getWordRange('FAQ', 'sectionTitle')}]
 [Описание раздела ${getWordRange('FAQ', 'sectionDescription')}]
 
@@ -3490,8 +4390,9 @@ ${faqElements.map(element => generateElementPrompt(element)).join('\n\n')}
     if (settings.includedSections.TESTIMONIALS) {
       const testimonialsElements = Array.from(selectedElements.TESTIMONIALS || []);
       
-      sectionsPrompt += `=== РАЗДЕЛ: ОТЗЫВЫ ===
-ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('TESTIMONIALS')} ===
+⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('TESTIMONIALS')} (подходящее имя на английском языке, максимум 2 слова)
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
 [Заголовок раздела ${getWordRange('TESTIMONIALS', 'sectionTitle')}]
 [Описание раздела ${getWordRange('TESTIMONIALS', 'sectionDescription')}]
 
@@ -3505,8 +4406,9 @@ ${testimonialsElements.map(element => generateElementPrompt(element)).join('\n\n
     if (settings.includedSections.UNIVERSAL) {
       const universalElements = Array.from(selectedElements.UNIVERSAL || []);
       
-      sectionsPrompt += `=== РАЗДЕЛ: УНИВЕРСАЛЬНАЯ СЕКЦИЯ ===
-ID: [короткое название секции на ${languageName}, желательно одно слово, при этом буквы "ID" всегда на английском]
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('UNIVERSAL')} ===
+⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('UNIVERSAL')} (подходящее имя на английском языке, максимум 2 слова)
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
 [Заголовок раздела ${getWordRange('UNIVERSAL', 'sectionTitle')}]
 [Описание раздела ${getWordRange('UNIVERSAL', 'sectionDescription')}]
 
@@ -3519,7 +4421,8 @@ ${universalElements.map(element => generateElementPrompt(element)).join('\n\n')}
 
     // Стандартные разделы без выбора элементов
     if (settings.includedSections.CONTACTS) {
-      sectionsPrompt += `=== РАЗДЕЛ: КОНТАКТЫ ===
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('CONTACTS')} ===
+⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('CONTACTS')} (подходящее имя на английском языке, максимум 2 слова)
 Требуемый формат:
 1. Первая строка - заголовок "Контакты" (используется язык основного контента)
 2. Вторая строка - пустая
@@ -3592,8 +4495,9 @@ info@your-law.com
     }
 
     if (settings.includedSections.LEGAL) {
-      sectionsPrompt += `=== РАЗДЕЛ: ПРАВОВЫЕ ДОКУМЕНТЫ ===
-ID: [название секции на ${languageName}, при этом буквы "ID" всегда на английском]
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('LEGAL')} ===
+NAME PAGE: legal-documents
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
 
 Создайте следующие документы:
 1. Политика конфиденциальности (1200-2000 слов)
@@ -3621,15 +4525,23 @@ ID: [название секции на ${languageName}, при этом бук�
     return sectionsPrompt;
   };
 
-  const generateOptimizedFullSitePromptWithElements = (settings, selectedElements, customPrompts = {}, elementSettings = {}) => {
+  const generateOptimizedFullSitePromptWithElements = (settings, selectedElements, customPrompts = {}, elementSettings = {}, getSectionLabelFn = null) => {
     console.log('[generateOptimizedFullSitePromptWithElements] Called with selectedElements:', selectedElements);
     console.log('[generateOptimizedFullSitePromptWithElements] Custom prompts count:', Object.keys(customPrompts).length);
     console.log('[generateOptimizedFullSitePromptWithElements] Element settings:', elementSettings);
+
+    // Функция для получения названия раздела для промта
+    const getSectionNameForPrompt = (section) => {
+      if (getSectionLabelFn) {
+        return getSectionLabelFn(section);
+      }
+      return getSectionLabel(section);
+    };
     
     if (selectedElements.GLOBAL && selectedElements.GLOBAL.size > 0) {
       // Если элементы выбраны, используем базовый промпт БЕЗ предустановленных элементов
       console.log('[generateOptimizedFullSitePromptWithElements] Using custom elements, generating basic prompt');
-      let basePrompt = generateBasicFullSitePrompt(settings);
+      let basePrompt = generateBasicFullSitePrompt(settings, getSectionLabelFn);
       
       basePrompt += 'AI ЭЛЕМЕНТЫ (ОПТИМИЗИРОВАННЫЙ):\n';
       basePrompt += 'Используйте ВСЕ выбранные элементы минимум 1 раз каждый.\n\n';
@@ -3746,7 +4658,7 @@ ID: [название секции на ${languageName}, при этом бук�
       return basePrompt;
     } else {
       // Если элементы не выбраны, используем стандартный оптимизированный промпт
-      return generateOptimizedFullSitePrompt(settings);
+      return generateOptimizedFullSitePrompt(settings, getSectionLabelFn);
     }
   };
 
@@ -3777,11 +4689,20 @@ ID: [название секции на ${languageName}, при этом бук�
   };
   
   // Функция для обработки сохранения настроек промпта полного сайта
-  const handleFullSiteSettingsSave = (settings, promptType = 'full', selectedElements = {}, customPrompts = {}, elementSettings = {}, currentStep = 1) => {
+  const handleFullSiteSettingsSave = (settings, promptType = 'full', selectedElements = {}, customPrompts = {}, elementSettings = {}, currentStep = 1, receivedCustomSectionLabels = {}) => {
     console.log('[handleFullSiteSettingsSave] Received selectedElements:', selectedElements);
     console.log('[handleFullSiteSettingsSave] promptType:', promptType);
     console.log('[handleFullSiteSettingsSave] customPrompts:', customPrompts);
     console.log('[handleFullSiteSettingsSave] elementSettings:', elementSettings);
+    console.log('[handleFullSiteSettingsSave] receivedCustomSectionLabels:', receivedCustomSectionLabels);
+    
+    // Обновляем состояние с полученными пользовательскими названиями разделов
+    setCustomSectionLabels(receivedCustomSectionLabels);
+    
+    // Создаем функцию getSectionLabel с актуальными данными
+    const getSectionLabelWithData = (section) => {
+      return receivedCustomSectionLabels[section] || defaultSectionLabels[section];
+    };
     
     setFullSiteSettings(settings);
     
@@ -3794,14 +4715,14 @@ ID: [название секции на ${languageName}, при этом бук�
     } else if (promptType === 'optimized') {
       // Генерируем оптимизированный промпт без правовых документов с учетом выбранных элементов
       console.log('[handleFullSiteSettingsSave] Calling generateOptimizedFullSitePromptWithElements with elements:', Array.from(selectedElements));
-      const optimizedPrompt = generateOptimizedFullSitePromptWithElements(settings, selectedElements, customPrompts, elementSettings);
+      const optimizedPrompt = generateOptimizedFullSitePromptWithElements(settings, selectedElements, customPrompts, elementSettings, getSectionLabelWithData);
       finalPrompt = applyGlobalSettings(optimizedPrompt);
       const totalElements = Object.values(selectedElements).reduce((sum, sectionElements) => sum + (sectionElements?.size || 0), 0);
       setParserMessage(`Оптимизированный промпт полного сайта с ${totalElements} элементами скопирован в буфер обмена.`);
     } else if (promptType === 'manual_elements') {
       // Генерируем промпт с ручным выбором элементов, исключая стандартные разделы
       console.log('[handleFullSiteSettingsSave] Calling generateManualElementsPrompt with elements:', Array.from(selectedElements));
-      const manualPrompt = generateManualElementsPrompt(settings, selectedElements, customPrompts, elementSettings);
+      const manualPrompt = generateManualElementsPrompt(settings, selectedElements, customPrompts, elementSettings, getSectionLabelWithData, defaultSectionLabels);
       finalPrompt = applyGlobalSettings(manualPrompt);
       
       const stepLabels = {
@@ -3815,7 +4736,7 @@ ID: [название секции на ${languageName}, при этом бук�
     } else {
       // Оригинальный полный промпт (по умолчанию) с учетом выбранных элементов
       console.log('[handleFullSiteSettingsSave] Calling generateFullSitePromptWithElements with elements:', Array.from(selectedElements));
-      const fullSitePrompt = generateFullSitePromptWithElements(settings, selectedElements, customPrompts, elementSettings);
+      const fullSitePrompt = generateFullSitePromptWithElements(settings, selectedElements, customPrompts, elementSettings, getSectionLabelWithData);
       finalPrompt = applyGlobalSettings(fullSitePrompt);
       const totalElements = Object.values(selectedElements).reduce((sum, sectionElements) => sum + (sectionElements?.size || 0), 0);
       setParserMessage(`Полный промпт сайта с ${totalElements} элементами скопирован в буфер обмена.`);
@@ -4008,6 +4929,2989 @@ ID: [название секции на ${languageName}, при этом бук�
     setEditingPromptText('');
   };
 
+  // Функция для сканирования и группировки всех элементов
+  const handleScanElementsWithSelection = () => {
+    try {
+      console.log('🔍 [AI Дизайн Система] Начинаем сканирование элементов для выбора...');
+      
+      const allElements = [];
+      const groups = {
+        'Текстовые элементы': [],
+        'Списки и цитаты': [],
+        'Блоки и карточки': [],
+        'Специальные элементы': []
+      };
+      
+      // Сканируем все секции
+      Object.entries(sectionsData).forEach(([sectionKey, sectionData]) => {
+        console.log(`🔍 [DEBUG] Сканируем секцию: ${sectionKey}`, sectionData);
+        if (sectionData?.elements && Array.isArray(sectionData.elements)) {
+          sectionData.elements.forEach((element, elementIndex) => {
+            const elementData = {
+              id: `${sectionKey}_${elementIndex}`,
+              sectionKey,
+              elementIndex,
+              type: element.type,
+              title: element.title || element.text || element.content || `${element.type} #${elementIndex + 1}`,
+              sectionTitle: sectionData.title || sectionKey,
+              currentStyles: element.colorSettings || {},
+              element: element
+            };
+            
+            console.log(`🔍 [DEBUG] Найден элемент: ${elementData.id} (${elementData.type}) - ${elementData.title}`);
+            allElements.push(elementData);
+            
+            // Группируем по типам
+            switch (element.type) {
+              case 'typography':
+              case 'rich-text':
+              case 'gradient-text':
+              case 'typewriter-text':
+              case 'highlight-text':
+                groups['Текстовые элементы'].push(elementData);
+                break;
+              case 'list':
+              case 'blockquote':
+                groups['Списки и цитаты'].push(elementData);
+                break;
+              case 'callout':
+              case 'basic-card':
+              case 'multiple-cards':
+              case 'testimonial-card':
+                groups['Блоки и карточки'].push(elementData);
+                break;
+              case 'animated-counter':
+                groups['Специальные элементы'].push(elementData);
+                break;
+              default:
+                groups['Специальные элементы'].push(elementData);
+            }
+          });
+        }
+      });
+      
+      // Сортируем элементы по порядку: сначала по секциям, потом по индексу
+      const sortedElements = allElements.sort((a, b) => {
+        // Сначала сортируем по названию секции
+        if (a.sectionKey !== b.sectionKey) {
+          return a.sectionKey.localeCompare(b.sectionKey);
+        }
+        // Потом по индексу элемента в секции
+        return a.elementIndex - b.elementIndex;
+      });
+      
+      // Пересортируем группы с учетом порядка
+      const sortedGroups = {};
+      Object.keys(groups).forEach(groupName => {
+        sortedGroups[groupName] = groups[groupName].sort((a, b) => {
+          if (a.sectionKey !== b.sectionKey) {
+            return a.sectionKey.localeCompare(b.sectionKey);
+          }
+          return a.elementIndex - b.elementIndex;
+        });
+      });
+      
+      setScannedElements(sortedElements);
+      setElementGroups(sortedGroups);
+      setShowElementSelector(true);
+      setSelectedElements(new Set()); // Очищаем выбор
+      
+      console.log(`🔍 Найдено ${sortedElements.length} элементов, сгруппированы в ${Object.keys(sortedGroups).length} категории`);
+      console.log(`🔍 Элементы отсортированы по порядку:`, sortedElements.map(el => `${el.sectionKey}_${el.elementIndex} (${el.type})`));
+      
+    } catch (error) {
+      console.error('❌ [AI Дизайн Система] Ошибка при сканировании элементов:', error);
+    }
+  };
+
+  // Функция для переключения выбора элемента
+  const toggleElementSelection = (elementId) => {
+    setSelectedElements(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(elementId)) {
+        newSet.delete(elementId);
+      } else {
+        newSet.add(elementId);
+      }
+      return newSet;
+    });
+  };
+
+  // Функция для выбора всех элементов в группе
+  const toggleGroupSelection = (groupName) => {
+    const groupElements = elementGroups[groupName] || [];
+    const groupIds = groupElements.map(el => el.id);
+    const allSelected = groupIds.every(id => selectedElements.has(id));
+    
+    setSelectedElements(prev => {
+      const newSet = new Set(prev);
+      if (allSelected) {
+        // Убираем все элементы группы
+        groupIds.forEach(id => newSet.delete(id));
+      } else {
+        // Добавляем все элементы группы
+        groupIds.forEach(id => newSet.add(id));
+      }
+      return newSet;
+    });
+  };
+
+  // Функция для генерации реальных цветов для JSON с учетом количества столбцов для bar-chart и advanced-line-chart
+  const getRealColorsForElementWithColumns = (elementType, element) => {
+    if (elementType === 'bar-chart') {
+      // Определяем количество столбцов из данных элемента
+      const barData = (element.data && element.data.data && Array.isArray(element.data.data.data)) ? element.data.data.data :
+                     (element.data && Array.isArray(element.data.data)) ? element.data.data :
+                     Array.isArray(element.data) ? element.data : [];
+      
+      const columnCount = barData.length || 8; // По умолчанию 8 столбцов
+      
+      // Генерируем цвета для каждого столбца
+      const generateChartColors = (count) => {
+        const baseColors = [
+          '#8b0000', '#a52a2a', '#b22222', '#dc143c', '#ff0000', 
+          '#ff4500', '#ff6347', '#ff7f50', '#ffa500', '#ffd700',
+          '#ffff00', '#adff2f', '#00ff00', '#00fa9a', '#00ced1',
+          '#00bfff', '#1e90ff', '#4169e1', '#8a2be2', '#9370db'
+        ];
+        
+        const chartColors = {};
+        const colorNames = ['primary', 'secondary', 'tertiary', 'quaternary', 'quinary', 'senary', 'septenary', 'octonary', 'nonary', 'denary', 'undenary', 'duodenary', 'tridenary', 'quattuordenary', 'quindenary', 'sexdenary', 'septendenary', 'octodenary', 'novemdenary', 'vigenary'];
+        
+        for (let i = 0; i < count; i++) {
+          const colorName = colorNames[i] || `color${i + 1}`;
+          chartColors[colorName] = baseColors[i % baseColors.length];
+        }
+        
+        return chartColors;
+      };
+      
+      // Получаем базовую схему цветов
+      const scheme = {
+        background: { gradientColor1: '#1a1a2e', gradientColor2: '#0f3460' },
+        textFields: { 
+          title: '#00d4ff', 
+          text: '#ffffff', 
+          content: '#e0e0e0',
+          description: '#e0e0e0',
+          axisLabel: '#00d4ff',
+          dataLabel: '#ffffff',
+          legendText: '#00d4ff'
+        },
+        chartColors: generateChartColors(columnCount),
+        borderSettings: { enabled: true, color: '#00d4ff', width: 2, style: 'solid' },
+        gridSettings: { enabled: true, color: '#00d4ff', width: 1, style: 'dashed' },
+        animationSettings: { enabled: true, duration: 1000, easing: 'ease-out', delay: 100 }
+      };
+      
+      const baseResult = {
+        sectionBackground: {
+          enabled: true,
+          useGradient: true,
+          solidColor: scheme.background.gradientColor1,
+          gradientColor1: scheme.background.gradientColor1,
+          gradientColor2: scheme.background.gradientColor2,
+          gradientDirection: 'to bottom right',
+          opacity: 1
+        },
+        chartBackground: {
+          enabled: true,
+          useGradient: true,
+          solidColor: scheme.background.gradientColor1,
+          gradientColor1: scheme.background.gradientColor1,
+          gradientColor2: scheme.background.gradientColor2,
+          gradientDirection: 'to bottom right',
+          opacity: 1
+        },
+        textFields: {
+          ...scheme.textFields,
+          fontSize: '16px'
+        },
+        chartColors: scheme.chartColors,
+        borderSettings: scheme.borderSettings,
+        gridSettings: scheme.gridSettings,
+        animationSettings: scheme.animationSettings,
+        borderWidth: 2,
+        borderRadius: 12,
+        padding: 24,
+        boxShadow: true
+      };
+      
+      return baseResult;
+    }
+    
+    if (elementType === 'advanced-line-chart') {
+      // Определяем количество линий из данных элемента
+      const lineData = (element.data && element.data.data && Array.isArray(element.data.data.data)) ? element.data.data.data :
+                     (element.data && Array.isArray(element.data.data)) ? element.data.data :
+                     Array.isArray(element.data) ? element.data : [];
+      
+      const lineCount = Math.max(2, lineData.length > 0 ? 2 : 2); // Минимум 2 линии для линейного графика
+      
+      // Генерируем цвета для каждой линии с нашими новыми цветами
+      const generateLineColors = (count) => {
+        const baseColors = [
+          '#ff6b35', '#f7931e', '#ffd23f', '#06ffa5', '#3b82f6', 
+          '#8b5cf6', '#ec4899', '#ef4444', '#ffa500', '#ffd700',
+          '#ffff00', '#adff2f', '#00ff00', '#00fa9a', '#00ced1',
+          '#00bfff', '#1e90ff', '#4169e1', '#8a2be2', '#9370db'
+        ];
+        
+        const lineColors = {};
+        const colorNames = ['primary', 'secondary', 'tertiary', 'quaternary', 'quinary', 'senary', 'septenary', 'octonary', 'nonary', 'denary', 'undenary', 'duodenary', 'tridenary', 'quattuordenary', 'quindenary', 'sexdenary', 'septendenary', 'octodenary', 'novemdenary', 'vigenary'];
+        
+        for (let i = 0; i < count; i++) {
+          const colorName = colorNames[i] || `color${i + 1}`;
+          lineColors[colorName] = baseColors[i % baseColors.length];
+        }
+        
+        return lineColors;
+      };
+      
+      // Получаем базовую схему цветов с нашими новыми цветами
+      const scheme = {
+        background: { gradientColor1: '#0d4f3c', gradientColor2: '#1a5f4a' },
+        textFields: { 
+          title: '#00ff88', 
+          text: '#ffffff', 
+          content: '#e8f5e8',
+          description: '#e8f5e8',
+          axisLabel: '#00ff88',
+          dataLabel: '#ffffff',
+          legendText: '#ffff00',
+          grid: '#ff4444',
+          legend: '#ffff00',
+          axis: '#ff4444'
+        },
+        lineColors: generateLineColors(lineCount),
+        borderSettings: { enabled: true, color: '#00ff88', width: 2, style: 'solid' },
+        gridSettings: { enabled: true, color: '#ff4444', width: 1, style: 'dotted' },
+        animationSettings: { enabled: true, duration: 1200, easing: 'ease-in-out', delay: 200 }
+      };
+      
+      const baseResult = {
+        sectionBackground: {
+          enabled: true,
+          useGradient: true,
+          solidColor: scheme.background.gradientColor1,
+          gradientColor1: scheme.background.gradientColor1,
+          gradientColor2: scheme.background.gradientColor2,
+          gradientDirection: 'to bottom right',
+          opacity: 1
+        },
+        chartBackground: {
+          enabled: true,
+          useGradient: true,
+          solidColor: scheme.background.gradientColor1,
+          gradientColor1: scheme.background.gradientColor1,
+          gradientColor2: scheme.background.gradientColor2,
+          gradientDirection: 'to bottom right',
+          opacity: 1
+        },
+        textFields: {
+          ...scheme.textFields,
+          fontSize: '16px'
+        },
+        lineColors: scheme.lineColors,
+        borderSettings: scheme.borderSettings,
+        gridSettings: scheme.gridSettings,
+        animationSettings: scheme.animationSettings,
+        borderWidth: 2,
+        borderRadius: 12,
+        padding: 24,
+        boxShadow: true
+      };
+      
+      return baseResult;
+    }
+    
+    if (elementType === 'advanced-pie-chart') {
+      // Определяем количество сегментов из данных элемента
+      const pieData = (element.data && element.data.data && Array.isArray(element.data.data.data)) ? element.data.data.data :
+                     (element.data && Array.isArray(element.data.data)) ? element.data.data :
+                     Array.isArray(element.data) ? element.data : [];
+      
+      const segmentCount = pieData.length || 5; // По умолчанию 5 сегментов
+      console.log('🔥 [getRealColorsForElementWithColumns] advanced-pie-chart: найдено сегментов:', segmentCount);
+      console.log('🔥 [getRealColorsForElementWithColumns] pieData:', pieData);
+      
+      // Генерируем цвета для каждого сегмента
+      const generateSegmentColors = (count) => {
+        const baseColors = [
+          '#ff6b35', '#f7931e', '#ffd23f', '#06ffa5', '#3b82f6', 
+          '#8b5cf6', '#ec4899', '#ef4444', '#ffa500', '#ffd700',
+          '#ffff00', '#adff2f', '#00ff00', '#00fa9a', '#00ced1',
+          '#00bfff', '#1e90ff', '#4169e1', '#8a2be2', '#9370db'
+        ];
+        
+        const segmentColors = {};
+        
+        for (let i = 0; i < count; i++) {
+          const segmentKey = `segment${i + 1}`;
+          segmentColors[segmentKey] = baseColors[i % baseColors.length];
+        }
+        
+        console.log('🔥 [generateSegmentColors] Сгенерированы цвета для сегментов:', segmentColors);
+        return segmentColors;
+      };
+      
+      // Получаем базовую схему цветов с нашими новыми цветами
+      const scheme = {
+        background: { gradientColor1: '#0d4f3c', gradientColor2: '#1a5f4a' },
+        textFields: { 
+          title: '#00ff88', 
+          text: '#ffffff', 
+          content: '#e8f5e8',
+          description: '#e8f5e8',
+          axisLabel: '#00ff88',
+          dataLabel: '#ffffff',
+          legendText: '#ffff00',
+          fontSize: '16px'
+        },
+        segmentColors: generateSegmentColors(segmentCount),
+        borderSettings: { enabled: true, color: '#00ff88', width: 2, style: 'solid' },
+        gridSettings: { enabled: true, color: '#ff4444', width: 1, style: 'dotted' },
+        animationSettings: { enabled: true, duration: 1200, easing: 'ease-in-out', delay: 200 }
+      };
+      
+      const baseResult = {
+        sectionBackground: {
+          enabled: true,
+          useGradient: true,
+          solidColor: scheme.background.gradientColor1,
+          gradientColor1: scheme.background.gradientColor1,
+          gradientColor2: scheme.background.gradientColor2,
+          gradientDirection: 'to bottom right',
+          opacity: 1
+        },
+        chartBackground: {
+          enabled: true,
+          useGradient: true,
+          solidColor: scheme.background.gradientColor1,
+          gradientColor1: scheme.background.gradientColor1,
+          gradientColor2: scheme.background.gradientColor2,
+          gradientDirection: 'to bottom right',
+          opacity: 1
+        },
+        textFields: {
+          ...scheme.textFields
+        },
+        segmentColors: scheme.segmentColors,
+        borderSettings: scheme.borderSettings,
+        gridSettings: scheme.gridSettings,
+        animationSettings: scheme.animationSettings,
+        borderWidth: 2,
+        borderRadius: 12,
+        padding: 25,
+        boxShadow: true
+      };
+      
+      return baseResult;
+    }
+    
+    if (elementType === 'advanced-area-chart') {
+      // Определяем количество областей из данных элемента
+      const areaData = (element.data && element.data.data && Array.isArray(element.data.data.data)) ? element.data.data.data :
+                     (element.data && Array.isArray(element.data.data)) ? element.data.data :
+                     Array.isArray(element.data) ? element.data : [];
+      
+      const areaCount = areaData.length || 2; // По умолчанию 2 области
+      console.log('🔥 [getRealColorsForElementWithColumns] advanced-area-chart: найдено областей:', areaCount);
+      console.log('🔥 [getRealColorsForElementWithColumns] areaData:', areaData);
+      
+      // Генерируем цвета для каждой области
+      const generateAreaColors = (count) => {
+        const baseColors = [
+          '#ff6b35', '#f7931e', '#ffd23f', '#06ffa5', '#3b82f6', 
+          '#8b5cf6', '#ec4899', '#ef4444', '#ffa500', '#ffd700',
+          '#ffff00', '#adff2f', '#00ff00', '#00fa9a', '#00ced1',
+          '#00bfff', '#1e90ff', '#4169e1', '#8a2be2', '#9370db'
+        ];
+        
+        const areaColors = {};
+        
+        for (let i = 0; i < count; i++) {
+          const areaKey = `area${i + 1}`;
+          areaColors[areaKey] = baseColors[i % baseColors.length];
+        }
+        
+        console.log('🔥 [generateAreaColors] Сгенерированы цвета для областей:', areaColors);
+        return areaColors;
+      };
+      
+      // Получаем базовую схему цветов с нашими новыми цветами
+      const scheme = {
+        background: { gradientColor1: '#0d4f3c', gradientColor2: '#1a5f4a' },
+        textFields: { 
+          title: '#00ff88', 
+          text: '#ffffff', 
+          content: '#e8f5e8',
+          description: '#e8f5e8',
+          axisLabel: '#00ff88',
+          dataLabel: '#ffffff',
+          legendText: '#ffff00',
+          fontSize: '16px'
+        },
+        areaColors: generateAreaColors(areaCount),
+        borderSettings: { enabled: true, color: '#00ff88', width: 2, style: 'solid' },
+        gridSettings: { enabled: true, color: '#ff4444', width: 1, style: 'dotted' },
+        animationSettings: { enabled: true, duration: 1200, easing: 'ease-in-out', delay: 200 }
+      };
+      
+      const baseResult = {
+        sectionBackground: {
+          enabled: true,
+          useGradient: true,
+          solidColor: scheme.background.gradientColor1,
+          gradientColor1: scheme.background.gradientColor1,
+          gradientColor2: scheme.background.gradientColor2,
+          gradientDirection: 'to bottom right',
+          opacity: 1
+        },
+        chartBackground: {
+          enabled: true,
+          useGradient: true,
+          solidColor: scheme.background.gradientColor1,
+          gradientColor1: scheme.background.gradientColor1,
+          gradientColor2: scheme.background.gradientColor2,
+          gradientDirection: 'to bottom right',
+          opacity: 1
+        },
+        textFields: {
+          ...scheme.textFields
+        },
+        areaColors: scheme.areaColors,
+        borderSettings: scheme.borderSettings,
+        gridSettings: scheme.gridSettings,
+        animationSettings: scheme.animationSettings,
+        borderWidth: 2,
+        borderRadius: 12,
+        padding: 25,
+        boxShadow: true
+      };
+      
+      return baseResult;
+    }
+    
+    return getRealColorsForElement(elementType);
+  };
+
+  // Функция для генерации реальных цветов для JSON
+  const getRealColorsForElement = (elementType) => {
+    const colorSchemes = {
+      'typography': {
+        background: { gradientColor1: '#1a1a2e', gradientColor2: '#0f3460' },
+        textFields: { title: '#00d4ff', text: '#ffffff', content: '#e0e0e0', link: '#ff6b6b', code: '#facc15', heading: '#00d4ff', paragraph: '#ffffff' }
+      },
+      'rich-text': {
+        background: { gradientColor1: '#2d1b69', gradientColor2: '#11998e' },
+        textFields: { title: '#ffffff', text: '#ffffff', content: '#ffffff', h1: '#00d4ff', h2: '#ff6b6b', h3: '#facc15', h4: '#00d4ff', h5: '#ff6b6b', h6: '#facc15', p: '#ffffff', li: '#e0e0e0', a: '#00d4ff', strong: '#ff6b6b', em: '#facc15', code: '#00d4ff' }
+      },
+      'blockquote': {
+        background: { gradientColor1: '#8e2de2', gradientColor2: '#4a00e0' },
+        textFields: { title: '#ffffff', text: '#ffffff', content: '#ffffff', quote: '#facc15', author: '#00d4ff', citation: '#ff6b6b' }
+      },
+      'list': {
+        background: { gradientColor1: '#ff6b6b', gradientColor2: '#4ecdc4' },
+        textFields: { title: '#ffffff', text: '#ffffff', content: '#ffffff', listItem: '#ffffff', item: '#ffffff', bullet: '#facc15', marker: '#facc15' }
+      },
+      'callout': {
+        background: { gradientColor1: '#667eea', gradientColor2: '#764ba2' },
+        textFields: { title: '#ffffff', text: '#ffffff', content: '#ffffff', icon: '#facc15', type: '#facc15', border: '#facc15', footnote: '#facc15' }
+      },
+      'gradient-text': {
+        background: { gradientColor1: '#FFFFFF', gradientColor2: '#808080' },
+        textFields: { title: '#FFFF00', text: '#FFFF00', content: '#FFFF00', gradientStart: '#FFFF00', gradientEnd: '#000000' },
+        textGradient: { enabled: true, gradientStart: '#FFFF00', gradientEnd: '#000000', gradientDirection: 'to right' }
+      },
+      'animated-counter': {
+        background: { gradientColor1: '#ff9a9e', gradientColor2: '#fad0c4' },
+        textFields: { title: '#ffffff', text: '#ffffff', content: '#ffffff', number: '#facc15', label: '#00d4ff' }
+      },
+      'typewriter-text': {
+        background: { gradientColor1: '#c2ffd8', gradientColor2: '#465efb' },
+        textFields: { title: '#ffffff', text: '#ffffff', content: '#ffffff', cursor: '#facc15' }
+      },
+      'highlight-text': {
+        background: { gradientColor1: '#c9ffbf', gradientColor2: '#ffafbd' },
+        textFields: { title: '#1a1a2e', text: '#1a1a2e', content: '#1a1a2e', highlight: '#facc15' }
+      },
+      'testimonial-card': {
+        background: { gradientColor1: '#4158d0', gradientColor2: '#c850c0' },
+        textFields: { name: '#1976d2', role: '#FF0000', company: '#888888', content: '#333333', rating: '#ffc107' }
+      },
+      'multiple-cards': {
+        background: { gradientColor1: '#1a1a2e', gradientColor2: '#16213e' },
+        cardBackground: { 
+          enabled: true, 
+          useGradient: true, 
+          solidColor: '#0a0a0f', 
+          gradientColor1: '#0a0a0f', 
+          gradientColor2: '#1a1a2e', 
+          gradientDirection: 'to bottom right', 
+          opacity: 1 
+        },
+        textFields: { 
+          title: '#00d4ff', 
+          text: '#ff6b6b', 
+          description: '#facc15',
+          cardTitle: '#c2185b',
+          cardText: '#facc15',
+          cardContent: '#4ecdc4'
+        }
+      },
+      'faq-section': {
+        background: { gradientColor1: '#ff6b6b', gradientColor2: '#4ecdc4' },
+        textFields: { 
+          title: '#ffffff', 
+          text: '#ffffff', 
+          content: '#ffffff',
+          question: '#facc15',
+          answer: '#00d4ff',
+          heading: '#ffffff',
+          paragraph: '#ffffff',
+          faqTitle: '#ffffff',
+          questionText: '#facc15',
+          answerText: '#00d4ff',
+          icon: '#ff6b6b',
+          accordionIcon: '#ff6b6b',
+          accordionBg: '#2d1b69',
+          accordionHover: '#4ecdc4'
+        }
+      },
+      'timeline-component': {
+        background: { gradientColor1: '#667eea', gradientColor2: '#764ba2' },
+        textFields: { 
+          title: '#ffffff', 
+          text: '#ffffff', 
+          content: '#ffffff',
+          date: '#facc15',
+          line: '#00d4ff',
+          completed: '#4caf50',
+          inProgress: '#ff9800',
+          pending: '#2196f3'
+        }
+      },
+      'basic-card': {
+        background: { gradientColor1: '#1a1a2e', gradientColor2: '#0f3460' },
+        textFields: { 
+          title: '#00d4ff', 
+          text: '#ffffff', 
+          content: '#e0e0e0',
+          link: '#ff6b6b',
+          code: '#facc15',
+          heading: '#00d4ff',
+          paragraph: '#ffffff',
+          background: '#ff00ff',
+          border: '#00ffff'
+        }
+      },
+      'progress-bars': {
+        background: { gradientColor1: '#1a1a2e', gradientColor2: '#0f3460' },
+        textFields: { 
+          title: '#00d4ff', 
+          text: '#ffffff', 
+          content: '#e0e0e0',
+          background: '#e0e0e0',
+          progress: '#ff6b6b'
+        }
+      },
+      'data-table': {
+        background: { gradientColor1: '#0a0a0f', gradientColor2: '#1a1a2e' },
+        textFields: { 
+          title: '#00d4ff', 
+          text: '#e0e0e0', 
+          content: '#b0b0b0',
+          headerBg: '#1a1a2e',
+          headerText: '#00d4ff',
+          rowBg: '#0f0f23',
+          border: '#2d2d5a',
+          hover: '#1e1e3f',
+          cellText: '#ffffff'
+        }
+      },
+      'image-gallery': {
+        background: { gradientColor1: '#1a1a2e', gradientColor2: '#0f3460' },
+        textFields: { 
+          title: '#00d4ff', 
+          text: '#ffffff', 
+          content: '#e0e0e0',
+          description: '#e0e0e0',
+          background: '#ffffff',
+          border: '#ff6b6b',
+          navigation: '#facc15',
+          pagination: '#00d4ff',
+          overlay: '#000000'
+        }
+      },
+      'accordion': {
+        background: { gradientColor1: '#c41e3a', gradientColor2: '#ffd700' },
+        textFields: { 
+          title: '#ffd700', 
+          text: '#ffffff', 
+          content: '#ffffff',
+          background: '#000000',
+          border: '#c41e3a',
+          hover: '#4ecdc4'
+        }
+      },
+      'bar-chart': {
+        background: { gradientColor1: '#000000', gradientColor2: '#1a237e' },
+        textFields: { 
+          title: '#ff0000', 
+          text: '#ff0000', 
+          content: '#ff0000',
+          description: '#ff0000',
+          axisLabel: '#ff0000',
+          dataLabel: '#ff0000',
+          legendText: '#ff0000' // Применяется к описанию секции
+        },
+        chartColors: {
+          primary: '#8b0000',
+          secondary: '#a52a2a',
+          tertiary: '#b22222',
+          quaternary: '#dc143c',
+          quinary: '#ff0000',
+          senary: '#ff4500',
+          septenary: '#ff6347',
+          octonary: '#ff7f50'
+        },
+        borderSettings: {
+          enabled: true,
+          color: '#ff0000',
+          width: 2,
+          style: 'solid'
+        },
+        gridSettings: {
+          enabled: true,
+          color: '#ff0000',
+          width: 1,
+          style: 'dashed'
+        },
+        animationSettings: {
+          enabled: true,
+          duration: 1000,
+          easing: 'ease-out',
+          delay: 100
+        }
+      },
+      'advanced-line-chart': {
+        background: { gradientColor1: '#1a1a2e', gradientColor2: '#0f3460' },
+        textFields: { 
+          title: '#00d4ff', 
+          text: '#ffffff', 
+          content: '#e0e0e0',
+          description: '#e0e0e0',
+          axisLabel: '#00d4ff',
+          dataLabel: '#ffffff',
+          legendText: '#00d4ff' // Применяется к описанию секции
+        },
+        lineColors: {
+          primary: '#8884d8',
+          secondary: '#82ca9d',
+          tertiary: '#ffc658',
+          quaternary: '#ff7300',
+          quinary: '#0088fe',
+          senary: '#00c49f',
+          septenary: '#ffbb28',
+          octonary: '#ff8042'
+        },
+        borderSettings: { enabled: true, color: '#00d4ff', width: 2, style: 'solid' },
+        gridSettings: { enabled: true, color: '#00d4ff', width: 1, style: 'dashed' },
+        animationSettings: { enabled: true, duration: 1000, easing: 'ease-out', delay: 100 }
+      },
+      'advanced-area-chart': {
+        background: { gradientColor1: '#1a1a2e', gradientColor2: '#8b0000' },
+        textFields: { 
+          title: '#ffd700', 
+          text: '#ffffff', 
+          content: '#ffcccb',
+          description: '#ffcccb',
+          axisLabel: '#ffa500',
+          dataLabel: '#ffffff',
+          legendText: '#ff69b4',
+          grid: '#ff0000',
+          axis: '#ffa500'
+        },
+        areaColors: {
+          area1: '#32cd32',
+          area2: '#ff6347'
+        },
+        borderSettings: { enabled: true, color: '#ff0000', width: 2, style: 'solid' },
+        gridSettings: { enabled: true, color: '#ff0000', width: 1, style: 'dotted' },
+        animationSettings: { enabled: true, duration: 1500, easing: 'ease-in-out', delay: 200 }
+      },
+      'cta-section': {
+        background: { gradientColor1: '#1a1a2e', gradientColor2: '#0f3460' },
+        textFields: { 
+          title: '#00d4ff', 
+          description: '#ffffff', 
+          background: '#1a1a2e',
+          border: 'transparent',
+          button: '#ff6b6b',
+          buttonText: '#ffffff',
+          buttonBorderRadius: 8
+        }
+      }
+    };
+
+    const scheme = colorSchemes[elementType] || colorSchemes['typography'];
+    
+    const baseResult = {
+      sectionBackground: {
+        enabled: true,
+        useGradient: true,
+        solidColor: scheme.background.gradientColor1,
+        gradientColor1: scheme.background.gradientColor1,
+        gradientColor2: scheme.background.gradientColor2,
+        gradientDirection: 'to right',
+        opacity: 1
+      },
+      padding: 24,
+      textFields: {
+        ...scheme.textFields,
+        fontSize: elementType === 'animated-counter' ? '20px' : 
+                 elementType === 'typography' || elementType === 'gradient-text' || elementType === 'blockquote' ? '18px' : '16px'
+      }
+    };
+
+    // Добавляем специальные поля для bar-chart
+    if (elementType === 'bar-chart') {
+      return {
+        ...baseResult,
+        chartBackground: {
+          enabled: true,
+          useGradient: true,
+          solidColor: scheme.background.gradientColor1,
+          gradientColor1: scheme.background.gradientColor1,
+          gradientColor2: scheme.background.gradientColor2,
+          gradientDirection: 'to bottom right',
+          opacity: 1
+        },
+        chartColors: scheme.chartColors,
+        borderSettings: scheme.borderSettings,
+        gridSettings: scheme.gridSettings,
+        animationSettings: scheme.animationSettings,
+        borderWidth: 2,
+        borderRadius: 12,
+        boxShadow: true
+      };
+    }
+
+    // Добавляем специальные поля для multiple-cards
+    if (elementType === 'multiple-cards') {
+      return {
+        ...baseResult,
+        cardBackground: scheme.cardBackground || {
+          enabled: true,
+          useGradient: true,
+          solidColor: '#0a0a0f',
+          gradientColor1: '#0a0a0f',
+          gradientColor2: '#1a1a2e',
+          gradientDirection: 'to bottom right',
+          opacity: 1
+        },
+        borderWidth: 1,
+        borderRadius: 8,
+        boxShadow: true
+      };
+    }
+
+    // Добавляем специальные поля для advanced-line-chart
+    if (elementType === 'advanced-line-chart') {
+      return {
+        ...baseResult,
+        chartBackground: {
+          enabled: true,
+          useGradient: true,
+          solidColor: scheme.background.gradientColor1,
+          gradientColor1: scheme.background.gradientColor1,
+          gradientColor2: scheme.background.gradientColor2,
+          gradientDirection: 'to bottom right',
+          opacity: 1
+        },
+        lineColors: scheme.lineColors,
+        borderSettings: scheme.borderSettings,
+        gridSettings: scheme.gridSettings,
+        animationSettings: scheme.animationSettings,
+        borderWidth: 2,
+        borderRadius: 12,
+        boxShadow: true
+      };
+    }
+
+    // Добавляем специальные поля для advanced-area-chart
+    if (elementType === 'advanced-area-chart') {
+      return {
+        ...baseResult,
+        sectionBackground: {
+          enabled: true,
+          useGradient: true,
+          solidColor: scheme.background.gradientColor1,
+          gradientColor1: scheme.background.gradientColor1,
+          gradientColor2: scheme.background.gradientColor2,
+          gradientDirection: 'to bottom',
+          opacity: 1
+        },
+        chartBackground: {
+          enabled: true,
+          useGradient: true,
+          solidColor: scheme.background.gradientColor1,
+          gradientColor1: scheme.background.gradientColor1,
+          gradientColor2: scheme.background.gradientColor2,
+          gradientDirection: 'to bottom',
+          opacity: 1
+        },
+        areaColors: scheme.areaColors,
+        borderSettings: scheme.borderSettings,
+        gridSettings: scheme.gridSettings,
+        animationSettings: scheme.animationSettings,
+        borderWidth: 3,
+        borderRadius: 16,
+        padding: 32,
+        boxShadow: "0 20px 60px rgba(255, 0, 0, 0.25), 0 0 0 1px rgba(255, 0, 0, 0.15)"
+      };
+    }
+
+    return baseResult;
+  };
+
+  // Функция для создания шаблона colorSettings для разных типов элементов
+  const getColorSettingsTemplate = (elementType) => {
+    switch (elementType) {
+      case 'typography':
+        return {
+          title: '#EXAMPLE_COLOR',
+          text: '#EXAMPLE_COLOR',
+          content: '#EXAMPLE_COLOR',
+          link: '#EXAMPLE_COLOR',
+          code: '#EXAMPLE_COLOR',
+          heading: '#EXAMPLE_COLOR',
+          paragraph: '#EXAMPLE_COLOR',
+          fontSize: '18px'
+        };
+      
+      case 'rich-text':
+        return {
+          title: '#EXAMPLE_COLOR',
+          text: '#EXAMPLE_COLOR',
+          content: '#EXAMPLE_COLOR',
+          h1: '#EXAMPLE_COLOR',
+          h2: '#EXAMPLE_COLOR',
+          h3: '#EXAMPLE_COLOR',
+          h4: '#EXAMPLE_COLOR',
+          h5: '#EXAMPLE_COLOR',
+          h6: '#EXAMPLE_COLOR',
+          p: '#EXAMPLE_COLOR',
+          li: '#EXAMPLE_COLOR',
+          a: '#EXAMPLE_COLOR',
+          strong: '#EXAMPLE_COLOR',
+          em: '#EXAMPLE_COLOR',
+          code: '#EXAMPLE_COLOR',
+          fontSize: '16px'
+        };
+      
+      case 'list':
+        return {
+          title: '#EXAMPLE_COLOR',
+          text: '#EXAMPLE_COLOR',
+          content: '#EXAMPLE_COLOR',
+          listItem: '#EXAMPLE_COLOR',
+          item: '#EXAMPLE_COLOR',
+          bullet: '#EXAMPLE_COLOR',
+          marker: '#EXAMPLE_COLOR',
+          fontSize: '16px'
+        };
+      
+      case 'blockquote':
+        return {
+          title: '#EXAMPLE_COLOR',
+          text: '#EXAMPLE_COLOR',
+          content: '#EXAMPLE_COLOR',
+          quote: '#EXAMPLE_COLOR',
+          author: '#EXAMPLE_COLOR',
+          citation: '#EXAMPLE_COLOR',
+          fontSize: '18px'
+        };
+      
+      case 'callout':
+        return {
+          title: '#EXAMPLE_COLOR',
+          text: '#EXAMPLE_COLOR',
+          content: '#EXAMPLE_COLOR',
+          icon: '#EXAMPLE_COLOR',
+          type: '#EXAMPLE_COLOR',
+          border: '#EXAMPLE_COLOR',
+          footnote: '#EXAMPLE_COLOR',
+          fontSize: '16px'
+        };
+      
+      case 'basic-card':
+        return {
+          title: '#EXAMPLE_COLOR',
+          text: '#EXAMPLE_COLOR',
+          content: '#EXAMPLE_COLOR',
+          cardTitle: '#EXAMPLE_COLOR',
+          cardText: '#EXAMPLE_COLOR',
+          cardBackground: '#EXAMPLE_COLOR',
+          fontSize: '16px'
+        };
+      
+      case 'multiple-cards':
+        return {
+          sectionBackground: {
+            enabled: true,
+            useGradient: true,
+            solidColor: '#2d5016',
+            gradientColor1: '#2d5016',
+            gradientColor2: '#000000',
+            gradientDirection: 'to bottom',
+            opacity: 1
+          },
+          cardBackground: {
+            enabled: true,
+            useGradient: true,
+            solidColor: '#000000',
+            gradientColor1: '#000000',
+            gradientColor2: '#8b0000',
+            gradientDirection: 'to bottom right',
+            opacity: 1
+          },
+          textFields: {
+            title: '#ffff00',
+            text: '#8a2be2',
+            description: '#8a2be2',
+            cardTitle: '#800080',
+            cardText: '#ff4500',
+            cardContent: '#ff4500',
+            border: '#800080',
+            fontSize: '16px'
+          },
+          borderWidth: 2,
+          borderRadius: 8,
+          padding: 24
+        };
+      
+      case 'gradient-text':
+        return {
+          title: '#EXAMPLE_COLOR',
+          text: '#EXAMPLE_COLOR',
+          content: '#EXAMPLE_COLOR',
+          gradientStart: '#EXAMPLE_COLOR',
+          gradientEnd: '#EXAMPLE_COLOR',
+          fontSize: '18px'
+        };
+      
+      case 'animated-counter':
+        return {
+          title: '#EXAMPLE_COLOR',
+          text: '#EXAMPLE_COLOR',
+          content: '#EXAMPLE_COLOR',
+          number: '#EXAMPLE_COLOR',
+          label: '#EXAMPLE_COLOR',
+          fontSize: '20px'
+        };
+      
+      case 'typewriter-text':
+        return {
+          title: '#EXAMPLE_COLOR',
+          text: '#EXAMPLE_COLOR',
+          content: '#EXAMPLE_COLOR',
+          cursor: '#EXAMPLE_COLOR',
+          fontSize: '16px'
+        };
+      
+      case 'highlight-text':
+        return {
+          title: '#EXAMPLE_COLOR',
+          text: '#EXAMPLE_COLOR',
+          content: '#EXAMPLE_COLOR',
+          highlight: '#EXAMPLE_COLOR',
+          fontSize: '16px'
+        };
+      
+      case 'testimonial-card':
+        return {
+          name: '#EXAMPLE_COLOR',
+          role: '#EXAMPLE_COLOR',
+          company: '#EXAMPLE_COLOR',
+          content: '#EXAMPLE_COLOR',
+          rating: '#EXAMPLE_COLOR',
+          fontSize: '16px'
+        };
+      
+      case 'faq-section':
+        return {
+          title: '#EXAMPLE_COLOR',
+          text: '#EXAMPLE_COLOR',
+          content: '#EXAMPLE_COLOR',
+          question: '#EXAMPLE_COLOR',
+          answer: '#EXAMPLE_COLOR',
+          heading: '#EXAMPLE_COLOR',
+          paragraph: '#EXAMPLE_COLOR',
+          faqTitle: '#EXAMPLE_COLOR',
+          questionText: '#EXAMPLE_COLOR',
+          answerText: '#EXAMPLE_COLOR',
+          icon: '#EXAMPLE_COLOR',
+          accordionIcon: '#EXAMPLE_COLOR',
+          accordionBg: '#EXAMPLE_COLOR',
+          accordionHover: '#EXAMPLE_COLOR',
+          fontSize: '16px'
+        };
+      
+      case 'timeline-component':
+        return {
+          title: '#EXAMPLE_COLOR',
+          text: '#EXAMPLE_COLOR',
+          content: '#EXAMPLE_COLOR',
+          date: '#EXAMPLE_COLOR',
+          line: '#EXAMPLE_COLOR',
+          completed: '#EXAMPLE_COLOR',
+          inProgress: '#EXAMPLE_COLOR',
+          pending: '#EXAMPLE_COLOR',
+          fontSize: '16px'
+        };
+      
+      case 'basic-card':
+        return {
+          title: '#EXAMPLE_COLOR',
+          text: '#EXAMPLE_COLOR',
+          content: '#EXAMPLE_COLOR',
+          link: '#EXAMPLE_COLOR',
+          code: '#EXAMPLE_COLOR',
+          heading: '#EXAMPLE_COLOR',
+          paragraph: '#EXAMPLE_COLOR',
+          background: '#EXAMPLE_COLOR',
+          border: '#EXAMPLE_COLOR',
+          fontSize: '16px'
+        };
+      
+      case 'progress-bars':
+        return {
+          title: '#EXAMPLE_COLOR',
+          text: '#EXAMPLE_COLOR',
+          content: '#EXAMPLE_COLOR',
+          background: '#EXAMPLE_COLOR',
+          progress: '#EXAMPLE_COLOR',
+          fontSize: '16px'
+        };
+      
+      case 'data-table':
+        return {
+          title: '#EXAMPLE_COLOR',
+          text: '#EXAMPLE_COLOR',
+          content: '#EXAMPLE_COLOR',
+          headerBg: '#EXAMPLE_COLOR',
+          headerText: '#EXAMPLE_COLOR',
+          rowBg: '#EXAMPLE_COLOR',
+          border: '#EXAMPLE_COLOR',
+          hover: '#EXAMPLE_COLOR',
+          cellText: '#EXAMPLE_COLOR',
+          fontSize: '16px'
+        };
+      
+      case 'image-gallery':
+        return {
+          title: '#EXAMPLE_COLOR',
+          text: '#EXAMPLE_COLOR',
+          content: '#EXAMPLE_COLOR',
+          description: '#EXAMPLE_COLOR',
+          background: '#EXAMPLE_COLOR',
+          border: '#EXAMPLE_COLOR',
+          navigation: '#EXAMPLE_COLOR',
+          pagination: '#EXAMPLE_COLOR',
+          overlay: '#EXAMPLE_COLOR',
+          fontSize: '16px'
+        };
+      
+      case 'accordion':
+        return {
+          title: '#EXAMPLE_COLOR',
+          text: '#EXAMPLE_COLOR',
+          content: '#EXAMPLE_COLOR',
+          background: '#EXAMPLE_COLOR',
+          border: '#EXAMPLE_COLOR',
+          hover: '#EXAMPLE_COLOR',
+          fontSize: '16px'
+        };
+      
+      case 'bar-chart':
+        return {
+          sectionBackground: {
+            enabled: true,
+            useGradient: true,
+            solidColor: '#000000',
+            gradientColor1: '#000000',
+            gradientColor2: '#1a237e',
+            gradientDirection: 'to bottom',
+            opacity: 1
+          },
+          chartBackground: {
+            enabled: true,
+            useGradient: true,
+            solidColor: '#000000',
+            gradientColor1: '#000000',
+            gradientColor2: '#1a237e',
+            gradientDirection: 'to bottom right',
+            opacity: 1
+          },
+          textFields: {
+            title: '#ff0000',
+            text: '#ff0000',
+            description: '#ff0000',
+            axisLabel: '#ff0000',
+            dataLabel: '#ff0000',
+            legendText: '#ff0000', // Применяется к описанию секции
+            fontSize: '16px'
+          },
+          chartColors: {
+            primary: '#ff0000',
+            secondary: '#ff3333',
+            tertiary: '#ff6666',
+            quaternary: '#ff9999',
+            quinary: '#ffcccc',
+            senary: '#ff4444',
+            septenary: '#ff7777',
+            octonary: '#ffaaaa'
+          },
+          borderSettings: {
+            enabled: true,
+            color: '#ff0000',
+            width: 2,
+            style: 'solid'
+          },
+          gridSettings: {
+            enabled: true,
+            color: '#ff0000',
+            width: 1,
+            style: 'dashed'
+          },
+          animationSettings: {
+            enabled: true,
+            duration: 1000,
+            easing: 'ease-out',
+            delay: 100
+          },
+          borderWidth: 2,
+          borderRadius: 12,
+          padding: 24,
+          boxShadow: true
+        };
+      
+      case 'advanced-area-chart':
+        return {
+          sectionBackground: {
+            enabled: true,
+            useGradient: true,
+            solidColor: '#1a1a2e',
+            gradientColor1: '#1a1a2e',
+            gradientColor2: '#8b0000',
+            gradientDirection: 'to bottom',
+            opacity: 1
+          },
+          padding: 32,
+          textFields: {
+            title: '#ffd700',
+            text: '#ffffff',
+            content: '#ffcccb',
+            description: '#ffcccb',
+            axisLabel: '#ffa500',
+            dataLabel: '#ffffff',
+            legendText: '#ff69b4',
+            fontSize: '16px',
+            grid: '#ff0000',
+            axis: '#ffa500'
+          },
+          chartBackground: {
+            enabled: true,
+            useGradient: true,
+            solidColor: '#1a1a2e',
+            gradientColor1: '#1a1a2e',
+            gradientColor2: '#8b0000',
+            gradientDirection: 'to bottom',
+            opacity: 1
+          },
+          areaColors: {
+            area1: '#32cd32',
+            area2: '#ff6347'
+          },
+          borderSettings: {
+            enabled: true,
+            color: '#ff0000',
+            width: 2,
+            style: 'solid'
+          },
+          gridSettings: {
+            enabled: true,
+            color: '#ff0000',
+            width: 1,
+            style: 'dotted'
+          },
+          animationSettings: {
+            enabled: true,
+            duration: 1500,
+            easing: 'ease-in-out',
+            delay: 200
+          },
+          borderWidth: 3,
+          borderRadius: 16,
+          boxShadow: '0 20px 60px rgba(255, 0, 0, 0.25), 0 0 0 1px rgba(255, 0, 0, 0.15)'
+        };
+      
+      case 'cta-section':
+        return {
+          title: '#EXAMPLE_COLOR',
+          description: '#EXAMPLE_COLOR',
+          background: '#EXAMPLE_COLOR',
+          border: '#EXAMPLE_COLOR',
+          button: '#EXAMPLE_COLOR',
+          buttonText: '#EXAMPLE_COLOR',
+          buttonBorderRadius: 8,
+          fontSize: '16px'
+        };
+      
+      default:
+        return {
+          title: '#EXAMPLE_COLOR',
+          text: '#EXAMPLE_COLOR',
+          content: '#EXAMPLE_COLOR',
+          fontSize: '16px'
+        };
+    }
+  };
+
+  // Функция для создания JSON только для выбранных элементов
+  const generateSelectedElementsJSON = () => {
+    try {
+      if (selectedElements.size === 0) {
+        alert('Выберите хотя бы один элемент!');
+        return;
+      }
+
+      console.log('🔍 [DEBUG] Выбранные элементы ID:', Array.from(selectedElements));
+      console.log('🔍 [DEBUG] Все отсканированные элементы:', scannedElements);
+      
+      const selectedElementsData = scannedElements.filter(el => selectedElements.has(el.id));
+      console.log('🔍 [DEBUG] Найденные данные для выбранных элементов:', selectedElementsData);
+      
+      const designSystem = {
+        metadata: {
+          generatedAt: new Date().toISOString(),
+          version: '1.0.0',
+          description: `Дизайн-система для ${selectedElements.size} выбранных элементов`
+        },
+        sections: {}
+      };
+
+      // Группируем выбранные элементы по секциям
+      selectedElementsData.forEach(elementData => {
+        const { sectionKey, elementIndex, element } = elementData;
+        
+        if (!designSystem.sections[sectionKey]) {
+          designSystem.sections[sectionKey] = {
+            elements: []
+          };
+        }
+
+        // Создаем упрощенную структуру элемента только со стилями
+        const elementForJSON = {
+          type: element.type,
+          colorSettings: jsonMode === 'template' ? 
+            (element.type === 'multiple-cards' ? getColorSettingsTemplate(element.type) : {
+              sectionBackground: {
+                enabled: true,
+                useGradient: false,
+                solidColor: '#EXAMPLE_COLOR',
+                gradientColor1: '#EXAMPLE_COLOR',
+                gradientColor2: '#EXAMPLE_COLOR',
+                gradientDirection: 'to bottom right',
+                opacity: 1
+              },
+              padding: 24,
+              textFields: getColorSettingsTemplate(element.type)
+            }) : (element.type === 'bar-chart' || element.type === 'advanced-line-chart' || element.type === 'advanced-pie-chart' ? getRealColorsForElementWithColumns(element.type, element) : getRealColorsForElement(element.type))
+        };
+
+        designSystem.sections[sectionKey].elements.push(elementForJSON);
+      });
+
+      const jsonString = JSON.stringify(designSystem, null, 2);
+      
+      // Добавляем требования к стилю перед JSON только если они заданы
+      const jsonWithStyleRequirements = jsonPromptDescription && jsonPromptDescription.trim() 
+        ? `${jsonPromptDescription}\n\nJSON для элементов:\n${jsonString}`
+        : jsonString;
+      
+      // Копируем в буфер обмена
+      navigator.clipboard.writeText(jsonWithStyleRequirements).then(() => {
+        // Отмечаем элементы как обработанные
+        setProcessedElements(prev => {
+          const newSet = new Set(prev);
+          selectedElements.forEach(id => newSet.add(id));
+          return newSet;
+        });
+        
+        // Добавляем в историю обработки
+        const timestamp = new Date().toLocaleTimeString();
+        setProcessingHistory(prev => [...prev, {
+          timestamp,
+          elementIds: Array.from(selectedElements),
+          count: selectedElements.size,
+          type: 'json_copied'
+        }]);
+        
+        const message = jsonPromptDescription && jsonPromptDescription.trim() 
+          ? `✅ JSON для ${selectedElements.size} элементов с требованиями к стилю скопирован в буфер обмена!`
+          : `✅ JSON для ${selectedElements.size} элементов скопирован в буфер обмена!`;
+        alert(message);
+      }).catch(() => {
+        // Fallback - показываем в консоли
+        console.log('📋 JSON для выбранных элементов:', jsonWithStyleRequirements);
+        const fallbackMessage = jsonPromptDescription && jsonPromptDescription.trim() 
+          ? 'JSON с требованиями к стилю выведен в консоль (F12)'
+          : 'JSON выведен в консоль (F12)';
+        alert(fallbackMessage);
+      });
+
+    } catch (error) {
+      console.error('❌ Ошибка при создании JSON:', error);
+      alert('Ошибка при создании JSON. Проверьте консоль.');
+    }
+  };
+
+  // Функция для сброса истории обработки
+  const clearProcessingHistory = () => {
+    setProcessedElements(new Set());
+    setProcessingHistory([]);
+    alert('🔄 История обработки очищена!');
+  };
+
+  // Функция для получения статуса элемента
+  const getElementStatus = (elementId) => {
+    if (processedElements.has(elementId)) return 'processed';
+    if (selectedElements.has(elementId)) return 'selected';
+    return 'available';
+  };
+
+  // Функция для ТОЛЬКО сканирования элементов и создания JSON дизайн-системы (БЕЗ применения стилей)
+  const handleScanElements = () => {
+    try {
+      console.log('🔍 [AI Дизайн Система] Начинаем ТОЛЬКО сканирование элементов (без применения стилей)...');
+      console.log('🔍 [AI Дизайн Система] Режим конструктора:', constructorMode);
+      
+      // Собираем данные о стилях всех элементов
+      const designSystem = {
+        metadata: {
+          generatedAt: new Date().toISOString(),
+          version: '1.0.0',
+          description: 'Сканированная дизайн-система на основе текущих настроек сайта (только структура)'
+        },
+        globalSettings: {
+          theme: globalSettings.theme,
+          contentStyle: globalSettings.contentStyle,
+          language: globalSettings.language,
+          additionalKeywords: globalSettings.additionalKeywords,
+          customInstructions: globalSettings.customInstructions
+        },
+        header: {
+          titleColor: headerData?.titleColor || '#000000',
+          backgroundColor: headerData?.backgroundColor || '#ffffff',
+          linksColor: headerData?.linksColor || '#000000',
+          siteBackgroundType: headerData?.siteBackgroundType || 'solid',
+          siteBackgroundColor: headerData?.siteBackgroundColor || '#f8f9fa',
+          siteGradientColor1: headerData?.siteGradientColor1 || '#ffffff',
+          siteGradientColor2: headerData?.siteGradientColor2 || '#f0f0f0',
+          siteGradientDirection: headerData?.siteGradientDirection || 'to right'
+        },
+        hero: {
+          titleColor: heroData?.titleColor || '#000000',
+          backgroundColor: heroData?.backgroundColor || 'transparent',
+          subtitleColor: heroData?.subtitleColor || '#666666',
+          backgroundType: heroData?.backgroundType || 'solid',
+          backgroundImage: heroData?.backgroundImage || null,
+          overlayColor: heroData?.overlayColor || 'rgba(0,0,0,0.5)'
+        },
+        sections: {},
+        contact: {
+          titleColor: contactData?.titleColor || '#000000',
+          backgroundColor: contactData?.backgroundColor || '#ffffff',
+          formBackgroundColor: contactData?.formBackgroundColor || '#f8f9fa',
+          buttonColor: contactData?.buttonColor || '#1976d2'
+        },
+        footer: {
+          backgroundColor: '#f8f9fa',
+          textColor: '#666666',
+          linkColor: '#1976d2'
+        }
+      };
+      
+      console.log('🔍 [AI Дизайн Система] Базовые настройки:', {
+        headerData,
+        heroData,
+        contactData,
+        globalSettings
+      });
+      
+      // 🎯 ТОЛЬКО СКАНИРУЕМ СТРУКТУРУ (БЕЗ ПРИМЕНЕНИЯ СТИЛЕЙ)
+      console.log('🎯 [AI Дизайн Система] Сканируем только структуру элементов...');
+      
+      // Создаем минимальную структуру дизайн-системы (только для отображения)
+      Object.keys(sectionsData).forEach(sectionKey => {
+        const section = sectionsData[sectionKey];
+        console.log(`🎯 [AI Дизайн Система] Обрабатываем секцию ${sectionKey}`);
+        
+        if (section && section.elements) {
+          designSystem.sections[sectionKey] = {
+            title: section.title || '',
+            description: section.description || '',
+            backgroundColor: section.backgroundColor || 'transparent',
+            titleColor: section.titleColor || '#000000',
+            descriptionColor: section.descriptionColor || '#666666',
+            elements: section.elements.map(element => ({
+              type: element.type || 'unknown',
+              // НЕ включаем содержимое (title, content, text)
+              // НЕ включаем customStyles (только colorSettings)
+              colorSettings: element.colorSettings || {}
+            }))
+          };
+        }
+      });
+      
+      // ✅ ЗАВЕРШАЕМ СКАНИРОВАНИЕ (БЕЗ ПРИМЕНЕНИЯ СТИЛЕЙ)
+      console.log('✅ [AI Дизайн Система] Сканирование завершено. Стили НЕ применяются автоматически.');
+      console.log('🎯 [AI Дизайн Система] Структура дизайн-системы (только сканирование):', designSystem);
+      
+      setGeneratedDesignSystem(designSystem);
+      setParserMessage('✅ Сканирование элементов завершено! JSON дизайн-системы готов для отправки в GPT-5.');
+      
+    } catch (error) {
+      console.error('❌ [AI Дизайн Система] Ошибка при сканировании элементов:', error);
+      setParserMessage('Ошибка при сканировании элементов: ' + error.message);
+    }
+  };
+
+  // Функция для ПРИМЕНЕНИЯ стилей ко всем элементам (отдельная от сканирования)
+  const handleApplyStylesToAllElements = () => {
+    try {
+      console.log('🎨 [AI Дизайн Система] Начинаем применение стилей ко всем элементам...');
+      console.log('🎨 [AI Дизайн Система] Режим конструктора:', constructorMode);
+      
+      const updatedSections = { ...sectionsData };
+      
+      Object.keys(updatedSections).forEach(sectionKey => {
+        const section = updatedSections[sectionKey];
+        if (section && section.elements) {
+          console.log(`🎨 [AI Дизайн Система] Обрабатываем секцию ${sectionKey} с ${section.elements.length} элементами`);
+          
+          // Применяем стили ко ВСЕМ элементам по их типам
+          section.elements.forEach((currentElement, elementIndex) => {
+            console.log(`🎨 [AI Дизайн Система] Обрабатываем элемент ${elementIndex} типа ${currentElement.type}`);
+            
+            // Создаем colorSettings если их нет
+            if (!currentElement.colorSettings) {
+              currentElement.colorSettings = {};
+            }
+            
+            // ПРИМЕНЯЕМ СТИЛИ ПО ТИПУ ЭЛЕМЕНТА (БЕЗ ИЗМЕНЕНИЯ СОДЕРЖИМОГО)
+            let updatedElement = { ...currentElement };
+            
+            switch (currentElement.type) {
+              case 'typography':
+                // ПОЛНЫЕ настройки стилей для типографики (заголовки и текст)
+                updatedElement.colorSettings = {
+                  sectionBackground: {
+                    enabled: true,
+                    useGradient: true,
+                    solidColor: '#0A0A0F',
+                    gradientColor1: '#0A0A0F',
+                    gradientColor2: '#14142B',
+                    gradientDirection: 'to bottom right',
+                    opacity: 1
+                  },
+                  textFields: {
+                    // ВСЕ возможные поля для typography
+                    title: '#00FFA3',      // Неоново-зеленый заголовок
+                    text: '#4AE0FF',       // Неоново-голубой основной текст
+                    content: '#FF4AE0',    // Неоново-розовый дополнительный контент
+                    link: '#00FFA3',       // Неоново-зеленые ссылки
+                    code: '#FF4AE0',       // Неоново-розовый код
+                    heading: '#00FFA3',    // Неоново-зеленый заголовок
+                    paragraph: '#4AE0FF',  // Неоново-голубой параграф
+                    strong: '#FF4AE0',     // Неоново-розовый жирный текст
+                    em: '#4AE0FF',         // Неоново-голубой курсив
+                    small: '#FF4AE0',      // Неоново-розовый мелкий текст
+                    mark: '#00FFA3',       // Неоново-зеленый выделенный текст
+                    
+                    // Стили шрифта
+                    fontSize: '38px',
+                    fontWeight: '900',
+                    fontFamily: 'inherit',
+                    fontStyle: 'normal',
+                    textDecoration: 'none',
+                    textTransform: 'none',
+                    lineHeight: 1.6,
+                    letterSpacing: 0.5
+                  },
+                  // Границы и отступы
+                  borderColor: '#4AE0FF',
+                  borderWidth: 2,
+                  borderRadius: 18,
+                  padding: 28,
+                  boxShadow: true,
+                  
+                  // Дополнительные настройки
+                  margin: '16px 0',
+                  textAlign: 'left',
+                  overflow: 'hidden',
+                  position: 'relative'
+                };
+                break;
+                
+              case 'rich-text':
+                // ПОЛНЫЕ настройки стилей для rich-text (богатый текст)
+                updatedElement.colorSettings = {
+                  sectionBackground: {
+                    enabled: true,
+                    useGradient: true,
+                    solidColor: '#0A0A0F',
+                    gradientColor1: '#0A0A0F',
+                    gradientColor2: '#14142B',
+                    gradientDirection: 'to bottom right',
+                    opacity: 1
+                  },
+                  textFields: {
+                    // ВСЕ возможные поля для rich-text
+                    title: '#00FFA3',      // Неоново-зеленый заголовок
+                    text: '#4AE0FF',       // Неоново-голубой основной текст
+                    content: '#FF4AE0',    // Неоново-розовый дополнительный контент
+                    link: '#00FFA3',       // Неоново-зеленые ссылки
+                    code: '#FF4AE0',       // Неоново-розовый код
+                    blockquote: '#FF4AE0', // Неоново-розовые цитаты
+                    list: '#4AE0FF',       // Неоново-голубые списки
+                    h1: '#00FFA3',         // Неоново-зеленый H1
+                    h2: '#00FFA3',         // Неоново-зеленый H2
+                    h3: '#00FFA3',         // Неоново-зеленый H3
+                    h4: '#00FFA3',         // Неоново-зеленый H4
+                    h5: '#00FFA3',         // Неоново-зеленый H5
+                    h6: '#00FFA3',         // Неоново-зеленый H6
+                    p: '#4AE0FF',          // Неоново-голубой параграф
+                    li: '#4AE0FF',         // Неоново-голубой элемент списка
+                    a: '#00FFA3',          // Неоново-зеленая ссылка
+                    strong: '#FF4AE0',     // Неоново-розовый жирный текст
+                    em: '#4AE0FF',         // Неоново-голубой курсив
+                    u: '#FF4AE0',          // Неоново-розовый подчеркнутый
+                    s: '#FF4AE0',          // Неоново-розовый зачеркнутый
+                    mark: '#00FFA3',       // Неоново-зеленый выделенный текст
+                    small: '#FF4AE0',      // Неоново-розовый мелкий текст
+                    sup: '#FF4AE0',        // Неоново-розовый верхний индекс
+                    sub: '#FF4AE0',        // Неоново-розовый нижний индекс
+                    
+                    // Стили шрифта
+                    fontSize: '24px',
+                    fontWeight: '700',
+                    fontFamily: 'inherit',
+                    fontStyle: 'normal',
+                    textDecoration: 'none',
+                    textTransform: 'none',
+                    lineHeight: 1.5,
+                    letterSpacing: 0.3
+                  },
+                  // Границы и отступы
+                  borderColor: '#4AE0FF',
+                  borderWidth: 2,
+                  borderRadius: 12,
+                  padding: 20,
+                  boxShadow: true,
+                  
+                  // Дополнительные настройки
+                  margin: '12px 0',
+                  textAlign: 'left',
+                  overflow: 'hidden',
+                  position: 'relative'
+                };
+                break;
+                
+              case 'basic-card':
+                // ПОЛНЫЕ настройки стилей для basic-card (карточки)
+                updatedElement.colorSettings = {
+                  sectionBackground: {
+                    enabled: true,
+                    useGradient: true,
+                    solidColor: '#0A0A0F',
+                    gradientColor1: '#0A0A0F',
+                    gradientColor2: '#14142B',
+                    gradientDirection: 'to bottom right',
+                    opacity: 1
+                  },
+                  textFields: {
+                    // ВСЕ возможные поля для basic-card
+                    title: '#00FFA3',      // Неоново-зеленый заголовок
+                    text: '#4AE0FF',       // Неоново-голубой основной текст
+                    content: '#FF4AE0',    // Неоново-розовый дополнительный контент
+                    subtitle: '#4AE0FF',   // Неоново-голубой подзаголовок
+                    button: '#00FFA3',     // Неоново-зеленая кнопка
+                    icon: '#FF4AE0',       // Неоново-розовая иконка
+                    header: '#00FFA3',     // Неоново-зеленый заголовок карточки
+                    footer: '#4AE0FF',     // Неоново-голубой футер карточки
+                    image: '#FF4AE0',      // Неоново-розовое изображение
+                    caption: '#4AE0FF',    // Неоново-голубая подпись
+                    price: '#00FFA3',      // Неоново-зеленая цена
+                    rating: '#FF4AE0',     // Неоново-розовый рейтинг
+                    tag: '#4AE0FF',        // Неоново-голубой тег
+                    label: '#00FFA3',      // Неоново-зеленая метка
+                    
+                    // Стили шрифта
+                    fontSize: '20px',
+                    fontWeight: '600',
+                    fontFamily: 'inherit',
+                    fontStyle: 'normal',
+                    textDecoration: 'none',
+                    textTransform: 'none',
+                    lineHeight: 1.4,
+                    letterSpacing: 0.1
+                  },
+                  // Границы и отступы
+                  borderColor: '#4AE0FF',
+                  borderWidth: 2,
+                  borderRadius: 15,
+                  padding: 24,
+                  boxShadow: true,
+                  
+                  // Дополнительные настройки
+                  margin: '15px 0',
+                  textAlign: 'center',
+                  overflow: 'hidden',
+                  position: 'relative',
+                  transition: 'all 0.3s ease'
+                };
+                break;
+
+              case 'blockquote':
+                // ПОЛНЫЕ настройки стилей для blockquote (цитаты)
+                updatedElement.colorSettings = {
+                  sectionBackground: {
+                    enabled: true,
+                    useGradient: true,
+                    solidColor: '#0A0A0F',
+                    gradientColor1: '#0A0A0F',
+                    gradientColor2: '#14142B',
+                    gradientDirection: 'to bottom right',
+                    opacity: 1
+                  },
+                  textFields: {
+                    // ВСЕ возможные поля для blockquote
+                    title: '#00FFA3',      // Неоново-зеленый заголовок
+                    text: '#4AE0FF',       // Неоново-голубой основной текст
+                    content: '#FF4AE0',    // Неоново-розовый дополнительный контент
+                    quote: '#FF4AE0',      // Неоново-розовая цитата
+                    author: '#00FFA3',     // Неоново-зеленый автор
+                    source: '#4AE0FF',     // Неоново-голубой источник
+                    citation: '#FF4AE0',   // Неоново-розовая цитата
+                    blockquote: '#FF4AE0', // Неоново-розовый блок цитаты
+                    q: '#FF4AE0',          // Неоново-розовая короткая цитата
+                    cite: '#4AE0FF',       // Неоново-голубой источник
+                    footer: '#00FFA3',     // Неоново-зеленый футер цитаты
+                    
+                    // Стили шрифта
+                    fontSize: '22px',
+                    fontWeight: '600',
+                    fontFamily: 'inherit',
+                    fontStyle: 'italic',
+                    textDecoration: 'none',
+                    textTransform: 'none',
+                    lineHeight: 1.4,
+                    letterSpacing: 0.2
+                  },
+                  // Границы и отступы
+                  borderColor: '#4AE0FF',
+                  borderWidth: 3,
+                  borderRadius: 20,
+                  padding: 30,
+                  boxShadow: true,
+                  
+                  // Дополнительные настройки
+                  margin: '20px 0',
+                  textAlign: 'center',
+                  overflow: 'hidden',
+                  position: 'relative',
+                  borderLeft: '5px solid #00FFA3'
+                };
+                break;
+
+              case 'list':
+                // ПОЛНЫЕ настройки стилей для list (списки)
+                updatedElement.colorSettings = {
+                  sectionBackground: {
+                    enabled: true,
+                    useGradient: true,
+                    solidColor: '#0A0A0F',
+                    gradientColor1: '#0A0A0F',
+                    gradientColor2: '#14142B',
+                    gradientDirection: 'to bottom right',
+                    opacity: 1
+                  },
+                  textFields: {
+                    // ВСЕ возможные поля для list
+                    title: '#00FFA3',      // Неоново-зеленый заголовок
+                    text: '#4AE0FF',       // Неоново-голубой основной текст
+                    content: '#FF4AE0',    // Неоново-розовый дополнительный контент
+                    listItem: '#4AE0FF',   // Неоново-голубые элементы списка
+                    bullet: '#00FFA3',     // Неоново-зеленые маркеры
+                    number: '#FF4AE0',     // Неоново-розовые номера
+                    ul: '#4AE0FF',         // Неоново-голубой неупорядоченный список
+                    ol: '#4AE0FF',         // Неоново-голубой упорядоченный список
+                    li: '#4AE0FF',         // Неоново-голубой элемент списка
+                    dt: '#00FFA3',         // Неоново-зеленый термин определения
+                    dd: '#4AE0FF',         // Неоново-голубой элемент определения
+                    dl: '#4AE0FF',         // Неоново-голубой список определений
+                    marker: '#00FFA3',     // Неоново-зеленый маркер
+                    counter: '#FF4AE0',    // Неоново-розовый счетчик
+                    
+                    // Стили шрифта
+                    fontSize: '20px',
+                    fontWeight: '500',
+                    fontFamily: 'inherit',
+                    fontStyle: 'normal',
+                    textDecoration: 'none',
+                    textTransform: 'none',
+                    lineHeight: 1.3,
+                    letterSpacing: 0.1
+                  },
+                  // Границы и отступы
+                  borderColor: '#4AE0FF',
+                  borderWidth: 2,
+                  borderRadius: 15,
+                  padding: 25,
+                  boxShadow: true,
+                  
+                  // Дополнительные настройки
+                  margin: '15px 0',
+                  textAlign: 'left',
+                  overflow: 'hidden',
+                  position: 'relative',
+                  listStyleType: 'disc'
+                };
+                break;
+
+              case 'callout':
+                // ПОЛНЫЕ настройки стилей для callout (выноски)
+                updatedElement.colorSettings = {
+                  sectionBackground: {
+                    enabled: true,
+                    useGradient: true,
+                    solidColor: '#0A0A0F',
+                    gradientColor1: '#0A0A0F',
+                    gradientColor2: '#14142B',
+                    gradientDirection: 'to bottom right',
+                    opacity: 1
+                  },
+                  textFields: {
+                    // ВСЕ возможные поля для callout
+                    title: '#00FFA3',      // Неоново-зеленый заголовок
+                    text: '#4AE0FF',       // Неоново-голубой основной текст
+                    content: '#FF4AE0',    // Неоново-розовый дополнительный контент
+                    icon: '#00FFA3',       // Неоново-зеленая иконка
+                    badge: '#FF4AE0',      // Неоново-розовый бейдж
+                    alert: '#FF4AE0',      // Неоново-розовое предупреждение
+                    info: '#4AE0FF',       // Неоново-голубая информация
+                    warning: '#FF4AE0',    // Неоново-розовое предупреждение
+                    error: '#FF4AE0',      // Неоново-розовая ошибка
+                    success: '#00FFA3',    // Неоново-зеленый успех
+                    note: '#4AE0FF',       // Неоново-голубая заметка
+                    tip: '#00FFA3',        // Неоново-зеленый совет
+                    highlight: '#FF4AE0',  // Неоново-розовое выделение
+                    
+                    // Стили шрифта
+                    fontSize: '26px',
+                    fontWeight: '700',
+                    fontFamily: 'inherit',
+                    fontStyle: 'normal',
+                    textDecoration: 'none',
+                    textTransform: 'none',
+                    lineHeight: 1.2,
+                    letterSpacing: 0.4
+                  },
+                  // Границы и отступы
+                  borderColor: '#4AE0FF',
+                  borderWidth: 3,
+                  borderRadius: 25,
+                  padding: 35,
+                  boxShadow: true,
+                  
+                  // Дополнительные настройки
+                  margin: '25px 0',
+                  textAlign: 'center',
+                  overflow: 'hidden',
+                  position: 'relative',
+                  borderTop: '5px solid #00FFA3'
+                };
+                break;
+
+              case 'code-block':
+                // ПОЛНЫЕ настройки стилей для code-block (блоки кода)
+                updatedElement.colorSettings = {
+                  sectionBackground: {
+                    enabled: true,
+                    useGradient: true,
+                    solidColor: '#0A0A0F',
+                    gradientColor1: '#0A0A0F',
+                    gradientColor2: '#14142B',
+                    gradientDirection: 'to bottom right',
+                    opacity: 1
+                  },
+                  textFields: {
+                    // ВСЕ возможные поля для code-block
+                    title: '#00FFA3',      // Неоново-зеленый заголовок
+                    text: '#4AE0FF',       // Неоново-голубой основной текст
+                    content: '#FF4AE0',    // Неоново-розовый дополнительный контент
+                    code: '#FF4AE0',       // Неоново-розовый код
+                    keyword: '#00FFA3',    // Неоново-зеленые ключевые слова
+                    string: '#4AE0FF',     // Неоново-голубые строки
+                    comment: '#666666',    // Серые комментарии
+                    function: '#00FFA3',   // Неоново-зеленая функция
+                    variable: '#4AE0FF',   // Неоново-голубая переменная
+                    number: '#FF4AE0',     // Неоново-розовое число
+                    operator: '#00FFA3',   // Неоново-зеленый оператор
+                    class: '#4AE0FF',      // Неоново-голубой класс
+                    method: '#FF4AE0',     // Неоново-розовый метод
+                    property: '#00FFA3',   // Неоново-зеленое свойство
+                    tag: '#4AE0FF',        // Неоново-голубой тег
+                    attribute: '#FF4AE0',  // Неоново-розовый атрибут
+                    selector: '#00FFA3',   // Неоново-зеленый селектор
+                    
+                    // Стили шрифта
+                    fontSize: '18px',
+                    fontWeight: '500',
+                    fontFamily: 'monospace',
+                    fontStyle: 'normal',
+                    textDecoration: 'none',
+                    textTransform: 'none',
+                    lineHeight: 1.4,
+                    letterSpacing: 0.1
+                  },
+                  // Границы и отступы
+                  borderColor: '#4AE0FF',
+                  borderWidth: 2,
+                  borderRadius: 12,
+                  padding: 20,
+                  boxShadow: true,
+                  
+                  // Дополнительные настройки
+                  margin: '10px 0',
+                  textAlign: 'left',
+                  overflow: 'auto',
+                  position: 'relative',
+                  backgroundColor: '#1a1a1a'
+                };
+                break;
+
+              case 'accordion':
+                // ПОЛНЫЕ настройки стилей для accordion (аккордеоны)
+                updatedElement.colorSettings = {
+                  sectionBackground: {
+                    enabled: true,
+                    useGradient: true,
+                    solidColor: '#0A0A0F',
+                    gradientColor1: '#0A0A0F',
+                    gradientColor2: '#14142B',
+                    gradientDirection: 'to bottom right',
+                    opacity: 1
+                  },
+                  textFields: {
+                    // ВСЕ возможные поля для accordion
+                    title: '#00FFA3',      // Неоново-зеленый заголовок
+                    text: '#4AE0FF',       // Неоново-голубой основной текст
+                    content: '#FF4AE0',    // Неоново-розовый дополнительный контент
+                    header: '#00FFA3',     // Неоново-зеленый заголовок панели
+                    body: '#4AE0FF',       // Неоново-голубой текст панели
+                    icon: '#FF4AE0',       // Неоново-розовая иконка
+                    summary: '#00FFA3',    // Неоново-зеленое резюме
+                    details: '#4AE0FF',    // Неоново-голубые детали
+                    panel: '#FF4AE0',      // Неоново-розовая панель
+                    expandIcon: '#FF4AE0', // Неоново-розовая иконка разворачивания
+                    collapseIcon: '#FF4AE0', // Неоново-розовая иконка сворачивания
+                    section: '#4AE0FF',    // Неоново-голубая секция
+                    
+                    // Стили шрифта
+                    fontSize: '24px',
+                    fontWeight: '600',
+                    fontFamily: 'inherit',
+                    fontStyle: 'normal',
+                    textDecoration: 'none',
+                    textTransform: 'none',
+                    lineHeight: 1.3,
+                    letterSpacing: 0.2
+                  },
+                  // Границы и отступы
+                  borderColor: '#4AE0FF',
+                  borderWidth: 2,
+                  borderRadius: 15,
+                  padding: 25,
+                  boxShadow: true,
+                  
+                  // Дополнительные настройки
+                  margin: '20px 0',
+                  textAlign: 'left',
+                  overflow: 'hidden',
+                  position: 'relative',
+                  borderBottom: '2px solid #4AE0FF'
+                };
+                break;
+                
+              case 'gradient-text':
+                // Стили для gradient-text - градиент применяется к тексту и фону
+                updatedElement.colorSettings = {
+                  sectionBackground: {
+                    enabled: true,
+                    useGradient: true,
+                    solidColor: '#FFFFFF',
+                    gradientColor1: '#FFFFFF',
+                    gradientColor2: '#808080',
+                    gradientDirection: 'to bottom right',
+                    opacity: 1
+                  },
+                  textFields: {
+                    title: '#FFFF00',
+                    text: '#FFFF00',
+                    content: '#FFFF00',
+                    gradientStart: '#FFFF00',
+                    gradientEnd: '#000000',
+                    fontSize: '18px'
+                  },
+                  // Настройки градиента для текста
+                  textGradient: {
+                    enabled: true,
+                    gradientStart: '#FFFF00',
+                    gradientEnd: '#000000',
+                    gradientDirection: 'to right'
+                  },
+                  padding: 24
+                };
+                break;
+                
+              case 'animated-counter':
+                // Стили для animated-counter
+                updatedElement.colorSettings = {
+                  sectionBackground: {
+                    enabled: true,
+                    useGradient: true,
+                    gradientColor1: '#0A0A0F',
+                    gradientColor2: '#14142B',
+                    gradientDirection: 'to bottom right',
+                    opacity: 1
+                  },
+                  textFields: {
+                    title: '#00FFA3',
+                    text: '#4AE0FF',
+                    content: '#FF4AE0',
+                    number: '#00FFA3',
+                    label: '#4AE0FF',
+                    fontSize: '20px'
+                  },
+                  padding: 24
+                };
+                break;
+                
+              case 'typewriter-text':
+                // Стили для typewriter-text
+                updatedElement.colorSettings = {
+                  sectionBackground: {
+                    enabled: true,
+                    useGradient: true,
+                    gradientColor1: '#0A0A0F',
+                    gradientColor2: '#14142B',
+                    gradientDirection: 'to bottom right',
+                    opacity: 1
+                  },
+                  textFields: {
+                    title: '#00FFA3',
+                    text: '#4AE0FF',
+                    content: '#FF4AE0',
+                    cursor: '#00FFA3',
+                    fontSize: '16px'
+                  },
+                  padding: 24
+                };
+                break;
+                
+              case 'highlight-text':
+                // Стили для highlight-text
+                updatedElement.colorSettings = {
+                  sectionBackground: {
+                    enabled: true,
+                    useGradient: true,
+                    gradientColor1: '#0A0A0F',
+                    gradientColor2: '#14142B',
+                    gradientDirection: 'to bottom right',
+                    opacity: 1
+                  },
+                  textFields: {
+                    title: '#00FFA3',
+                    text: '#4AE0FF',
+                    content: '#FF4AE0',
+                    highlight: '#00FFA3',
+                    fontSize: '16px'
+                  },
+                  padding: 24
+                };
+                break;
+                
+              case 'testimonial-card':
+                // Стили для testimonial-card
+                updatedElement.colorSettings = {
+                  sectionBackground: {
+                    enabled: true,
+                    useGradient: true,
+                    gradientColor1: '#0A0A0F',
+                    gradientColor2: '#14142B',
+                    gradientDirection: 'to bottom right',
+                    opacity: 1
+                  },
+                  textFields: {
+                    name: '#1976d2',
+                    role: '#FF0000',
+                    company: '#888888',
+                    content: '#333333',
+                    rating: '#ffc107',
+                    fontSize: '16px'
+                  },
+                  padding: 24
+                };
+                break;
+
+              case 'multiple-cards':
+                console.log('🔥 [AiParser] Обрабатываем multiple-cards элемент:', elementData);
+                
+                // ИСПРАВЛЕНИЕ: Применяем стили из JSON с учетом структуры данных
+                if (elementData.colorSettings) {
+                  // Применяем colorSettings к самому элементу
+                  updatedElement.colorSettings = {
+                    ...elementData.colorSettings,
+                    // Дополнительные поля для совместимости
+                    sectionColorSettings: elementData.colorSettings,
+                    sectionStyles: {
+                      titleColor: elementData.colorSettings.textFields?.title || '#1976d2',
+                      descriptionColor: elementData.colorSettings.textFields?.description || elementData.colorSettings.textFields?.text || '#666666',
+                      backgroundColor: elementData.colorSettings.sectionBackground?.solidColor || '#ffffff',
+                      backgroundType: elementData.colorSettings.sectionBackground?.useGradient ? 'gradient' : 'solid',
+                      gradientDirection: elementData.colorSettings.sectionBackground?.gradientDirection || 'to right',
+                      gradientStartColor: elementData.colorSettings.sectionBackground?.gradientColor1 || '#1976d2',
+                      gradientEndColor: elementData.colorSettings.sectionBackground?.gradientColor2 || '#42a5f5',
+                      padding: `${elementData.colorSettings.padding || 24}px`,
+                      borderRadius: `${elementData.colorSettings.borderRadius || 12}px`
+                    }
+                  };
+                  
+                  // Применяем стили к карточкам - проверяем разные возможные структуры
+                  const cards = updatedElement.cards || updatedElement.data?.cards || [];
+                  console.log('🔥 [AiParser] Найдены карточки:', cards.length);
+                  console.log('🔥 [AiParser] Структура updatedElement:', {
+                    hasCards: !!updatedElement.cards,
+                    hasDataCards: !!updatedElement.data?.cards,
+                    cardsLength: cards.length
+                  });
+                  
+                  // Применяем стили ко всем существующим карточкам
+                  const existingCards = updatedElement.cards || updatedElement.data?.cards || [];
+                  console.log('🔥 [AiParser] Существующие карточки:', existingCards.length);
+                  
+                  if (existingCards && Array.isArray(existingCards)) {
+                    const updatedCards = existingCards.map(card => {
+                      // Используем цвета карточек из JSON или цвета секции как fallback
+                      const cardColorSettings = card.colorSettings || {};
+                      const cardTextFields = cardColorSettings.textFields || elementData.colorSettings.textFields || {};
+                      const cardSectionBackground = cardColorSettings.sectionBackground || elementData.colorSettings.sectionBackground || {};
+                      
+                      console.log('🔥 [AiParser] Карточка до обработки:', card.id, {
+                        cardColorSettings,
+                        cardTextFields,
+                        cardSectionBackground
+                      });
+                      
+                      return {
+                        ...card,
+                        colorSettings: {
+                          textFields: {
+                            title: cardTextFields.title || cardTextFields.cardTitle || '#1976d2',
+                            text: cardTextFields.text || cardTextFields.cardText || cardTextFields.cardContent || '#333333',
+                            content: cardTextFields.content || cardTextFields.cardContent || '#333333',
+                            border: cardTextFields.border || '#e0e0e0'
+                          },
+                          sectionBackground: {
+                            enabled: cardSectionBackground.enabled !== false,
+                            useGradient: cardSectionBackground.useGradient || false,
+                            solidColor: cardSectionBackground.solidColor || '#ffffff',
+                            gradientColor1: cardSectionBackground.gradientColor1 || '#000000',
+                            gradientColor2: cardSectionBackground.gradientColor2 || '#8b0000',
+                            gradientDirection: cardSectionBackground.gradientDirection || 'to right',
+                            opacity: cardSectionBackground.opacity || 1
+                          },
+                          borderWidth: cardColorSettings.borderWidth || 1,
+                          borderRadius: cardColorSettings.borderRadius || 8,
+                          padding: cardColorSettings.padding || 24,
+                          boxShadow: cardColorSettings.boxShadow || false
+                        },
+                        // Обновляем customStyles для совместимости
+                        customStyles: {
+                          ...card.customStyles,
+                          backgroundColor: cardSectionBackground.solidColor || '#ffffff',
+                          titleColor: cardTextFields.title || cardTextFields.cardTitle || '#333333',
+                          textColor: cardTextFields.text || cardTextFields.cardText || cardTextFields.cardContent || '#666666',
+                          backgroundType: cardSectionBackground.useGradient ? 'gradient' : 'solid',
+                          gradientColor1: cardSectionBackground.gradientColor1 || '#000000',
+                          gradientColor2: cardSectionBackground.gradientColor2 || '#8b0000',
+                          gradientDirection: cardSectionBackground.gradientDirection || 'to right',
+                          borderColor: cardTextFields.border || '#e0e0e0',
+                          borderWidth: cardColorSettings.borderWidth || 1,
+                          borderRadius: cardColorSettings.borderRadius || 8
+                        }
+                      };
+                    });
+                    
+                    // Обновляем карточки в правильном месте
+                    if (updatedElement.cards) {
+                      updatedElement.cards = updatedCards;
+                      console.log('🔥 [AiParser] Обновили updatedElement.cards');
+                    } else if (updatedElement.data) {
+                      updatedElement.data.cards = updatedCards;
+                      console.log('🔥 [AiParser] Обновили updatedElement.data.cards');
+                    } else {
+                      // Если нет ни того, ни другого, создаем data.cards
+                      updatedElement.data = updatedElement.data || {};
+                      updatedElement.data.cards = updatedCards;
+                      console.log('🔥 [AiParser] Создали updatedElement.data.cards');
+                    }
+                    
+                    console.log('🔥 [AiParser] Карточки после обработки:', updatedCards.map(card => ({
+                      id: card.id,
+                      colorSettings: card.colorSettings,
+                      customStyles: card.customStyles
+                    })));
+                  }
+                } else {
+                  // Fallback на дефолтные стили если нет colorSettings в JSON
+                  updatedElement.colorSettings = {
+                    sectionBackground: {
+                      enabled: true,
+                      useGradient: true,
+                      solidColor: '#1a1a2e',
+                      gradientColor1: '#1a1a2e',
+                      gradientColor2: '#16213e',
+                      gradientDirection: 'to bottom right',
+                      opacity: 1
+                    },
+                    textFields: {
+                      title: '#8e24aa',
+                      text: '#8e24aa',
+                      description: '#8e24aa',
+                      fontSize: '18px'
+                    },
+                    borderColor: '#8e24aa',
+                    borderWidth: 1,
+                    borderRadius: 12,
+                    padding: 24,
+                    boxShadow: true
+                  };
+                }
+                console.log('🔥 [handleApplyStylesToAllElements] MULTIPLE-CARDS обработан!', updatedElement);
+                break;
+                
+              default:
+                // Для остальных типов применяем базовые стили
+                updatedElement.colorSettings = {
+                  sectionBackground: {
+                    enabled: true,
+                    useGradient: true,
+                    gradientColor1: '#0A0A0F',
+                    gradientColor2: '#14142B',
+                    gradientDirection: 'to bottom right',
+                    opacity: 1
+                  },
+                  textFields: {
+                    title: '#00FFA3',
+                    text: '#4AE0FF',
+                    content: '#FF4AE0',
+                    fontSize: '18px',
+                    fontWeight: '500',
+                    fontFamily: 'inherit'
+                  },
+                  borderColor: '#4AE0FF',
+                  borderWidth: 1,
+                  borderRadius: 8,
+                  padding: 16,
+                  boxShadow: false
+                };
+            }
+            
+            console.log(`🎯 [AI Дизайн Система] Обновленный элемент ${elementIndex} типа ${currentElement.type}:`, updatedElement);
+            
+            // Обновляем элемент в секции
+            updatedSections[sectionKey].elements[elementIndex] = updatedElement;
+            
+            // 🔥 ОТЛАДКА: Проверяем, что элемент обновился
+            if (currentElement.type === 'multiple-cards') {
+              console.log('🔥🔥🔥 [MULTIPLE-CARDS UPDATE] Обновленный элемент в updatedSections:', updatedSections[sectionKey].elements[elementIndex]);
+              console.log('🔥🔥🔥 [MULTIPLE-CARDS UPDATE] colorSettings:', updatedSections[sectionKey].elements[elementIndex].colorSettings);
+            }
+          });
+        }
+      });
+      
+      // 🔥 ОТЛАДКА: Проверяем финальное состояние updatedSections
+      console.log('🔥🔥🔥 [FINAL UPDATE] updatedSections после обработки:', updatedSections);
+      Object.keys(updatedSections).forEach(sectionKey => {
+        const section = updatedSections[sectionKey];
+        if (section && section.elements) {
+          section.elements.forEach((element, index) => {
+            if (element.type === 'multiple-cards') {
+              console.log(`🔥🔥🔥 [FINAL UPDATE] multiple-cards #${index} в секции ${sectionKey}:`, element);
+              console.log(`🔥🔥🔥 [FINAL UPDATE] colorSettings:`, element.colorSettings);
+            }
+          });
+        }
+      });
+      
+      // Применяем обновленные секции
+      if (onSectionsChange) {
+        console.log('🎨 [AI Дизайн Система] Применяем обновленные секции с новыми стилями');
+        console.log('🎨 [AI Дизайн Система] Вызываем onSectionsChange с данными:', updatedSections);
+        
+        // Принудительно вызываем обновление
+        onSectionsChange(updatedSections);
+        
+        // Добавляем задержку для гарантии обновления
+        setTimeout(() => {
+          console.log('🎨 [AI Дизайн Система] Проверяем, что onSectionsChange был вызван');
+          // Дополнительно вызываем еще раз для гарантии
+          onSectionsChange({...updatedSections});
+        }, 100);
+      } else {
+        console.log('❌ [AI Дизайн Система] onSectionsChange недоступен!');
+      }
+      
+      setParserMessage('✅ Стили автоматически применены ко всем элементам!');
+      
+    } catch (error) {
+      console.error('❌ [AI Дизайн Система] Ошибка при применении стилей:', error);
+      setParserMessage('Ошибка при применении стилей: ' + error.message);
+    }
+  };
+
+  // Функция для применения стилей из JSON, полученного от GPT-5
+  const handleApplyDesignSystem = (designSystemJson) => {
+    try {
+      console.log('🎨 [AI Дизайн Система] ===== НАЧАЛО ПРИМЕНЕНИЯ СТИЛЕЙ =====');
+      console.log('🎨 [AI Дизайн Система] Применяем стили из JSON:', designSystemJson);
+      console.log('🎨 [AI Дизайн Система] Текущие данные секций:', sectionsData);
+      console.log('🎨 [AI Дизайн Система] Режим конструктора:', constructorMode);
+      console.log('🎨 [AI Дизайн Система] onSectionsChange доступен:', !!onSectionsChange);
+      
+      // Применяем глобальные настройки
+      if (designSystemJson.globalSettings) {
+        console.log('🎨 [AI Дизайн Система] Применяем глобальные настройки:', designSystemJson.globalSettings);
+        setGlobalSettings(prev => ({
+          ...prev,
+          ...designSystemJson.globalSettings
+        }));
+      }
+      
+      // Применяем стили заголовка (только если есть явные настройки заголовка)
+      if (designSystemJson.header && onHeaderChange) {
+        console.log('🎨 [AI Дизайн Система] Применяем стили заголовка:', designSystemJson.header);
+        
+        // Фильтруем только настройки заголовка, исключая sectionBackground из элементов
+        const headerSettings = { ...designSystemJson.header };
+        
+        // Удаляем sectionBackground, если он пришел из элементов
+        if (headerSettings.sectionBackground && headerSettings.sectionBackground.isElementBackground) {
+          delete headerSettings.sectionBackground;
+          console.log('🎨 [AI Дизайн Система] Удален sectionBackground из элементов из настроек заголовка');
+        }
+        
+        onHeaderChange({
+          ...headerData,
+          ...headerSettings
+        });
+      }
+      
+      // Применяем стили hero секции (только если есть явные настройки hero)
+      if (designSystemJson.hero && onHeroChange) {
+        console.log('🎨 [AI Дизайн Система] Применяем стили hero секции:', designSystemJson.hero);
+        
+        // Фильтруем только настройки hero, исключая sectionBackground из элементов
+        const heroSettings = { ...designSystemJson.hero };
+        
+        // Удаляем sectionBackground, если он пришел из элементов
+        if (heroSettings.sectionBackground && heroSettings.sectionBackground.isElementBackground) {
+          delete heroSettings.sectionBackground;
+          console.log('🎨 [AI Дизайн Система] Удален sectionBackground из элементов из настроек hero');
+        }
+        
+        onHeroChange({
+          ...heroData,
+          ...heroSettings
+        });
+      }
+      
+      // Применяем стили контактов
+      if (designSystemJson.contact && onContactChange) {
+        console.log('🎨 [AI Дизайн Система] Применяем стили контактов:', designSystemJson.contact);
+        onContactChange({
+          ...contactData,
+          ...designSystemJson.contact
+        });
+      }
+      
+      // Применяем стили секций
+      if (designSystemJson.sections && onSectionsChange) {
+        console.log('🎨 [AI Дизайн Система] Обрабатываем секции:', designSystemJson.sections);
+        console.log('🎨 [AI Дизайн Система] Доступные секции в sectionsData:', Object.keys(sectionsData));
+        
+        const updatedSections = { ...sectionsData };
+        
+        Object.keys(designSystemJson.sections).forEach(sectionKey => {
+          console.log(`🎨 [AI Дизайн Система] Проверяем секцию ${sectionKey}:`, {
+            existsInJson: !!designSystemJson.sections[sectionKey],
+            existsInSectionsData: !!updatedSections[sectionKey],
+            sectionData: designSystemJson.sections[sectionKey]
+          });
+          
+          if (updatedSections[sectionKey]) {
+            const sectionData = designSystemJson.sections[sectionKey];
+            console.log(`🎨 [AI Дизайн Система] Обрабатываем секцию ${sectionKey}:`, sectionData);
+            
+            updatedSections[sectionKey] = {
+              ...updatedSections[sectionKey],
+              title: sectionData.title || updatedSections[sectionKey].title,
+              description: sectionData.description || updatedSections[sectionKey].description,
+              // НЕ применяем backgroundColor из sectionData, чтобы избежать влияния на глобальный фон
+              // backgroundColor: sectionData.backgroundColor || updatedSections[sectionKey].backgroundColor,
+              titleColor: sectionData.titleColor || updatedSections[sectionKey].titleColor,
+              descriptionColor: sectionData.descriptionColor || updatedSections[sectionKey].descriptionColor
+            };
+            
+            // АВТОМАТИЧЕСКОЕ ПРИМЕНЕНИЕ СТИЛЕЙ КО ВСЕМ ЭЛЕМЕНТАМ ТИПОГРАФИКИ
+            if (sectionData.elements && updatedSections[sectionKey].elements) {
+              console.log(`🎨 [AI Дизайн Система] Элементы в JSON для секции ${sectionKey}:`, sectionData.elements);
+              console.log(`🎨 [AI Дизайн Система] Элементы в sectionsData для секции ${sectionKey}:`, updatedSections[sectionKey].elements);
+              
+              // Применяем стили к элементам по типам из JSON
+              sectionData.elements.forEach((jsonElement, jsonIndex) => {
+                console.log(`🎯 [AI Дизайн Система] Обрабатываем элемент из JSON #${jsonIndex}: ${jsonElement.type}`);
+                
+                // Ищем элемент такого же типа в sectionsData
+                const matchingElements = updatedSections[sectionKey].elements.filter(el => el.type === jsonElement.type);
+                console.log(`🎯 [AI Дизайн Система] Найдено элементов типа ${jsonElement.type} в sectionsData:`, matchingElements.length);
+                
+                if (matchingElements.length > 0) {
+                  // Берем первый подходящий элемент (или можно по индексу)
+                  const currentElement = matchingElements[0];
+                  const originalIndex = updatedSections[sectionKey].elements.indexOf(currentElement);
+                  console.log(`🎯 [AI Дизайн Система] Применяем стили к элементу ${jsonElement.type} в секции ${sectionKey}, элемент #${originalIndex}`);
+                  console.log(`🎯 [AI Дизайн Система] Текущий элемент до обновления:`, currentElement);
+                  
+                  // Создаем colorSettings если их нет
+                  if (!currentElement.colorSettings) {
+                    currentElement.colorSettings = {};
+                  }
+                  
+                  // ПРИНУДИТЕЛЬНОЕ ПРИМЕНЕНИЕ СТИЛЕЙ ИЗ JSON К ЭЛЕМЕНТУ
+                  let updatedElement = {
+                    ...currentElement, // Сохраняем ВСЕ существующие данные
+                    
+                    // ПРАВИЛЬНОЕ СЛИЯНИЕ COLOR SETTINGS ИЗ JSON
+                    colorSettings: {
+                      // Сохраняем существующие настройки
+                      ...currentElement.colorSettings,
+                      
+                      // Перезаписываем настройками из JSON (приоритет)
+                      ...jsonElement.colorSettings,
+                      
+                      // Глубокое слияние textFields
+                      textFields: {
+                        ...currentElement.colorSettings?.textFields,
+                        ...jsonElement.colorSettings?.textFields
+                      },
+                      
+                      // Глубокое слияние sectionBackground (только для элемента, не для глобального фона)
+                      sectionBackground: {
+                        ...currentElement.colorSettings?.sectionBackground,
+                        ...jsonElement.colorSettings?.sectionBackground,
+                        // Убеждаемся, что sectionBackground применяется только к элементу
+                        isElementBackground: true
+                      },
+                      
+                      // Глубокое слияние cardBackground
+                      cardBackground: {
+                        ...currentElement.colorSettings?.cardBackground,
+                        ...jsonElement.colorSettings?.cardBackground
+                      }
+                    }
+                  };
+                  
+                  // Специальная обработка для faq-section - применяем стили к элементам аккордеона
+                  if (jsonElement.type === 'faq-section' && jsonElement.colorSettings) {
+                    console.log('🔥 [AiParser] Специальная обработка faq-section в handleApplyDesignSystem');
+                    
+                    // Применяем стили к элементам FAQ
+                    const items = updatedElement.items || updatedElement.data?.items || [];
+                    console.log('🔥 [AiParser] Найдены элементы FAQ в handleApplyDesignSystem:', items.length);
+                    
+                    if (items && Array.isArray(items)) {
+                      const updatedItems = items.map(item => {
+                        console.log('🔥 [AiParser] Обрабатываем элемент FAQ в handleApplyDesignSystem:', item.id);
+                        
+                        return {
+                          ...item,
+                          // Применяем цвета из colorSettings
+                          questionColor: jsonElement.colorSettings.textFields?.question || jsonElement.colorSettings.textFields?.questionText || '#ffff00',
+                          answerColor: jsonElement.colorSettings.textFields?.answer || jsonElement.colorSettings.textFields?.answerText || '#00ffff'
+                        };
+                      });
+                      
+                      // Обновляем элементы в правильном месте
+                      if (updatedElement.items) {
+                        updatedElement.items = updatedItems;
+                        console.log('🔥 [AiParser] Обновили updatedElement.items в handleApplyDesignSystem');
+                      } else if (updatedElement.data) {
+                        updatedElement.data.items = updatedItems;
+                        console.log('🔥 [AiParser] Обновили updatedElement.data.items в handleApplyDesignSystem');
+                      } else {
+                        updatedElement.data = updatedElement.data || {};
+                        updatedElement.data.items = updatedItems;
+                        console.log('🔥 [AiParser] Создали updatedElement.data.items в handleApplyDesignSystem');
+                      }
+                      
+                      console.log('🔥 [AiParser] Элементы FAQ после обработки:', updatedItems.map(item => ({
+                        id: item.id,
+                        questionColor: item.questionColor,
+                        answerColor: item.answerColor
+                      })));
+                    }
+                    
+                    // Обновляем основные поля элемента
+                    updatedElement.backgroundColor = jsonElement.colorSettings.backgroundColor || '#ff00ff';
+                    updatedElement.titleColor = jsonElement.colorSettings.textFields?.title || jsonElement.colorSettings.textFields?.faqTitle || '#00ff00';
+                    updatedElement.backgroundType = 'solid';
+                    updatedElement.borderColor = jsonElement.colorSettings.borderColor || '#ff6600';
+                    updatedElement.borderWidth = jsonElement.colorSettings.borderWidth || 3;
+                    updatedElement.borderRadius = jsonElement.colorSettings.borderRadius || 12;
+                    
+                    console.log('🔥 [AiParser] Обновлены основные поля FAQ:', {
+                      backgroundColor: updatedElement.backgroundColor,
+                      titleColor: updatedElement.titleColor,
+                      borderColor: updatedElement.borderColor
+                    });
+                  }
+                  
+                  // Специальная обработка для multiple-cards - применяем стили к карточкам
+                  if (jsonElement.type === 'multiple-cards' && jsonElement.colorSettings) {
+                    console.log('🔥 [AiParser] Специальная обработка multiple-cards в handleApplyDesignSystem');
+                    
+                    // Применяем стили к карточкам
+                    const cards = updatedElement.cards || updatedElement.data?.cards || [];
+                    console.log('🔥 [AiParser] Найдены карточки в handleApplyDesignSystem:', cards.length);
+                    
+                    if (cards && Array.isArray(cards)) {
+                      const updatedCards = cards.map(card => {
+                        console.log('🔥 [AiParser] Обрабатываем карточку в handleApplyDesignSystem:', card.id);
+                        
+                        return {
+                          ...card,
+                    colorSettings: {
+                            textFields: {
+                              title: jsonElement.colorSettings.textFields?.cardTitle || jsonElement.colorSettings.textFields?.title || '#8e24aa',
+                              text: jsonElement.colorSettings.textFields?.cardText || jsonElement.colorSettings.textFields?.text || '#8e24aa',
+                              content: jsonElement.colorSettings.textFields?.cardContent || jsonElement.colorSettings.textFields?.content || '#8e24aa',
+                              border: jsonElement.colorSettings.textFields?.border || '#e0e0e0'
+                            },
+                            sectionBackground: {
+                              enabled: true,
+                              useGradient: jsonElement.colorSettings.cardBackground?.useGradient || false,
+                              solidColor: jsonElement.colorSettings.cardBackground?.solidColor || '#ffffff',
+                              gradientColor1: jsonElement.colorSettings.cardBackground?.gradientColor1 || '#000000',
+                              gradientColor2: jsonElement.colorSettings.cardBackground?.gradientColor2 || '#8b0000',
+                              gradientDirection: jsonElement.colorSettings.cardBackground?.gradientDirection || 'to right',
+                              opacity: jsonElement.colorSettings.cardBackground?.opacity || 1
+                            },
+                            borderWidth: 1,
+                            borderRadius: 8,
+                            padding: 24,
+                            boxShadow: false
+                          },
+                          // Обновляем customStyles для совместимости
+                          customStyles: {
+                            ...card.customStyles,
+                            backgroundColor: jsonElement.colorSettings.cardBackground?.solidColor || '#ffffff',
+                            titleColor: jsonElement.colorSettings.textFields?.cardTitle || jsonElement.colorSettings.textFields?.title || '#333333',
+                            textColor: jsonElement.colorSettings.textFields?.cardText || jsonElement.colorSettings.textFields?.text || '#666666',
+                            backgroundType: jsonElement.colorSettings.cardBackground?.useGradient ? 'gradient' : 'solid',
+                            gradientColor1: jsonElement.colorSettings.cardBackground?.gradientColor1 || '#000000',
+                            gradientColor2: jsonElement.colorSettings.cardBackground?.gradientColor2 || '#8b0000',
+                            gradientDirection: jsonElement.colorSettings.cardBackground?.gradientDirection || 'to right',
+                            borderColor: jsonElement.colorSettings.textFields?.border || '#e0e0e0',
+                            borderWidth: jsonElement.colorSettings.borderWidth || 1,
+                            borderRadius: jsonElement.colorSettings.borderRadius || 8
+                          }
+                        };
+                      });
+                      
+                      // Обновляем карточки в правильном месте
+                      if (updatedElement.cards) {
+                        updatedElement.cards = updatedCards;
+                        console.log('🔥 [AiParser] Обновили updatedElement.cards в handleApplyDesignSystem');
+                      } else if (updatedElement.data) {
+                        updatedElement.data.cards = updatedCards;
+                        console.log('🔥 [AiParser] Обновили updatedElement.data.cards в handleApplyDesignSystem');
+                      } else {
+                        updatedElement.data = updatedElement.data || {};
+                        updatedElement.data.cards = updatedCards;
+                        console.log('🔥 [AiParser] Создали updatedElement.data.cards в handleApplyDesignSystem');
+                      }
+                      
+                      console.log('🔥 [AiParser] Карточки после обработки в handleApplyDesignSystem:', updatedCards.map(card => ({
+                        id: card.id,
+                        colorSettings: card.colorSettings,
+                        customStyles: card.customStyles
+                      })));
+                    }
+                  }
+                  
+                  // Специальная обработка для data-table - применяем стили к таблице
+                  if (jsonElement.type === 'data-table' && jsonElement.colorSettings) {
+                    console.log('🔥 [AiParser] Специальная обработка data-table в handleApplyDesignSystem');
+                    
+                    // Обновляем основные поля элемента
+                    updatedElement.backgroundColor = jsonElement.colorSettings.backgroundColor || '#ffffff';
+                    updatedElement.titleColor = jsonElement.colorSettings.textFields?.title || jsonElement.colorSettings.textFields?.headerText || '#333333';
+                    updatedElement.backgroundType = 'solid';
+                    updatedElement.borderColor = jsonElement.colorSettings.borderColor || jsonElement.colorSettings.textFields?.border || '#e0e0e0';
+                    updatedElement.borderWidth = jsonElement.colorSettings.borderWidth || 1;
+                    updatedElement.borderRadius = jsonElement.colorSettings.borderRadius || 8;
+                    
+                    console.log('🔥 [AiParser] Обновлены основные поля data-table:', {
+                      backgroundColor: updatedElement.backgroundColor,
+                      titleColor: updatedElement.titleColor,
+                      borderColor: updatedElement.borderColor
+                    });
+                  }
+                  
+                  // Специальная обработка для advanced-line-chart - применяем стили к линиям графика
+                  if (jsonElement.type === 'advanced-line-chart' && jsonElement.colorSettings) {
+                    console.log('🔥 [AiParser] Специальная обработка advanced-line-chart в handleApplyDesignSystem');
+                    
+                    // 🔥 ИСПРАВЛЕНИЕ: Применяем цвет легенды к описанию секции и в colorSettings
+                    if (jsonElement.colorSettings.textFields?.legendText) {
+                      updatedElement.descriptionColor = jsonElement.colorSettings.textFields.legendText;
+                      
+                      // Также обновляем colorSettings для совместимости с редактором
+                      if (!updatedElement.colorSettings) {
+                        updatedElement.colorSettings = {};
+                      }
+                      if (!updatedElement.colorSettings.textFields) {
+                        updatedElement.colorSettings.textFields = {};
+                      }
+                      updatedElement.colorSettings.textFields.legend = jsonElement.colorSettings.textFields.legendText;
+                      
+                      console.log('🔥 [AiParser] Применили цвет легенды к описанию секции и colorSettings:', {
+                        descriptionColor: updatedElement.descriptionColor,
+                        legendColor: updatedElement.colorSettings.textFields.legend
+                      });
+                    }
+                    
+                    // Применяем стили к данным диаграммы
+                    const chartData = updatedElement.data || updatedElement.chartData || [];
+                    console.log('🔥 [AiParser] Найдены данные линейного графика в handleApplyDesignSystem:', chartData.length);
+                    
+                    if (chartData && Array.isArray(chartData)) {
+                      // Обновляем цвета линий
+                      const lineColors = jsonElement.colorSettings.lineColors || {};
+                      const availableLineColors = Object.values(lineColors);
+                      const lineColorKeys = Object.keys(lineColors);
+                      
+                      if (availableLineColors.length > 0) {
+                        updatedElement.lineColors = availableLineColors;
+                        console.log('🔥 [AiParser] Обновили цвета линий:', availableLineColors);
+                      }
+                      
+                      // Обновляем названия линий если есть
+                      if (jsonElement.lineNames && Array.isArray(jsonElement.lineNames)) {
+                        updatedElement.lineNames = jsonElement.lineNames;
+                        console.log('🔥 [AiParser] Обновили названия линий:', jsonElement.lineNames);
+                      }
+                    }
+                  }
+                  
+                  // Специальная обработка для bar-chart - применяем стили к столбцам диаграммы
+                  if (jsonElement.type === 'bar-chart' && jsonElement.colorSettings) {
+                    console.log('🔥 [AiParser] Специальная обработка bar-chart в handleApplyDesignSystem');
+                    
+                    // 🔥 ИСПРАВЛЕНИЕ: Применяем цвет легенды к описанию секции и в colorSettings
+                    if (jsonElement.colorSettings.textFields?.legendText) {
+                      updatedElement.descriptionColor = jsonElement.colorSettings.textFields.legendText;
+                      
+                      // Также обновляем colorSettings для совместимости с редактором
+                      if (!updatedElement.colorSettings) {
+                        updatedElement.colorSettings = {};
+                      }
+                      if (!updatedElement.colorSettings.textFields) {
+                        updatedElement.colorSettings.textFields = {};
+                      }
+                      updatedElement.colorSettings.textFields.legend = jsonElement.colorSettings.textFields.legendText;
+                      
+                      console.log('🔥 [AiParser] Применили цвет легенды к описанию секции и colorSettings:', {
+                        descriptionColor: updatedElement.descriptionColor,
+                        legendColor: updatedElement.colorSettings.textFields.legend
+                      });
+                    }
+                    
+                    // Применяем стили к данным диаграммы
+                    const chartData = updatedElement.data || updatedElement.chartData || [];
+                    console.log('🔥 [AiParser] Найдены данные диаграммы в handleApplyDesignSystem:', chartData.length);
+                    
+                    if (chartData && Array.isArray(chartData)) {
+                      const updatedChartData = chartData.map((item, index) => {
+                        console.log('🔥 [AiParser] Обрабатываем столбец диаграммы в handleApplyDesignSystem:', item.label);
+                        
+                        // Определяем цвет столбца из chartColors
+                        let barColor = '#1976d2'; // цвет по умолчанию
+                        
+                        if (jsonElement.colorSettings.chartColors) {
+                          // Получаем все доступные цвета из JSON
+                          const availableColors = Object.values(jsonElement.colorSettings.chartColors);
+                          const colorKeys = Object.keys(jsonElement.colorSettings.chartColors);
+                          
+                          if (availableColors.length > 0) {
+                            // Используем цвет по индексу из доступных цветов
+                            const colorIndex = index % availableColors.length;
+                            barColor = availableColors[colorIndex];
+                            console.log(`🔥 [AiParser] Применяем цвет ${colorKeys[colorIndex]} (${barColor}) к столбцу ${index + 1}`);
+                          }
+                        }
+                        
+                        return {
+                          ...item,
+                          color: barColor,
+                          // Обновляем customStyles для совместимости
+                          customStyles: {
+                            ...item.customStyles,
+                            backgroundColor: barColor,
+                            color: barColor
+                          }
+                        };
+                      });
+                      
+                      // Обновляем данные диаграммы в правильном месте
+                      if (updatedElement.data) {
+                        updatedElement.data = updatedChartData;
+                        console.log('🔥 [AiParser] Обновили updatedElement.data в handleApplyDesignSystem');
+                      } else if (updatedElement.chartData) {
+                        updatedElement.chartData = updatedChartData;
+                        console.log('🔥 [AiParser] Обновили updatedElement.chartData в handleApplyDesignSystem');
+                      } else {
+                        updatedElement.data = updatedChartData;
+                        console.log('🔥 [AiParser] Создали updatedElement.data в handleApplyDesignSystem');
+                      }
+                      
+                      console.log('🔥 [AiParser] Данные диаграммы после обработки в handleApplyDesignSystem:', updatedChartData.map(item => ({
+                        label: item.label,
+                        value: item.value,
+                        color: item.color
+                      })));
+                    }
+                  }
+                  
+                  // Специальная обработка для advanced-pie-chart - применяем стили к сегментам диаграммы
+                  if (jsonElement.type === 'advanced-pie-chart' && jsonElement.colorSettings) {
+                    console.log('🔥 [AiParser] Специальная обработка advanced-pie-chart в handleApplyDesignSystem');
+                    
+                    // Применяем все colorSettings к элементу
+                    updatedElement.colorSettings = {
+                      ...updatedElement.colorSettings,
+                      ...jsonElement.colorSettings
+                    };
+                    
+                    // Применяем цвет легенды к описанию секции
+                    if (jsonElement.colorSettings.textFields?.legendText) {
+                      updatedElement.descriptionColor = jsonElement.colorSettings.textFields.legendText;
+                      
+                      // Также обновляем colorSettings для совместимости с редактором
+                      if (!updatedElement.colorSettings.textFields) {
+                        updatedElement.colorSettings.textFields = {};
+                      }
+                      updatedElement.colorSettings.textFields.legend = jsonElement.colorSettings.textFields.legendText;
+                    }
+                    
+                    // Применяем стили к данным диаграммы
+                    const pieData = updatedElement.data || updatedElement.chartData || [];
+                    console.log('🔥 [AiParser] Найдены данные круговой диаграммы в handleApplyDesignSystem:', pieData.length);
+                    
+                    if (pieData && Array.isArray(pieData)) {
+                      // Обновляем цвета сегментов
+                      const segmentColors = jsonElement.colorSettings.segmentColors || {};
+                      const availableSegmentColors = Object.values(segmentColors);
+                      
+                      console.log('🔥 [AiParser] Доступные цвета сегментов:', availableSegmentColors);
+                      
+                      const updatedPieData = pieData.map((item, index) => {
+                        console.log('🔥 [AiParser] Обрабатываем сегмент круговой диаграммы в handleApplyDesignSystem:', item.name);
+                        
+                        // Определяем цвет сегмента из segmentColors
+                        let segmentColor = '#8884d8'; // цвет по умолчанию
+                        
+                        if (availableSegmentColors.length > 0) {
+                          segmentColor = availableSegmentColors[index % availableSegmentColors.length];
+                        }
+                        
+                        return {
+                          ...item,
+                          fill: segmentColor,
+                          color: segmentColor
+                        };
+                      });
+                      
+                      // Обновляем данные диаграммы в правильном месте
+                      if (updatedElement.data) {
+                        updatedElement.data = updatedPieData;
+                        console.log('🔥 [AiParser] Обновили updatedElement.data в handleApplyDesignSystem');
+                      } else if (updatedElement.chartData) {
+                        updatedElement.chartData = updatedPieData;
+                        console.log('🔥 [AiParser] Обновили updatedElement.chartData в handleApplyDesignSystem');
+                      } else {
+                        updatedElement.data = updatedPieData;
+                        console.log('🔥 [AiParser] Создали updatedElement.data в handleApplyDesignSystem');
+                      }
+                      
+                      // Обновляем pieColors массив для совместимости с редактором
+                      const pieColors = updatedPieData.map(item => item.fill || item.color);
+                      updatedElement.pieColors = pieColors;
+                      
+                      console.log('🔥 [AiParser] Данные круговой диаграммы после обработки в handleApplyDesignSystem:', updatedPieData.map(item => ({
+                        name: item.name,
+                        value: item.value,
+                        fill: item.fill,
+                        color: item.color
+                      })));
+                    }
+                  }
+                  
+                  // Специальная обработка для advanced-area-chart - применяем стили к областям диаграммы
+                  if (jsonElement.type === 'advanced-area-chart' && jsonElement.colorSettings) {
+                    console.log('🔥 [AiParser] Специальная обработка advanced-area-chart в handleApplyDesignSystem');
+                    
+                    // Применяем все colorSettings к элементу
+                    updatedElement.colorSettings = {
+                      ...updatedElement.colorSettings,
+                      ...jsonElement.colorSettings
+                    };
+                    
+                    // Применяем цвет легенды к описанию секции
+                    if (jsonElement.colorSettings.textFields?.legendText) {
+                      updatedElement.descriptionColor = jsonElement.colorSettings.textFields.legendText;
+                      
+                      // Также обновляем colorSettings для совместимости с редактором
+                      if (!updatedElement.colorSettings.textFields) {
+                        updatedElement.colorSettings.textFields = {};
+                      }
+                      updatedElement.colorSettings.textFields.legend = jsonElement.colorSettings.textFields.legendText;
+                    }
+                    
+                    // Применяем стили к данным диаграммы
+                    const areaData = updatedElement.data || updatedElement.chartData || [];
+                    console.log('🔥 [AiParser] Найдены данные диаграммы областей в handleApplyDesignSystem:', areaData.length);
+                    
+                    if (areaData && Array.isArray(areaData)) {
+                      // Получаем доступные цвета областей из JSON
+                      const availableAreaColors = Object.values(jsonElement.colorSettings.areaColors || {});
+                      console.log('🔥 [AiParser] Доступные цвета областей из JSON:', availableAreaColors);
+                      
+                      const updatedAreaData = areaData.map((item, index) => {
+                        console.log('🔥 [AiParser] Обрабатываем область диаграммы в handleApplyDesignSystem:', item.name);
+                        
+                        // Определяем цвет области из areaColors
+                        let areaColor = '#8884d8'; // цвет по умолчанию
+                        
+                        if (availableAreaColors.length > 0) {
+                          areaColor = availableAreaColors[index % availableAreaColors.length];
+                        }
+                        
+                        return {
+                          ...item,
+                          fill: areaColor,
+                          color: areaColor
+                        };
+                      });
+                      
+                      // Обновляем данные диаграммы в правильном месте
+                      if (updatedElement.data) {
+                        updatedElement.data = updatedAreaData;
+                        console.log('🔥 [AiParser] Обновили updatedElement.data в handleApplyDesignSystem');
+                      } else if (updatedElement.chartData) {
+                        updatedElement.chartData = updatedAreaData;
+                        console.log('🔥 [AiParser] Обновили updatedElement.chartData в handleApplyDesignSystem');
+                      } else {
+                        updatedElement.data = updatedAreaData;
+                        console.log('🔥 [AiParser] Создали updatedElement.data в handleApplyDesignSystem');
+                      }
+                      
+                      // Обновляем areaColors массив для совместимости с редактором
+                      const areaColors = updatedAreaData.map(item => item.fill || item.color);
+                      updatedElement.areaColors = areaColors;
+                      
+                      console.log('🔥 [AiParser] Данные диаграммы областей после обработки в handleApplyDesignSystem:', updatedAreaData.map(item => ({
+                        name: item.name,
+                        value: item.value,
+                        fill: item.fill,
+                        color: item.color
+                      })));
+                    }
+                  }
+                  
+                  // Специальная обработка для cta-section - применяем стили к CTA секции
+                  if (jsonElement.type === 'cta-section' && jsonElement.colorSettings) {
+                    console.log('🔥 [AiParser] Специальная обработка cta-section в handleApplyDesignSystem');
+                    
+                    // Применяем только стили, НЕ изменяем текстовые поля
+                    if (jsonElement.alignment) {
+                      updatedElement.alignment = jsonElement.alignment;
+                    }
+                    if (jsonElement.backgroundType) {
+                      updatedElement.backgroundType = jsonElement.backgroundType;
+                    }
+                    if (jsonElement.backgroundColor) {
+                      updatedElement.backgroundColor = jsonElement.backgroundColor;
+                    }
+                    if (jsonElement.gradientColor1) {
+                      updatedElement.gradientColor1 = jsonElement.gradientColor1;
+                    }
+                    if (jsonElement.gradientColor2) {
+                      updatedElement.gradientColor2 = jsonElement.gradientColor2;
+                    }
+                    if (jsonElement.gradientDirection) {
+                      updatedElement.gradientDirection = jsonElement.gradientDirection;
+                    }
+                    if (jsonElement.textColor) {
+                      updatedElement.textColor = jsonElement.textColor;
+                    }
+                    if (jsonElement.titleColor) {
+                      updatedElement.titleColor = jsonElement.titleColor;
+                    }
+                    if (jsonElement.descriptionColor) {
+                      updatedElement.descriptionColor = jsonElement.descriptionColor;
+                    }
+                    if (jsonElement.buttonColor) {
+                      updatedElement.buttonColor = jsonElement.buttonColor;
+                    }
+                    if (jsonElement.buttonTextColor) {
+                      updatedElement.buttonTextColor = jsonElement.buttonTextColor;
+                    }
+                    if (jsonElement.borderRadius) {
+                      updatedElement.borderRadius = jsonElement.borderRadius;
+                    }
+                    if (jsonElement.padding) {
+                      updatedElement.padding = jsonElement.padding;
+                    }
+                    if (jsonElement.buttonBorderRadius) {
+                      updatedElement.buttonBorderRadius = jsonElement.buttonBorderRadius;
+                    }
+                    if (jsonElement.showShadow !== undefined) {
+                      updatedElement.showShadow = jsonElement.showShadow;
+                    }
+                    if (jsonElement.animationSettings) {
+                      updatedElement.animationSettings = jsonElement.animationSettings;
+                    }
+                    
+                    // Применяем colorSettings
+                    updatedElement.colorSettings = {
+                      ...updatedElement.colorSettings,
+                      ...jsonElement.colorSettings
+                    };
+                    
+                    console.log('🔥 [AiParser] Применены стили CTA секции (текст не изменен):', {
+                      alignment: updatedElement.alignment,
+                      backgroundType: updatedElement.backgroundType,
+                      backgroundColor: updatedElement.backgroundColor,
+                      titleColor: updatedElement.titleColor,
+                      descriptionColor: updatedElement.descriptionColor,
+                      buttonColor: updatedElement.buttonColor,
+                      buttonTextColor: updatedElement.buttonTextColor,
+                      borderRadius: updatedElement.borderRadius,
+                      padding: updatedElement.padding,
+                      buttonBorderRadius: updatedElement.buttonBorderRadius,
+                      showShadow: updatedElement.showShadow,
+                      colorSettings: updatedElement.colorSettings
+                    });
+                  }
+                
+                  console.log(`✅ [AI Дизайн Система] Обновленный элемент ${jsonElement.type} #${originalIndex}:`, updatedElement);
+                  console.log(`🎯 [AI Дизайн Система] Применены стили из JSON:`, jsonElement.colorSettings);
+                  
+                  // Обновляем элемент в секции
+                  updatedSections[sectionKey].elements[originalIndex] = updatedElement;
+                } else {
+                  console.log(`⚠️ [AI Дизайн Система] Не найден элемент типа ${jsonElement.type} в sectionsData для секции ${sectionKey}`);
+                }
+              });
+              
+
+            }
+          }
+        });
+        
+        console.log('🎨 [AI Дизайн Система] Обновленные секции:', updatedSections);
+        console.log('🎨 [AI Дизайн Система] Вызываем onSectionsChange с обновленными данными');
+        onSectionsChange(updatedSections);
+        console.log('🎨 [AI Дизайн Система] onSectionsChange вызван');
+        console.log('🎨 [AI Дизайн Система] ===== СТИЛИ ПРИМЕНЕНЫ =====');
+      } else {
+        console.log('🎨 [AI Дизайн Система] Секции или onSectionsChange недоступны:', {
+          hasSections: !!designSystemJson.sections,
+          hasOnSectionsChange: !!onSectionsChange
+        });
+      }
+      
+      setParserMessage('✅ Стили успешно применены!');
+      
+    } catch (error) {
+      console.error('❌ [AI Дизайн Система] Ошибка при применении стилей:', error);
+      setParserMessage('Ошибка при применении стилей: ' + error.message);
+    }
+  };
+
+  // Функция для обработки JSON от GPT-5
+  const handleApplyGpt5Json = () => {
+    try {
+      console.log('🚀 [AI Дизайн Система] ===== НАЧАЛО ОБРАБОТКИ JSON =====');
+      
+      if (!gpt5JsonInput.trim()) {
+        setParserMessage('Введите JSON для применения стилей.');
+        return;
+      }
+      
+      console.log('🚀 [AI Дизайн Система] Обрабатываем JSON от GPT-5:', gpt5JsonInput);
+      
+      // Парсим JSON
+      const designSystemJson = JSON.parse(gpt5JsonInput);
+      console.log('🚀 [AI Дизайн Система] Распарсенный JSON:', designSystemJson);
+      console.log('🚀 [AI Дизайн Система] Проверяем структуру JSON:', {
+        hasSections: !!designSystemJson.sections,
+        sectionKeys: designSystemJson.sections ? Object.keys(designSystemJson.sections) : [],
+        hasElements: designSystemJson.sections ? Object.values(designSystemJson.sections).some(s => s.elements) : false
+      });
+      
+      // Применяем стили
+      console.log('🚀 [AI Дизайн Система] Вызываем handleApplyDesignSystem...');
+      handleApplyDesignSystem(designSystemJson);
+      
+      // Очищаем поле ввода
+      setGpt5JsonInput('');
+      
+    } catch (error) {
+      console.error('❌ [AI Дизайн Система] Ошибка при обработке JSON от GPT-5:', error);
+      setParserMessage('Ошибка при обработке JSON: ' + error.message);
+    }
+  };
+
   // Обработка парсинга
   const handleParse = () => {
     try {
@@ -4027,6 +7931,7 @@ ID: [название секции на ${languageName}, при этом бук�
             parsedData = parsers.parseFullSite(content, headerData, contactData);
             if (parsedData) {
               console.log('Результаты парсинга полного сайта:', parsedData);
+              console.log('🔍 parsedData.merci:', parsedData.merci);
               
               // Создаем новый объект для всех секций
               const updatedSections = { ...sectionsData };
@@ -4114,6 +8019,7 @@ ID: [название секции на ${languageName}, при этом бук�
                       id: section.id,
                       title: section.title,
                       description: section.description,
+                      pageName: section.pageName || '', // ДОБАВЛЕНО: поле pageName для экспорта
                       cardType: section.cardType || 'ELEVATED',
                       cards: section.cards || [],
                       elements: section.elements || [], // ДОБАВЛЕНО: поле elements
@@ -4123,6 +8029,7 @@ ID: [название секции на ${languageName}, при этом бук�
                     };
                     
                     console.log(`Обновлена секция ${section.id}:`, updatedSections[section.id]);
+                    console.log(`✅ Поле pageName для секции ${section.id}:`, section.pageName);
                     
                     // Используем заголовок секции для названия в меню
                     let menuText = section.id;
@@ -4188,11 +8095,26 @@ ID: [название секции на ${languageName}, при этом бук�
               // Обновляем контакты
               let updatedContactData = contactData;
               if (parsedData.contacts) {
+                console.log('🔍 parsedData.contacts содержит:', parsedData.contacts);
+                console.log('🔍 parsedData.contacts.pageName:', parsedData.contacts.pageName);
                 updatedContactData = {
                   ...parsedData.contacts,
                   thankYouMessage: parsedData.merci?.message || contactData?.thankYouMessage,
                   closeButtonText: parsedData.merci?.closeButtonText || contactData?.closeButtonText
                 };
+                console.log('✅ Обновляем данные контактов с pageName:', updatedContactData.pageName);
+                onContactChange(updatedContactData);
+              }
+              
+              // Обновляем данные благодарности даже если контакты не обрабатывались
+              if (parsedData.merci && !parsedData.contacts) {
+                console.log('🔍 parsedData.merci содержит:', parsedData.merci);
+                updatedContactData = {
+                  ...contactData,
+                  thankYouMessage: parsedData.merci.message,
+                  closeButtonText: parsedData.merci.closeButtonText
+                };
+                console.log('✅ Обновляем только данные благодарности:', updatedContactData);
                 onContactChange(updatedContactData);
               }
               
@@ -5304,6 +9226,280 @@ ID: [название секции на ${languageName}, при этом бук�
         </AccordionDetails>
       </Accordion>
       
+      {/* Новый раздел: AI Дизайн Система */}
+      <Accordion defaultExpanded={false} sx={{ mb: 2 }}>
+        <AccordionSummary 
+          expandIcon={<ExpandMoreIcon />} 
+          sx={{ borderBottom: '1px solid rgba(0, 0, 0, 0.12)' }}
+        >
+          <Typography variant="h6" sx={{ color: '#9c27b0' }}>
+            🎨 AI Дизайн Система
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails sx={{ p: 0 }}>
+          <Paper sx={{ boxShadow: 'none' }}>
+            <Box sx={{ p: 2, borderBottom: '1px solid rgba(0, 0, 0, 0.12)' }}>
+              <Typography variant="body2" sx={{ color: 'rgba(0, 0, 0, 0.7)', mb: 2 }}>
+                Сканирование элементов и создание JSON дизайн-системы для отправки в GPT-5
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={() => handleScanElementsWithSelection()}
+                  startIcon={<TuneIcon />}
+                  sx={{
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)'
+                    }
+                  }}
+                >
+                  📋 Выбрать элементы
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  onClick={() => handleScanElements()}
+                  startIcon={<TuneIcon />}
+                  sx={{
+                    color: '#2196f3',
+                    borderColor: '#2196f3',
+                    '&:hover': {
+                      borderColor: '#1976d2',
+                      backgroundColor: 'rgba(33, 150, 243, 0.04)'
+                    }
+                  }}
+                >
+                  🔍 Сканировать все
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  onClick={() => handleApplyStylesToAllElements()}
+                  startIcon={<StyleIcon />}
+                  sx={{
+                    color: '#9c27b0',
+                    borderColor: '#9c27b0',
+                    '&:hover': {
+                      borderColor: '#7b1fa2',
+                      backgroundColor: 'rgba(156, 39, 176, 0.04)'
+                    }
+                  }}
+                >
+                  🎨 Применить стили
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="info"
+                  onClick={() => setShowDesignSystemDialog(true)}
+                  startIcon={<TuneIcon />}
+                  disabled={!generatedDesignSystem}
+                  sx={{
+                    color: '#ff9800',
+                    borderColor: '#ff9800',
+                    '&:hover': {
+                      borderColor: '#f57c00',
+                      backgroundColor: 'rgba(255, 152, 0, 0.04)'
+                    }
+                  }}
+                >
+                  📋 Показать JSON
+                </Button>
+              </Box>
+            </Box>
+            
+            <Box sx={{ p: 2 }}>
+              {/* Поле для описания JSON промпта */}
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="h6" sx={{ mb: 2, color: '#2196f3' }}>
+                  📝 Описание для GPT-5 промпта
+                </Typography>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={4}
+                  label="Требования к цветовому стилю (будет добавлено к JSON)"
+                  value={jsonPromptDescription}
+                  onChange={(e) => setJsonPromptDescription(e.target.value)}
+                  sx={{ mb: 2 }}
+                  variant="outlined"
+                  helperText="Это описание будет автоматически добавлено к JSON при копировании для лучшего понимания GPT-5"
+                />
+                <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => setJsonPromptDescription(`Требования к цветовому стилю:
+- Используйте современные градиенты и контрастные цвета
+- Применяйте темные фоны с яркими акцентами
+- Обеспечьте хорошую читаемость текста
+- Используйте цветовую схему: основные цвета #00d4ff, #ff6b6b, #facc15
+- Применяйте градиенты для фонов секций
+- Добавляйте тени и скругления для современного вида
+
+ДЕТАЛЬНЫЕ ТРЕБОВАНИЯ ДЛЯ GPT-5:
+1. УНИКАЛЬНОСТЬ ПОЛЕЙ: Каждое текстовое поле должно иметь уникальный цвет из палитры:
+   - title: #00d4ff (голубой) - для главных заголовков
+   - text: #ffffff (белый) - для основного текста на темном фоне
+   - description: #facc15 (желтый) - для описаний и подзаголовков
+   - cardTitle: #ff6b6b (красный) - для заголовков карточек
+   - cardText: #e0e0e0 (светло-серый) - для текста в карточках
+   - cardContent: #4ecdc4 (бирюзовый) - для контента карточек
+
+2. КОНТРАСТНОСТЬ: Обеспечьте минимальный контраст 4.5:1 между текстом и фоном:
+   - Белый текст (#ffffff) на темных фонах (#1a1a2e, #16213e)
+   - Светлые цвета для текста на темных градиентах
+   - Темные цвета для текста на светлых элементах
+
+3. ФОНОВЫЕ ГРАДИЕНТЫ:
+   - sectionBackground: градиент от #1a1a2e к #16213e
+   - cardBackground: градиент от #0a0a0f к #1a1a2e
+   - Используйте направление "to right" или "to bottom right"
+
+4. ДОПОЛНИТЕЛЬНЫЕ ЭФФЕКТЫ:
+   - borderColor: #00d4ff для границ карточек
+   - boxShadow: true для объемности
+   - borderRadius: 8px для скругления углов
+   - borderWidth: 1-2px для четкости границ
+
+5. ПРИМЕНЕНИЕ К JSON: В сгенерированном JSON каждое поле colorSettings должно содержать:
+   - Уникальный цвет для каждого текстового поля
+   - Соответствующий фон с градиентом
+   - Настройки границ и теней
+   - Обеспечение читаемости на всех фонах`)}
+                    sx={{ color: '#2196f3', borderColor: '#2196f3' }}
+                  >
+                    🔄 Сбросить к умолчанию
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => setJsonPromptDescription('')}
+                    sx={{ color: '#f44336', borderColor: '#f44336' }}
+                  >
+                    🗑️ Очистить
+                  </Button>
+                  {generatedDesignSystem && (
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => setShowPreviewDialog(true)}
+                      sx={{ color: '#4caf50', borderColor: '#4caf50' }}
+                    >
+                      👁️ Предпросмотр
+                    </Button>
+                  )}
+                </Box>
+              </Box>
+
+              {generatedDesignSystem ? (
+                <Box>
+                  <Typography variant="h6" sx={{ mb: 2, color: '#9c27b0' }}>
+                    🎯 Сгенерированная дизайн-система
+                  </Typography>
+                  <Paper sx={{ p: 2, bgcolor: '#f8f9fa', border: '1px solid #e0e0e0', borderRadius: '8px' }}>
+                    <Typography variant="body2" sx={{ mb: 2, fontWeight: 500 }}>
+                      Скопируйте этот JSON и отправьте в GPT-5 для получения готового кода:
+                    </Typography>
+                    <Box sx={{ 
+                      bgcolor: '#fff', 
+                      p: 2, 
+                      borderRadius: '4px', 
+                      border: '1px solid #ddd',
+                      maxHeight: '300px',
+                      overflow: 'auto'
+                    }}>
+                      <pre style={{ 
+                        margin: 0, 
+                        fontSize: '12px', 
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word'
+                      }}>
+                        {JSON.stringify(generatedDesignSystem, null, 2)}
+                      </pre>
+                    </Box>
+                    <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+                      <Button
+                        variant="contained"
+                        size="small"
+                        onClick={() => {
+                          const jsonWithDescription = `${jsonPromptDescription}\n\nJSON дизайн-системы:\n${JSON.stringify(generatedDesignSystem, null, 2)}`;
+                          navigator.clipboard.writeText(jsonWithDescription);
+                        }}
+                        sx={{ bgcolor: '#9c27b0' }}
+                      >
+                        📋 Копировать JSON + Описание
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => navigator.clipboard.writeText(JSON.stringify(generatedDesignSystem, null, 2))}
+                        sx={{ color: '#9c27b0', borderColor: '#9c27b0' }}
+                      >
+                        📋 Только JSON
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => setGeneratedDesignSystem(null)}
+                      >
+                        Очистить
+                      </Button>
+                    </Box>
+                  </Paper>
+                </Box>
+              ) : (
+                <Box sx={{ textAlign: 'center', py: 3 }}>
+                  <Typography variant="body1" sx={{ color: 'rgba(0, 0, 0, 0.6)' }}>
+                    Нажмите "Сканировать элементы" для создания JSON дизайн-системы
+                  </Typography>
+                </Box>
+              )}
+              
+              {/* Поле для ввода JSON от GPT-5 */}
+              <Box sx={{ mt: 3 }}>
+                <Typography variant="h6" sx={{ mb: 2, color: '#ff9800' }}>
+                  🚀 Применить стили от GPT-5
+                </Typography>
+                <Paper sx={{ p: 2, bgcolor: '#fff3e0', border: '1px solid #ffb74d', borderRadius: '8px' }}>
+                  <Typography variant="body2" sx={{ mb: 2, color: 'rgba(0, 0, 0, 0.7)' }}>
+                    Вставьте JSON с готовыми стилями, полученный от GPT-5. Для элемента typography используйте поля: headingType, textColor, textAlign, customStyles.color, colorSettings.borderColor
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    multiline
+                    rows={8}
+                    placeholder="Вставьте JSON с дизайн-системой от GPT-5..."
+                    value={gpt5JsonInput}
+                    onChange={(e) => setGpt5JsonInput(e.target.value)}
+                    sx={{ mb: 2 }}
+                    variant="outlined"
+                  />
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button
+                      variant="contained"
+                      color="warning"
+                      onClick={() => handleApplyGpt5Json()}
+                      disabled={!gpt5JsonInput.trim()}
+                      startIcon={<StyleIcon />}
+                    >
+                      🎨 Применить стили
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      onClick={() => setGpt5JsonInput('')}
+                    >
+                      Очистить
+                    </Button>
+                  </Box>
+                </Paper>
+              </Box>
+            </Box>
+          </Paper>
+        </AccordionDetails>
+      </Accordion>
+      
       <Accordion defaultExpanded={false} sx={{ mb: 2 }}>
         <AccordionSummary 
           expandIcon={<ExpandMoreIcon />} 
@@ -5473,9 +9669,17 @@ ID: [название секции на ${languageName}, при этом бук�
             onSave={handleFullSiteSettingsSave}
             initialSettings={fullSiteSettings}
             currentStep={currentStep}
+            showPromptModal={showPromptModal}
+            setShowPromptModal={setShowPromptModal}
+            generatedPrompt={generatedPrompt}
+            setGeneratedPrompt={setGeneratedPrompt}
             setCurrentStep={setCurrentStep}
             completedSteps={completedSteps}
             setCompletedSteps={setCompletedSteps}
+            globalSettings={globalSettings}
+            getCurrentLanguage={getCurrentLanguage}
+            getCurrentTheme={getCurrentTheme}
+            setParserMessage={setParserMessage}
           />
             
           <Box sx={{ p: 2 }}>
@@ -5718,9 +9922,286 @@ ID: [название секции на ${languageName}, при этом бук�
             onHeroChange={onHeroChange}
             onContactChange={onContactChange}
           />
+
+          {/* Модальное окно для выбора элементов */}
+          <Dialog 
+            open={showElementSelector} 
+            onClose={() => setShowElementSelector(false)}
+            maxWidth="md"
+            fullWidth
+          >
+            <DialogTitle>
+              <Typography variant="h6" component="div" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                📋 Выбор элементов для стилизации
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                <Chip 
+                  label={`Найдено: ${scannedElements.length}`} 
+                  size="small" 
+                  color="primary" 
+                />
+                <Chip 
+                  label={`Выбрано: ${selectedElements.size}`} 
+                  size="small" 
+                  color="secondary" 
+                />
+                <Chip 
+                  label={`Обработано: ${processedElements.size}`} 
+                  size="small" 
+                  color="success" 
+                />
+                {processingHistory.length > 0 && (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    color="warning"
+                    onClick={clearProcessingHistory}
+                    sx={{ ml: 'auto' }}
+                  >
+                    🔄 Сбросить историю
+                  </Button>
+                )}
+              </Box>
+            </DialogTitle>
+            <DialogContent>
+              <Typography variant="body2" sx={{ mb: 2, color: 'rgba(0,0,0,0.7)' }}>
+                Выберите элементы для создания JSON. ✅ Зеленые элементы уже обрабатывались, но их можно выбрать повторно.
+              </Typography>
+              
+              {processingHistory.length > 0 && (
+                <Paper sx={{ p: 2, mb: 3, backgroundColor: '#f8f9fa' }}>
+                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                    📊 История обработки:
+                  </Typography>
+                  {processingHistory.slice(-3).map((entry, index) => (
+                    <Typography key={index} variant="caption" sx={{ display: 'block', color: 'rgba(0,0,0,0.6)' }}>
+                      {entry.timestamp}: Скопировано {entry.count} элементов
+                    </Typography>
+                  ))}
+                </Paper>
+              )}
+              
+              <Paper sx={{ p: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <Checkbox
+                    checked={scannedElements.every(el => selectedElements.has(el.id))}
+                    indeterminate={scannedElements.some(el => selectedElements.has(el.id)) && !scannedElements.every(el => selectedElements.has(el.id))}
+                    onChange={() => {
+                      const allSelected = scannedElements.every(el => selectedElements.has(el.id));
+                      setSelectedElements(allSelected ? new Set() : new Set(scannedElements.map(el => el.id)));
+                    }}
+                  />
+                  <Typography variant="h6" sx={{ ml: 1, flex: 1 }}>
+                    Все элементы ({scannedElements.length})
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                    <Typography variant="body2">Режим JSON:</Typography>
+                    <Button
+                      size="small"
+                      variant={jsonMode === 'ready' ? 'contained' : 'outlined'}
+                      onClick={() => setJsonMode('ready')}
+                      sx={{ minWidth: 80 }}
+                    >
+                      🎨 Готовый
+                    </Button>
+                    <Button
+                      size="small"
+                      variant={jsonMode === 'template' ? 'contained' : 'outlined'}
+                      onClick={() => setJsonMode('template')}
+                      sx={{ minWidth: 80 }}
+                    >
+                      🤖 Для GPT
+                    </Button>
+                  </Box>
+                </Box>
+                
+                <List dense>
+                  {scannedElements.map((element) => {
+                    const status = getElementStatus(element.id);
+                    const statusColors = {
+                      processed: { bg: '#e8f5e8', border: '#4caf50', icon: '✅' },
+                      selected: { bg: '#e3f2fd', border: '#2196f3', icon: '🔵' },
+                      available: { bg: '#f5f5f5', border: '#e0e0e0', icon: '⚪' }
+                    };
+                    const statusColor = statusColors[status];
+                    
+                    return (
+                      <ListItem 
+                        key={element.id} 
+                        sx={{ 
+                          py: 0.5,
+                          backgroundColor: statusColor.bg,
+                          border: `1px solid ${statusColor.border}`,
+                          borderRadius: 1,
+                          mb: 0.5
+                        }}
+                      >
+                        <ListItemIcon sx={{ minWidth: 36 }}>
+                          <Checkbox
+                            edge="start"
+                            checked={selectedElements.has(element.id)}
+                            onChange={() => toggleElementSelection(element.id)}
+                          />
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={
+                            <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <span>{statusColor.icon}</span>
+                              <Chip 
+                                label={`${element.elementIndex + 1}`} 
+                                size="small" 
+                                color="default" 
+                                variant="outlined"
+                                sx={{ minWidth: 24, height: 20, fontSize: '0.7rem' }}
+                              />
+                              <strong>{element.type}</strong> - {element.title}
+                              {status === 'processed' && (
+                                <Chip label="Обработан" size="small" color="success" variant="outlined" />
+                              )}
+                            </Typography>
+                          }
+                          secondary={
+                            <Typography variant="caption" color="textSecondary">
+                              Секция: {element.sectionTitle} • Позиция: {element.elementIndex + 1}
+                            </Typography>
+                          }
+                        />
+                      </ListItem>
+                    );
+                  })}
+                </List>
+              </Paper>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setShowElementSelector(false)}>
+                Закрыть
+              </Button>
+              <Button
+                variant="contained"
+                onClick={generateSelectedElementsJSON}
+                disabled={selectedElements.size === 0}
+                sx={{
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)'
+                  }
+                }}
+              >
+                📋 Копировать JSON ({selectedElements.size})
+              </Button>
+            </DialogActions>
+          </Dialog>
+
+          {/* Диалог предпросмотра промпта */}
+          <Dialog 
+            open={showPreviewDialog} 
+            onClose={() => setShowPreviewDialog(false)}
+            maxWidth="md"
+            fullWidth
+          >
+            <DialogTitle>
+              👁️ Предпросмотр промпта для GPT-5
+            </DialogTitle>
+            <DialogContent>
+              <Typography variant="body2" sx={{ mb: 2, color: 'rgba(0, 0, 0, 0.7)' }}>
+                Полный текст, который будет скопирован в буфер обмена:
+              </Typography>
+              <Box sx={{ 
+                bgcolor: '#f8f9fa', 
+                p: 2, 
+                borderRadius: '8px', 
+                border: '1px solid #e0e0e0',
+                maxHeight: '400px',
+                overflow: 'auto'
+              }}>
+                <pre style={{ 
+                  margin: 0, 
+                  fontSize: '12px', 
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  fontFamily: 'monospace'
+                }}>
+                  {generatedDesignSystem ? `${jsonPromptDescription}\n\nJSON дизайн-системы:\n${JSON.stringify(generatedDesignSystem, null, 2)}` : 'Нет данных для предпросмотра'}
+                </pre>
+              </Box>
+            </DialogContent>
+            <DialogActions>
+              <Button 
+                onClick={() => setShowPreviewDialog(false)}
+                color="primary"
+              >
+                Закрыть
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (generatedDesignSystem) {
+                    const fullPrompt = `${jsonPromptDescription}\n\nJSON дизайн-системы:\n${JSON.stringify(generatedDesignSystem, null, 2)}`;
+                    navigator.clipboard.writeText(fullPrompt);
+                    setShowPreviewDialog(false);
+                  }
+                }}
+                variant="contained"
+                color="primary"
+                disabled={!generatedDesignSystem}
+              >
+                📋 Копировать
+              </Button>
+            </DialogActions>
+          </Dialog>
         </Paper>
       </AccordionDetails>
     </Accordion>
+
+    {/* Модальное окно для показа промпта */}
+    <Dialog open={showPromptModal} onClose={() => setShowPromptModal(false)} maxWidth="md" fullWidth>
+      <DialogTitle>🤖 Промпт для нейросети</DialogTitle>
+      <DialogContent>
+        <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+          Скопируйте этот промпт и вставьте в ChatGPT или другую нейросеть. Получите ответ в формате JSON и вставьте в поле "Ответ от нейросети" выше.
+        </Typography>
+        <TextField
+          fullWidth
+          multiline
+          rows={15}
+          value={generatedPrompt}
+          variant="outlined"
+          InputProps={{
+            readOnly: true,
+            sx: { fontFamily: 'monospace', fontSize: '0.875rem' }
+          }}
+        />
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setShowPromptModal(false)}>
+          Закрыть
+        </Button>
+        <Button 
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(generatedPrompt);
+              setParserMessage('Промпт скопирован в буфер обмена!');
+            } catch (err) {
+              // Альтернативный способ копирования
+              const textArea = document.createElement('textarea');
+              textArea.value = generatedPrompt;
+              document.body.appendChild(textArea);
+              textArea.select();
+              try {
+                document.execCommand('copy');
+                setParserMessage('Промпт скопирован в буфер обмена (альтернативный способ)!');
+              } catch (fallbackErr) {
+                setParserMessage('Ошибка при копировании. Выделите текст вручную и скопируйте.');
+              }
+              document.body.removeChild(textArea);
+            }
+          }}
+          variant="contained"
+          color="primary"
+        >
+          📋 Копировать промпт
+        </Button>
+      </DialogActions>
+    </Dialog>
     </Box>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Box, 
   Typography, 
@@ -232,6 +232,17 @@ export const TestimonialCard = ({
 
   const isCurrentlyEditing = isEditing || localEditing;
 
+  // 🔄 РЕАКТИВНОСТЬ: Обновляем локальные настройки при изменении colorSettings
+  useEffect(() => {
+    if (JSON.stringify(colorSettings) !== JSON.stringify(editData.colorSettings)) {
+      console.log('🔄 [TestimonialCard] Обновление colorSettings:', colorSettings);
+      setEditData(prev => ({
+        ...prev,
+        colorSettings: colorSettings || {}
+      }));
+    }
+  }, [colorSettings]);
+
   const renderStars = (rating) => {
     return Array.from({ length: 5 }, (_, i) => (
       <StarIcon 
@@ -454,8 +465,8 @@ export const TestimonialCard = ({
 
   // Применяем colorSettings если они есть
   const currentColorSettings = editData.colorSettings || {};
-  const nameColorFromSettings = currentColorSettings.textFields?.name || editData.nameColor || '#1976d2';
-  const roleColorFromSettings = currentColorSettings.textFields?.role || editData.roleColor || '#666666';
+  const nameColorFromSettings = currentColorSettings.textFields?.name || currentColorSettings.textFields?.author || editData.nameColor || '#1976d2';
+  const roleColorFromSettings = currentColorSettings.textFields?.role || currentColorSettings.textFields?.position || editData.roleColor || '#666666';
   const companyColorFromSettings = currentColorSettings.textFields?.company || editData.companyColor || '#888888';
   const contentColorFromSettings = currentColorSettings.textFields?.content || editData.contentColor || '#333333';
   const ratingColorFromSettings = currentColorSettings.textFields?.rating || '#ffc107';
@@ -660,6 +671,17 @@ export const FAQSection = ({
 
 
   const isCurrentlyEditing = isEditing || localEditing;
+
+  // 🔄 РЕАКТИВНОСТЬ: Обновляем локальные настройки при изменении colorSettings
+  useEffect(() => {
+    if (JSON.stringify(colorSettings) !== JSON.stringify(editData.colorSettings)) {
+      console.log('🔄 [FAQSection] Обновление colorSettings:', colorSettings);
+      setEditData(prev => ({
+        ...prev,
+        colorSettings: colorSettings || {}
+      }));
+    }
+  }, [colorSettings]);
 
   const addItem = () => {
     setEditData({
@@ -1062,6 +1084,17 @@ export const TimelineComponent = ({
   };
 
   const isCurrentlyEditing = isEditing || localEditing;
+
+  // 🔄 РЕАКТИВНОСТЬ: Обновляем локальные настройки при изменении colorSettings
+  useEffect(() => {
+    if (JSON.stringify(colorSettings) !== JSON.stringify(editData.colorSettings)) {
+      console.log('🔄 [TimelineComponent] Обновление colorSettings:', colorSettings);
+      setEditData(prev => ({
+        ...prev,
+        colorSettings: colorSettings || {}
+      }));
+    }
+  }, [colorSettings]);
 
   const getStatusIcon = (status) => {
     const statusColors = {
@@ -1808,6 +1841,17 @@ export const ImageGallery = ({
   };
 
   const isCurrentlyEditing = isEditing || localEditing;
+
+  // 🔄 РЕАКТИВНОСТЬ: Обновляем локальные настройки при изменении colorSettings
+  useEffect(() => {
+    if (JSON.stringify(colorSettings) !== JSON.stringify(editData.colorSettings)) {
+      console.log('🔄 [ImageGallery] Обновление colorSettings:', colorSettings);
+      setEditData(prev => ({
+        ...prev,
+        colorSettings: colorSettings || {}
+      }));
+    }
+  }, [colorSettings]);
 
   // Применяем colorSettings если они есть
   const currentColorSettings = editData.colorSettings || colorSettings || {};

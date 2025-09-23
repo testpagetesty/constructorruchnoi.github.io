@@ -16,16 +16,96 @@ const cleanEmailsInText = (text) => {
   return text.replace(/\[(.*?)\]\(mailto:(.*?)\)/g, '$2');
 };
 
+// Функция для очистки служебных полей из текста
+const cleanServiceFields = (text) => {
+  if (!text) return text;
+  return text
+    .replace(/^name page[:\s].*$/gmi, '') // Удаляем строки с NAME PAGE
+    .replace(/^id[:\s].*$/gmi, '') // Удаляем строки с ID
+    .replace(/^section name[:\s].*$/gmi, '') // Удаляем строки с SECTION NAME
+    .replace(/\n\s*\n\s*\n/g, '\n\n') // Убираем лишние пустые строки
+    .trim();
+};
+
 // Ключевые слова для идентификации разделов в тексте
 export const SECTION_KEYWORDS = {
+  HERO: ['hero', 'главная', 'заголовок', 'главный экран', 'hero section'],
   SERVICES: ['услуги', 'сервисы', 'что мы делаем', 'services', 'what we do', 'our services'],
   FEATURES: ['преимущества', 'особенности', 'почему мы', 'features', 'advantages', 'why us'],
   ABOUT: ['о нас', 'о компании', 'кто мы', 'about us', 'about company', 'who we are'],
   TESTIMONIALS: ['отзывы', 'мнения клиентов', 'что говорят', 'testimonials', 'reviews', 'what people say'],
-  FAQ: ['вопросы и ответы', 'часто задаваемые вопросы', 'faq', 'frequently asked questions'],
+  FAQ: ['вопросы и ответы', 'часто задаваемые вопросы', 'faq', 'frequently asked questions', 'вопросы'],
   NEWS: ['новости', 'блог', 'события', 'news', 'blog', 'events'],
   CONTACTS: ['контакты', 'свяжитесь с нами', 'связаться', 'contacts', 'contact us', 'get in touch'],
-  LEGAL: ['правовые документы', 'документы', 'политика', 'соглашение', 'legal documents', 'policy', 'terms']
+  LEGAL: ['правовые документы', 'документы', 'политика', 'соглашение', 'legal documents', 'policy', 'terms'],
+  MERCI: ['merci', 'благодарность', 'спасибо', 'thank you', 'thanks', 'сообщение благодарности'],
+  UNIVERSAL: ['универсальная', 'дополнительная', 'универсальная секция', 'universal', 'additional', 'extra']
+};
+
+// Функция для определения типа раздела - создает разделы по порядку независимо от содержимого
+export const detectSectionType = (sectionName, sectionContent = '', sectionIndex = 0) => {
+  const lowerSectionName = sectionName.toLowerCase();
+  const lowerContent = sectionContent.toLowerCase();
+  
+  // Специальные разделы - проверяем по названию (они должны работать по умолчанию)
+  const specialSections = {
+    'hero': 'HERO',
+    'контакты': 'CONTACTS',
+    'contacts': 'CONTACTS', 
+    'merci': 'MERCI',
+    'правовые документы': 'LEGAL',
+    'legal documents': 'LEGAL'
+  };
+  
+  // Проверяем специальные разделы по ключевым словам в названии
+  for (const [key, type] of Object.entries(specialSections)) {
+    if (lowerSectionName.includes(key)) {
+      console.log(`🔒 Специальный раздел "${sectionName}" -> ${type}`);
+      return type;
+    }
+  }
+  
+  // Проверяем специальные разделы по содержимому
+  const specialContentIndicators = {
+    HERO: ['название сайта', 'заголовок hero', 'главный заголовок', 'site name', 'первая строка - название сайта'],
+    CONTACTS: ['телефон:', 'email:', 'адрес:', 'phone:', 'address:', '@', '+7', '+971', '+1'],
+    LEGAL: ['политика конфиденциальности', 'пользовательское соглашение', 'privacy policy', 'terms of use', 'cookie policy'],
+    MERCI: ['спасибо за обращение', 'благодарим', 'thank you for', 'thanks for', 'сообщение благодарности', 'текст кнопки']
+  };
+  
+  for (const [sectionType, indicators] of Object.entries(specialContentIndicators)) {
+    for (const indicator of indicators) {
+      if (lowerContent.includes(indicator.toLowerCase())) {
+        console.log(`🔒 Специальный раздел по содержимому "${sectionName}" -> ${sectionType}`);
+        return sectionType;
+      }
+    }
+  }
+  
+  // ДЛЯ ВСЕХ ОСТАЛЬНЫХ РАЗДЕЛОВ - АВТОМАТИЧЕСКОЕ РАСПРЕДЕЛЕНИЕ ПО ПОРЯДКУ
+  // Каждый раздел получает тип в зависимости от его позиции, независимо от содержимого
+  
+  // Стандартная последовательность типов разделов (после HERO)
+  const sectionTypeSequence = [
+    'ABOUT',      // 1-й раздел после HERO
+    'SERVICES',   // 2-й раздел после HERO  
+    'FEATURES',   // 3-й раздел после HERO
+    'TESTIMONIALS', // 4-й раздел после HERO
+    'FAQ',        // 5-й раздел после HERO
+    'NEWS',       // 6-й раздел после HERO
+    'UNIVERSAL'   // Все остальные разделы
+  ];
+  
+  // Определяем тип по индексу раздела
+  let assignedType;
+  if (sectionIndex < sectionTypeSequence.length) {
+    assignedType = sectionTypeSequence[sectionIndex];
+  } else {
+    assignedType = 'UNIVERSAL';
+  }
+  
+  console.log(`🎯 Автоматическое назначение раздела "${sectionName}" (позиция ${sectionIndex + 1}) -> ${assignedType}`);
+  return assignedType;
 };
 
 // Функция для генерации случайного телефонного номера, сохраняя исходный формат
@@ -1252,7 +1332,7 @@ const createElementByType = (type, titleParam, content, index, elementData = {})
       return {
         ...baseElement,
         title: titleParam || 'Множественные карточки',
-        description: 'Секция с несколькими карточками',
+        description: elementData?.description || 'Секция с несколькими карточками',
         cardType: 'image-card',
         gridSize: 'auto', // Автоматический расчет размера
         cards: cards,
@@ -1332,6 +1412,7 @@ const createElementByType = (type, titleParam, content, index, elementData = {})
       return {
         ...baseElement,
         title: titleParam || 'Столбчатая диаграмма',
+        description: elementData.description || '', // Добавляем поле описания
         data: barChartData,
         showValues: true,
         showGrid: true,
@@ -1420,6 +1501,7 @@ const createElementByType = (type, titleParam, content, index, elementData = {})
       return {
         ...baseElement,
         title: titleParam || 'Линейный график',
+        description: elementData?.description || '',
         data: lineChartData,
         strokeWidth: 2,
         showGrid: true,
@@ -1439,6 +1521,8 @@ const createElementByType = (type, titleParam, content, index, elementData = {})
         borderRadius: 8,
         padding: 24,
         chartHeight: 300,
+        chartWidth: '100%',
+        maxWidth: '100%',
         animationSettings: {
           type: 'fadeIn',
           duration: 0.8,
@@ -2492,6 +2576,30 @@ const createElementByType = (type, titleParam, content, index, elementData = {})
           triggerOnce: true,
           threshold: 0.1,
           disabled: false
+        },
+        colorSettings: {
+          textFields: {
+            title: '#ffffff',
+            description: '#ffffff',
+            background: '#1976d2',
+            border: 'transparent',
+            button: '#ffd700',
+            buttonText: '#000000',
+            buttonBorderRadius: 8
+          },
+          sectionBackground: {
+            enabled: false,
+            useGradient: false,
+            solidColor: '#1976d2',
+            gradientColor1: '#1976d2',
+            gradientColor2: '#42a5f5',
+            gradientDirection: 'to right'
+          },
+          borderColor: 'transparent',
+          borderWidth: 0,
+          borderRadius: 12,
+          padding: 48,
+          boxShadow: true
         }
       };
     }
@@ -2967,12 +3075,46 @@ export const parseAIElements = (content) => {
       }
       continue;
     }
+
+    // Парсинг поля ОПИСАНИЕ (поддерживаем разные варианты написания)
+    if (line.match(/^(?:ОПИСАНИЕ|Описание|описание|DESCRIPTION|Description|description):\s*(.*)$/i)) {
+      if (currentElement) {
+        const descriptionMatch = line.match(/^(?:ОПИСАНИЕ|Описание|описание|DESCRIPTION|Description|description):\s*(.*)$/i);
+        let description = descriptionMatch[1].trim();
+        
+        // Очищаем описание от экранированных символов
+        description = description
+          .replace(/\\\*/g, '*')  // Заменяем \* на *
+          .replace(/\\/g, '')     // Убираем оставшиеся обратные слеши
+          .replace(/\s+/g, ' ')   // Нормализуем пробелы
+          .trim();
+        
+        currentElement.description = description;
+        console.log('📝 Установлено описание элемента:', currentElement.description);
+        console.log('📝 Полный currentElement:', currentElement);
+        state = 'description';
+      }
+      continue;
+    }
     
     // Продолжение содержимого на следующих строках
     if (state === 'content' && currentElement) {
       // Проверяем, не начинается ли новый элемент
-      if (!line.match(/^(?:ТИП|TYPE|ТИП_ВЫНОСКИ|CALLOUT_TYPE|ТЕКСТ|TEXT|НАПРАВЛЕНИЕ|DIRECTION|ЦВЕТ1|COLOR1|ЦВЕТ2|COLOR2|РАЗМЕР_ШРИФТА|FONT_SIZE|ТОЛЩИНА_ШРИФТА|FONT_WEIGHT|ЗАГОЛОВОК|TITLE|ЛИНИЯ_1|LINE_1|ЛИНИЯ_2|LINE_2|СОДЕРЖИМОЕ|CONTENT):/i)) {
+      if (!line.match(/^(?:ТИП|TYPE|ТИП_ВЫНОСКИ|CALLOUT_TYPE|ТЕКСТ|TEXT|НАПРАВЛЕНИЕ|DIRECTION|ЦВЕТ1|COLOR1|ЦВЕТ2|COLOR2|РАЗМЕР_ШРИФТА|FONT_SIZE|ТОЛЩИНА_ШРИФТА|FONT_WEIGHT|ЗАГОЛОВОК|TITLE|ЛИНИЯ_1|LINE_1|ЛИНИЯ_2|LINE_2|СОДЕРЖИМОЕ|CONTENT|ОПИСАНИЕ|Описание|описание|DESCRIPTION|Description|description):/i)) {
         currentElement.content += (currentElement.content ? '\n' : '') + line;
+      } else {
+        // Если встретили новый ключ, обрабатываем его на следующей итерации
+        i--; // Возвращаемся на шаг назад
+        continue;
+      }
+    }
+
+    // Продолжение описания на следующих строках
+    if (state === 'description' && currentElement) {
+      // Проверяем, не начинается ли новый элемент
+      if (!line.match(/^(?:ТИП|TYPE|ТИП_ВЫНОСКИ|CALLOUT_TYPE|ТЕКСТ|TEXT|НАПРАВЛЕНИЕ|DIRECTION|ЦВЕТ1|COLOR1|ЦВЕТ2|COLOR2|РАЗМЕР_ШРИФТА|FONT_SIZE|ТОЛЩИНА_ШРИФТА|FONT_WEIGHT|ЗАГОЛОВОК|TITLE|ЛИНИЯ_1|LINE_1|ЛИНИЯ_2|LINE_2|СОДЕРЖИМОЕ|CONTENT|ОПИСАНИЕ|Описание|описание|DESCRIPTION|Description|description):/i)) {
+        currentElement.description += (currentElement.description ? ' ' : '') + line;
+        console.log('📝 Продолжение описания:', line);
       } else {
         // Если встретили новый ключ, обрабатываем его на следующей итерации
         i--; // Возвращаемся на шаг назад
@@ -3033,6 +3175,7 @@ export const parseUniversalSection = (content) => {
     let sectionId = 'универсальный';
     let sectionTitle = '';
     let sectionDescription = '';
+    let pageName = '';
     
     // Проверяем, содержит ли контент формат с типами элементов
     const hasNewFormat = content.includes('ТИП:') || content.includes('TYPE:') || 
@@ -3052,6 +3195,24 @@ export const parseUniversalSection = (content) => {
         const line = cleanEmailsInText(lines[i].trim());
         console.log(`📝 Обрабатываем строку ${i}: "${line}"`);
         console.log(`🔍 isHeaderSection: ${isHeaderSection}, contentStartIndex: ${contentStartIndex}`);
+        
+        if (line.toLowerCase().match(/^name page[:\s]/i)) {
+          const customPageName = line.split(/[:]/)[1].trim();
+          if (customPageName) {
+            pageName = customPageName.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+            console.log('✅ Установлено имя страницы:', pageName);
+          }
+          continue;
+        }
+        
+        if (line.toLowerCase().match(/^name page[:\s]/i)) {
+          const customPageName = line.split(/[:]/)[1].trim();
+          if (customPageName) {
+            pageName = customPageName.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+            console.log('✅ Установлено имя страницы:', pageName);
+          }
+          continue;
+        }
         
         if (line.toLowerCase().match(/^id[:\s]/i)) {
           const customId = line.split(/[:]/)[1].trim();
@@ -3110,6 +3271,7 @@ export const parseUniversalSection = (content) => {
         id: sectionId,
         title: sectionTitle || 'Новая секция',
         description: sectionDescription || 'Описание секции',
+        pageName: pageName || '', // Имя страницы для экспорта
         menuName: sectionTitle || sectionId,
         cardType: 'ELEVATED',
         cards: [], // Пустой массив карточек, так как используем elements
@@ -3151,6 +3313,7 @@ export const parseServices = (content) => {
     let sectionId = 'services';
     let sectionTitle = '';
     let sectionDescription = '';
+    let pageName = '';
     
     // Проверяем, содержит ли контент новый формат с типами
     const hasNewFormat = content.includes('ТИП:') || content.includes('TYPE:') || 
@@ -3168,6 +3331,14 @@ export const parseServices = (content) => {
       
       for (let i = 0; i < lines.length; i++) {
         const line = cleanEmailsInText(lines[i].trim());
+        
+        if (line.toLowerCase().match(/^name page[:\s]/i)) {
+          const customPageName = line.split(/[:]/)[1].trim();
+          if (customPageName) {
+            pageName = customPageName.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+          }
+          continue;
+        }
         
         if (line.toLowerCase().match(/^id[:\s]/i)) {
           const customId = line.split(/[:]/)[1].trim();
@@ -3219,6 +3390,7 @@ export const parseServices = (content) => {
         id: sectionId,
         title: sectionTitle || 'Услуги',
         description: sectionDescription || '',
+        pageName: pageName || '', // Имя страницы для экспорта
         cardType: 'ELEVATED',
         elements: elements, // Новые элементы
         contentElements: elements, // Для совместимости с MultiPagePreview
@@ -3279,6 +3451,16 @@ export const parseServices = (content) => {
         continue;
       }
 
+      // Parse NAME PAGE from line starting with "NAME PAGE:"
+      if (line.toLowerCase().match(/^name page[:\s]/i)) {
+        const customPageName = line.split(/[:]/)[1].trim();
+        if (customPageName) {
+          pageName = customPageName.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+          console.log('✅ Установлено имя страницы услуг:', pageName);
+        }
+        continue;
+      }
+
       // Parse section ID from line starting with "ID:"
       if (line.toLowerCase().match(/^id[:\s]/i)) {
         const customId = line.split(/[:]/)[1].trim();
@@ -3293,11 +3475,11 @@ export const parseServices = (content) => {
       // Обработка заголовка секции
       if (isHeaderSection) {
         if (!sectionTitle) {
-          sectionTitle = line;
+          sectionTitle = cleanServiceFields(line);
           continue;
         }
         if (!sectionDescription && sectionTitle) {
-          sectionDescription = line;
+          sectionDescription = cleanServiceFields(line);
           isHeaderSection = false;
           continue;
         }
@@ -3311,11 +3493,11 @@ export const parseServices = (content) => {
           }
           currentCard = {
             id: `service_${cards.length + 1}`,
-            title: line,
+            title: cleanServiceFields(line),
             content: ''
           };
         } else if (currentCard) {
-          currentCard.content += (currentCard.content ? '\n' : '') + line;
+          currentCard.content += (currentCard.content ? '\n' : '') + cleanServiceFields(line);
         }
       }
     }
@@ -3328,7 +3510,7 @@ export const parseServices = (content) => {
     // Очищаем email в описаниях карточек
     const cleanedCards = cards.map(card => ({
       ...card,
-      content: cleanEmailsInText(card.content)
+      content: cleanServiceFields(cleanEmailsInText(card.content))
     }));
 
     // Создаем структуру данных секции
@@ -3336,6 +3518,7 @@ export const parseServices = (content) => {
       id: sectionId,
       title: sectionTitle || 'Юридические услуги',
       description: sectionDescription || '',
+      pageName: pageName || '', // Имя страницы для экспорта
       cardType: 'ELEVATED',
       elements: [], // Пустой массив элементов
       contentElements: [], // Пустой массив для совместимости
@@ -3402,6 +3585,7 @@ export const parseAdvantagesSection = (content) => {
     let sectionId = 'преимущества';
     let sectionTitle = '';
     let sectionDescription = '';
+    let pageName = '';
     
     // Проверяем, содержит ли контент формат с типами элементов
     const hasNewFormat = content.includes('ТИП:') || content.includes('TYPE:') || 
@@ -3423,6 +3607,15 @@ export const parseAdvantagesSection = (content) => {
         if (!line) continue;
         
         console.log(`📝 Обрабатываем строку ${i}: "${line}"`);
+        
+        if (line.toLowerCase().match(/^name page[:\s]/i)) {
+          const customPageName = line.split(/[:]/)[1].trim();
+          if (customPageName) {
+            pageName = customPageName.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+            console.log('✅ Установлено имя страницы:', pageName);
+          }
+          continue;
+        }
         
         if (line.toLowerCase().match(/^id[:\s]/i)) {
           const customId = line.split(/[:]/)[1].trim();
@@ -3483,6 +3676,7 @@ export const parseAdvantagesSection = (content) => {
         id: sectionId,
         title: sectionTitle || 'Наши преимущества',
         description: sectionDescription || 'Описание преимуществ',
+        pageName: pageName || '', // Имя страницы для экспорта
         cardType: 'ELEVATED',
         cards: [], // Пустой массив карточек, так как используем elements
         elements: elements, // Массив AI элементов
@@ -3524,6 +3718,16 @@ export const parseAdvantagesSection = (content) => {
       }
       emptyLineCount = 0;
 
+      // Parse NAME PAGE from line starting with "NAME PAGE:"
+      if (line.toLowerCase().match(/^name page[:\s]/i)) {
+        const customPageName = line.split(/[:]/)[1].trim();
+        if (customPageName) {
+          pageName = customPageName.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+          console.log('✅ Установлено имя страницы преимуществ:', pageName);
+        }
+        continue;
+      }
+
       // Parse section ID from line starting with "ID:"
       if (line.toLowerCase().match(/^id[:\s]/i)) {
         const customId = line.split(/[:]/)[1].trim();
@@ -3538,11 +3742,11 @@ export const parseAdvantagesSection = (content) => {
       // Process section header
       if (isHeaderSection) {
         if (!sectionTitle) {
-          sectionTitle = line;
+          sectionTitle = cleanServiceFields(line);
           continue;
         }
         if (!sectionDescription && sectionTitle) {
-          sectionDescription = line;
+          sectionDescription = cleanServiceFields(line);
           isHeaderSection = false;
           continue;
         }
@@ -3557,11 +3761,11 @@ export const parseAdvantagesSection = (content) => {
           }
           currentCard = {
             id: `feature_${cards.length + 1}`,
-            title: line,
+            title: cleanServiceFields(line),
             content: ''
           };
         } else if (currentCard) {
-          currentCard.content += (currentCard.content ? '\n' : '') + line;
+          currentCard.content += (currentCard.content ? '\n' : '') + cleanServiceFields(line);
         }
       }
     }
@@ -3574,7 +3778,7 @@ export const parseAdvantagesSection = (content) => {
     // Очищаем email в описаниях карточек
     const cleanedCards = cards.map(card => ({
       ...card,
-      content: cleanEmailsInText(card.content)
+      content: cleanServiceFields(cleanEmailsInText(card.content))
     }));
 
       // Создаем структуру данных секции (старый формат)
@@ -3582,6 +3786,7 @@ export const parseAdvantagesSection = (content) => {
       id: sectionId,
       title: sectionTitle || 'Наши преимущества',
       description: sectionDescription || '',
+      pageName: pageName || '', // Имя страницы для экспорта
       cardType: 'ELEVATED',
       cards: cleanedCards.map(card => ({
         ...card,
@@ -3619,6 +3824,7 @@ export const parseAboutSection = (content) => {
     let sectionId = 'about';
     let sectionTitle = '';
     let sectionDescription = '';
+    let pageName = '';
     
     // Проверяем, содержит ли контент формат с типами элементов
     const hasNewFormat = content.includes('ТИП:') || content.includes('TYPE:') || 
@@ -3640,6 +3846,15 @@ export const parseAboutSection = (content) => {
         if (!line) continue;
         
         console.log(`📝 Обрабатываем строку ${i}: "${line}"`);
+        
+        if (line.toLowerCase().match(/^name page[:\s]/i)) {
+          const customPageName = line.split(/[:]/)[1].trim();
+          if (customPageName) {
+            pageName = customPageName.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+            console.log('✅ Установлено имя страницы:', pageName);
+          }
+          continue;
+        }
         
         if (line.toLowerCase().match(/^id[:\s]/i)) {
           const customId = line.split(/[:]/)[1].trim();
@@ -3700,6 +3915,7 @@ export const parseAboutSection = (content) => {
         id: sectionId,
         title: sectionTitle || 'О нас',
         description: sectionDescription || 'Наша компания',
+        pageName: pageName || '', // Имя страницы для экспорта
         cardType: 'ELEVATED',
         cards: [], // Пустой массив карточек, так как используем elements
         elements: elements, // Массив AI элементов
@@ -3744,6 +3960,16 @@ export const parseAboutSection = (content) => {
       }
       emptyLineCount = 0;
 
+      // Parse NAME PAGE from line starting with "NAME PAGE:"
+      if (line.toLowerCase().match(/^name page[:\s]/i)) {
+        const customPageName = line.split(/[:]/)[1].trim();
+        if (customPageName) {
+          pageName = customPageName.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+          console.log('✅ Установлено имя страницы о нас:', pageName);
+        }
+        continue;
+      }
+
       // Parse section ID from line starting with "ID:"
       if (line.toLowerCase().match(/^id[:\s]/i)) {
         const customId = line.split(/[:]/)[1].trim();
@@ -3758,11 +3984,11 @@ export const parseAboutSection = (content) => {
       // Обработка заголовка секции
       if (isHeaderSection) {
         if (!sectionTitle) {
-          sectionTitle = line;
+          sectionTitle = cleanServiceFields(line);
           continue;
         }
         if (!sectionDescription && sectionTitle) {
-          sectionDescription = line;
+          sectionDescription = cleanServiceFields(line);
           isHeaderSection = false;
           continue;
         }
@@ -3776,11 +4002,11 @@ export const parseAboutSection = (content) => {
           }
           currentCard = {
             id: `about_${cards.length + 1}`,
-            title: line,
+            title: cleanServiceFields(line),
             content: ''
           };
         } else if (currentCard) {
-          currentCard.content += (currentCard.content ? '\n' : '') + line;
+          currentCard.content += (currentCard.content ? '\n' : '') + cleanServiceFields(line);
         }
       }
     }
@@ -3793,7 +4019,7 @@ export const parseAboutSection = (content) => {
     // Очищаем email в описаниях карточек
     const cleanedCards = cards.map(card => ({
       ...card,
-      content: cleanEmailsInText(card.content)
+      content: cleanServiceFields(cleanEmailsInText(card.content))
     }));
 
     // Создаем структуру данных секции
@@ -3801,6 +4027,7 @@ export const parseAboutSection = (content) => {
       id: sectionId,
       title: sectionTitle || 'О нас',
       description: sectionDescription || 'Наша компания',
+      pageName: pageName || '', // Имя страницы для экспорта
       cardType: 'ELEVATED',
       cards: cleanedCards.map(card => ({
         ...card,
@@ -3842,6 +4069,7 @@ export const parseTestimonials = (content) => {
     let sectionId = 'отзывы';
     let sectionTitle = '';
     let sectionDescription = '';
+    let pageName = '';
     
     // Проверяем, содержит ли контент формат с типами элементов
     const hasNewFormat = content.includes('ТИП:') || content.includes('TYPE:') || 
@@ -3863,6 +4091,15 @@ export const parseTestimonials = (content) => {
         if (!line) continue;
         
         console.log(`📝 Обрабатываем строку ${i}: "${line}"`);
+        
+        if (line.toLowerCase().match(/^name page[:\s]/i)) {
+          const customPageName = line.split(/[:]/)[1].trim();
+          if (customPageName) {
+            pageName = customPageName.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+            console.log('✅ Установлено имя страницы:', pageName);
+          }
+          continue;
+        }
         
         if (line.toLowerCase().match(/^id[:\s]/i)) {
           const customId = line.split(/[:]/)[1].trim();
@@ -3923,6 +4160,7 @@ export const parseTestimonials = (content) => {
         id: sectionId,
         title: sectionTitle || 'Отзывы клиентов',
         description: sectionDescription || 'Что говорят наши клиенты',
+        pageName: pageName || '', // Имя страницы для экспорта
         cardType: 'ELEVATED',
         cards: [], // Пустой массив карточек, так как используем elements
         elements: elements, // Массив AI элементов
@@ -3963,6 +4201,16 @@ export const parseTestimonials = (content) => {
       }
       emptyLineCount = 0;
 
+      // Parse NAME PAGE from line starting with "NAME PAGE:"
+      if (line.toLowerCase().match(/^name page[:\s]/i)) {
+        const customPageName = line.split(/[:]/)[1].trim();
+        if (customPageName) {
+          pageName = customPageName.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+          console.log('✅ Установлено имя страницы отзывов:', pageName);
+        }
+        continue;
+      }
+
       // Parse section ID from line starting with "ID:"
       if (line.toLowerCase().match(/^id[:\s]/i)) {
         const customId = line.split(/[:]/)[1].trim();
@@ -3977,11 +4225,11 @@ export const parseTestimonials = (content) => {
       // Обработка заголовка секции
       if (isHeaderSection) {
         if (!sectionTitle) {
-          sectionTitle = line;
+          sectionTitle = cleanServiceFields(line);
           continue;
         }
         if (!sectionDescription && sectionTitle) {
-          sectionDescription = line;
+          sectionDescription = cleanServiceFields(line);
           isHeaderSection = false;
           continue;
         }
@@ -4014,7 +4262,7 @@ export const parseTestimonials = (content) => {
     // Очищаем email в отзывах
     const cleanedCards = cards.map(card => ({
       ...card,
-      content: cleanEmailsInText(card.content)
+      content: cleanServiceFields(cleanEmailsInText(card.content))
     }));
 
       // Создаем структуру данных секции (старый формат)
@@ -4022,6 +4270,7 @@ export const parseTestimonials = (content) => {
       id: sectionId,
       title: sectionTitle || 'Отзывы клиентов',
       description: sectionDescription || '',
+      pageName: pageName || '', // Имя страницы для экспорта
       cardType: 'ELEVATED',
       cards: cleanedCards.map(card => ({
         ...card,
@@ -4066,6 +4315,7 @@ export const parseFaq = (content) => {
     let sectionId = 'вопросы';
     let sectionTitle = '';
     let sectionDescription = '';
+    let pageName = '';
     
     // Проверяем, содержит ли контент формат с типами элементов
     const hasNewFormat = content.includes('ТИП:') || content.includes('TYPE:') || 
@@ -4087,6 +4337,15 @@ export const parseFaq = (content) => {
         if (!line) continue;
         
         console.log(`📝 Обрабатываем строку ${i}: "${line}"`);
+        
+        if (line.toLowerCase().match(/^name page[:\s]/i)) {
+          const customPageName = line.split(/[:]/)[1].trim();
+          if (customPageName) {
+            pageName = customPageName.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+            console.log('✅ Установлено имя страницы:', pageName);
+          }
+          continue;
+        }
         
         if (line.toLowerCase().match(/^id[:\s]/i)) {
           const customId = line.split(/[:]/)[1].trim();
@@ -4147,6 +4406,7 @@ export const parseFaq = (content) => {
         id: sectionId,
         title: sectionTitle || 'Часто задаваемые вопросы',
         description: sectionDescription || 'Ответы на популярные вопросы',
+        pageName: pageName || '', // Имя страницы для экспорта
         cardType: 'ACCENT',
         cards: [], // Пустой массив карточек, так как используем elements
         elements: elements, // Массив AI элементов
@@ -4187,6 +4447,16 @@ export const parseFaq = (content) => {
       }
       emptyLineCount = 0;
 
+      // Parse NAME PAGE from line starting with "NAME PAGE:"
+      if (line.toLowerCase().match(/^name page[:\s]/i)) {
+        const customPageName = line.split(/[:]/)[1].trim();
+        if (customPageName) {
+          pageName = customPageName.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+          console.log('✅ Установлено имя страницы вопросов:', pageName);
+        }
+        continue;
+      }
+
       // Parse section ID from line starting with "ID:"
       if (line.toLowerCase().match(/^id[:\s]/i)) {
         const customId = line.split(/[:]/)[1].trim();
@@ -4201,11 +4471,11 @@ export const parseFaq = (content) => {
       // Process section header
       if (isHeaderSection) {
         if (!sectionTitle) {
-          sectionTitle = line;
+          sectionTitle = cleanServiceFields(line);
           continue;
         }
         if (!sectionDescription && sectionTitle) {
-          sectionDescription = line;
+          sectionDescription = cleanServiceFields(line);
           isHeaderSection = false;
           continue;
         }
@@ -4219,11 +4489,11 @@ export const parseFaq = (content) => {
           }
           currentCard = {
             id: `faq_${cards.length + 1}`,
-            title: line,
+            title: cleanServiceFields(line),
             content: ''
           };
         } else if (currentCard) {
-          currentCard.content += (currentCard.content ? '\n' : '') + line;
+          currentCard.content += (currentCard.content ? '\n' : '') + cleanServiceFields(line);
         }
       }
     }
@@ -4245,6 +4515,7 @@ export const parseFaq = (content) => {
       id: sectionId,
       title: sectionTitle || 'Часто задаваемые вопросы',
       description: sectionDescription || 'Ответы на популярные вопросы наших клиентов',
+      pageName: pageName || '', // Имя страницы для экспорта
       cardType: 'ACCENT',
       cards: cleanedCards.map(card => ({
         ...card,
@@ -4290,6 +4561,7 @@ export const parseNews = (content) => {
     let sectionId = 'новости';
     let sectionTitle = '';
     let sectionDescription = '';
+    let pageName = '';
     
     // Проверяем, содержит ли контент формат с типами элементов
     const hasNewFormat = content.includes('ТИП:') || content.includes('TYPE:') || 
@@ -4311,6 +4583,15 @@ export const parseNews = (content) => {
         if (!line) continue;
         
         console.log(`📝 Обрабатываем строку ${i}: "${line}"`);
+        
+        if (line.toLowerCase().match(/^name page[:\s]/i)) {
+          const customPageName = line.split(/[:]/)[1].trim();
+          if (customPageName) {
+            pageName = customPageName.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+            console.log('✅ Установлено имя страницы:', pageName);
+          }
+          continue;
+        }
         
         if (line.toLowerCase().match(/^id[:\s]/i)) {
           const customId = line.split(/[:]/)[1].trim();
@@ -4371,6 +4652,7 @@ export const parseNews = (content) => {
         id: sectionId,
         title: sectionTitle || 'Новости и события',
         description: sectionDescription || 'Актуальные новости компании',
+        pageName: pageName || '', // Имя страницы для экспорта
         cardType: 'ELEVATED',
         cards: [], // Пустой массив карточек, так как используем elements
         elements: elements, // Массив AI элементов
@@ -4411,6 +4693,16 @@ export const parseNews = (content) => {
       }
       emptyLineCount = 0;
 
+      // Parse NAME PAGE from line starting with "NAME PAGE:"
+      if (line.toLowerCase().match(/^name page[:\s]/i)) {
+        const customPageName = line.split(/[:]/)[1].trim();
+        if (customPageName) {
+          pageName = customPageName.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+          console.log('✅ Установлено имя страницы новостей:', pageName);
+        }
+        continue;
+      }
+
       // Parse section ID from line starting with "ID:"
       if (line.toLowerCase().match(/^id[:\s]/i)) {
         const customId = line.split(/[:]/)[1].trim();
@@ -4425,11 +4717,11 @@ export const parseNews = (content) => {
       // Process section header
       if (isHeaderSection) {
         if (!sectionTitle) {
-          sectionTitle = line;
+          sectionTitle = cleanServiceFields(line);
           continue;
         }
         if (!sectionDescription && sectionTitle) {
-          sectionDescription = line;
+          sectionDescription = cleanServiceFields(line);
           isHeaderSection = false;
           continue;
         }
@@ -4443,11 +4735,11 @@ export const parseNews = (content) => {
           }
           currentCard = {
             id: `${sectionId}_${cards.length + 1}`,
-            title: line,
+            title: cleanServiceFields(line),
             content: ''
           };
         } else if (currentCard) {
-          currentCard.content += (currentCard.content ? '\n' : '') + line;
+          currentCard.content += (currentCard.content ? '\n' : '') + cleanServiceFields(line);
         }
       }
     }
@@ -4471,6 +4763,7 @@ export const parseNews = (content) => {
       id: sectionId,
       title: sectionTitle || 'Новости и события',
       description: sectionDescription || 'Актуальные новости и события нашей компании',
+      pageName: pageName || '', // Имя страницы для экспорта
       cardType: 'ELEVATED',
       cards: cleanedCards.map(card => ({
         ...card,
@@ -4720,7 +5013,10 @@ export const parseFullSite = (content, headerData = {}, contactData = {}) => {
     console.log('Найдены разделы:', allSections.map(s => s.name));
 
     // Обрабатываем каждый раздел
-    for (const section of allSections) {
+    let nonSpecialSectionIndex = 0; // Счетчик для обычных разделов (не HERO, CONTACTS, MERCI, LEGAL)
+    
+    for (let i = 0; i < allSections.length; i++) {
+      const section = allSections[i];
       const sectionName = section.name;
       const sectionContent = section.content;
       
@@ -4728,86 +5024,98 @@ export const parseFullSite = (content, headerData = {}, contactData = {}) => {
       console.log(`Содержимое раздела ${sectionName}:`, sectionContent.substring(0, 200) + '...');
 
       try {
-        switch (sectionName) {
+        // Определяем тип раздела с помощью умной функции
+        const sectionType = detectSectionType(sectionName, sectionContent, nonSpecialSectionIndex);
+        console.log(`🔍 Определен тип раздела "${sectionName}" -> ${sectionType}`);
+        
+        // Увеличиваем счетчик только для обычных разделов
+        if (!['HERO', 'CONTACTS', 'MERCI', 'LEGAL'].includes(sectionType)) {
+          nonSpecialSectionIndex++;
+        }
+        
+        switch (sectionType) {
           case 'HERO':
             sections.hero = parseHero(sectionContent);
             console.log('Результат парсинга Hero:', sections.hero);
             if (!sections.hero) {
-              console.error('parseHero вернул null для раздела HERO');
+              console.error('parseHero вернул null для раздела', sectionName);
             }
             break;
-          case 'УСЛУГИ':
+          case 'SERVICES':
             sections.services = parseServices(sectionContent);
             console.log('Результат парсинга Services:', sections.services);
             if (!sections.services) {
-              console.error('parseServices вернул null для раздела УСЛУГИ');
+              console.error('parseServices вернул null для раздела', sectionName);
             }
             break;
-          case 'О НАС':
+          case 'ABOUT':
             sections.about = parseAboutSection(sectionContent);
             console.log('Результат парсинга About:', sections.about);
             if (!sections.about) {
-              console.error('parseAboutSection вернул null для раздела О НАС');
+              console.error('parseAboutSection вернул null для раздела', sectionName);
             }
             break;
-          case 'ПРЕИМУЩЕСТВА':
+          case 'FEATURES':
             sections.features = parseAdvantagesSection(sectionContent);
             console.log('Результат парсинга Features:', sections.features);
             if (!sections.features) {
-              console.error('parseAdvantagesSection вернул null для раздела ПРЕИМУЩЕСТВА');
+              console.error('parseAdvantagesSection вернул null для раздела', sectionName);
             }
             break;
-          case 'ОТЗЫВЫ':
+          case 'TESTIMONIALS':
             sections.testimonials = parseTestimonials(sectionContent);
             console.log('Результат парсинга Testimonials:', sections.testimonials);
             if (!sections.testimonials) {
-              console.error('parseTestimonials вернул null для раздела ОТЗЫВЫ');
+              console.error('parseTestimonials вернул null для раздела', sectionName);
             }
             break;
-          case 'ВОПРОСЫ':
+          case 'FAQ':
             sections.faq = parseFaq(sectionContent);
             console.log('Результат парсинга FAQ:', sections.faq);
             if (!sections.faq) {
-              console.error('parseFaq вернул null для раздела ВОПРОСЫ');
+              console.error('parseFaq вернул null для раздела', sectionName);
             }
             break;
-          case 'НОВОСТИ':
+          case 'NEWS':
             sections.news = parseNews(sectionContent);
             console.log('Результат парсинга новостей в полном сайте:', sections.news);
             if (!sections.news) {
-              console.error('parseNews вернул null для раздела НОВОСТИ');
+              console.error('parseNews вернул null для раздела', sectionName);
             }
             break;
-          case 'КОНТАКТЫ':
+          case 'CONTACTS':
             sections.contacts = parseContactsFull(sectionContent, headerData);
             console.log('Результат парсинга Contacts:', sections.contacts);
             if (!sections.contacts) {
-              console.error('parseContactsFull вернул null для раздела КОНТАКТЫ');
+              console.error('parseContactsFull вернул null для раздела', sectionName);
             }
             break;
           case 'MERCI':
             sections.merci = parseMerci(sectionContent);
             console.log('Результат парсинга Merci:', sections.merci);
             if (!sections.merci) {
-              console.error('parseMerci вернул null для раздела MERCI');
+              console.error('parseMerci вернул null для раздела', sectionName);
             }
             break;
-          case 'ПРАВОВЫЕ ДОКУМЕНТЫ':
+          case 'LEGAL':
             sections.legalDocuments = parseLegalDocuments(sectionContent, contactData);
             console.log('Результат парсинга Legal Documents:', sections.legalDocuments);
             if (!sections.legalDocuments) {
-              console.error('parseLegalDocuments вернул null для раздела ПРАВОВЫЕ ДОКУМЕНТЫ');
+              console.error('parseLegalDocuments вернул null для раздела', sectionName);
             }
             break;
-          case 'УНИВЕРСАЛЬНАЯ СЕКЦИЯ':
+          case 'UNIVERSAL':
             sections.universal = parseUniversalSection(sectionContent);
             console.log('Результат парсинга Universal Section:', sections.universal);
             if (!sections.universal) {
-              console.error('parseUniversalSection вернул null для раздела УНИВЕРСАЛЬНАЯ СЕКЦИЯ');
+              console.error('parseUniversalSection вернул null для раздела', sectionName);
             }
             break;
           default:
-            console.log(`Неизвестный раздел: ${sectionName}`);
+            console.log(`❌ Неизвестный тип раздела: ${sectionType} для "${sectionName}"`);
+            // Попробуем обработать как универсальную секцию
+            sections.universal = parseUniversalSection(sectionContent);
+            console.log('Обработан как универсальная секция:', sections.universal);
         }
       } catch (sectionError) {
         console.error(`Ошибка при парсинге раздела ${sectionName}:`, sectionError);
@@ -4838,21 +5146,38 @@ export const parseContactsFull = (content, headerData = {}) => {
       companyName: headerData?.siteName || '', // Используем название сайта из headerData
       address: '',
       phone: '',
-      email: ''
+      email: '',
+      pageName: '' // Добавляем поле pageName
     };
+    
+    // Обрабатываем строки для поиска NAME PAGE
+    const lines = content.split('\n');
+    console.log('🔍 parseContactsFull: Обрабатываем контент контактов:', content);
+    for (const line of lines) {
+      console.log('🔍 parseContactsFull: Проверяем строку:', line);
+      if (line.toLowerCase().match(/^name page[:\s]/i)) {
+        const customPageName = line.split(/[:]/)[1].trim();
+        console.log('🔍 parseContactsFull: Найдено NAME PAGE:', customPageName);
+        if (customPageName) {
+          contactData.pageName = customPageName.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+          console.log('✅ Установлено имя страницы контактов:', contactData.pageName);
+        }
+        break;
+      }
+    }
     
     // Обрабатываем по позициям блоков, а не по ключевым словам
     if (blocks.length >= 1) {
-      contactData.title = cleanEmailsInText(blocks[0]);
+      contactData.title = cleanServiceFields(cleanEmailsInText(blocks[0]));
     }
     
     if (blocks.length >= 2) {
       // Проверяем, если описание в скобках
       const description = blocks[1];
       if (description.startsWith('(') && description.endsWith(')')) {
-        contactData.description = cleanEmailsInText(description.slice(1, -1).trim());
+        contactData.description = cleanServiceFields(cleanEmailsInText(description.slice(1, -1).trim()));
       } else {
-        contactData.description = cleanEmailsInText(description);
+        contactData.description = cleanServiceFields(cleanEmailsInText(description));
       }
     }
     
@@ -4895,6 +5220,7 @@ export const parseContactsFull = (content, headerData = {}) => {
     }
     
     console.log('Результат парсинга контактов:', contactData);
+    console.log('✅ pageName в результате парсинга контактов:', contactData.pageName);
     return contactData;
   } catch (error) {
     console.error('Error parsing contacts from full site structure:', error);

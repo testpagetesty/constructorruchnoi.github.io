@@ -42,7 +42,7 @@ const Footer = ({ footerData, onMenuClick }) => {
         backgroundColor: footerData.backgroundColor || '#f5f5f5'
       }}
     >
-      <Container maxWidth="lg">
+      <Container maxWidth={false} sx={{ maxWidth: '100%', px: 2 }}>
         <Grid container spacing={4}>
           <Grid item xs={12} sm={4}>
             <Typography

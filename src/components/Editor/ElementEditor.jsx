@@ -39,6 +39,7 @@ const ElementEditor = ({ element, onElementChange, onElementDelete, onElementDup
   }, [isSelected]);
 
   const handleChange = (field, value) => {
+    console.log('🔍 [ElementEditor] handleChange called:', { field, value, elementId: element.id });
     onElementChange(element.id, field, value);
   };
 
@@ -557,39 +558,80 @@ const ElementEditor = ({ element, onElementChange, onElementDelete, onElementDup
   );
 
   const renderTimelineEditor = () => (
-    <Stack spacing={2}>
-      <TextField
-        fullWidth
-        label="Заголовок"
-        value={element.title || 'Временная шкала'}
-        onChange={(e) => handleChange('title', e.target.value)}
-      />
-      <TextField
-        fullWidth
-        label="События (формат: Дата|Название|Описание|Статус)"
-        value={element.events ? element.events.map(event => `${event.date}|${event.title}|${event.description}|${event.status}`).join('\n') : '2024|Запуск проекта|Начало разработки|completed\n2024|Тестирование|Проверка функций|in-progress\n2024|Релиз|Публикация|pending'}
-        onChange={(e) => {
-          const events = e.target.value.split('\n').map(line => {
-            const [date, title, description, status] = line.split('|');
-            return { 
-              date: date || '', 
-              title: title || '', 
-              description: description || '', 
-              status: status || 'pending' 
-            };
-          });
-          handleChange('events', events);
-        }}
-        multiline
-        rows={6}
-        helperText="Каждое событие на новой строке. Статус: completed, in-progress, pending"
-      />
+    <Stack spacing={3}>
+      <Typography variant="h6" color="primary" sx={{ mb: 2 }}>
+        Настройки временной шкалы
+      </Typography>
       
-      <Alert severity="info">
-        <Typography variant="body2">
-          💡 <strong>Совет:</strong> Дважды кликните на элемент временной шкалы в превью для полноценного редактирования с настройками цветов и стилей
-        </Typography>
-      </Alert>
+      {/* Основные настройки */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="subtitle2" gutterBottom>Основные настройки:</Typography>
+        
+        <TextField
+          label="Заголовок временной шкалы"
+          value={element.title || 'Временная шкала'}
+          onChange={(e) => handleChange('title', e.target.value)}
+          fullWidth
+          size="small"
+          sx={{ mb: 2 }}
+        />
+      </Box>
+
+      {/* Настройки событий */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="subtitle2" gutterBottom>События временной шкалы:</Typography>
+        
+        <TextField
+          label="События (формат: Дата|Название|Описание|Статус)"
+          value={element.events ? element.events.map(event => `${event.date}|${event.title}|${event.description}|${event.status}`).join('\n') : '2024|Запуск проекта|Начало разработки|completed\n2024|Тестирование|Проверка функций|in-progress\n2024|Релиз|Публикация|pending'}
+          onChange={(e) => {
+            const events = e.target.value.split('\n').map(line => {
+              const [date, title, description, status] = line.split('|');
+              return { 
+                date: date || '', 
+                title: title || '', 
+                description: description || '', 
+                status: status || 'pending' 
+              };
+            });
+            handleChange('events', events);
+          }}
+          placeholder="Дата|Название|Описание|Статус\n2024|Событие|Описание|completed"
+          fullWidth
+          multiline
+          rows={6}
+          size="small"
+          helperText="Каждое событие на новой строке. Статус: completed, in-progress, pending"
+        />
+      </Box>
+
+      {/* Настройки цветов */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="subtitle2" gutterBottom>Настройки цветов:</Typography>
+        <ColorSettings
+          title="Настройки цветов временной шкалы"
+          colorSettings={element.colorSettings || {}}
+          onUpdate={(newColorSettings) => handleChange('colorSettings', newColorSettings)}
+          availableFields={[
+            { name: 'title', label: 'Заголовок', description: 'Цвет заголовка временной шкалы', defaultColor: '#000000' },
+            { name: 'date', label: 'Дата', description: 'Цвет даты события', defaultColor: '#666666' },
+            { name: 'text', label: 'Текст', description: 'Цвет основного текста события', defaultColor: '#333333' },
+            { name: 'line', label: 'Линия', description: 'Цвет соединительной линии между событиями', defaultColor: '#e0e0e0' },
+            { name: 'completed', label: 'Завершено', description: 'Цвет для завершенных событий', defaultColor: '#4caf50' },
+            { name: 'inProgress', label: 'В процессе', description: 'Цвет для событий в процессе', defaultColor: '#ff9800' },
+            { name: 'pending', label: 'Ожидание', description: 'Цвет для ожидающих событий', defaultColor: '#2196f3' }
+          ]}
+          defaultColors={{
+            title: '#000000',
+            date: '#666666',
+            text: '#333333',
+            line: '#e0e0e0',
+            completed: '#4caf50',
+            inProgress: '#ff9800',
+            pending: '#2196f3'
+          }}
+        />
+      </Box>
     </Stack>
   );
 
@@ -1279,137 +1321,204 @@ const ElementEditor = ({ element, onElementChange, onElementDelete, onElementDup
   );
 
   const renderQrCodeEditor = () => (
-    <Stack spacing={2}>
-      <TextField
-        fullWidth
-        label="Текст или URL для QR кода"
-        value={element.qrText || 'https://example.com'}
-        onChange={(e) => handleChange('qrText', e.target.value)}
-      />
-      <TextField
-        fullWidth
-        label="Заголовок"
-        value={element.title || 'Сканируйте QR код'}
-        onChange={(e) => handleChange('title', e.target.value)}
-      />
-      <Box>
-        <Typography gutterBottom>Размер: {element.size || 200}px</Typography>
-        <Slider
-          value={element.size || 200}
-          onChange={(_, value) => handleChange('size', value)}
-          min={100}
-          max={400}
-          step={10}
+    <Stack spacing={3}>
+      <Typography variant="h6" color="primary" sx={{ mb: 2 }}>
+        Настройки QR кода
+      </Typography>
+      
+      {/* Основные настройки */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="subtitle2" gutterBottom>Основные настройки:</Typography>
+        
+        <TextField
+          label="Заголовок"
+          value={element.title || 'Сканируйте QR код'}
+          onChange={(e) => handleChange('title', e.target.value)}
+          fullWidth
+          size="small"
+          sx={{ mb: 2 }}
         />
+        
+        <TextField
+          label="Текст или URL для QR кода"
+          value={element.qrText || 'https://example.com'}
+          onChange={(e) => handleChange('qrText', e.target.value)}
+          fullWidth
+          size="small"
+          sx={{ mb: 2 }}
+        />
+        
+        <Box>
+          <Typography gutterBottom>Размер: {element.size || 200}px</Typography>
+          <Slider
+            value={element.size || 200}
+            onChange={(_, value) => handleChange('size', value)}
+            min={100}
+            max={400}
+            step={10}
+          />
+        </Box>
       </Box>
-      <Box sx={{ display: 'flex', gap: 2 }}>
-        <TextField
-          label="Цвет QR кода"
-          type="color"
-          value={element.foregroundColor || '#000000'}
-          onChange={(e) => handleChange('foregroundColor', e.target.value)}
-          sx={{ width: 120 }}
-        />
-        <TextField
-          label="Цвет фона"
-          type="color"
-          value={element.backgroundColor || '#ffffff'}
-          onChange={(e) => handleChange('backgroundColor', e.target.value)}
-          sx={{ width: 120 }}
+
+      {/* Настройки цветов */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="subtitle2" gutterBottom>Настройки цветов:</Typography>
+        <ColorSettings
+          title="Настройки цветов QR кода"
+          colorSettings={element.colorSettings || {}}
+          onUpdate={(newColorSettings) => handleChange('colorSettings', newColorSettings)}
+          availableFields={[
+            { name: 'title', label: 'Заголовок', description: 'Цвет заголовка QR кода', defaultColor: '#333333' },
+            { name: 'background', label: 'Фон', description: 'Цвет фона QR кода', defaultColor: '#ffffff' },
+            { name: 'foreground', label: 'QR код', description: 'Цвет самого QR кода', defaultColor: '#000000' }
+          ]}
+          defaultColors={{
+            title: '#333333',
+            background: '#ffffff',
+            foreground: '#000000'
+          }}
         />
       </Box>
     </Stack>
   );
 
   const renderRatingEditor = () => (
-    <Stack spacing={2}>
-      <TextField
-        fullWidth
-        label="Заголовок"
-        value={element.title || 'Рейтинг'}
-        onChange={(e) => handleChange('title', e.target.value)}
-      />
-      <Box>
-        <Typography gutterBottom>Рейтинг: {element.rating || 5}</Typography>
-        <Slider
-          value={element.rating || 5}
-          onChange={(_, value) => handleChange('rating', value)}
-          min={0}
-          max={5}
-          step={0.1}
+    <Stack spacing={3}>
+      <Typography variant="h6" color="primary" sx={{ mb: 2 }}>
+        Настройки рейтинга
+      </Typography>
+      
+      {/* Основные настройки */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="subtitle2" gutterBottom>Основные настройки:</Typography>
+        
+        <TextField
+          label="Заголовок"
+          value={element.title || 'Рейтинг'}
+          onChange={(e) => handleChange('title', e.target.value)}
+          fullWidth
+          size="small"
+          sx={{ mb: 2 }}
         />
-      </Box>
-      <Box>
-        <Typography gutterBottom>Максимальный рейтинг: {element.maxRating || 5}</Typography>
-        <Slider
-          value={element.maxRating || 5}
-          onChange={(_, value) => handleChange('maxRating', value)}
-          min={5}
-          max={10}
-          step={1}
-        />
-      </Box>
-      <FormControlLabel
-        control={
-          <Switch
-            checked={element.readOnly !== false}
-            onChange={(e) => handleChange('readOnly', e.target.checked)}
+        
+        <Box sx={{ mb: 2 }}>
+          <Typography gutterBottom>Рейтинг: {element.rating || 5}</Typography>
+          <Slider
+            value={element.rating || 5}
+            onChange={(_, value) => handleChange('rating', value)}
+            min={0}
+            max={5}
+            step={0.1}
           />
-        }
-        label="Только для чтения"
-      />
-      <TextField
-        label="Цвет звезд"
-        type="color"
-        value={element.starColor || '#ffc107'}
-        onChange={(e) => handleChange('starColor', e.target.value)}
-        sx={{ width: 120 }}
-      />
+        </Box>
+        
+        <Box sx={{ mb: 2 }}>
+          <Typography gutterBottom>Максимальный рейтинг: {element.maxRating || 5}</Typography>
+          <Slider
+            value={element.maxRating || 5}
+            onChange={(_, value) => handleChange('maxRating', value)}
+            min={5}
+            max={10}
+            step={1}
+          />
+        </Box>
+        
+        <FormControlLabel
+          control={
+            <Switch
+              checked={element.readOnly !== false}
+              onChange={(e) => handleChange('readOnly', e.target.checked)}
+            />
+          }
+          label="Только для чтения"
+        />
+      </Box>
+
+      {/* Настройки цветов */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="subtitle2" gutterBottom>Настройки цветов:</Typography>
+        <ColorSettings
+          title="Настройки цветов рейтинга"
+          colorSettings={element.colorSettings || {}}
+          onUpdate={(newColorSettings) => handleChange('colorSettings', newColorSettings)}
+          availableFields={[
+            { name: 'title', label: 'Заголовок', description: 'Цвет заголовка рейтинга', defaultColor: '#333333' },
+            { name: 'text', label: 'Текст', description: 'Цвет текста рейтинга', defaultColor: '#666666' },
+            { name: 'star', label: 'Звезды', description: 'Цвет активных звезд', defaultColor: '#ffc107' },
+            { name: 'emptyStar', label: 'Пустые звезды', description: 'Цвет неактивных звезд', defaultColor: '#e0e0e0' }
+          ]}
+          defaultColors={{
+            title: '#333333',
+            text: '#666666',
+            star: '#ffc107',
+            emptyStar: '#e0e0e0'
+          }}
+        />
+      </Box>
     </Stack>
   );
 
   const renderProgressBarEditor = () => (
-    <Stack spacing={2}>
-      <TextField
-        fullWidth
-        label="Заголовок"
-        value={element.title || 'Прогресс'}
-        onChange={(e) => handleChange('title', e.target.value)}
-      />
-      <Box>
-        <Typography gutterBottom>Значение: {element.value || 50}%</Typography>
-        <Slider
-          value={element.value || 50}
-          onChange={(_, value) => handleChange('value', value)}
-          min={0}
-          max={100}
-          step={1}
+    <Stack spacing={3}>
+      <Typography variant="h6" color="primary" sx={{ mb: 2 }}>
+        Настройки индикатора прогресса
+      </Typography>
+      
+      {/* Основные настройки */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="subtitle2" gutterBottom>Основные настройки:</Typography>
+        
+        <TextField
+          label="Заголовок"
+          value={element.title || 'Прогресс'}
+          onChange={(e) => handleChange('title', e.target.value)}
+          fullWidth
+          size="small"
+          sx={{ mb: 2 }}
         />
+        
+        <Box sx={{ mb: 2 }}>
+          <Typography gutterBottom>Значение: {element.value || 50}%</Typography>
+          <Slider
+            value={element.value || 50}
+            onChange={(_, value) => handleChange('value', value)}
+            min={0}
+            max={100}
+            step={1}
+          />
+        </Box>
+        
+        <FormControl fullWidth size="small">
+          <InputLabel>Тип индикатора</InputLabel>
+          <Select
+            value={element.variant || 'linear'}
+            onChange={(e) => handleChange('variant', e.target.value)}
+          >
+            <MenuItem value="linear">Линейный</MenuItem>
+            <MenuItem value="circular">Круговой</MenuItem>
+          </Select>
+        </FormControl>
       </Box>
-      <FormControl fullWidth size="small">
-        <InputLabel>Тип индикатора</InputLabel>
-        <Select
-          value={element.variant || 'linear'}
-          onChange={(e) => handleChange('variant', e.target.value)}
-        >
-          <MenuItem value="linear">Линейный</MenuItem>
-          <MenuItem value="circular">Круговой</MenuItem>
-        </Select>
-      </FormControl>
-      <Box sx={{ display: 'flex', gap: 2 }}>
-        <TextField
-          label="Цвет прогресса"
-          type="color"
-          value={element.progressColor || '#1976d2'}
-          onChange={(e) => handleChange('progressColor', e.target.value)}
-          sx={{ width: 120 }}
-        />
-        <TextField
-          label="Цвет фона"
-          type="color"
-          value={element.backgroundColor || '#e0e0e0'}
-          onChange={(e) => handleChange('backgroundColor', e.target.value)}
-          sx={{ width: 120 }}
+
+      {/* Настройки цветов */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="subtitle2" gutterBottom>Настройки цветов:</Typography>
+        <ColorSettings
+          title="Настройки цветов индикатора прогресса"
+          colorSettings={element.colorSettings || {}}
+          onUpdate={(newColorSettings) => handleChange('colorSettings', newColorSettings)}
+          availableFields={[
+            { name: 'title', label: 'Заголовок', description: 'Цвет заголовка индикатора', defaultColor: '#333333' },
+            { name: 'text', label: 'Текст', description: 'Цвет текста процентов', defaultColor: '#666666' },
+            { name: 'background', label: 'Фон', description: 'Цвет фона индикатора', defaultColor: '#e0e0e0' },
+            { name: 'progress', label: 'Прогресс', description: 'Цвет заполненной части', defaultColor: '#1976d2' }
+          ]}
+          defaultColors={{
+            title: '#333333',
+            text: '#666666',
+            background: '#e0e0e0',
+            progress: '#1976d2'
+          }}
         />
       </Box>
     </Stack>
@@ -1733,67 +1842,106 @@ const ElementEditor = ({ element, onElementChange, onElementDelete, onElementDup
     ];
     
     return (
-      <Stack spacing={2}>
-        <TextField
-          fullWidth
-          label="Заголовок аккордеона"
-          value={element.title || 'Аккордеон'}
-          onChange={(e) => handleChange('title', e.target.value)}
-        />
-        <Typography variant="subtitle2">Элементы аккордеона:</Typography>
-        {accordionItems.map((item, index) => (
-          <Box key={index} sx={{ p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
-            <TextField
-              fullWidth
-              label={`Заголовок ${index + 1}`}
-              value={item.title}
-              onChange={(e) => {
-                const newItems = [...accordionItems];
-                newItems[index].title = e.target.value;
-                handleChange('accordionItems', newItems);
-              }}
-              size="small"
-              sx={{ mb: 1 }}
-            />
-            <TextField
-              fullWidth
-              label={`Содержание ${index + 1}`}
-              value={item.content}
-              onChange={(e) => {
-                const newItems = [...accordionItems];
-                newItems[index].content = e.target.value;
-                handleChange('accordionItems', newItems);
-              }}
-              multiline
-              rows={3}
-              size="small"
-            />
-          </Box>
-        ))}
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button
-            variant="outlined"
+      <Stack spacing={3}>
+        <Typography variant="h6" color="primary" sx={{ mb: 2 }}>
+          Настройки аккордеона
+        </Typography>
+        
+        {/* Основные настройки */}
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="subtitle2" gutterBottom>Основные настройки:</Typography>
+          
+          <TextField
+            label="Заголовок аккордеона"
+            value={element.title || 'Аккордеон'}
+            onChange={(e) => handleChange('title', e.target.value)}
+            fullWidth
             size="small"
-            onClick={() => {
-              const newItems = [...accordionItems, { title: 'Новый элемент', content: 'Содержание нового элемента' }];
-              handleChange('accordionItems', newItems);
-            }}
-          >
-            Добавить элемент
-          </Button>
-          {accordionItems.length > 1 && (
+            sx={{ mb: 2 }}
+          />
+        </Box>
+
+        {/* Настройки элементов */}
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="subtitle2" gutterBottom>Элементы аккордеона:</Typography>
+          {accordionItems.map((item, index) => (
+            <Box key={index} sx={{ p: 2, border: '1px solid #e0e0e0', borderRadius: 1, mb: 2 }}>
+              <TextField
+                fullWidth
+                label={`Заголовок ${index + 1}`}
+                value={item.title}
+                onChange={(e) => {
+                  const newItems = [...accordionItems];
+                  newItems[index].title = e.target.value;
+                  handleChange('accordionItems', newItems);
+                }}
+                size="small"
+                sx={{ mb: 1 }}
+              />
+              <TextField
+                fullWidth
+                label={`Содержание ${index + 1}`}
+                value={item.content}
+                onChange={(e) => {
+                  const newItems = [...accordionItems];
+                  newItems[index].content = e.target.value;
+                  handleChange('accordionItems', newItems);
+                }}
+                multiline
+                rows={3}
+                size="small"
+              />
+            </Box>
+          ))}
+          <Box sx={{ display: 'flex', gap: 1 }}>
             <Button
               variant="outlined"
-              color="error"
               size="small"
               onClick={() => {
-                const newItems = accordionItems.slice(0, -1);
+                const newItems = [...accordionItems, { title: 'Новый элемент', content: 'Содержание нового элемента' }];
                 handleChange('accordionItems', newItems);
               }}
             >
-              Удалить последний
+              Добавить элемент
             </Button>
-          )}
+            {accordionItems.length > 1 && (
+              <Button
+                variant="outlined"
+                color="error"
+                size="small"
+                onClick={() => {
+                  const newItems = accordionItems.slice(0, -1);
+                  handleChange('accordionItems', newItems);
+                }}
+              >
+                Удалить последний
+              </Button>
+            )}
+          </Box>
+        </Box>
+
+        {/* Настройки цветов */}
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="subtitle2" gutterBottom>Настройки цветов:</Typography>
+          <ColorSettings
+            title="Настройки цветов аккордеона"
+            colorSettings={element.colorSettings || {}}
+            onUpdate={(newColorSettings) => handleChange('colorSettings', newColorSettings)}
+            availableFields={[
+              { name: 'title', label: 'Заголовок', description: 'Цвет заголовка аккордеона', defaultColor: '#333333' },
+              { name: 'text', label: 'Текст', description: 'Цвет содержимого элементов', defaultColor: '#666666' },
+              { name: 'background', label: 'Фон', description: 'Цвет фона аккордеона', defaultColor: '#ffffff' },
+              { name: 'border', label: 'Граница', description: 'Цвет границ элементов', defaultColor: '#e0e0e0' },
+              { name: 'hover', label: 'При наведении', description: 'Цвет фона при наведении на аккордеон', defaultColor: 'rgba(196,30,58,0.15)' }
+            ]}
+            defaultColors={{
+              title: '#333333',
+              text: '#666666',
+              background: '#ffffff',
+              border: '#e0e0e0',
+              hover: 'rgba(196,30,58,0.15)'
+            }}
+          />
         </Box>
       </Stack>
     );

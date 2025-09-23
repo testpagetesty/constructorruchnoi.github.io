@@ -144,6 +144,17 @@ const RichTextEditor = ({
   const [currentTitleColor, setCurrentTitleColor] = useState(titleColor);
   const [currentColorSettings, setCurrentColorSettings] = useState(colorSettings);
   const [animationExpanded, setAnimationExpanded] = useState(false);
+
+  // Принудительное обновление при изменении colorSettings
+  useEffect(() => {
+    console.log('🔄 [RichTextEditor] colorSettings изменились:', colorSettings);
+    
+    // Принудительно обновляем состояние ТОЛЬКО если действительно изменились
+    if (JSON.stringify(currentColorSettings) !== JSON.stringify(colorSettings || {})) {
+      setCurrentColorSettings(colorSettings || {});
+    }
+    
+  }, [colorSettings]);
   
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [imageDialogOpen, setImageDialogOpen] = useState(false);

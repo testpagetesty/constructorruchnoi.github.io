@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Container, Grid, useMediaQuery, useTheme, Button, AppBar, Toolbar, Typography } from '@mui/material';
+import { Box, useMediaQuery, useTheme, Button, AppBar, Toolbar, Typography } from '@mui/material';
 import EditorPanel from '../components/Editor/EditorPanel';
 import PagePreview from '../components/Preview/PagePreview';
-import HeroEditor from '../components/Editor/HeroEditor';
-import { CARD_TYPES } from '../utils/configUtils';
-import AiParser from '../components/AiParser/AiParser';
 import Link from 'next/link';
 
 // Очистка localStorage от данных казино
@@ -385,6 +382,9 @@ export default function Home() {
         const updatedElements = section.contentElements.map(element => {
           if (element.id === elementId) {
             if (typeof fieldOrElement === 'object' && fieldOrElement !== null && fieldOrElement.id) {
+              console.log('🎴 [index.jsx] Updating multiple-cards element:', elementId);
+              console.log('🎴 [index.jsx] Old element:', element);
+              console.log('🎴 [index.jsx] New element:', fieldOrElement);
               return fieldOrElement;
             }
             else if (fieldOrElement === 'customStyles' && typeof value === 'object' && value !== null) {
@@ -396,11 +396,11 @@ export default function Home() {
               console.log('🔧 [index.jsx] Current element.data:', element.data);
               console.log('🔧 [index.jsx] New value:', value);
               
-              // Для продвинутых диаграмм обновляем все поля, не только data
-              if (['advanced-area-chart', 'advanced-pie-chart', 'advanced-line-chart'].includes(element.type)) {
-                console.log('🔧 [index.jsx] Advanced chart - updating all fields');
+              // 🔥 ИСПРАВЛЕНИЕ: Для multiple-cards, продвинутых диаграмм, временной шкалы, CTA секции и других элементов с colorSettings обновляем все поля
+              if (['advanced-area-chart', 'advanced-pie-chart', 'advanced-line-chart', 'multiple-cards', 'timeline-component', 'accordion', 'qr-code', 'rating', 'progress-bars', 'cta-section'].includes(element.type)) {
+                console.log('🔧 [index.jsx] Advanced element - updating all fields');
                 const updated = { ...element, ...value };
-                console.log('🔧 [index.jsx] Updated advanced chart element:', updated);
+                console.log('🔧 [index.jsx] Updated advanced element:', updated);
                 return updated;
               } else {
                 const updated = { ...element, data: { ...element.data, ...value } };

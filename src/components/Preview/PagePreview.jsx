@@ -62,7 +62,7 @@ const SimpleCard = styled(Card)(({ theme, card }) => ({
     : undefined,
   border: `3px solid ${card?.borderColor || theme.palette.divider}`,
   width: '100%',
-  maxWidth: '280px',
+  maxWidth: '400px',
   borderRadius: '12px',
   overflow: 'hidden',
   height: 'auto',
@@ -98,7 +98,7 @@ const ElevatedCard = styled(Card)(({ theme, card }) => ({
     : undefined,
   border: `3px solid ${card?.borderColor || theme.palette.divider}`,
   width: '100%',
-  maxWidth: '280px',
+  maxWidth: '400px',
   borderRadius: '12px',
   overflow: 'hidden',
   boxShadow: theme.shadows[2],
@@ -136,7 +136,7 @@ const OutlinedCard = styled(Card)(({ theme, card }) => ({
     : undefined,
   border: `3px solid ${card?.borderColor || theme.palette.divider}`,
   width: '100%',
-  maxWidth: '280px',
+  maxWidth: '400px',
   borderRadius: '12px',
   overflow: 'hidden',
   height: 'auto',
@@ -285,13 +285,6 @@ const PagePreview = ({
   onElementUpdate = () => {},
   onAddElement = () => {}
 }) => {
-  console.log('[PagePreview] Component rendered with sectionsData:', sectionsData);
-  console.log('[PagePreview] sectionsData type in render:', typeof sectionsData);
-  console.log('[PagePreview] sectionsData is array:', Array.isArray(sectionsData));
-  console.log('[PagePreview] sectionsData JSON:', JSON.stringify(sectionsData));
-  console.log('[PagePreview] Object.keys(sectionsData):', Object.keys(sectionsData || {}));
-  console.log('[PagePreview] Number of sections:', Object.keys(sectionsData || {}).length);
-  
   const sectionRefs = useRef({});
   const cardRefs = useRef({});
   const theme = useTheme();
@@ -306,6 +299,32 @@ const PagePreview = ({
   const [sectionImages, setSectionImages] = useState({});
   const [editingElement, setEditingElement] = useState(null);
   const [heroImageUrl, setHeroImageUrl] = useState(null);
+  const [forceUpdate, setForceUpdate] = useState(0); // Принудительное обновление
+
+  // Логирование после объявления всех переменных
+  console.log('[PagePreview] Component rendered with sectionsData:', sectionsData);
+  console.log('[PagePreview] sectionsData type in render:', typeof sectionsData);
+  console.log('[PagePreview] sectionsData is array:', Array.isArray(sectionsData));
+  console.log('[PagePreview] sectionsData JSON:', JSON.stringify(sectionsData));
+  console.log('[PagePreview] Object.keys(sectionsData):', Object.keys(sectionsData || {}));
+  console.log('[PagePreview] Number of sections:', Object.keys(sectionsData || {}).length);
+  console.log('[PagePreview] Force update counter:', forceUpdate);
+
+  // Принудительное обновление при изменении sectionsData
+  useEffect(() => {
+    console.log('🔄 [PagePreview] sectionsData изменился, принудительно обновляем компонент');
+    console.log('🔄 [PagePreview] Новые данные sectionsData:', sectionsData);
+    
+    // Принудительно обновляем состояние
+    setForceUpdate(prev => prev + 1);
+    
+    // Дополнительное принудительное обновление через небольшую задержку
+    setTimeout(() => {
+      console.log('🔄 [PagePreview] Дополнительное принудительное обновление');
+      setForceUpdate(prev => prev + 1);
+    }, 50);
+    
+  }, [sectionsData]);
 
   // Загрузка hero изображения из кеша
   useEffect(() => {
@@ -539,6 +558,65 @@ const PagePreview = ({
       disabled: false
     };
 
+    // Специальная обработка для bar-chart - добавляем недостающие поля
+    if (element.type === 'bar-chart') {
+      elementProps.title = element.title || element.data?.title || 'Диаграмма';
+      elementProps.description = element.description || element.data?.description || ''; // Добавляем поле description
+      elementProps.data = element.data || [];
+      elementProps.showValues = element.showValues !== undefined ? element.showValues : true;
+      elementProps.showGrid = element.showGrid !== undefined ? element.showGrid : true;
+      elementProps.showLegend = element.showLegend !== undefined ? element.showLegend : false;
+      elementProps.showStatistics = element.showStatistics !== undefined ? element.showStatistics : false;
+      elementProps.animate = element.animate !== undefined ? element.animate : true;
+      elementProps.orientation = element.orientation || 'vertical';
+      elementProps.height = element.height || 300;
+      elementProps.colorSettings = element.colorSettings || element.data?.colorSettings || {};
+      
+      console.log('[PagePreview] 🎯 BAR-CHART PROPS PREPARED:', elementProps);
+    }
+
+    // Специальная обработка для advanced-area-chart - добавляем colorSettings
+    if (element.type === 'advanced-area-chart') {
+      elementProps.colorSettings = element.colorSettings || element.data?.colorSettings || {};
+      elementProps.areaColors = element.areaColors || element.data?.areaColors || ['#8884d8', '#82ca9d'];
+      elementProps.titleColor = element.titleColor || element.data?.titleColor || '#1976d2';
+      elementProps.backgroundColor = element.backgroundColor || element.data?.backgroundColor || '#ffffff';
+      elementProps.gridColor = element.gridColor || element.data?.gridColor || '#e0e0e0';
+      elementProps.axisColor = element.axisColor || element.data?.axisColor || '#666666';
+      elementProps.legendColor = element.legendColor || element.data?.legendColor || '#333333';
+      elementProps.borderRadius = element.borderRadius || element.data?.borderRadius || 8;
+      elementProps.padding = element.padding || element.data?.padding || 24;
+      
+      console.log('[PagePreview] 🎯 ADVANCED-AREA-CHART PROPS PREPARED:', elementProps);
+    }
+
+    // Специальная обработка для advanced-line-chart - добавляем colorSettings
+    if (element.type === 'advanced-line-chart') {
+      elementProps.colorSettings = element.colorSettings || element.data?.colorSettings || {};
+      elementProps.lineColors = element.lineColors || element.data?.lineColors || ['#8884d8', '#82ca9d'];
+      elementProps.titleColor = element.titleColor || element.data?.titleColor || '#1976d2';
+      elementProps.backgroundColor = element.backgroundColor || element.data?.backgroundColor || '#ffffff';
+      elementProps.gridColor = element.gridColor || element.data?.gridColor || '#e0e0e0';
+      elementProps.axisColor = element.axisColor || element.data?.axisColor || '#666666';
+      elementProps.legendColor = element.legendColor || element.data?.legendColor || '#333333';
+      elementProps.borderRadius = element.borderRadius || element.data?.borderRadius || 8;
+      elementProps.padding = element.padding || element.data?.padding || 24;
+      
+      console.log('[PagePreview] 🎯 ADVANCED-LINE-CHART PROPS PREPARED:', elementProps);
+    }
+
+    // Специальная обработка для advanced-pie-chart - добавляем colorSettings
+    if (element.type === 'advanced-pie-chart') {
+      elementProps.colorSettings = element.colorSettings || element.data?.colorSettings || {};
+      elementProps.segmentColors = element.segmentColors || element.data?.segmentColors || {};
+      elementProps.titleColor = element.titleColor || element.data?.titleColor || '#1976d2';
+      elementProps.backgroundColor = element.backgroundColor || element.data?.backgroundColor || '#ffffff';
+      elementProps.borderRadius = element.borderRadius || element.data?.borderRadius || 8;
+      elementProps.padding = element.padding || element.data?.padding || 24;
+      
+      console.log('[PagePreview] 🎯 ADVANCED-PIE-CHART PROPS PREPARED:', elementProps);
+    }
+
     const handleElementClick = (e) => {
       e.stopPropagation();
       onElementSelect(sectionId, element.id);
@@ -591,6 +669,7 @@ const PagePreview = ({
             ...newContent
           };
           console.log('[PagePreview] Updated multiple-cards element:', updatedElement);
+          console.log('[PagePreview] Calling onElementUpdate with sectionId:', editingElement.sectionId, 'elementId:', editingElement.elementId, 'updatedElement:', updatedElement);
           onElementUpdate(editingElement.sectionId, editingElement.elementId, updatedElement);
         }
       }
@@ -657,6 +736,8 @@ const PagePreview = ({
     switch (element.type) {
       // Текстовые компоненты
       case 'typography':
+        console.log('🎨 [PagePreview] Рендерим TypographyElement с пропсами:', elementProps);
+        console.log('🎨 [PagePreview] colorSettings для Typography:', elementProps.colorSettings);
         renderedElement = <TypographyElement {...elementProps} />;
         break;
       case 'rich-text':
@@ -794,7 +875,30 @@ const PagePreview = ({
         
       // Таблицы
       case 'data-table':
-        renderedElement = <DataTable {...elementProps} />;
+        console.log('[PagePreview] Rendering data-table with props:', elementProps);
+        console.log('[PagePreview] data-table element.data:', element.data);
+        console.log('[PagePreview] data-table element.tableSettings:', element.tableSettings);
+        console.log('[PagePreview] data-table element.colorSettings:', element.colorSettings);
+        
+        const dataTableProps = {
+          ...elementProps,
+          // Передаем настройки таблицы
+          striped: element.tableSettings?.striped !== undefined ? element.tableSettings.striped : false,
+          bordered: element.tableSettings?.bordered !== undefined ? element.tableSettings.bordered : true,
+          hover: element.tableSettings?.hover !== undefined ? element.tableSettings.hover : true,
+          dense: element.tableSettings?.dense !== undefined ? element.tableSettings.dense : false,
+          sortable: element.tableSettings?.sortable !== undefined ? element.tableSettings.sortable : true,
+          // Передаем настройки цветов
+          colorSettings: element.colorSettings || element.data?.colorSettings || {},
+          // Передаем заголовок
+          title: element.data?.title || element.title,
+          // Передаем данные
+          headers: element.data?.columns || element.data?.headers || element.columns,
+          rows: element.data?.rows || element.data?.data || element.rows
+        };
+        
+        console.log('[PagePreview] data-table final props:', dataTableProps);
+        renderedElement = <DataTable {...dataTableProps} />;
         break;
         
       // Базовые графики
@@ -940,6 +1044,8 @@ const PagePreview = ({
             textColor={element.data?.textColor}
             buttonColor={element.data?.buttonColor}
             buttonTextColor={element.data?.buttonTextColor}
+            colorSettings={element.data?.colorSettings || element.colorSettings}
+            animationSettings={element.data?.animationSettings || element.animationSettings}
             availablePages={availablePages}
             editable={constructorMode}
             onSave={handleElementSave}
@@ -981,6 +1087,7 @@ const PagePreview = ({
             cardType={element.cardType || element.data?.cardType || 'image-card'}
             title={element.title || element.data?.title}
             description={element.description || element.data?.description}
+            colorSettings={element.colorSettings || element.data?.colorSettings || {}}
             sectionStyles={element.sectionStyles || element.data?.sectionStyles}
             onEdit={() => {}}
             onDelete={() => {}}
@@ -1080,9 +1187,11 @@ const PagePreview = ({
               cardType={element.cardType || element.data?.cardType || 'image-card'}
               gridSize={element.gridSize || element.data?.gridSize || 'medium'}
               sectionStyles={element.sectionStyles || element.data?.sectionStyles}
+              colorSettings={element.colorSettings || element.data?.colorSettings}
               onSave={handleElementSave}
               onCancel={handleElementCancel}
               isPreview={true}
+              isEditing={true}
             />
           ) : element.type === 'blockquote' ? (
             <BlockquoteNew
@@ -1391,7 +1500,7 @@ const PagePreview = ({
           borderRadius: '20px',
           padding: '2rem',
           margin: '2rem auto',
-          maxWidth: '1000px',
+          maxWidth: '1400px',
           boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
           position: 'relative',
           overflow: 'hidden',
@@ -1406,7 +1515,7 @@ const PagePreview = ({
           }
         }}>
           <Box sx={{
-            maxWidth: '800px',
+            maxWidth: '1200px',
             margin: '0 auto',
             position: 'relative',
             zIndex: 1
@@ -1651,11 +1760,11 @@ const PagePreview = ({
           />
         )}
 
-        <Container maxWidth="lg">
+        <Container maxWidth={false} sx={{ maxWidth: '100%', px: 2 }}>
           <Box sx={{ 
             position: 'relative', 
             zIndex: 2,
-            maxWidth: '800px',
+            maxWidth: '1200px',
             margin: '0 auto',
             textAlign: 'center'
           }}>
@@ -1868,9 +1977,9 @@ const PagePreview = ({
                   <Box sx={{ 
                     float: 'right',
                     margin: '0 0 1rem 1.5rem',
-                    maxWidth: { xs: '100%', sm: '300px' },
+                    maxWidth: { xs: '100%', sm: '400px' },
                     width: { xs: '100%', sm: '40%' },
-                    height: { xs: '250px', sm: '300px' }, // Фиксированная высота
+                    height: { xs: '250px', sm: '400px' }, // Фиксированная высота
                     position: 'relative',
                     display: 'block',
                     '&::after': section.showBackground !== false ? {
@@ -2513,6 +2622,12 @@ const PagePreview = ({
 
   // Условное отображение в зависимости от режима
   console.log('🎯 [PagePreview] constructorMode:', constructorMode);
+  console.log('🎯 [PagePreview] heroData:', heroData);
+  console.log('🎯 [PagePreview] homePageSettings:', heroData?.homePageSettings);
+  console.log('🎯 [PagePreview] showSectionsPreview:', heroData?.homePageSettings?.showSectionsPreview);
+  console.log('🎯 [PagePreview] showFeaturedSection:', heroData?.homePageSettings?.showFeaturedSection);
+  console.log('🎯 [PagePreview] featuredSectionId:', heroData?.homePageSettings?.featuredSectionId);
+  
   if (!constructorMode) {
     console.log('🔄 [PagePreview] Rendering in MultiPage mode - returning MultiPagePreview');
     return (
@@ -2595,6 +2710,22 @@ const PagePreview = ({
               blurAmount={heroData.blurAmount}
             />
           </Box>
+          
+          {/* Превью разделов */}
+          {heroData.homePageSettings?.showSectionsPreview && (
+            <SectionsPreview 
+              sectionsData={sectionsData}
+              headerData={headerData}
+              homePageSettings={heroData.homePageSettings}
+            />
+          )}
+          
+          {/* Превью контактов */}
+          {heroData.homePageSettings?.showContactPreview && contactData && (
+            <ContactPreview 
+              contactData={contactData}
+            />
+          )}
           {(() => {
             console.log('[PagePreview] About to render sections, sectionsData:', sectionsData);
             console.log('[PagePreview] Object.entries result:', Object.entries(sectionsData || {}));
@@ -2610,6 +2741,49 @@ const PagePreview = ({
             const sectionsEntries = Object.entries(sectionsData || {});
             console.log('[PagePreview] sectionsEntries length:', sectionsEntries.length);
             
+            // Если включены настройки главной страницы, показываем только выделенный раздел в полном виде
+            console.log('🔍 [PagePreview] Checking homePageSettings:', heroData.homePageSettings);
+            console.log('🔍 [PagePreview] showFeaturedSection:', heroData.homePageSettings?.showFeaturedSection);
+            console.log('🔍 [PagePreview] featuredSectionId:', heroData.homePageSettings?.featuredSectionId);
+            
+            if (heroData.homePageSettings?.showFeaturedSection && heroData.homePageSettings?.featuredSectionId) {
+              const featuredSectionId = heroData.homePageSettings.featuredSectionId;
+              const featuredSection = sectionsEntries.find(([sectionId]) => sectionId === featuredSectionId);
+              
+              console.log('🔍 [PagePreview] featuredSection found:', featuredSection);
+              
+              if (featuredSection) {
+                const [sectionId, sectionContent] = featuredSection;
+                return (
+                  <Box
+                    key={sectionId}
+                    id={sectionId}
+                    ref={el => {
+                      if (el) {
+                        sectionRefs.current[sectionId] = el;
+                      }
+                    }}
+                    sx={{
+                      position: 'relative',
+                      mb: 4,
+                      p: 2,
+                      border: showBorders ? '1px dashed rgba(0, 0, 0, 0.12)' : 'none',
+                      borderRadius: 1,
+                      '&:hover': {
+                        border: showBorders ? '1px dashed #1976d2' : 'none'
+                      }
+                    }}
+                  >
+                    {(() => {
+                      console.log(`[PagePreview] About to render section ${sectionId}`);
+                      return renderSection(sectionContent);
+                    })()}
+                  </Box>
+                );
+              }
+            }
+            
+            // Иначе показываем все разделы как обычно
             return sectionsEntries.map(([sectionId, sectionContent]) => {
               console.log(`[PagePreview] Mapping section ${sectionId}:`, sectionContent);
               console.log(`[PagePreview] sectionContent type:`, typeof sectionContent);
@@ -2679,6 +2853,371 @@ const PagePreview = ({
         )}
       </Box>
     </>
+  );
+};
+
+// Компонент для превью выделенного раздела
+const FeaturedSectionPreview = ({ featuredSectionId, sectionsData, headerData }) => {
+  const featuredSection = sectionsData[featuredSectionId];
+  
+  if (!featuredSection) {
+    return null;
+  }
+  
+  const sectionTitle = featuredSection.title || featuredSectionId;
+  const sectionDescription = featuredSection.description || '';
+  
+  // Получаем настройки цветов секции
+  const sectionColorSettings = featuredSection.colorSettings || {};
+  const titleColor = sectionColorSettings?.textFields?.title || '#1a237e';
+  const descriptionColor = sectionColorSettings?.textFields?.description || '#455a64';
+  const contentColor = sectionColorSettings?.textFields?.content || '#455a64';
+  
+  // Получаем изображения секции
+  const hasImages = Array.isArray(featuredSection.images) && featuredSection.images.length > 0;
+  const hasSingleImage = featuredSection.imagePath && !hasImages;
+  
+  return (
+    <Box sx={{ 
+      padding: '4rem 0',
+      background: sectionColorSettings?.sectionBackground?.enabled ? 
+        (sectionColorSettings.sectionBackground.useGradient ? 
+          `linear-gradient(${sectionColorSettings.sectionBackground.gradientDirection}, ${sectionColorSettings.sectionBackground.gradientColor1}, ${sectionColorSettings.sectionBackground.gradientColor2})` :
+          sectionColorSettings.sectionBackground.solidColor) : 
+        '#f8f9fa',
+      margin: 0
+    }}>
+      <Container maxWidth="lg">
+        <Box sx={{
+          display: 'grid',
+          gridTemplateColumns: hasImages || hasSingleImage ? '1fr 1fr' : '1fr',
+          gap: '3rem',
+          alignItems: 'center'
+        }}>
+          <Box>
+            <Typography variant="h2" sx={{
+              color: titleColor,
+              fontSize: '2.5rem',
+              fontWeight: 700,
+              marginBottom: '1.5rem',
+              fontFamily: 'Montserrat, sans-serif'
+            }}>
+              {sectionTitle}
+            </Typography>
+            
+            {sectionDescription && (
+              <Typography sx={{
+                color: descriptionColor,
+                fontSize: '1.2rem',
+                lineHeight: 1.6,
+                marginBottom: '2rem',
+                fontFamily: 'Montserrat, sans-serif'
+              }}>
+                {sectionDescription}
+              </Typography>
+            )}
+            
+            <Box sx={{ color: contentColor, fontFamily: 'Montserrat, sans-serif' }}>
+              {/* Здесь можно добавить элементы контента */}
+            </Box>
+            
+            <Box sx={{ marginTop: '2rem' }}>
+              <Button 
+                variant="contained" 
+                sx={{
+                  padding: '1rem 2rem',
+                  background: '#1976d2',
+                  color: 'white',
+                  borderRadius: '8px',
+                  fontWeight: 600,
+                  '&:hover': {
+                    background: '#1565c0',
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 8px 25px rgba(25, 118, 210, 0.3)'
+                  }
+                }}
+              >
+                Подробнее о {sectionTitle}
+              </Button>
+            </Box>
+          </Box>
+          
+          {(hasImages || hasSingleImage) && (
+            <Box>
+              {hasImages ? (
+                featuredSection.images.map((image, index) => (
+                  <Box key={index} sx={{
+                    borderRadius: '15px',
+                    overflow: 'hidden',
+                    boxShadow: '0 15px 35px rgba(0,0,0,0.1)',
+                    marginBottom: '1rem'
+                  }}>
+                    <img 
+                      src={image.url || image} 
+                      alt={image.alt || sectionTitle} 
+                      style={{
+                        width: '100%',
+                        height: 'auto',
+                        display: 'block',
+                        transition: 'transform 0.3s ease'
+                      }}
+                    />
+                  </Box>
+                ))
+              ) : (
+                <Box sx={{
+                  borderRadius: '15px',
+                  overflow: 'hidden',
+                  boxShadow: '0 15px 35px rgba(0,0,0,0.1)'
+                }}>
+                  <img 
+                    src={featuredSection.imagePath} 
+                    alt={sectionTitle} 
+                    style={{
+                      width: '100%',
+                      height: 'auto',
+                      display: 'block',
+                      transition: 'transform 0.3s ease'
+                    }}
+                  />
+                </Box>
+              )}
+            </Box>
+          )}
+        </Box>
+      </Container>
+    </Box>
+  );
+};
+
+// Компонент для превью разделов
+const SectionsPreview = ({ sectionsData, headerData, homePageSettings }) => {
+  const maxSections = homePageSettings.maxSectionsToShow || 6;
+  const displayMode = homePageSettings.sectionsDisplayMode || 'cards';
+  
+  // Фильтруем разделы (исключаем выделенный раздел)
+  const filteredSections = Object.entries(sectionsData).filter(([sectionId, sectionData]) => {
+    return sectionId !== homePageSettings.featuredSectionId;
+  }).slice(0, maxSections);
+  
+  if (filteredSections.length === 0) {
+    return null;
+  }
+  
+  const getGridClass = () => {
+    switch (displayMode) {
+      case 'cards':
+        return {
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+          gap: '2rem'
+        };
+      case 'list':
+        return {
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1.5rem'
+        };
+      case 'grid':
+        return {
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+          gap: '1.5rem'
+        };
+      default:
+        return {
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+          gap: '2rem'
+        };
+    }
+  };
+  
+  const getCardStyle = () => {
+    return {
+      background: 'white',
+      borderRadius: '15px',
+      padding: '2rem',
+      boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+      transition: 'all 0.3s ease',
+      border: '1px solid #e9ecef',
+      '&:hover': {
+        transform: 'translateY(-10px)',
+        boxShadow: '0 20px 40px rgba(0,0,0,0.15)'
+      }
+    };
+  };
+  
+  return (
+    <Box sx={{ padding: '4rem 0', background: '#f8f9fa' }}>
+      <Container maxWidth="lg">
+        <Typography variant="h2" sx={{
+          textAlign: 'center',
+          fontSize: '2.5rem',
+          marginBottom: '3rem',
+          color: '#2c3e50',
+          fontFamily: 'Montserrat, sans-serif'
+        }}>
+          Наши разделы
+        </Typography>
+        
+        <Box sx={getGridClass()}>
+          {filteredSections.map(([sectionId, sectionData]) => {
+            const displayName = sectionData.title || sectionId;
+            
+            // Получаем изображение для карточки
+            const cardImage = sectionData.imagePath || 
+                             (Array.isArray(sectionData.images) && sectionData.images.length > 0 ? sectionData.images[0].url || sectionData.images[0] : '') ||
+                             '';
+            
+            return (
+              <Card key={sectionId} sx={getCardStyle()}>
+                {cardImage && (
+                  <Box sx={{
+                    width: '100%',
+                    height: '150px',
+                    borderRadius: '8px',
+                    overflow: 'hidden',
+                    marginBottom: '1rem'
+                  }}>
+                    <img 
+                      src={cardImage} 
+                      alt={displayName} 
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover'
+                      }}
+                    />
+                  </Box>
+                )}
+                
+                <Box>
+                  <Typography variant="h3" sx={{
+                    color: '#2c3e50',
+                    fontSize: '1.5rem',
+                    marginBottom: '0.5rem'
+                  }}>
+                    {displayName}
+                  </Typography>
+                  
+                  <Typography sx={{
+                    color: '#6c757d',
+                    lineHeight: 1.5,
+                    marginBottom: '1rem',
+                    fontSize: '1rem'
+                  }}>
+                    {sectionData.description || 'Узнайте больше в этом разделе'}
+                  </Typography>
+                  
+                  <Button 
+                    variant="contained" 
+                    sx={{
+                      background: '#007bff',
+                      color: 'white',
+                      padding: '0.75rem 1.5rem',
+                      borderRadius: '8px',
+                      fontWeight: 500,
+                      '&:hover': {
+                        background: '#0056b3',
+                        transform: 'translateY(-2px)'
+                      }
+                    }}
+                  >
+                    ...
+                  </Button>
+                </Box>
+              </Card>
+            );
+          })}
+        </Box>
+      </Container>
+    </Box>
+  );
+};
+
+// Компонент для превью контактов
+const ContactPreview = ({ contactData }) => {
+  return (
+    <Box sx={{ padding: '4rem 0', background: '#ffffff' }}>
+      <Container maxWidth="lg">
+        <Box sx={{
+          textAlign: 'center',
+          padding: '3rem',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          borderRadius: '20px',
+          color: 'white'
+        }}>
+          <Typography variant="h2" sx={{
+            fontSize: '2.5rem',
+            marginBottom: '1.5rem',
+            fontFamily: 'Montserrat, sans-serif'
+          }}>
+            {contactData.title || 'Свяжитесь с нами'}
+          </Typography>
+          
+          <Typography sx={{
+            fontSize: '1.2rem',
+            marginBottom: '2rem',
+            opacity: 0.9,
+            fontFamily: 'Montserrat, sans-serif'
+          }}>
+            {contactData.description || 'Мы всегда готовы ответить на ваши вопросы'}
+          </Typography>
+          
+          <Box sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '3rem',
+            marginBottom: '2rem',
+            flexWrap: 'wrap'
+          }}>
+            {contactData.phone && (
+              <Box>
+                <Typography sx={{ fontWeight: 'bold' }}>Телефон:</Typography>
+                <Typography component="a" href={`tel:${contactData.phone}`} sx={{
+                  color: 'white',
+                  textDecoration: 'none'
+                }}>
+                  {contactData.phone}
+                </Typography>
+              </Box>
+            )}
+            
+            {contactData.email && (
+              <Box>
+                <Typography sx={{ fontWeight: 'bold' }}>Email:</Typography>
+                <Typography component="a" href={`mailto:${contactData.email}`} sx={{
+                  color: 'white',
+                  textDecoration: 'none'
+                }}>
+                  {contactData.email}
+                </Typography>
+              </Box>
+            )}
+          </Box>
+          
+          <Button 
+            variant="contained" 
+            sx={{
+              padding: '1rem 2rem',
+              background: 'rgba(255,255,255,0.2)',
+              color: 'white',
+              borderRadius: '8px',
+              fontWeight: 600,
+              border: '2px solid rgba(255,255,255,0.3)',
+              '&:hover': {
+                background: 'rgba(255,255,255,0.3)',
+                transform: 'translateY(-2px)',
+                boxShadow: '0 8px 25px rgba(255,255,255,0.2)'
+              }
+            }}
+          >
+            Перейти к контактам
+          </Button>
+        </Box>
+      </Container>
+    </Box>
   );
 };
 

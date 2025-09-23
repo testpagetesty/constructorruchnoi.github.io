@@ -9,7 +9,9 @@ import {
   Chip,
   Paper,
   TextField,
-  InputAdornment
+  InputAdornment,
+  FormControlLabel,
+  Switch
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
@@ -70,7 +72,7 @@ const CONTENT_ELEMENTS = {
     elements: [
       { id: 'accordion', name: 'Аккордеон', description: 'Раскрывающиеся секции' },
       { id: 'video-player', name: 'Видеоплеер', description: 'YouTube, Vimeo и другие' },
-      { id: 'qr-code', name: 'QR код', description: 'Генератор QR кодов' },
+      { id: 'qr-code', name: 'QR код', description: 'Генератор QR кодов', disabled: true },
       { id: 'image-gallery', name: 'Галерея изображений', description: 'Слайдер изображений с миниатюрами' },
       { id: 'rating', name: 'Рейтинг', description: 'Звездочки и оценки' },
       { id: 'confetti', name: 'Конфетти', description: 'Анимация праздника' },
@@ -95,16 +97,16 @@ const CONTENT_ELEMENTS = {
       { id: 'advanced-pie-chart', name: 'Круговая диаграмма', description: 'Recharts с процентами' },
       { id: 'advanced-area-chart', name: 'Диаграмма с областями', description: 'Заполненные области' },
       { id: 'advanced-radar-chart', name: 'Радарная диаграмма', description: 'Многомерные данные' },
-      { id: 'chartjs-bar', name: 'Chart.js столбцы', description: 'Chart.js библиотека' },
-      { id: 'chartjs-doughnut', name: 'Пончиковая диаграмма', description: 'Chart.js пончик' },
-      { id: 'apex-line', name: 'ApexCharts линии', description: 'ApexCharts продвинутый' }
+      { id: 'chartjs-bar', name: 'Chart.js столбцы', description: 'Chart.js библиотека', disabled: true },
+      { id: 'chartjs-doughnut', name: 'Пончиковая диаграмма', description: 'Chart.js пончик', disabled: true },
+      { id: 'apex-line', name: 'ApexCharts линии', description: 'ApexCharts продвинутый', disabled: true }
     ]
   },
   formComponents: {
     title: '📋 Формы',
     icon: <InteractiveIcon />,
     elements: [
-      { id: 'advanced-contact-form', name: 'Расширенная контактная форма', description: 'React Hook Form' }
+      { id: 'advanced-contact-form', name: 'Расширенная контактная форма', description: 'React Hook Form', disabled: true }
     ]
   }
 };
@@ -113,6 +115,7 @@ const ContentElementsLibrary = ({ onAddElement }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedElement, setSelectedElement] = useState('');
   const [selectedElementData, setSelectedElementData] = useState(null);
+  const [showDisabledElements, setShowDisabledElements] = useState(false);
 
   const handleElementSelect = (event) => {
     const value = event.target.value;
@@ -122,6 +125,13 @@ const ContentElementsLibrary = ({ onAddElement }) => {
       const [categoryId, elementId] = value.split('.');
       const category = CONTENT_ELEMENTS[categoryId];
       const element = category.elements.find(el => el.id === elementId);
+      
+      // Проверяем, не отключен ли элемент
+      if (element.disabled) {
+        setSelectedElement('');
+        return;
+      }
+      
       const elementData = { categoryId, category, element };
       
       setSelectedElementData(elementData);
@@ -258,6 +268,7 @@ const ContentElementsLibrary = ({ onAddElement }) => {
             elementData = {
               ...elementData,
               title: 'Линейный график',
+              description: 'Динамика изменения показателей по месяцам',
               data: [
                 { name: 'Янв', value: 400, value2: 240 },
                 { name: 'Фев', value: 300, value2: 456 },
@@ -268,7 +279,9 @@ const ContentElementsLibrary = ({ onAddElement }) => {
               ],
               strokeWidth: 2,
               showGrid: true,
-              showLegend: true
+              showLegend: true,
+              chartWidth: '100%',
+              maxWidth: '100%'
             };
             break;
           
@@ -713,9 +726,10 @@ const ContentElementsLibrary = ({ onAddElement }) => {
   );
 
   const filteredElements = allElements.filter(item =>
-    item.element.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (item.element.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     item.element.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.category.title.toLowerCase().includes(searchTerm.toLowerCase())
+    item.category.title.toLowerCase().includes(searchTerm.toLowerCase())) &&
+    (showDisabledElements || !item.element.disabled)
   );
 
       return (
@@ -726,24 +740,41 @@ const ContentElementsLibrary = ({ onAddElement }) => {
         
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           Выберите элемент для добавления в секцию. Все элементы полностью настраиваются.
+          {!showDisabledElements && (
+            <span style={{ color: '#f57c00', fontWeight: 'bold' }}>
+              {' '}Некоторые элементы временно отключены.
+            </span>
+          )}
         </Typography>
 
-        {/* Поиск */}
-        <TextField
-          fullWidth
-          size="small"
-          placeholder="Поиск элементов..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          sx={{ mb: 2 }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            )
-          }}
-        />
+        {/* Поиск и настройки */}
+        <Box sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center' }}>
+          <TextField
+            fullWidth
+            size="small"
+            placeholder="Поиск элементов..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              )
+            }}
+          />
+          <FormControlLabel
+            control={
+              <Switch
+                checked={showDisabledElements}
+                onChange={(e) => setShowDisabledElements(e.target.checked)}
+                size="small"
+              />
+            }
+            label={`Показать отключенные (${allElements.filter(item => item.element.disabled).length})`}
+            sx={{ whiteSpace: 'nowrap' }}
+          />
+        </Box>
 
         {/* Выбор элемента */}
         <FormControl fullWidth size="small" sx={{ mb: 2 }}>
@@ -754,14 +785,32 @@ const ContentElementsLibrary = ({ onAddElement }) => {
             label="Выберите элемент для добавления"
           >
             {filteredElements.map(({ categoryId, category, element, value }) => (
-              <MenuItem key={value} value={value}>
+              <MenuItem 
+                key={value} 
+                value={value}
+                disabled={element.disabled}
+                sx={{
+                  opacity: element.disabled ? 0.5 : 1,
+                  cursor: element.disabled ? 'not-allowed' : 'pointer'
+                }}
+              >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
                   {category.icon}
                   <Box sx={{ flexGrow: 1 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        fontWeight: 'medium',
+                        color: element.disabled ? 'text.disabled' : 'text.primary'
+                      }}
+                    >
                       {element.name}
+                      {element.disabled && ' (отключено)'}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography 
+                      variant="caption" 
+                      color={element.disabled ? 'text.disabled' : 'text.secondary'}
+                    >
                       {element.description}
                     </Typography>
                   </Box>
@@ -769,7 +818,7 @@ const ContentElementsLibrary = ({ onAddElement }) => {
                     label={category.title.replace(/📝|🃏|🎛️|📊|📈/, '').trim()} 
                     size="small" 
                     variant="outlined"
-                    color="primary"
+                    color={element.disabled ? "default" : "primary"}
                     sx={{ ml: 1 }}
                   />
                 </Box>
@@ -791,6 +840,19 @@ const ContentElementsLibrary = ({ onAddElement }) => {
             </Box>
             <Typography variant="caption" color="text.secondary">
               {selectedElementData.element.description}
+            </Typography>
+          </Paper>
+        )}
+
+        {/* Информация об отключенных элементах */}
+        {!showDisabledElements && allElements.filter(item => item.element.disabled).length > 0 && (
+          <Paper sx={{ p: 2, mb: 2, backgroundColor: '#fff3e0', border: '1px solid #ff9800' }}>
+            <Typography variant="body2" sx={{ color: '#e65100', fontWeight: 'bold', mb: 1 }}>
+              ℹ️ Информация об отключенных элементах
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Следующие элементы временно отключены: QR код, Chart.js столбцы, Пончиковая диаграмма, ApexCharts линии, Расширенная контактная форма. 
+              Используйте переключатель выше, чтобы увидеть их.
             </Typography>
           </Paper>
         )}
