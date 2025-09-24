@@ -370,7 +370,7 @@ const Blockquote = ({
             top: '-12px',
             left: textAlign === 'center' ? '50%' : '16px',
             transform: textAlign === 'center' ? 'translateX(-50%)' : 'none',
-            backgroundColor: borderColor,
+            backgroundColor: currentColorSettings.textFields?.border || '#1976d2',
             borderRadius: '50%',
             width: '32px',
             height: '32px',
