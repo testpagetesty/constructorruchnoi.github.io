@@ -70,6 +70,58 @@ export const LANGUAGES = [
   { code: 'CUSTOM', label: 'Другой язык по коду ISO 639-1', searchTerms: 'другой custom iso' }
 ];
 
+// Доступные страны для выбора
+export const COUNTRIES = [
+  { code: 'RU', label: 'Россия', searchTerms: 'россия russia ru' },
+  { code: 'US', label: 'США', searchTerms: 'сша usa america' },
+  { code: 'GB', label: 'Великобритания', searchTerms: 'великобритания uk britain england' },
+  { code: 'DE', label: 'Германия', searchTerms: 'германия germany de' },
+  { code: 'FR', label: 'Франция', searchTerms: 'франция france fr' },
+  { code: 'ES', label: 'Испания', searchTerms: 'испания spain es' },
+  { code: 'IT', label: 'Италия', searchTerms: 'италия italy it' },
+  { code: 'CA', label: 'Канада', searchTerms: 'канада canada ca' },
+  { code: 'AU', label: 'Австралия', searchTerms: 'австралия australia au' },
+  { code: 'JP', label: 'Япония', searchTerms: 'япония japan jp' },
+  { code: 'KR', label: 'Южная Корея', searchTerms: 'корея korea kr' },
+  { code: 'CN', label: 'Китай', searchTerms: 'китай china cn' },
+  { code: 'BR', label: 'Бразилия', searchTerms: 'бразилия brazil br' },
+  { code: 'MX', label: 'Мексика', searchTerms: 'мексика mexico mx' },
+  { code: 'AR', label: 'Аргентина', searchTerms: 'аргентина argentina ar' },
+  { code: 'IN', label: 'Индия', searchTerms: 'индия india in' },
+  { code: 'TR', label: 'Турция', searchTerms: 'турция turkey tr' },
+  { code: 'SA', label: 'Саудовская Аравия', searchTerms: 'саудовская аравия saudi arabia sa' },
+  { code: 'AE', label: 'ОАЭ', searchTerms: 'оаэ uae emirates' },
+  { code: 'IL', label: 'Израиль', searchTerms: 'израиль israel il' },
+  { code: 'PL', label: 'Польша', searchTerms: 'польша poland pl' },
+  { code: 'NL', label: 'Нидерланды', searchTerms: 'нидерланды netherlands nl' },
+  { code: 'BE', label: 'Бельгия', searchTerms: 'бельгия belgium be' },
+  { code: 'CH', label: 'Швейцария', searchTerms: 'швейцария switzerland ch' },
+  { code: 'AT', label: 'Австрия', searchTerms: 'австрия austria at' },
+  { code: 'SE', label: 'Швеция', searchTerms: 'швеция sweden se' },
+  { code: 'NO', label: 'Норвегия', searchTerms: 'норвегия norway no' },
+  { code: 'DK', label: 'Дания', searchTerms: 'дания denmark dk' },
+  { code: 'FI', label: 'Финляндия', searchTerms: 'финляндия finland fi' },
+  { code: 'PT', label: 'Португалия', searchTerms: 'португалия portugal pt' },
+  { code: 'GR', label: 'Греция', searchTerms: 'греция greece gr' },
+  { code: 'CZ', label: 'Чехия', searchTerms: 'чехия czech cz' },
+  { code: 'HU', label: 'Венгрия', searchTerms: 'венгрия hungary hu' },
+  { code: 'RO', label: 'Румыния', searchTerms: 'румыния romania ro' },
+  { code: 'BG', label: 'Болгария', searchTerms: 'болгария bulgaria bg' },
+  { code: 'UA', label: 'Украина', searchTerms: 'украина ukraine ua' },
+  { code: 'BY', label: 'Беларусь', searchTerms: 'беларусь belarus by' },
+  { code: 'KZ', label: 'Казахстан', searchTerms: 'казахстан kazakhstan kz' },
+  { code: 'UZ', label: 'Узбекистан', searchTerms: 'узбекистан uzbekistan uz' },
+  { code: 'TH', label: 'Таиланд', searchTerms: 'таиланд thailand th' },
+  { code: 'VN', label: 'Вьетнам', searchTerms: 'вьетнам vietnam vn' },
+  { code: 'ID', label: 'Индонезия', searchTerms: 'индонезия indonesia id' },
+  { code: 'MY', label: 'Малайзия', searchTerms: 'малайзия malaysia my' },
+  { code: 'SG', label: 'Сингапур', searchTerms: 'сингапур singapore sg' },
+  { code: 'PH', label: 'Филиппины', searchTerms: 'филиппины philippines ph' },
+  { code: 'EG', label: 'Египет', searchTerms: 'египет egypt eg' },
+  { code: 'ZA', label: 'ЮАР', searchTerms: 'юар south africa za' },
+  { code: 'CUSTOM', label: 'Другая страна', searchTerms: 'другая custom' }
+];
+
 // Предустановленные стили контента
 export const CONTENT_STYLES = {
   FORMAL: 'Формальный',
@@ -80,6 +132,7 @@ export const CONTENT_STYLES = {
 
 const GlobalSettings = ({ open, onClose, settings, onSettingsChange }) => {
   const [languageInputValue, setLanguageInputValue] = useState('');
+  const [countryInputValue, setCountryInputValue] = useState('');
   
   const handleChange = (field, value) => {
     onSettingsChange({
@@ -94,6 +147,12 @@ const GlobalSettings = ({ open, onClose, settings, onSettingsChange }) => {
     return LANGUAGES.find(lang => lang.code === settings.language) || null;
   }, [settings.language]);
 
+  // Находим выбранную страну для отображения
+  const selectedCountry = useMemo(() => {
+    if (!settings.country) return null;
+    return COUNTRIES.find(country => country.code === settings.country) || null;
+  }, [settings.country]);
+
   // Фильтрация языков для поиска
   const filteredLanguages = useMemo(() => {
     if (!languageInputValue) return LANGUAGES;
@@ -105,6 +164,18 @@ const GlobalSettings = ({ open, onClose, settings, onSettingsChange }) => {
       lang.code.toLowerCase().includes(searchTerm)
     );
   }, [languageInputValue]);
+
+  // Фильтрация стран для поиска
+  const filteredCountries = useMemo(() => {
+    if (!countryInputValue) return COUNTRIES;
+    
+    const searchTerm = countryInputValue.toLowerCase();
+    return COUNTRIES.filter(country => 
+      country.label.toLowerCase().includes(searchTerm) ||
+      country.searchTerms.toLowerCase().includes(searchTerm) ||
+      country.code.toLowerCase().includes(searchTerm)
+    );
+  }, [countryInputValue]);
 
   return (
     <Dialog 
@@ -202,6 +273,56 @@ const GlobalSettings = ({ open, onClose, settings, onSettingsChange }) => {
                 onChange={(e) => handleChange('customLanguage', e.target.value.toLowerCase().substring(0, 2))}
                 helperText="Пример: ru - русский, en - английский, es - испанский"
                 inputProps={{ maxLength: 2 }}
+              />
+            )}
+          </Grid>
+
+          <Grid item xs={12} sm={6}>
+            <Autocomplete
+              fullWidth
+              options={filteredCountries}
+              value={selectedCountry}
+              onChange={(event, newValue) => {
+                handleChange('country', newValue ? newValue.code : '');
+              }}
+              inputValue={countryInputValue}
+              onInputChange={(event, newInputValue) => {
+                setCountryInputValue(newInputValue);
+              }}
+              getOptionLabel={(option) => option.label}
+              renderOption={(props, option) => (
+                <Box component="li" {...props} key={option.code}>
+                  <Typography variant="body2">
+                    {option.label}
+                  </Typography>
+                </Box>
+              )}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Выберите страну"
+                  placeholder={selectedCountry ? "" : "Выберите страну"}
+                  helperText="Например: Россия, США, Германия, Франция..."
+                  variant="outlined"
+                />
+              )}
+              noOptionsText="Страна не найдена"
+              clearText="Очистить"
+              openText="Открыть список"
+              closeText="Закрыть список"
+              isClearable
+              clearOnBlur={false}
+              selectOnFocus
+            />
+            {settings.country === 'CUSTOM' && (
+              <TextField
+                fullWidth
+                sx={{ mt: 2 }}
+                label="Введите название страны"
+                placeholder="Например: Казахстан, Беларусь..."
+                value={settings.customCountry || ''}
+                onChange={(e) => handleChange('customCountry', e.target.value)}
+                helperText="Название страны для генерации контактов"
               />
             )}
           </Grid>

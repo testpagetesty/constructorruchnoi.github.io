@@ -9795,17 +9795,31 @@ const EditorPanel = ({
                 ` : ''}
               </div>
             </div>
-            <div class="contact-map" style="height: 300px;">
-              <iframe
-                src="https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(contactData.address || '')}"
-                width="100%"
-                height="100%"
-                style="border:0;"
-                allowfullscreen=""
-                loading="lazy"
-                referrerpolicy="no-referrer-when-downgrade">
-              </iframe>
-            </div>
+            ${contactData.showMap && contactData.mapUrl ? `
+              <div class="contact-map" style="height: 300px;">
+                <iframe
+                  src="${contactData.mapUrl}"
+                  width="100%"
+                  height="100%"
+                  style="border:0;"
+                  allowfullscreen=""
+                  loading="lazy"
+                  referrerpolicy="no-referrer-when-downgrade">
+                </iframe>
+              </div>
+            ` : contactData.address ? `
+              <div class="contact-map" style="height: 300px;">
+                <iframe
+                  src="https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(contactData.address + (contactData.city ? `, ${contactData.city}` : ''))}&language=ru"
+                  width="100%"
+                  height="100%"
+                  style="border:0;"
+                  allowfullscreen=""
+                  loading="lazy"
+                  referrerpolicy="no-referrer-when-downgrade">
+                </iframe>
+              </div>
+            ` : ''}
           </div>
         </div>
       </div>
@@ -13642,43 +13656,85 @@ const EditorPanel = ({
             ` : ''}
           </div>
           
-          <!-- Всегда показываем карту с адресом по умолчанию -->
-          <div class="contact-map-container" style="
-            margin-top: 3rem;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-          ">
-            <div style="position: relative; width: 100%; height: 400px;">
-              <iframe
-                src="https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent((contactData.address || 'Al Maktoum Street, Deira, Dubai, UAE') + ', ' + (contactData.city || 'Dubai'))}&language=en"
-                width="100%"
-                height="100%"
-                style="border: 0;"
-                allowfullscreen=""
-                loading="lazy"
-                referrerpolicy="no-referrer-when-downgrade"
-                title="Map: ${contactData.address || 'Al Maktoum Street, Deira, Dubai, UAE'}">
-              </iframe>
-              <div style="
-                position: absolute;
-                bottom: 10px;
-                left: 10px;
-                background: rgba(255, 255, 255, 0.9);
-                padding: 8px 12px;
-                border-radius: 6px;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                font-size: 14px;
-                color: #333;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-              ">
-                <span style="color: #1976d2;">📍</span>
-                <span>${contactData.address || 'Al Maktoum Street, Deira, Dubai, UAE'}</span>
+          ${contactData.showMap && contactData.mapUrl ? `
+            <!-- Используем mapUrl если он есть (как в одностраничном экспорте) -->
+            <div class="contact-map-container" style="
+              margin-top: 3rem;
+              border-radius: 12px;
+              overflow: hidden;
+              box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            ">
+              <div style="position: relative; width: 100%; height: 400px;">
+                <iframe
+                  src="${contactData.mapUrl}"
+                  width="100%"
+                  height="100%"
+                  style="border: 0;"
+                  allowfullscreen=""
+                  loading="lazy"
+                  referrerpolicy="no-referrer-when-downgrade"
+                  title="Map: ${contactData.address || 'Адрес'}">
+                </iframe>
+                ${contactData.address ? `
+                  <div style="
+                    position: absolute;
+                    bottom: 10px;
+                    left: 10px;
+                    background: rgba(255, 255, 255, 0.9);
+                    padding: 8px 12px;
+                    border-radius: 6px;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    font-size: 14px;
+                    color: #333;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                  ">
+                    <span style="color: #1976d2;">📍</span>
+                    <span>${contactData.address}${contactData.city ? `, ${contactData.city}` : ''}</span>
+                  </div>
+                ` : ''}
               </div>
             </div>
-          </div>
+          ` : contactData.address ? `
+            <!-- Генерируем Google Maps если есть адрес -->
+            <div class="contact-map-container" style="
+              margin-top: 3rem;
+              border-radius: 12px;
+              overflow: hidden;
+              box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            ">
+              <div style="position: relative; width: 100%; height: 400px;">
+                <iframe
+                  src="https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(contactData.address + (contactData.city ? `, ${contactData.city}` : ''))}&language=ru"
+                  width="100%"
+                  height="100%"
+                  style="border: 0;"
+                  allowfullscreen=""
+                  loading="lazy"
+                  referrerpolicy="no-referrer-when-downgrade"
+                  title="Map: ${contactData.address}">
+                </iframe>
+                <div style="
+                  position: absolute;
+                  bottom: 10px;
+                  left: 10px;
+                  background: rgba(255, 255, 255, 0.9);
+                  padding: 8px 12px;
+                  border-radius: 6px;
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                  font-size: 14px;
+                  color: #333;
+                  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                ">
+                  <span style="color: #1976d2;">📍</span>
+                  <span>${contactData.address}${contactData.city ? `, ${contactData.city}` : ''}</span>
+                </div>
+              </div>
+            </div>
+          ` : ''}
         </div>
       </section>
     `;
@@ -15347,43 +15403,85 @@ const EditorPanel = ({
               ` : ''}
                 </div>
                 
-            <!-- Всегда показываем карту с адресом по умолчанию -->
-            <div class="contact-map-container" style="
-              margin-top: 3rem;
-              border-radius: 12px;
-              overflow: hidden;
-              box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            ">
-              <div style="position: relative; width: 100%; height: 400px;">
-                <iframe
-                  src="https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent((contactData.address || 'Al Maktoum Street, Deira, Dubai, UAE') + ', ' + (contactData.city || 'Dubai'))}&language=en"
-                  width="100%"
-                  height="100%"
-                  style="border: 0;"
-                  allowfullscreen=""
-                  loading="lazy"
-                  referrerpolicy="no-referrer-when-downgrade"
-                  title="Map: ${contactData.address || 'Al Maktoum Street, Deira, Dubai, UAE'}">
-                </iframe>
-                <div style="
-                  position: absolute;
-                  bottom: 10px;
-                  left: 10px;
-                  background: rgba(255, 255, 255, 0.9);
-                  padding: 8px 12px;
-                  border-radius: 6px;
-                  display: flex;
-                  align-items: center;
-                  gap: 8px;
-                  font-size: 14px;
-                  color: #333;
-                  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-                ">
-                  <span style="color: #1976d2;">📍</span>
-                  <span>${contactData.address || 'Al Maktoum Street, Deira, Dubai, UAE'}</span>
+            ${contactData.showMap && contactData.mapUrl ? `
+              <!-- Используем mapUrl если он есть (как в одностраничном экспорте) -->
+              <div class="contact-map-container" style="
+                margin-top: 3rem;
+                border-radius: 12px;
+                overflow: hidden;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+              ">
+                <div style="position: relative; width: 100%; height: 400px;">
+                  <iframe
+                    src="${contactData.mapUrl}"
+                    width="100%"
+                    height="100%"
+                    style="border: 0;"
+                    allowfullscreen=""
+                    loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade"
+                    title="Map: ${contactData.address || 'Адрес'}">
+                  </iframe>
+                  ${contactData.address ? `
+                    <div style="
+                      position: absolute;
+                      bottom: 10px;
+                      left: 10px;
+                      background: rgba(255, 255, 255, 0.9);
+                      padding: 8px 12px;
+                      border-radius: 6px;
+                      display: flex;
+                      align-items: center;
+                      gap: 8px;
+                      font-size: 14px;
+                      color: #333;
+                      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                    ">
+                      <span style="color: #1976d2;">📍</span>
+                      <span>${contactData.address}${contactData.city ? `, ${contactData.city}` : ''}</span>
+                    </div>
+                  ` : ''}
                 </div>
               </div>
-            </div>
+            ` : contactData.address ? `
+              <!-- Генерируем Google Maps если есть адрес -->
+              <div class="contact-map-container" style="
+                margin-top: 3rem;
+                border-radius: 12px;
+                overflow: hidden;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+              ">
+                <div style="position: relative; width: 100%; height: 400px;">
+                  <iframe
+                    src="https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(contactData.address + (contactData.city ? `, ${contactData.city}` : ''))}&language=ru"
+                    width="100%"
+                    height="100%"
+                    style="border: 0;"
+                    allowfullscreen=""
+                    loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade"
+                    title="Map: ${contactData.address}">
+                  </iframe>
+                  <div style="
+                    position: absolute;
+                    bottom: 10px;
+                    left: 10px;
+                    background: rgba(255, 255, 255, 0.9);
+                    padding: 8px 12px;
+                    border-radius: 6px;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    font-size: 14px;
+                    color: #333;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                  ">
+                    <span style="color: #1976d2;">📍</span>
+                    <span>${contactData.address}${contactData.city ? `, ${contactData.city}` : ''}</span>
+                  </div>
+                </div>
+              </div>
+            ` : ''}
           </div>
         </section>
     </main>

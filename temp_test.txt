@@ -1,86 +1,573 @@
-✅ ПОЛНОСТЬЮ РАСШИРЕННОЕ РЕДАКТИРОВАНИЕ ВСЕХ ФОРМ И КОМПОНЕНТОВ
-
-🎯 ТЕПЕРЬ МОЖНО РЕДАКТИРОВАТЬ ВСЕ ПОЛЯ ДЛЯ РАЗНЫХ ЯЗЫКОВ И ТЕМАТИК:
-
-📋 1. FormikRegistrationForm - ПОЛНОЕ РЕДАКТИРОВАНИЕ:
-   ✅ Заголовок формы
-   ✅ Все метки полей (имя, фамилия, email, пароль, возраст, пол, интересы)
-   ✅ Опции пола (мужской, женский, другой)
-   ✅ Варианты интересов (спорт, музыка, технологии, путешествия, кулинария)
-   ✅ Текст кнопок (отправить, отправка...)
-   ✅ Текст чекбоксов (подписка, согласие)
-   ✅ Сообщения валидации
-   ✅ Настройки анимации
-
-📋 2. AdvancedContactForm - ПОЛНОЕ РЕДАКТИРОВАНИЕ:
-   ✅ Заголовок формы
-   ✅ Все метки полей (имя, email, телефон, компания, тема, сообщение)
-   ✅ Все плейсхолдеры полей
-   ✅ Опции темы обращения (общий вопрос, поддержка, продажи, партнерство)
-   ✅ Текст кнопок (отправить, отправка...)
-   ✅ Текст чекбоксов (подписка, согласие)
-   ✅ Сообщения валидации
-   ✅ Настройки анимации
-
-📋 3. ReactSelectComponent - ПОЛНОЕ РЕДАКТИРОВАНИЕ:
-   ✅ Заголовок компонента
-   ✅ Инструкция ("Выберите технологии:")
-   ✅ Плейсхолдер ("Выберите технологии...")
-   ✅ Сообщение "Нет опций"
-   ✅ Метка выбранного ("Выбрано:")
-   ✅ Все опции селекта (название, значение, цвет)
-   ✅ Добавление/удаление опций
-   ✅ Переключение множественного выбора
-   ✅ Настройки анимации
-
-📋 4. DatePickerComponent - ПОЛНОЕ РЕДАКТИРОВАНИЕ:
-   ✅ Заголовок компонента
-   ✅ Заголовок одиночной даты
-   ✅ Заголовок диапазона дат
-   ✅ Плейсхолдер одиночной даты
-   ✅ Плейсхолдер диапазона дат
-   ✅ Метка выбранной даты
-   ✅ Метка выбранного диапазона
-   ✅ Слово "в" для времени
-   ✅ Переключение выбора времени
-   ✅ Настройки анимации
-
-📋 5. StepperForm - ПОЛНОЕ РЕДАКТИРОВАНИЕ:
-   ✅ Заголовок формы
-   ✅ Названия всех шагов (3 шага)
-   ✅ Поля первого шага (имя, фамилия, дата рождения)
-   ✅ Поля второго шага (email, телефон, адрес)
-   ✅ Поля третьего шага (заголовок предпочтений, чекбоксы)
-   ✅ Текст всех кнопок (далее, назад, завершить, заполнить заново)
-   ✅ Заголовок и сообщение завершения
-   ✅ Настройки анимации
-
-📋 6. AccordionComponent - ПОЛНОЕ РЕДАКТИРОВАНИЕ:
-   ✅ Редактирование содержимого панелей
-   ✅ Добавление/удаление панелей
-   ✅ Настройки анимации в режиме конструктора
-   ✅ Обновленный формат анимации
-
-🌍 ПОДДЕРЖКА МУЛЬТИЯЗЫЧНОСТИ:
-- Все тексты можно изменить для любого языка
-- Плейсхолдеры настраиваются отдельно
-- Сообщения валидации редактируются
-- Опции селектов полностью настраиваемые
-- Кнопки и уведомления локализуются
-
-🎨 ПОДДЕРЖКА РАЗНЫХ ТЕМАТИК:
-- Названия полей под любую тематику
-- Опции селектов для разных сфер
-- Цвета опций настраиваются
-- Тексты кнопок под бренд
-- Сообщения под стиль компании
-
-🔧 ТЕХНИЧЕСКИЕ ОСОБЕННОСТИ:
-- Все изменения сохраняются в состоянии
-- Режим отмены для всех форм
-- Валидация работает с новыми текстами
-- Анимации настраиваются отдельно
-- Совместимость с constructorMode
-
-🚀 СЕРВЕР РАЗРАБОТКИ: http://localhost:3001
-✅ ВСЕ ФОРМЫ ГОТОВЫ К ИСПОЛЬЗОВАНИЮ В ЛЮБЫХ ПРОЕКТАХ! 
+PagePreview.jsx:2688 🔄 [PagePreview] Rendering in MultiPage mode - returning MultiPagePreview
+PagePreview.jsx:2688 🔄 [PagePreview] Rendering in MultiPage mode - returning MultiPagePreview
+MultiPagePreview.jsx:151 🔍 [MultiPagePreview] РЕНДЕР КОМПОНЕНТА с sectionsData: {компания: {…}}
+MultiPagePreview.jsx:152 🔍 [MultiPagePreview] heroData: {title: 'Надежные решения для вашего успеха', subtitle: 'Мы предоставляем профессиональные услуги для компа…вать проекты и укреплять финансовую устойчивость.', backgroundType: 'image', backgroundColor: '#1a1a1a', gradientColor1: '#1a1a1a', …}
+MultiPagePreview.jsx:153 🔍 [MultiPagePreview] homePageSettings: undefined
+MultiPagePreview.jsx:154 🔍 [MultiPagePreview] showSectionsPreview: undefined
+MultiPagePreview.jsx:155 🔍 [MultiPagePreview] showFeaturedSection: undefined
+MultiPagePreview.jsx:156 🔍 [MultiPagePreview] featuredSectionId: undefined
+MultiPagePreview.jsx:174 [MultiPagePreview] 🎯 Component mounted/updated
+MultiPagePreview.jsx:175 🔍 [MultiPagePreview] sectionImages state: {}
+MultiPagePreview.jsx:176 🔍 [MultiPagePreview] sectionImages keys: []
+MultiPagePreview.jsx:1854 🔍 [MultiPagePreview] renderIndexPage - Settings: {shouldShowFeatured: undefined, shouldShowSectionsPreview: undefined, shouldShowContactPreview: undefined, shouldShowRegularSections: true}
+MultiPagePreview.jsx:1956 [MultiPagePreview] 🏗️ HeroSection rendered with: {backgroundType: 'image', backgroundImage: 'blob:http://localhost:3000/5bfadd79-90be-4620-9dd5-3398122ebff5', heroImageUrl: 'blob:http://localhost:3000/5bfadd79-90be-4620-9dd5-3398122ebff5', originalBackgroundImage: '/images/hero/hero.jpg'}
+MultiPagePreview.jsx:1977 [MultiPagePreview] 🔍 Processing section: компания data: {id: 'компания', title: 'Кто мы', description: 'Мы объединяем экспертов с многолетним опытом, чтоб…жные и современные решения для устойчивого роста.', pageName: 'about-us', cardType: 'ELEVATED', …}
+MultiPagePreview.jsx:1978 [MultiPagePreview] 🔍 Section elements: [{…}]
+MultiPagePreview.jsx:395 [MultiPagePreview] Rendering content element: typography {id: 'service_1', type: 'typography', text: 'Наша компания работает на рынке более десяти лет и…лько готовые решения, но и уверенность в будущем.', variant: 'h2', customStyles: {…}}
+MultiPagePreview.jsx:396 [MultiPagePreview] Element data structure: {hasData: false, dataKeys: Array(0), elementKeys: Array(5), title: undefined, content: undefined, …}
+MultiPagePreview.jsx:488 🔍 [MultiPagePreview] Элемент typography получил colorSettings: {}
+MultiPagePreview.jsx:875 [MultiPagePreview] ElementProps for typography : {isPreview: true, constructorMode: true, onUpdate: ƒ, onSave: ƒ, onCancel: ƒ, …}
+MultiPagePreview.jsx:878 [MultiPagePreview] Detailed typography data JSON: {
+  "type": "typography",
+  "text": "Наша компания работает на рынке более десяти лет и в 2025 году продолжает развиваться, предлагая клиентам комплексные услуги для бизнеса и личных проектов. Мы создаем стратегии, которые помогают находить оптимальные пути решения задач и обеспечивать долгосрочную стабильность. Мы гордимся тем, что наши клиенты доверяют нам и остаются с нами на протяжении многих лет. Основное внимание мы уделяем качеству, надежности и современным технологиям. Благодаря нашей команде профессионалов, каждый проект получает индивидуальный подход, адаптированный к конкретным потребностям клиента. В результате сотрудничества наши клиенты получают не только готовые решения, но и уверенность в будущем.",
+  "customStyles": {
+    "fontFamily": "inherit",
+    "fontSize": "inherit",
+    "fontWeight": "normal",
+    "fontStyle": "normal",
+    "textDecoration": "none",
+    "textAlign": "inherit",
+    "color": "#000000",
+    "lineHeight": 1.5,
+    "letterSpacing": 0,
+    "textTransform": "none"
+  },
+  "colorSettings": {}
+}
+MultiPagePreview.jsx:151 🔍 [MultiPagePreview] РЕНДЕР КОМПОНЕНТА с sectionsData: {компания: {…}}
+MultiPagePreview.jsx:152 🔍 [MultiPagePreview] heroData: {title: 'Надежные решения для вашего успеха', subtitle: 'Мы предоставляем профессиональные услуги для компа…вать проекты и укреплять финансовую устойчивость.', backgroundType: 'image', backgroundColor: '#1a1a1a', gradientColor1: '#1a1a1a', …}
+MultiPagePreview.jsx:153 🔍 [MultiPagePreview] homePageSettings: undefined
+MultiPagePreview.jsx:154 🔍 [MultiPagePreview] showSectionsPreview: undefined
+MultiPagePreview.jsx:155 🔍 [MultiPagePreview] showFeaturedSection: undefined
+MultiPagePreview.jsx:156 🔍 [MultiPagePreview] featuredSectionId: undefined
+MultiPagePreview.jsx:174 [MultiPagePreview] 🎯 Component mounted/updated
+MultiPagePreview.jsx:175 🔍 [MultiPagePreview] sectionImages state: {}
+MultiPagePreview.jsx:176 🔍 [MultiPagePreview] sectionImages keys: []
+MultiPagePreview.jsx:1854 🔍 [MultiPagePreview] renderIndexPage - Settings: {shouldShowFeatured: undefined, shouldShowSectionsPreview: undefined, shouldShowContactPreview: undefined, shouldShowRegularSections: true}
+MultiPagePreview.jsx:1956 [MultiPagePreview] 🏗️ HeroSection rendered with: {backgroundType: 'image', backgroundImage: 'blob:http://localhost:3000/5bfadd79-90be-4620-9dd5-3398122ebff5', heroImageUrl: 'blob:http://localhost:3000/5bfadd79-90be-4620-9dd5-3398122ebff5', originalBackgroundImage: '/images/hero/hero.jpg'}
+MultiPagePreview.jsx:1977 [MultiPagePreview] 🔍 Processing section: компания data: {id: 'компания', title: 'Кто мы', description: 'Мы объединяем экспертов с многолетним опытом, чтоб…жные и современные решения для устойчивого роста.', pageName: 'about-us', cardType: 'ELEVATED', …}
+MultiPagePreview.jsx:1978 [MultiPagePreview] 🔍 Section elements: [{…}]
+MultiPagePreview.jsx:395 [MultiPagePreview] Rendering content element: typography {id: 'service_1', type: 'typography', text: 'Наша компания работает на рынке более десяти лет и…лько готовые решения, но и уверенность в будущем.', variant: 'h2', customStyles: {…}}
+MultiPagePreview.jsx:396 [MultiPagePreview] Element data structure: {hasData: false, dataKeys: Array(0), elementKeys: Array(5), title: undefined, content: undefined, …}
+MultiPagePreview.jsx:488 🔍 [MultiPagePreview] Элемент typography получил colorSettings: {}
+MultiPagePreview.jsx:875 [MultiPagePreview] ElementProps for typography : {isPreview: true, constructorMode: true, onUpdate: ƒ, onSave: ƒ, onCancel: ƒ, …}
+MultiPagePreview.jsx:878 [MultiPagePreview] Detailed typography data JSON: {
+  "type": "typography",
+  "text": "Наша компания работает на рынке более десяти лет и в 2025 году продолжает развиваться, предлагая клиентам комплексные услуги для бизнеса и личных проектов. Мы создаем стратегии, которые помогают находить оптимальные пути решения задач и обеспечивать долгосрочную стабильность. Мы гордимся тем, что наши клиенты доверяют нам и остаются с нами на протяжении многих лет. Основное внимание мы уделяем качеству, надежности и современным технологиям. Благодаря нашей команде профессионалов, каждый проект получает индивидуальный подход, адаптированный к конкретным потребностям клиента. В результате сотрудничества наши клиенты получают не только готовые решения, но и уверенность в будущем.",
+  "customStyles": {
+    "fontFamily": "inherit",
+    "fontSize": "inherit",
+    "fontWeight": "normal",
+    "fontStyle": "normal",
+    "textDecoration": "none",
+    "textAlign": "inherit",
+    "color": "#000000",
+    "lineHeight": 1.5,
+    "letterSpacing": 0,
+    "textTransform": "none"
+  },
+  "colorSettings": {}
+}
+MultiPagePreview.jsx:181 [MultiPagePreview] 🚀 Loading images from sectionsData: {компания: {…}}
+PagePreview.jsx:2688 🔄 [PagePreview] Rendering in MultiPage mode - returning MultiPagePreview
+PagePreview.jsx:2688 🔄 [PagePreview] Rendering in MultiPage mode - returning MultiPagePreview
+MultiPagePreview.jsx:151 🔍 [MultiPagePreview] РЕНДЕР КОМПОНЕНТА с sectionsData: {компания: {…}}
+MultiPagePreview.jsx:152 🔍 [MultiPagePreview] heroData: {title: 'Надежные решения для вашего успеха', subtitle: 'Мы предоставляем профессиональные услуги для компа…вать проекты и укреплять финансовую устойчивость.', backgroundType: 'image', backgroundColor: '#1a1a1a', gradientColor1: '#1a1a1a', …}
+MultiPagePreview.jsx:153 🔍 [MultiPagePreview] homePageSettings: {featuredSectionId: 'компания'}
+MultiPagePreview.jsx:154 🔍 [MultiPagePreview] showSectionsPreview: undefined
+MultiPagePreview.jsx:155 🔍 [MultiPagePreview] showFeaturedSection: undefined
+MultiPagePreview.jsx:156 🔍 [MultiPagePreview] featuredSectionId: компания
+MultiPagePreview.jsx:174 [MultiPagePreview] 🎯 Component mounted/updated
+MultiPagePreview.jsx:175 🔍 [MultiPagePreview] sectionImages state: {}
+MultiPagePreview.jsx:176 🔍 [MultiPagePreview] sectionImages keys: []
+MultiPagePreview.jsx:1854 🔍 [MultiPagePreview] renderIndexPage - Settings: {shouldShowFeatured: undefined, shouldShowSectionsPreview: undefined, shouldShowContactPreview: undefined, shouldShowRegularSections: true}
+MultiPagePreview.jsx:1956 [MultiPagePreview] 🏗️ HeroSection rendered with: {backgroundType: 'image', backgroundImage: 'blob:http://localhost:3000/5bfadd79-90be-4620-9dd5-3398122ebff5', heroImageUrl: 'blob:http://localhost:3000/5bfadd79-90be-4620-9dd5-3398122ebff5', originalBackgroundImage: '/images/hero/hero.jpg'}
+MultiPagePreview.jsx:1977 [MultiPagePreview] 🔍 Processing section: компания data: {id: 'компания', title: 'Кто мы', description: 'Мы объединяем экспертов с многолетним опытом, чтоб…жные и современные решения для устойчивого роста.', pageName: 'about-us', cardType: 'ELEVATED', …}
+MultiPagePreview.jsx:1978 [MultiPagePreview] 🔍 Section elements: [{…}]
+MultiPagePreview.jsx:395 [MultiPagePreview] Rendering content element: typography {id: 'service_1', type: 'typography', text: 'Наша компания работает на рынке более десяти лет и…лько готовые решения, но и уверенность в будущем.', variant: 'h2', customStyles: {…}}
+MultiPagePreview.jsx:396 [MultiPagePreview] Element data structure: {hasData: false, dataKeys: Array(0), elementKeys: Array(5), title: undefined, content: undefined, …}
+MultiPagePreview.jsx:488 🔍 [MultiPagePreview] Элемент typography получил colorSettings: {}
+MultiPagePreview.jsx:875 [MultiPagePreview] ElementProps for typography : {isPreview: true, constructorMode: true, onUpdate: ƒ, onSave: ƒ, onCancel: ƒ, …}
+MultiPagePreview.jsx:878 [MultiPagePreview] Detailed typography data JSON: {
+  "type": "typography",
+  "text": "Наша компания работает на рынке более десяти лет и в 2025 году продолжает развиваться, предлагая клиентам комплексные услуги для бизнеса и личных проектов. Мы создаем стратегии, которые помогают находить оптимальные пути решения задач и обеспечивать долгосрочную стабильность. Мы гордимся тем, что наши клиенты доверяют нам и остаются с нами на протяжении многих лет. Основное внимание мы уделяем качеству, надежности и современным технологиям. Благодаря нашей команде профессионалов, каждый проект получает индивидуальный подход, адаптированный к конкретным потребностям клиента. В результате сотрудничества наши клиенты получают не только готовые решения, но и уверенность в будущем.",
+  "customStyles": {
+    "fontFamily": "inherit",
+    "fontSize": "inherit",
+    "fontWeight": "normal",
+    "fontStyle": "normal",
+    "textDecoration": "none",
+    "textAlign": "inherit",
+    "color": "#000000",
+    "lineHeight": 1.5,
+    "letterSpacing": 0,
+    "textTransform": "none"
+  },
+  "colorSettings": {}
+}
+MultiPagePreview.jsx:151 🔍 [MultiPagePreview] РЕНДЕР КОМПОНЕНТА с sectionsData: {компания: {…}}
+MultiPagePreview.jsx:152 🔍 [MultiPagePreview] heroData: {title: 'Надежные решения для вашего успеха', subtitle: 'Мы предоставляем профессиональные услуги для компа…вать проекты и укреплять финансовую устойчивость.', backgroundType: 'image', backgroundColor: '#1a1a1a', gradientColor1: '#1a1a1a', …}
+MultiPagePreview.jsx:153 🔍 [MultiPagePreview] homePageSettings: {featuredSectionId: 'компания'}
+MultiPagePreview.jsx:154 🔍 [MultiPagePreview] showSectionsPreview: undefined
+MultiPagePreview.jsx:155 🔍 [MultiPagePreview] showFeaturedSection: undefined
+MultiPagePreview.jsx:156 🔍 [MultiPagePreview] featuredSectionId: компания
+MultiPagePreview.jsx:174 [MultiPagePreview] 🎯 Component mounted/updated
+MultiPagePreview.jsx:175 🔍 [MultiPagePreview] sectionImages state: {}
+MultiPagePreview.jsx:176 🔍 [MultiPagePreview] sectionImages keys: []
+MultiPagePreview.jsx:1854 🔍 [MultiPagePreview] renderIndexPage - Settings: {shouldShowFeatured: undefined, shouldShowSectionsPreview: undefined, shouldShowContactPreview: undefined, shouldShowRegularSections: true}
+MultiPagePreview.jsx:1956 [MultiPagePreview] 🏗️ HeroSection rendered with: {backgroundType: 'image', backgroundImage: 'blob:http://localhost:3000/5bfadd79-90be-4620-9dd5-3398122ebff5', heroImageUrl: 'blob:http://localhost:3000/5bfadd79-90be-4620-9dd5-3398122ebff5', originalBackgroundImage: '/images/hero/hero.jpg'}
+MultiPagePreview.jsx:1977 [MultiPagePreview] 🔍 Processing section: компания data: {id: 'компания', title: 'Кто мы', description: 'Мы объединяем экспертов с многолетним опытом, чтоб…жные и современные решения для устойчивого роста.', pageName: 'about-us', cardType: 'ELEVATED', …}
+MultiPagePreview.jsx:1978 [MultiPagePreview] 🔍 Section elements: [{…}]
+MultiPagePreview.jsx:395 [MultiPagePreview] Rendering content element: typography {id: 'service_1', type: 'typography', text: 'Наша компания работает на рынке более десяти лет и…лько готовые решения, но и уверенность в будущем.', variant: 'h2', customStyles: {…}}
+MultiPagePreview.jsx:396 [MultiPagePreview] Element data structure: {hasData: false, dataKeys: Array(0), elementKeys: Array(5), title: undefined, content: undefined, …}
+MultiPagePreview.jsx:488 🔍 [MultiPagePreview] Элемент typography получил colorSettings: {}
+MultiPagePreview.jsx:875 [MultiPagePreview] ElementProps for typography : {isPreview: true, constructorMode: true, onUpdate: ƒ, onSave: ƒ, onCancel: ƒ, …}
+MultiPagePreview.jsx:878 [MultiPagePreview] Detailed typography data JSON: {
+  "type": "typography",
+  "text": "Наша компания работает на рынке более десяти лет и в 2025 году продолжает развиваться, предлагая клиентам комплексные услуги для бизнеса и личных проектов. Мы создаем стратегии, которые помогают находить оптимальные пути решения задач и обеспечивать долгосрочную стабильность. Мы гордимся тем, что наши клиенты доверяют нам и остаются с нами на протяжении многих лет. Основное внимание мы уделяем качеству, надежности и современным технологиям. Благодаря нашей команде профессионалов, каждый проект получает индивидуальный подход, адаптированный к конкретным потребностям клиента. В результате сотрудничества наши клиенты получают не только готовые решения, но и уверенность в будущем.",
+  "customStyles": {
+    "fontFamily": "inherit",
+    "fontSize": "inherit",
+    "fontWeight": "normal",
+    "fontStyle": "normal",
+    "textDecoration": "none",
+    "textAlign": "inherit",
+    "color": "#000000",
+    "lineHeight": 1.5,
+    "letterSpacing": 0,
+    "textTransform": "none"
+  },
+  "colorSettings": {}
+}
+PagePreview.jsx:2688 🔄 [PagePreview] Rendering in MultiPage mode - returning MultiPagePreview
+PagePreview.jsx:2688 🔄 [PagePreview] Rendering in MultiPage mode - returning MultiPagePreview
+MultiPagePreview.jsx:151 🔍 [MultiPagePreview] РЕНДЕР КОМПОНЕНТА с sectionsData: {компания: {…}}
+MultiPagePreview.jsx:152 🔍 [MultiPagePreview] heroData: {title: 'Надежные решения для вашего успеха', subtitle: 'Мы предоставляем профессиональные услуги для компа…вать проекты и укреплять финансовую устойчивость.', backgroundType: 'image', backgroundColor: '#1a1a1a', gradientColor1: '#1a1a1a', …}
+MultiPagePreview.jsx:153 🔍 [MultiPagePreview] homePageSettings: {featuredSectionId: 'компания'}
+MultiPagePreview.jsx:154 🔍 [MultiPagePreview] showSectionsPreview: undefined
+MultiPagePreview.jsx:155 🔍 [MultiPagePreview] showFeaturedSection: undefined
+MultiPagePreview.jsx:156 🔍 [MultiPagePreview] featuredSectionId: компания
+MultiPagePreview.jsx:174 [MultiPagePreview] 🎯 Component mounted/updated
+MultiPagePreview.jsx:175 🔍 [MultiPagePreview] sectionImages state: {}
+MultiPagePreview.jsx:176 🔍 [MultiPagePreview] sectionImages keys: []
+MultiPagePreview.jsx:1854 🔍 [MultiPagePreview] renderIndexPage - Settings: {shouldShowFeatured: undefined, shouldShowSectionsPreview: undefined, shouldShowContactPreview: undefined, shouldShowRegularSections: true}
+MultiPagePreview.jsx:1956 [MultiPagePreview] 🏗️ HeroSection rendered with: {backgroundType: 'image', backgroundImage: 'blob:http://localhost:3000/5bfadd79-90be-4620-9dd5-3398122ebff5', heroImageUrl: 'blob:http://localhost:3000/5bfadd79-90be-4620-9dd5-3398122ebff5', originalBackgroundImage: '/images/hero/hero.jpg'}
+MultiPagePreview.jsx:1977 [MultiPagePreview] 🔍 Processing section: компания data: {id: 'компания', title: 'Кто мы', description: 'Мы объединяем экспертов с многолетним опытом, чтоб…жные и современные решения для устойчивого роста.', pageName: 'about-us', cardType: 'ELEVATED', …}
+MultiPagePreview.jsx:1978 [MultiPagePreview] 🔍 Section elements: [{…}]
+MultiPagePreview.jsx:395 [MultiPagePreview] Rendering content element: typography {id: 'service_1', type: 'typography', text: 'Наша компания работает на рынке более десяти лет и…лько готовые решения, но и уверенность в будущем.', variant: 'h2', customStyles: {…}}
+MultiPagePreview.jsx:396 [MultiPagePreview] Element data structure: {hasData: false, dataKeys: Array(0), elementKeys: Array(5), title: undefined, content: undefined, …}
+MultiPagePreview.jsx:488 🔍 [MultiPagePreview] Элемент typography получил colorSettings: {}
+MultiPagePreview.jsx:875 [MultiPagePreview] ElementProps for typography : {isPreview: true, constructorMode: true, onUpdate: ƒ, onSave: ƒ, onCancel: ƒ, …}
+MultiPagePreview.jsx:878 [MultiPagePreview] Detailed typography data JSON: {
+  "type": "typography",
+  "text": "Наша компания работает на рынке более десяти лет и в 2025 году продолжает развиваться, предлагая клиентам комплексные услуги для бизнеса и личных проектов. Мы создаем стратегии, которые помогают находить оптимальные пути решения задач и обеспечивать долгосрочную стабильность. Мы гордимся тем, что наши клиенты доверяют нам и остаются с нами на протяжении многих лет. Основное внимание мы уделяем качеству, надежности и современным технологиям. Благодаря нашей команде профессионалов, каждый проект получает индивидуальный подход, адаптированный к конкретным потребностям клиента. В результате сотрудничества наши клиенты получают не только готовые решения, но и уверенность в будущем.",
+  "customStyles": {
+    "fontFamily": "inherit",
+    "fontSize": "inherit",
+    "fontWeight": "normal",
+    "fontStyle": "normal",
+    "textDecoration": "none",
+    "textAlign": "inherit",
+    "color": "#000000",
+    "lineHeight": 1.5,
+    "letterSpacing": 0,
+    "textTransform": "none"
+  },
+  "colorSettings": {}
+}
+MultiPagePreview.jsx:151 🔍 [MultiPagePreview] РЕНДЕР КОМПОНЕНТА с sectionsData: {компания: {…}}
+MultiPagePreview.jsx:152 🔍 [MultiPagePreview] heroData: {title: 'Надежные решения для вашего успеха', subtitle: 'Мы предоставляем профессиональные услуги для компа…вать проекты и укреплять финансовую устойчивость.', backgroundType: 'image', backgroundColor: '#1a1a1a', gradientColor1: '#1a1a1a', …}
+MultiPagePreview.jsx:153 🔍 [MultiPagePreview] homePageSettings: {featuredSectionId: 'компания'}
+MultiPagePreview.jsx:154 🔍 [MultiPagePreview] showSectionsPreview: undefined
+MultiPagePreview.jsx:155 🔍 [MultiPagePreview] showFeaturedSection: undefined
+MultiPagePreview.jsx:156 🔍 [MultiPagePreview] featuredSectionId: компания
+MultiPagePreview.jsx:174 [MultiPagePreview] 🎯 Component mounted/updated
+MultiPagePreview.jsx:175 🔍 [MultiPagePreview] sectionImages state: {}
+MultiPagePreview.jsx:176 🔍 [MultiPagePreview] sectionImages keys: []
+MultiPagePreview.jsx:1854 🔍 [MultiPagePreview] renderIndexPage - Settings: {shouldShowFeatured: undefined, shouldShowSectionsPreview: undefined, shouldShowContactPreview: undefined, shouldShowRegularSections: true}
+MultiPagePreview.jsx:1956 [MultiPagePreview] 🏗️ HeroSection rendered with: {backgroundType: 'image', backgroundImage: 'blob:http://localhost:3000/5bfadd79-90be-4620-9dd5-3398122ebff5', heroImageUrl: 'blob:http://localhost:3000/5bfadd79-90be-4620-9dd5-3398122ebff5', originalBackgroundImage: '/images/hero/hero.jpg'}
+MultiPagePreview.jsx:1977 [MultiPagePreview] 🔍 Processing section: компания data: {id: 'компания', title: 'Кто мы', description: 'Мы объединяем экспертов с многолетним опытом, чтоб…жные и современные решения для устойчивого роста.', pageName: 'about-us', cardType: 'ELEVATED', …}
+MultiPagePreview.jsx:1978 [MultiPagePreview] 🔍 Section elements: [{…}]
+MultiPagePreview.jsx:395 [MultiPagePreview] Rendering content element: typography {id: 'service_1', type: 'typography', text: 'Наша компания работает на рынке более десяти лет и…лько готовые решения, но и уверенность в будущем.', variant: 'h2', customStyles: {…}}
+MultiPagePreview.jsx:396 [MultiPagePreview] Element data structure: {hasData: false, dataKeys: Array(0), elementKeys: Array(5), title: undefined, content: undefined, …}
+MultiPagePreview.jsx:488 🔍 [MultiPagePreview] Элемент typography получил colorSettings: {}
+MultiPagePreview.jsx:875 [MultiPagePreview] ElementProps for typography : {isPreview: true, constructorMode: true, onUpdate: ƒ, onSave: ƒ, onCancel: ƒ, …}
+MultiPagePreview.jsx:878 [MultiPagePreview] Detailed typography data JSON: {
+  "type": "typography",
+  "text": "Наша компания работает на рынке более десяти лет и в 2025 году продолжает развиваться, предлагая клиентам комплексные услуги для бизнеса и личных проектов. Мы создаем стратегии, которые помогают находить оптимальные пути решения задач и обеспечивать долгосрочную стабильность. Мы гордимся тем, что наши клиенты доверяют нам и остаются с нами на протяжении многих лет. Основное внимание мы уделяем качеству, надежности и современным технологиям. Благодаря нашей команде профессионалов, каждый проект получает индивидуальный подход, адаптированный к конкретным потребностям клиента. В результате сотрудничества наши клиенты получают не только готовые решения, но и уверенность в будущем.",
+  "customStyles": {
+    "fontFamily": "inherit",
+    "fontSize": "inherit",
+    "fontWeight": "normal",
+    "fontStyle": "normal",
+    "textDecoration": "none",
+    "textAlign": "inherit",
+    "color": "#000000",
+    "lineHeight": 1.5,
+    "letterSpacing": 0,
+    "textTransform": "none"
+  },
+  "colorSettings": {}
+}
+MultiPagePreview.jsx:181 [MultiPagePreview] 🚀 Loading images from sectionsData: {компания: {…}}
+PagePreview.jsx:2688 🔄 [PagePreview] Rendering in MultiPage mode - returning MultiPagePreview
+PagePreview.jsx:2688 🔄 [PagePreview] Rendering in MultiPage mode - returning MultiPagePreview
+MultiPagePreview.jsx:151 🔍 [MultiPagePreview] РЕНДЕР КОМПОНЕНТА с sectionsData: {компания: {…}}
+MultiPagePreview.jsx:152 🔍 [MultiPagePreview] heroData: {title: 'Надежные решения для вашего успеха', subtitle: 'Мы предоставляем профессиональные услуги для компа…вать проекты и укреплять финансовую устойчивость.', backgroundType: 'image', backgroundColor: '#1a1a1a', gradientColor1: '#1a1a1a', …}
+MultiPagePreview.jsx:153 🔍 [MultiPagePreview] homePageSettings: {featuredSectionId: 'компания'}
+MultiPagePreview.jsx:154 🔍 [MultiPagePreview] showSectionsPreview: undefined
+MultiPagePreview.jsx:155 🔍 [MultiPagePreview] showFeaturedSection: undefined
+MultiPagePreview.jsx:156 🔍 [MultiPagePreview] featuredSectionId: компания
+MultiPagePreview.jsx:174 [MultiPagePreview] 🎯 Component mounted/updated
+MultiPagePreview.jsx:175 🔍 [MultiPagePreview] sectionImages state: {}
+MultiPagePreview.jsx:176 🔍 [MultiPagePreview] sectionImages keys: []
+MultiPagePreview.jsx:1854 🔍 [MultiPagePreview] renderIndexPage - Settings: {shouldShowFeatured: undefined, shouldShowSectionsPreview: undefined, shouldShowContactPreview: undefined, shouldShowRegularSections: true}
+MultiPagePreview.jsx:1956 [MultiPagePreview] 🏗️ HeroSection rendered with: {backgroundType: 'image', backgroundImage: 'blob:http://localhost:3000/5bfadd79-90be-4620-9dd5-3398122ebff5', heroImageUrl: 'blob:http://localhost:3000/5bfadd79-90be-4620-9dd5-3398122ebff5', originalBackgroundImage: '/images/hero/hero.jpg'}
+MultiPagePreview.jsx:1977 [MultiPagePreview] 🔍 Processing section: компания data: {id: 'компания', title: 'Кто мы', description: 'Мы объединяем экспертов с многолетним опытом, чтоб…жные и современные решения для устойчивого роста.', pageName: 'about-us', cardType: 'ELEVATED', …}
+MultiPagePreview.jsx:1978 [MultiPagePreview] 🔍 Section elements: [{…}]
+MultiPagePreview.jsx:395 [MultiPagePreview] Rendering content element: typography {id: 'service_1', type: 'typography', text: 'Наша компания работает на рынке более десяти лет и…лько готовые решения, но и уверенность в будущем.', variant: 'h2', customStyles: {…}}
+MultiPagePreview.jsx:396 [MultiPagePreview] Element data structure: {hasData: false, dataKeys: Array(0), elementKeys: Array(5), title: undefined, content: undefined, …}
+MultiPagePreview.jsx:488 🔍 [MultiPagePreview] Элемент typography получил colorSettings: {}
+MultiPagePreview.jsx:875 [MultiPagePreview] ElementProps for typography : {isPreview: true, constructorMode: true, onUpdate: ƒ, onSave: ƒ, onCancel: ƒ, …}
+MultiPagePreview.jsx:878 [MultiPagePreview] Detailed typography data JSON: {
+  "type": "typography",
+  "text": "Наша компания работает на рынке более десяти лет и в 2025 году продолжает развиваться, предлагая клиентам комплексные услуги для бизнеса и личных проектов. Мы создаем стратегии, которые помогают находить оптимальные пути решения задач и обеспечивать долгосрочную стабильность. Мы гордимся тем, что наши клиенты доверяют нам и остаются с нами на протяжении многих лет. Основное внимание мы уделяем качеству, надежности и современным технологиям. Благодаря нашей команде профессионалов, каждый проект получает индивидуальный подход, адаптированный к конкретным потребностям клиента. В результате сотрудничества наши клиенты получают не только готовые решения, но и уверенность в будущем.",
+  "customStyles": {
+    "fontFamily": "inherit",
+    "fontSize": "inherit",
+    "fontWeight": "normal",
+    "fontStyle": "normal",
+    "textDecoration": "none",
+    "textAlign": "inherit",
+    "color": "#000000",
+    "lineHeight": 1.5,
+    "letterSpacing": 0,
+    "textTransform": "none"
+  },
+  "colorSettings": {}
+}
+MultiPagePreview.jsx:151 🔍 [MultiPagePreview] РЕНДЕР КОМПОНЕНТА с sectionsData: {компания: {…}}
+MultiPagePreview.jsx:152 🔍 [MultiPagePreview] heroData: {title: 'Надежные решения для вашего успеха', subtitle: 'Мы предоставляем профессиональные услуги для компа…вать проекты и укреплять финансовую устойчивость.', backgroundType: 'image', backgroundColor: '#1a1a1a', gradientColor1: '#1a1a1a', …}
+MultiPagePreview.jsx:153 🔍 [MultiPagePreview] homePageSettings: {featuredSectionId: 'компания'}
+MultiPagePreview.jsx:154 🔍 [MultiPagePreview] showSectionsPreview: undefined
+MultiPagePreview.jsx:155 🔍 [MultiPagePreview] showFeaturedSection: undefined
+MultiPagePreview.jsx:156 🔍 [MultiPagePreview] featuredSectionId: компания
+MultiPagePreview.jsx:174 [MultiPagePreview] 🎯 Component mounted/updated
+MultiPagePreview.jsx:175 🔍 [MultiPagePreview] sectionImages state: {}
+MultiPagePreview.jsx:176 🔍 [MultiPagePreview] sectionImages keys: []
+MultiPagePreview.jsx:1854 🔍 [MultiPagePreview] renderIndexPage - Settings: {shouldShowFeatured: undefined, shouldShowSectionsPreview: undefined, shouldShowContactPreview: undefined, shouldShowRegularSections: true}
+MultiPagePreview.jsx:1956 [MultiPagePreview] 🏗️ HeroSection rendered with: {backgroundType: 'image', backgroundImage: 'blob:http://localhost:3000/5bfadd79-90be-4620-9dd5-3398122ebff5', heroImageUrl: 'blob:http://localhost:3000/5bfadd79-90be-4620-9dd5-3398122ebff5', originalBackgroundImage: '/images/hero/hero.jpg'}
+MultiPagePreview.jsx:1977 [MultiPagePreview] 🔍 Processing section: компания data: {id: 'компания', title: 'Кто мы', description: 'Мы объединяем экспертов с многолетним опытом, чтоб…жные и современные решения для устойчивого роста.', pageName: 'about-us', cardType: 'ELEVATED', …}
+MultiPagePreview.jsx:1978 [MultiPagePreview] 🔍 Section elements: [{…}]
+MultiPagePreview.jsx:395 [MultiPagePreview] Rendering content element: typography {id: 'service_1', type: 'typography', text: 'Наша компания работает на рынке более десяти лет и…лько готовые решения, но и уверенность в будущем.', variant: 'h2', customStyles: {…}}
+MultiPagePreview.jsx:396 [MultiPagePreview] Element data structure: {hasData: false, dataKeys: Array(0), elementKeys: Array(5), title: undefined, content: undefined, …}
+MultiPagePreview.jsx:488 🔍 [MultiPagePreview] Элемент typography получил colorSettings: {}
+MultiPagePreview.jsx:875 [MultiPagePreview] ElementProps for typography : {isPreview: true, constructorMode: true, onUpdate: ƒ, onSave: ƒ, onCancel: ƒ, …}
+MultiPagePreview.jsx:878 [MultiPagePreview] Detailed typography data JSON: {
+  "type": "typography",
+  "text": "Наша компания работает на рынке более десяти лет и в 2025 году продолжает развиваться, предлагая клиентам комплексные услуги для бизнеса и личных проектов. Мы создаем стратегии, которые помогают находить оптимальные пути решения задач и обеспечивать долгосрочную стабильность. Мы гордимся тем, что наши клиенты доверяют нам и остаются с нами на протяжении многих лет. Основное внимание мы уделяем качеству, надежности и современным технологиям. Благодаря нашей команде профессионалов, каждый проект получает индивидуальный подход, адаптированный к конкретным потребностям клиента. В результате сотрудничества наши клиенты получают не только готовые решения, но и уверенность в будущем.",
+  "customStyles": {
+    "fontFamily": "inherit",
+    "fontSize": "inherit",
+    "fontWeight": "normal",
+    "fontStyle": "normal",
+    "textDecoration": "none",
+    "textAlign": "inherit",
+    "color": "#000000",
+    "lineHeight": 1.5,
+    "letterSpacing": 0,
+    "textTransform": "none"
+  },
+  "colorSettings": {}
+}
+PagePreview.jsx:2688 🔄 [PagePreview] Rendering in MultiPage mode - returning MultiPagePreview
+PagePreview.jsx:2688 🔄 [PagePreview] Rendering in MultiPage mode - returning MultiPagePreview
+MultiPagePreview.jsx:151 🔍 [MultiPagePreview] РЕНДЕР КОМПОНЕНТА с sectionsData: {компания: {…}}
+MultiPagePreview.jsx:152 🔍 [MultiPagePreview] heroData: {title: 'Надежные решения для вашего успеха', subtitle: 'Мы предоставляем профессиональные услуги для компа…вать проекты и укреплять финансовую устойчивость.', backgroundType: 'image', backgroundColor: '#1a1a1a', gradientColor1: '#1a1a1a', …}
+MultiPagePreview.jsx:153 🔍 [MultiPagePreview] homePageSettings: {featuredSectionId: 'компания'}
+MultiPagePreview.jsx:154 🔍 [MultiPagePreview] showSectionsPreview: undefined
+MultiPagePreview.jsx:155 🔍 [MultiPagePreview] showFeaturedSection: undefined
+MultiPagePreview.jsx:156 🔍 [MultiPagePreview] featuredSectionId: компания
+MultiPagePreview.jsx:174 [MultiPagePreview] 🎯 Component mounted/updated
+MultiPagePreview.jsx:175 🔍 [MultiPagePreview] sectionImages state: {}
+MultiPagePreview.jsx:176 🔍 [MultiPagePreview] sectionImages keys: []
+MultiPagePreview.jsx:1854 🔍 [MultiPagePreview] renderIndexPage - Settings: {shouldShowFeatured: undefined, shouldShowSectionsPreview: undefined, shouldShowContactPreview: undefined, shouldShowRegularSections: true}
+MultiPagePreview.jsx:1956 [MultiPagePreview] 🏗️ HeroSection rendered with: {backgroundType: 'image', backgroundImage: 'blob:http://localhost:3000/5bfadd79-90be-4620-9dd5-3398122ebff5', heroImageUrl: 'blob:http://localhost:3000/5bfadd79-90be-4620-9dd5-3398122ebff5', originalBackgroundImage: '/images/hero/hero.jpg'}
+MultiPagePreview.jsx:1977 [MultiPagePreview] 🔍 Processing section: компания data: {id: 'компания', title: 'Кто мы', description: 'Мы объединяем экспертов с многолетним опытом, чтоб…жные и современные решения для устойчивого роста.', pageName: 'about-us', cardType: 'ELEVATED', …}
+MultiPagePreview.jsx:1978 [MultiPagePreview] 🔍 Section elements: [{…}]
+MultiPagePreview.jsx:395 [MultiPagePreview] Rendering content element: typography {id: 'service_1', type: 'typography', text: 'Наша компания работает на рынке более десяти лет и…лько готовые решения, но и уверенность в будущем.', variant: 'h2', customStyles: {…}}
+MultiPagePreview.jsx:396 [MultiPagePreview] Element data structure: {hasData: false, dataKeys: Array(0), elementKeys: Array(5), title: undefined, content: undefined, …}
+MultiPagePreview.jsx:488 🔍 [MultiPagePreview] Элемент typography получил colorSettings: {}
+MultiPagePreview.jsx:875 [MultiPagePreview] ElementProps for typography : {isPreview: true, constructorMode: true, onUpdate: ƒ, onSave: ƒ, onCancel: ƒ, …}
+MultiPagePreview.jsx:878 [MultiPagePreview] Detailed typography data JSON: {
+  "type": "typography",
+  "text": "Наша компания работает на рынке более десяти лет и в 2025 году продолжает развиваться, предлагая клиентам комплексные услуги для бизнеса и личных проектов. Мы создаем стратегии, которые помогают находить оптимальные пути решения задач и обеспечивать долгосрочную стабильность. Мы гордимся тем, что наши клиенты доверяют нам и остаются с нами на протяжении многих лет. Основное внимание мы уделяем качеству, надежности и современным технологиям. Благодаря нашей команде профессионалов, каждый проект получает индивидуальный подход, адаптированный к конкретным потребностям клиента. В результате сотрудничества наши клиенты получают не только готовые решения, но и уверенность в будущем.",
+  "customStyles": {
+    "fontFamily": "inherit",
+    "fontSize": "inherit",
+    "fontWeight": "normal",
+    "fontStyle": "normal",
+    "textDecoration": "none",
+    "textAlign": "inherit",
+    "color": "#000000",
+    "lineHeight": 1.5,
+    "letterSpacing": 0,
+    "textTransform": "none"
+  },
+  "colorSettings": {}
+}
+MultiPagePreview.jsx:151 🔍 [MultiPagePreview] РЕНДЕР КОМПОНЕНТА с sectionsData: {компания: {…}}
+MultiPagePreview.jsx:152 🔍 [MultiPagePreview] heroData: {title: 'Надежные решения для вашего успеха', subtitle: 'Мы предоставляем профессиональные услуги для компа…вать проекты и укреплять финансовую устойчивость.', backgroundType: 'image', backgroundColor: '#1a1a1a', gradientColor1: '#1a1a1a', …}
+MultiPagePreview.jsx:153 🔍 [MultiPagePreview] homePageSettings: {featuredSectionId: 'компания'}
+MultiPagePreview.jsx:154 🔍 [MultiPagePreview] showSectionsPreview: undefined
+MultiPagePreview.jsx:155 🔍 [MultiPagePreview] showFeaturedSection: undefined
+MultiPagePreview.jsx:156 🔍 [MultiPagePreview] featuredSectionId: компания
+MultiPagePreview.jsx:174 [MultiPagePreview] 🎯 Component mounted/updated
+MultiPagePreview.jsx:175 🔍 [MultiPagePreview] sectionImages state: {}
+MultiPagePreview.jsx:176 🔍 [MultiPagePreview] sectionImages keys: []
+MultiPagePreview.jsx:1854 🔍 [MultiPagePreview] renderIndexPage - Settings: {shouldShowFeatured: undefined, shouldShowSectionsPreview: undefined, shouldShowContactPreview: undefined, shouldShowRegularSections: true}
+MultiPagePreview.jsx:1956 [MultiPagePreview] 🏗️ HeroSection rendered with: {backgroundType: 'image', backgroundImage: 'blob:http://localhost:3000/5bfadd79-90be-4620-9dd5-3398122ebff5', heroImageUrl: 'blob:http://localhost:3000/5bfadd79-90be-4620-9dd5-3398122ebff5', originalBackgroundImage: '/images/hero/hero.jpg'}
+MultiPagePreview.jsx:1977 [MultiPagePreview] 🔍 Processing section: компания data: {id: 'компания', title: 'Кто мы', description: 'Мы объединяем экспертов с многолетним опытом, чтоб…жные и современные решения для устойчивого роста.', pageName: 'about-us', cardType: 'ELEVATED', …}
+MultiPagePreview.jsx:1978 [MultiPagePreview] 🔍 Section elements: [{…}]
+MultiPagePreview.jsx:395 [MultiPagePreview] Rendering content element: typography {id: 'service_1', type: 'typography', text: 'Наша компания работает на рынке более десяти лет и…лько готовые решения, но и уверенность в будущем.', variant: 'h2', customStyles: {…}}
+MultiPagePreview.jsx:396 [MultiPagePreview] Element data structure: {hasData: false, dataKeys: Array(0), elementKeys: Array(5), title: undefined, content: undefined, …}
+MultiPagePreview.jsx:488 🔍 [MultiPagePreview] Элемент typography получил colorSettings: {}
+MultiPagePreview.jsx:875 [MultiPagePreview] ElementProps for typography : {isPreview: true, constructorMode: true, onUpdate: ƒ, onSave: ƒ, onCancel: ƒ, …}
+MultiPagePreview.jsx:878 [MultiPagePreview] Detailed typography data JSON: {
+  "type": "typography",
+  "text": "Наша компания работает на рынке более десяти лет и в 2025 году продолжает развиваться, предлагая клиентам комплексные услуги для бизнеса и личных проектов. Мы создаем стратегии, которые помогают находить оптимальные пути решения задач и обеспечивать долгосрочную стабильность. Мы гордимся тем, что наши клиенты доверяют нам и остаются с нами на протяжении многих лет. Основное внимание мы уделяем качеству, надежности и современным технологиям. Благодаря нашей команде профессионалов, каждый проект получает индивидуальный подход, адаптированный к конкретным потребностям клиента. В результате сотрудничества наши клиенты получают не только готовые решения, но и уверенность в будущем.",
+  "customStyles": {
+    "fontFamily": "inherit",
+    "fontSize": "inherit",
+    "fontWeight": "normal",
+    "fontStyle": "normal",
+    "textDecoration": "none",
+    "textAlign": "inherit",
+    "color": "#000000",
+    "lineHeight": 1.5,
+    "letterSpacing": 0,
+    "textTransform": "none"
+  },
+  "colorSettings": {}
+}
+MultiPagePreview.jsx:206 [MultiPagePreview] 🎯 Received sectionImagesUpdated event: {sectionId: 'компания', images: Array(1)}
+MultiPagePreview.jsx:209 [MultiPagePreview] 🖼️ Processing sectionImagesUpdated for section: компания with images: [{…}]
+MultiPagePreview.jsx:211 [MultiPagePreview] Previous sectionImages state: {}
+MultiPagePreview.jsx:217 [MultiPagePreview] Image URL resolved: data:image/jpeg;base64,UklGRtpdAQBXRUJQVlA4WAoAAAA...
+MultiPagePreview.jsx:225 [MultiPagePreview] New sectionImages state: {компания: Array(1)}
+MultiPagePreview.jsx:226 [MultiPagePreview] Section images for компания : ['data:image/jpeg;base64,UklGRtpdAQBXRUJQVlA4WAoAAAA…G3pnOXeF/8AO4TQzrCgIBne+7IVKxLHAW5IHlKEJMcPllAAA=']
+MultiPagePreview.jsx:227 [MultiPagePreview] First image URL: data:image/jpeg;base64,UklGRtpdAQBXRUJQVlA4WAoAAAAgAAAAfwcANwQASUNDUMgBAAAAAAHIAAAAAAQwAABtbnRyUkdCI...
+PagePreview.jsx:2688 🔄 [PagePreview] Rendering in MultiPage mode - returning MultiPagePreview
+PagePreview.jsx:2688 🔄 [PagePreview] Rendering in MultiPage mode - returning MultiPagePreview
+MultiPagePreview.jsx:151 🔍 [MultiPagePreview] РЕНДЕР КОМПОНЕНТА с sectionsData: {компания: {…}}
+MultiPagePreview.jsx:152 🔍 [MultiPagePreview] heroData: {title: 'Надежные решения для вашего успеха', subtitle: 'Мы предоставляем профессиональные услуги для компа…вать проекты и укреплять финансовую устойчивость.', backgroundType: 'image', backgroundColor: '#1a1a1a', gradientColor1: '#1a1a1a', …}
+MultiPagePreview.jsx:153 🔍 [MultiPagePreview] homePageSettings: {featuredSectionId: 'компания'}
+MultiPagePreview.jsx:154 🔍 [MultiPagePreview] showSectionsPreview: undefined
+MultiPagePreview.jsx:155 🔍 [MultiPagePreview] showFeaturedSection: undefined
+MultiPagePreview.jsx:156 🔍 [MultiPagePreview] featuredSectionId: компания
+MultiPagePreview.jsx:174 [MultiPagePreview] 🎯 Component mounted/updated
+MultiPagePreview.jsx:175 🔍 [MultiPagePreview] sectionImages state: {компания: Array(1)}
+MultiPagePreview.jsx:176 🔍 [MultiPagePreview] sectionImages keys: ['компания']
+MultiPagePreview.jsx:1854 🔍 [MultiPagePreview] renderIndexPage - Settings: {shouldShowFeatured: undefined, shouldShowSectionsPreview: undefined, shouldShowContactPreview: undefined, shouldShowRegularSections: true}
+MultiPagePreview.jsx:1956 [MultiPagePreview] 🏗️ HeroSection rendered with: {backgroundType: 'image', backgroundImage: 'blob:http://localhost:3000/5bfadd79-90be-4620-9dd5-3398122ebff5', heroImageUrl: 'blob:http://localhost:3000/5bfadd79-90be-4620-9dd5-3398122ebff5', originalBackgroundImage: '/images/hero/hero.jpg'}
+MultiPagePreview.jsx:1977 [MultiPagePreview] 🔍 Processing section: компания data: {id: 'компания', title: 'Кто мы', description: 'Мы объединяем экспертов с многолетним опытом, чтоб…жные и современные решения для устойчивого роста.', pageName: 'about-us', cardType: 'ELEVATED', …}
+MultiPagePreview.jsx:1978 [MultiPagePreview] 🔍 Section elements: [{…}]
+MultiPagePreview.jsx:395 [MultiPagePreview] Rendering content element: typography {id: 'service_1', type: 'typography', text: 'Наша компания работает на рынке более десяти лет и…лько готовые решения, но и уверенность в будущем.', variant: 'h2', customStyles: {…}}
+MultiPagePreview.jsx:396 [MultiPagePreview] Element data structure: {hasData: false, dataKeys: Array(0), elementKeys: Array(5), title: undefined, content: undefined, …}
+MultiPagePreview.jsx:488 🔍 [MultiPagePreview] Элемент typography получил colorSettings: {}
+MultiPagePreview.jsx:875 [MultiPagePreview] ElementProps for typography : {isPreview: true, constructorMode: true, onUpdate: ƒ, onSave: ƒ, onCancel: ƒ, …}
+MultiPagePreview.jsx:878 [MultiPagePreview] Detailed typography data JSON: {
+  "type": "typography",
+  "text": "Наша компания работает на рынке более десяти лет и в 2025 году продолжает развиваться, предлагая клиентам комплексные услуги для бизнеса и личных проектов. Мы создаем стратегии, которые помогают находить оптимальные пути решения задач и обеспечивать долгосрочную стабильность. Мы гордимся тем, что наши клиенты доверяют нам и остаются с нами на протяжении многих лет. Основное внимание мы уделяем качеству, надежности и современным технологиям. Благодаря нашей команде профессионалов, каждый проект получает индивидуальный подход, адаптированный к конкретным потребностям клиента. В результате сотрудничества наши клиенты получают не только готовые решения, но и уверенность в будущем.",
+  "customStyles": {
+    "fontFamily": "inherit",
+    "fontSize": "inherit",
+    "fontWeight": "normal",
+    "fontStyle": "normal",
+    "textDecoration": "none",
+    "textAlign": "inherit",
+    "color": "#000000",
+    "lineHeight": 1.5,
+    "letterSpacing": 0,
+    "textTransform": "none"
+  },
+  "colorSettings": {}
+}
+MultiPagePreview.jsx:151 🔍 [MultiPagePreview] РЕНДЕР КОМПОНЕНТА с sectionsData: {компания: {…}}
+MultiPagePreview.jsx:152 🔍 [MultiPagePreview] heroData: {title: 'Надежные решения для вашего успеха', subtitle: 'Мы предоставляем профессиональные услуги для компа…вать проекты и укреплять финансовую устойчивость.', backgroundType: 'image', backgroundColor: '#1a1a1a', gradientColor1: '#1a1a1a', …}
+MultiPagePreview.jsx:153 🔍 [MultiPagePreview] homePageSettings: {featuredSectionId: 'компания'}
+MultiPagePreview.jsx:154 🔍 [MultiPagePreview] showSectionsPreview: undefined
+MultiPagePreview.jsx:155 🔍 [MultiPagePreview] showFeaturedSection: undefined
+MultiPagePreview.jsx:156 🔍 [MultiPagePreview] featuredSectionId: компания
+MultiPagePreview.jsx:174 [MultiPagePreview] 🎯 Component mounted/updated
+MultiPagePreview.jsx:175 🔍 [MultiPagePreview] sectionImages state: {компания: Array(1)}
+MultiPagePreview.jsx:176 🔍 [MultiPagePreview] sectionImages keys: ['компания']
+MultiPagePreview.jsx:1854 🔍 [MultiPagePreview] renderIndexPage - Settings: {shouldShowFeatured: undefined, shouldShowSectionsPreview: undefined, shouldShowContactPreview: undefined, shouldShowRegularSections: true}
+MultiPagePreview.jsx:1956 [MultiPagePreview] 🏗️ HeroSection rendered with: {backgroundType: 'image', backgroundImage: 'blob:http://localhost:3000/5bfadd79-90be-4620-9dd5-3398122ebff5', heroImageUrl: 'blob:http://localhost:3000/5bfadd79-90be-4620-9dd5-3398122ebff5', originalBackgroundImage: '/images/hero/hero.jpg'}
+MultiPagePreview.jsx:1977 [MultiPagePreview] 🔍 Processing section: компания data: {id: 'компания', title: 'Кто мы', description: 'Мы объединяем экспертов с многолетним опытом, чтоб…жные и современные решения для устойчивого роста.', pageName: 'about-us', cardType: 'ELEVATED', …}
+MultiPagePreview.jsx:1978 [MultiPagePreview] 🔍 Section elements: [{…}]
+MultiPagePreview.jsx:395 [MultiPagePreview] Rendering content element: typography {id: 'service_1', type: 'typography', text: 'Наша компания работает на рынке более десяти лет и…лько готовые решения, но и уверенность в будущем.', variant: 'h2', customStyles: {…}}
+MultiPagePreview.jsx:396 [MultiPagePreview] Element data structure: {hasData: false, dataKeys: Array(0), elementKeys: Array(5), title: undefined, content: undefined, …}
+MultiPagePreview.jsx:488 🔍 [MultiPagePreview] Элемент typography получил colorSettings: {}
+MultiPagePreview.jsx:875 [MultiPagePreview] ElementProps for typography : {isPreview: true, constructorMode: true, onUpdate: ƒ, onSave: ƒ, onCancel: ƒ, …}
+MultiPagePreview.jsx:878 [MultiPagePreview] Detailed typography data JSON: {
+  "type": "typography",
+  "text": "Наша компания работает на рынке более десяти лет и в 2025 году продолжает развиваться, предлагая клиентам комплексные услуги для бизнеса и личных проектов. Мы создаем стратегии, которые помогают находить оптимальные пути решения задач и обеспечивать долгосрочную стабильность. Мы гордимся тем, что наши клиенты доверяют нам и остаются с нами на протяжении многих лет. Основное внимание мы уделяем качеству, надежности и современным технологиям. Благодаря нашей команде профессионалов, каждый проект получает индивидуальный подход, адаптированный к конкретным потребностям клиента. В результате сотрудничества наши клиенты получают не только готовые решения, но и уверенность в будущем.",
+  "customStyles": {
+    "fontFamily": "inherit",
+    "fontSize": "inherit",
+    "fontWeight": "normal",
+    "fontStyle": "normal",
+    "textDecoration": "none",
+    "textAlign": "inherit",
+    "color": "#000000",
+    "lineHeight": 1.5,
+    "letterSpacing": 0,
+    "textTransform": "none"
+  },
+  "colorSettings": {}
+}
+MultiPagePreview.jsx:181 [MultiPagePreview] 🚀 Loading images from sectionsData: {компания: {…}}
+MultiPagePreview.jsx:186 [MultiPagePreview] Found images for section: компания [{…}]
+MultiPagePreview.jsx:195 [MultiPagePreview] Setting sectionImages from sectionsData: {компания: Array(1)}
+MultiPagePreview.jsx:231 [MultiPagePreview] 🔄 Forced component update triggered
+PagePreview.jsx:2688 🔄 [PagePreview] Rendering in MultiPage mode - returning MultiPagePreview
+PagePreview.jsx:2688 🔄 [PagePreview] Rendering in MultiPage mode - returning MultiPagePreview
+MultiPagePreview.jsx:151 🔍 [MultiPagePreview] РЕНДЕР КОМПОНЕНТА с sectionsData: {компания: {…}}
+MultiPagePreview.jsx:152 🔍 [MultiPagePreview] heroData: {title: 'Надежные решения для вашего успеха', subtitle: 'Мы предоставляем профессиональные услуги для компа…вать проекты и укреплять финансовую устойчивость.', backgroundType: 'image', backgroundColor: '#1a1a1a', gradientColor1: '#1a1a1a', …}
+MultiPagePreview.jsx:153 🔍 [MultiPagePreview] homePageSettings: {featuredSectionId: 'компания'}
+MultiPagePreview.jsx:154 🔍 [MultiPagePreview] showSectionsPreview: undefined
+MultiPagePreview.jsx:155 🔍 [MultiPagePreview] showFeaturedSection: undefined
+MultiPagePreview.jsx:156 🔍 [MultiPagePreview] featuredSectionId: компания
+MultiPagePreview.jsx:174 [MultiPagePreview] 🎯 Component mounted/updated
+MultiPagePreview.jsx:175 🔍 [MultiPagePreview] sectionImages state: {компания: Array(1)}
+MultiPagePreview.jsx:176 🔍 [MultiPagePreview] sectionImages keys: ['компания']
+MultiPagePreview.jsx:1854 🔍 [MultiPagePreview] renderIndexPage - Settings: {shouldShowFeatured: undefined, shouldShowSectionsPreview: undefined, shouldShowContactPreview: undefined, shouldShowRegularSections: true}
+MultiPagePreview.jsx:1956 [MultiPagePreview] 🏗️ HeroSection rendered with: {backgroundType: 'image', backgroundImage: 'blob:http://localhost:3000/5bfadd79-90be-4620-9dd5-3398122ebff5', heroImageUrl: 'blob:http://localhost:3000/5bfadd79-90be-4620-9dd5-3398122ebff5', originalBackgroundImage: '/images/hero/hero.jpg'}
+MultiPagePreview.jsx:1977 [MultiPagePreview] 🔍 Processing section: компания data: {id: 'компания', title: 'Кто мы', description: 'Мы объединяем экспертов с многолетним опытом, чтоб…жные и современные решения для устойчивого роста.', pageName: 'about-us', cardType: 'ELEVATED', …}
+MultiPagePreview.jsx:1978 [MultiPagePreview] 🔍 Section elements: [{…}]
+MultiPagePreview.jsx:395 [MultiPagePreview] Rendering content element: typography {id: 'service_1', type: 'typography', text: 'Наша компания работает на рынке более десяти лет и…лько готовые решения, но и уверенность в будущем.', variant: 'h2', customStyles: {…}}
+MultiPagePreview.jsx:396 [MultiPagePreview] Element data structure: {hasData: false, dataKeys: Array(0), elementKeys: Array(5), title: undefined, content: undefined, …}
+MultiPagePreview.jsx:488 🔍 [MultiPagePreview] Элемент typography получил colorSettings: {}
+MultiPagePreview.jsx:875 [MultiPagePreview] ElementProps for typography : {isPreview: true, constructorMode: true, onUpdate: ƒ, onSave: ƒ, onCancel: ƒ, …}
+MultiPagePreview.jsx:878 [MultiPagePreview] Detailed typography data JSON: {
+  "type": "typography",
+  "text": "Наша компания работает на рынке более десяти лет и в 2025 году продолжает развиваться, предлагая клиентам комплексные услуги для бизнеса и личных проектов. Мы создаем стратегии, которые помогают находить оптимальные пути решения задач и обеспечивать долгосрочную стабильность. Мы гордимся тем, что наши клиенты доверяют нам и остаются с нами на протяжении многих лет. Основное внимание мы уделяем качеству, надежности и современным технологиям. Благодаря нашей команде профессионалов, каждый проект получает индивидуальный подход, адаптированный к конкретным потребностям клиента. В результате сотрудничества наши клиенты получают не только готовые решения, но и уверенность в будущем.",
+  "customStyles": {
+    "fontFamily": "inherit",
+    "fontSize": "inherit",
+    "fontWeight": "normal",
+    "fontStyle": "normal",
+    "textDecoration": "none",
+    "textAlign": "inherit",
+    "color": "#000000",
+    "lineHeight": 1.5,
+    "letterSpacing": 0,
+    "textTransform": "none"
+  },
+  "colorSettings": {}
+}
+MultiPagePreview.jsx:151 🔍 [MultiPagePreview] РЕНДЕР КОМПОНЕНТА с sectionsData: {компания: {…}}
+MultiPagePreview.jsx:152 🔍 [MultiPagePreview] heroData: {title: 'Надежные решения для вашего успеха', subtitle: 'Мы предоставляем профессиональные услуги для компа…вать проекты и укреплять финансовую устойчивость.', backgroundType: 'image', backgroundColor: '#1a1a1a', gradientColor1: '#1a1a1a', …}
+MultiPagePreview.jsx:153 🔍 [MultiPagePreview] homePageSettings: {featuredSectionId: 'компания'}
+MultiPagePreview.jsx:154 🔍 [MultiPagePreview] showSectionsPreview: undefined
+MultiPagePreview.jsx:155 🔍 [MultiPagePreview] showFeaturedSection: undefined
+MultiPagePreview.jsx:156 🔍 [MultiPagePreview] featuredSectionId: компания
+MultiPagePreview.jsx:174 [MultiPagePreview] 🎯 Component mounted/updated
+MultiPagePreview.jsx:175 🔍 [MultiPagePreview] sectionImages state: {компания: Array(1)}
+MultiPagePreview.jsx:176 🔍 [MultiPagePreview] sectionImages keys: ['компания']
+MultiPagePreview.jsx:1854 🔍 [MultiPagePreview] renderIndexPage - Settings: {shouldShowFeatured: undefined, shouldShowSectionsPreview: undefined, shouldShowContactPreview: undefined, shouldShowRegularSections: true}
+MultiPagePreview.jsx:1956 [MultiPagePreview] 🏗️ HeroSection rendered with: {backgroundType: 'image', backgroundImage: 'blob:http://localhost:3000/5bfadd79-90be-4620-9dd5-3398122ebff5', heroImageUrl: 'blob:http://localhost:3000/5bfadd79-90be-4620-9dd5-3398122ebff5', originalBackgroundImage: '/images/hero/hero.jpg'}
+MultiPagePreview.jsx:1977 [MultiPagePreview] 🔍 Processing section: компания data: {id: 'компания', title: 'Кто мы', description: 'Мы объединяем экспертов с многолетним опытом, чтоб…жные и современные решения для устойчивого роста.', pageName: 'about-us', cardType: 'ELEVATED', …}
+MultiPagePreview.jsx:1978 [MultiPagePreview] 🔍 Section elements: [{…}]
+MultiPagePreview.jsx:395 [MultiPagePreview] Rendering content element: typography {id: 'service_1', type: 'typography', text: 'Наша компания работает на рынке более десяти лет и…лько готовые решения, но и уверенность в будущем.', variant: 'h2', customStyles: {…}}
+MultiPagePreview.jsx:396 [MultiPagePreview] Element data structure: {hasData: false, dataKeys: Array(0), elementKeys: Array(5), title: undefined, content: undefined, …}
+MultiPagePreview.jsx:488 🔍 [MultiPagePreview] Элемент typography получил colorSettings: {}
+MultiPagePreview.jsx:875 [MultiPagePreview] ElementProps for typography : {isPreview: true, constructorMode: true, onUpdate: ƒ, onSave: ƒ, onCancel: ƒ, …}
+MultiPagePreview.jsx:878 [MultiPagePreview] Detailed typography data JSON: {
+  "type": "typography",
+  "text": "Наша компания работает на рынке более десяти лет и в 2025 году продолжает развиваться, предлагая клиентам комплексные услуги для бизнеса и личных проектов. Мы создаем стратегии, которые помогают находить оптимальные пути решения задач и обеспечивать долгосрочную стабильность. Мы гордимся тем, что наши клиенты доверяют нам и остаются с нами на протяжении многих лет. Основное внимание мы уделяем качеству, надежности и современным технологиям. Благодаря нашей команде профессионалов, каждый проект получает индивидуальный подход, адаптированный к конкретным потребностям клиента. В результате сотрудничества наши клиенты получают не только готовые решения, но и уверенность в будущем.",
+  "customStyles": {
+    "fontFamily": "inherit",
+    "fontSize": "inherit",
+    "fontWeight": "normal",
+    "fontStyle": "normal",
+    "textDecoration": "none",
+    "textAlign": "inherit",
+    "color": "#000000",
+    "lineHeight": 1.5,
+    "letterSpacing": 0,
+    "textTransform": "none"
+  },
+  "colorSettings": {}
+}
+PagePreview.jsx:2688 🔄 [PagePreview] Rendering in MultiPage mode - returning MultiPagePreview
+PagePreview.jsx:2688 🔄 [PagePreview] Rendering in MultiPage mode - returning MultiPagePreview
+MultiPagePreview.jsx:151 🔍 [MultiPagePreview] РЕНДЕР КОМПОНЕНТА с sectionsData: {компания: {…}}
+MultiPagePreview.jsx:152 🔍 [MultiPagePreview] heroData: {title: 'Надежные решения для вашего успеха', subtitle: 'Мы предоставляем профессиональные услуги для компа…вать проекты и укреплять финансовую устойчивость.', backgroundType: 'image', backgroundColor: '#1a1a1a', gradientColor1: '#1a1a1a', …}
+MultiPagePreview.jsx:153 🔍 [MultiPagePreview] homePageSettings: {featuredSectionId: 'компания'}
+MultiPagePreview.jsx:154 🔍 [MultiPagePreview] showSectionsPreview: undefined
+MultiPagePreview.jsx:155 🔍 [MultiPagePreview] showFeaturedSection: undefined
+MultiPagePreview.jsx:156 🔍 [MultiPagePreview] featuredSectionId: компания
+MultiPagePreview.jsx:174 [MultiPagePreview] 🎯 Component mounted/updated
+MultiPagePreview.jsx:175 🔍 [MultiPagePreview] sectionImages state: {компания: Array(1)}
+MultiPagePreview.jsx:176 🔍 [MultiPagePreview] sectionImages keys: ['компания']
+MultiPagePreview.jsx:1854 🔍 [MultiPagePreview] renderIndexPage - Settings: {shouldShowFeatured: undefined, shouldShowSectionsPreview: undefined, shouldShowContactPreview: undefined, shouldShowRegularSections: true}
+MultiPagePreview.jsx:1956 [MultiPagePreview] 🏗️ HeroSection rendered with: {backgroundType: 'image', backgroundImage: 'blob:http://localhost:3000/5bfadd79-90be-4620-9dd5-3398122ebff5', heroImageUrl: 'blob:http://localhost:3000/5bfadd79-90be-4620-9dd5-3398122ebff5', originalBackgroundImage: '/images/hero/hero.jpg'}
+MultiPagePreview.jsx:1977 [MultiPagePreview] 🔍 Processing section: компания data: {id: 'компания', title: 'Кто мы', description: 'Мы объединяем экспертов с многолетним опытом, чтоб…жные и современные решения для устойчивого роста.', pageName: 'about-us', cardType: 'ELEVATED', …}
+MultiPagePreview.jsx:1978 [MultiPagePreview] 🔍 Section elements: [{…}]
+MultiPagePreview.jsx:395 [MultiPagePreview] Rendering content element: typography {id: 'service_1', type: 'typography', text: 'Наша компания работает на рынке более десяти лет и…лько готовые решения, но и уверенность в будущем.', variant: 'h2', customStyles: {…}}
+MultiPagePreview.jsx:396 [MultiPagePreview] Element data structure: {hasData: false, dataKeys: Array(0), elementKeys: Array(5), title: undefined, content: undefined, …}
+MultiPagePreview.jsx:488 🔍 [MultiPagePreview] Элемент typography получил colorSettings: {}
+MultiPagePreview.jsx:875 [MultiPagePreview] ElementProps for typography : {isPreview: true, constructorMode: true, onUpdate: ƒ, onSave: ƒ, onCancel: ƒ, …}
+MultiPagePreview.jsx:878 [MultiPagePreview] Detailed typography data JSON: {
+  "type": "typography",
+  "text": "Наша компания работает на рынке более десяти лет и в 2025 году продолжает развиваться, предлагая клиентам комплексные услуги для бизнеса и личных проектов. Мы создаем стратегии, которые помогают находить оптимальные пути решения задач и обеспечивать долгосрочную стабильность. Мы гордимся тем, что наши клиенты доверяют нам и остаются с нами на протяжении многих лет. Основное внимание мы уделяем качеству, надежности и современным технологиям. Благодаря нашей команде профессионалов, каждый проект получает индивидуальный подход, адаптированный к конкретным потребностям клиента. В результате сотрудничества наши клиенты получают не только готовые решения, но и уверенность в будущем.",
+  "customStyles": {
+    "fontFamily": "inherit",
+    "fontSize": "inherit",
+    "fontWeight": "normal",
+    "fontStyle": "normal",
+    "textDecoration": "none",
+    "textAlign": "inherit",
+    "color": "#000000",
+    "lineHeight": 1.5,
+    "letterSpacing": 0,
+    "textTransform": "none"
+  },
+  "colorSettings": {}
+}
+MultiPagePreview.jsx:151 🔍 [MultiPagePreview] РЕНДЕР КОМПОНЕНТА с sectionsData: {компания: {…}}
+MultiPagePreview.jsx:152 🔍 [MultiPagePreview] heroData: {title: 'Надежные решения для вашего успеха', subtitle: 'Мы предоставляем профессиональные услуги для компа…вать проекты и укреплять финансовую устойчивость.', backgroundType: 'image', backgroundColor: '#1a1a1a', gradientColor1: '#1a1a1a', …}
+MultiPagePreview.jsx:153 🔍 [MultiPagePreview] homePageSettings: {featuredSectionId: 'компания'}
+MultiPagePreview.jsx:154 🔍 [MultiPagePreview] showSectionsPreview: undefined
+MultiPagePreview.jsx:155 🔍 [MultiPagePreview] showFeaturedSection: undefined
+MultiPagePreview.jsx:156 🔍 [MultiPagePreview] featuredSectionId: компания
+MultiPagePreview.jsx:174 [MultiPagePreview] 🎯 Component mounted/updated
+MultiPagePreview.jsx:175 🔍 [MultiPagePreview] sectionImages state: {компания: Array(1)}
+MultiPagePreview.jsx:176 🔍 [MultiPagePreview] sectionImages keys: ['компания']
+MultiPagePreview.jsx:1854 🔍 [MultiPagePreview] renderIndexPage - Settings: {shouldShowFeatured: undefined, shouldShowSectionsPreview: undefined, shouldShowContactPreview: undefined, shouldShowRegularSections: true}
+MultiPagePreview.jsx:1956 [MultiPagePreview] 🏗️ HeroSection rendered with: {backgroundType: 'image', backgroundImage: 'blob:http://localhost:3000/5bfadd79-90be-4620-9dd5-3398122ebff5', heroImageUrl: 'blob:http://localhost:3000/5bfadd79-90be-4620-9dd5-3398122ebff5', originalBackgroundImage: '/images/hero/hero.jpg'}
+MultiPagePreview.jsx:1977 [MultiPagePreview] 🔍 Processing section: компания data: {id: 'компания', title: 'Кто мы', description: 'Мы объединяем экспертов с многолетним опытом, чтоб…жные и современные решения для устойчивого роста.', pageName: 'about-us', cardType: 'ELEVATED', …}
+MultiPagePreview.jsx:1978 [MultiPagePreview] 🔍 Section elements: [{…}]
+MultiPagePreview.jsx:395 [MultiPagePreview] Rendering content element: typography {id: 'service_1', type: 'typography', text: 'Наша компания работает на рынке более десяти лет и…лько готовые решения, но и уверенность в будущем.', variant: 'h2', customStyles: {…}}
+MultiPagePreview.jsx:396 [MultiPagePreview] Element data structure: {hasData: false, dataKeys: Array(0), elementKeys: Array(5), title: undefined, content: undefined, …}
+MultiPagePreview.jsx:488 🔍 [MultiPagePreview] Элемент typography получил colorSettings: {}
+MultiPagePreview.jsx:875 [MultiPagePreview] ElementProps for typography : {isPreview: true, constructorMode: true, onUpdate: ƒ, onSave: ƒ, onCancel: ƒ, …}
+MultiPagePreview.jsx:878 [MultiPagePreview] Detailed typography data JSON: {
+  "type": "typography",
+  "text": "Наша компания работает на рынке более десяти лет и в 2025 году продолжает развиваться, предлагая клиентам комплексные услуги для бизнеса и личных проектов. Мы создаем стратегии, которые помогают находить оптимальные пути решения задач и обеспечивать долгосрочную стабильность. Мы гордимся тем, что наши клиенты доверяют нам и остаются с нами на протяжении многих лет. Основное внимание мы уделяем качеству, надежности и современным технологиям. Благодаря нашей команде профессионалов, каждый проект получает индивидуальный подход, адаптированный к конкретным потребностям клиента. В результате сотрудничества наши клиенты получают не только готовые решения, но и уверенность в будущем.",
+  "customStyles": {
+    "fontFamily": "inherit",
+    "fontSize": "inherit",
+    "fontWeight": "normal",
+    "fontStyle": "normal",
+    "textDecoration": "none",
+    "textAlign": "inherit",
+    "color": "#000000",
+    "lineHeight": 1.5,
+    "letterSpacing": 0,
+    "textTransform": "none"
+  },
+  "colorSettings": {}
+}

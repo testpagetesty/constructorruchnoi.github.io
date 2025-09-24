@@ -47,7 +47,7 @@ import ShuffleIcon from '@mui/icons-material/Shuffle';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import CircularProgress from '@mui/material/CircularProgress';
 import { CARD_TYPES } from '../../utils/configUtils';
-import GlobalSettings, { WEBSITE_THEMES, LANGUAGES, CONTENT_STYLES } from './GlobalSettings';
+import GlobalSettings, { WEBSITE_THEMES, LANGUAGES, COUNTRIES, CONTENT_STYLES } from './GlobalSettings';
 import SiteStyleManager from '../SiteStyleSettings/SiteStyleManager';
 import ElementPromptsSection, { ELEMENT_PROMPTS } from './ElementPromptsSection';
 import * as parsers from './parsingFunctions';
@@ -385,11 +385,12 @@ ID: новости
 Создайте раздел контактов для сайта.
 
 Требуемый формат:
-1. Первая строка - заголовок "Контакты" (используется язык основного контента)
-2. Вторая строка - пустая
-3. Третья строка - описание в скобках (должно содержать призыв оставить заявку или связаться, например: "Свяжитесь с нами для получения консультации" или "Оставьте заявку, и мы свяжемся с вами в ближайшее время")
-4. Четвертая строка - пустая
-5. Далее контактные данные в строгом порядке:
+1. Пустая строка
+2. Заголовок на выбранном языке
+3. Пустая строка
+4. Описание в скобках (должно содержать призыв оставить заявку или связаться, например: "Свяжитесь с нами для получения консультации" или "Оставьте заявку, и мы свяжемся с вами в ближайшее время")
+5. Пустая строка
+6. Далее контактные данные в строгом порядке:
    - Адрес (ОЧЕНЬ ВАЖНО: формат адреса должен строго соответствовать международным стандартам для выбранной страны)
    - Пустая строка
    - Телефон (используйте правильный формат номера для выбранной страны)
@@ -428,6 +429,7 @@ ID: новости
 - Израиль: HaYarkon Street 99, Tel Aviv-Yafo, 6340133, Israel
 
 Пример структуры:
+
 Контакты
 
 (Мы ценим каждого клиента и готовы оказать профессиональную поддержку. Свяжитесь с нами для получения консультации или оставьте заявку, и наши специалисты оперативно ответят на все ваши вопросы)
@@ -633,7 +635,7 @@ const WordRangeEditor = ({ section, ranges, onChange }) => {
 // Добавляем компонент настройки промпта полного сайта
 const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, currentStep, setCurrentStep, completedSteps, setCompletedSteps, showPromptModal, setShowPromptModal, generatedPrompt, setGeneratedPrompt, globalSettings, getCurrentLanguage, getCurrentTheme, setParserMessage }) => {
   const [settings, setSettings] = useState(initialSettings);
-  const [promptType, setPromptType] = useState('optimized');
+  const [promptType, setPromptType] = useState('manual_elements');
   const [selectedElements, setSelectedElements] = useState({});
   const [customPrompts, setCustomPrompts] = useState({});
   
@@ -991,6 +993,7 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
 
   // Состояние для пользовательских названий разделов
   const [customSectionLabels, setCustomSectionLabels] = useState({});
+  const [customSectionTranslations, setCustomSectionTranslations] = useState({});
   const [showSectionLabelsEditor, setShowSectionLabelsEditor] = useState(false);
   const [isGeneratingNames, setIsGeneratingNames] = useState(false);
   const [aiResponseText, setAiResponseText] = useState('');
@@ -1011,7 +1014,14 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
 
   // Функция для получения названия раздела (пользовательское или по умолчанию)
   const getSectionLabel = (section) => {
-    return customSectionLabels[section] || defaultSectionLabels[section];
+    const originalLabel = customSectionLabels[section] || defaultSectionLabels[section];
+    const translation = customSectionTranslations[section];
+    
+    if (translation) {
+      return `${originalLabel} (${translation})`;
+    }
+    
+    return originalLabel;
   };
 
   // Функция для обновления названия раздела
@@ -1028,21 +1038,50 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
       // Пытаемся распарсить JSON ответ
       const response = JSON.parse(aiResponseText);
       
-      // Применяем названия к разделам
+      // Применяем названия к разделам (новый формат с sections и translations)
       const newLabels = {};
-      Object.keys(response).forEach(section => {
-        if (defaultSectionLabels[section] && response[section]) {
-          newLabels[section] = response[section];
+      const newTranslations = {};
+      
+      if (response.sections) {
+        // Новый формат с sections и translations
+        Object.keys(response.sections).forEach(section => {
+          if (defaultSectionLabels[section] && response.sections[section]) {
+            newLabels[section] = response.sections[section];
+          }
+        });
+        
+        if (response.translations) {
+          Object.keys(response.translations).forEach(section => {
+            if (defaultSectionLabels[section] && response.translations[section]) {
+              newTranslations[section] = response.translations[section];
+            }
+          });
         }
-      });
+      } else {
+        // Старый формат (для обратной совместимости)
+        Object.keys(response).forEach(section => {
+          if (defaultSectionLabels[section] && response[section]) {
+            newLabels[section] = response[section];
+          }
+        });
+      }
 
       setCustomSectionLabels(prev => ({
         ...prev,
         ...newLabels
       }));
 
-      setParserMessage(`Применены названия разделов из ответа нейросети. Обновлено разделов: ${Object.keys(newLabels).length}`);
+      // Сохраняем переводы если они есть
+      if (Object.keys(newTranslations).length > 0) {
+        setCustomSectionTranslations(prev => ({
+          ...prev,
+          ...newTranslations
+        }));
+      }
+
+      setParserMessage(`Применены названия разделов из ответа нейросети. Обновлено разделов: ${Object.keys(newLabels).length}${Object.keys(newTranslations).length > 0 ? `, переводов: ${Object.keys(newTranslations).length}` : ''}`);
       setAiResponseText(''); // Очищаем поле после применения
+      setShowSectionLabelsEditor(false); // Автоматически скрываем редактор после применения
       
     } catch (error) {
       console.error('Ошибка при парсинге ответа нейросети:', error);
@@ -1064,7 +1103,12 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
       );
 
       // Создаем промпт для GPT
-      const aiPrompt = `Ты - эксперт по веб-дизайну и UX. Создай подходящие названия разделов для сайта на основе тематики и языка.
+      const aiPrompt = `Ты - эксперт по веб-дизайну, UX и SEO-оптимизации с многолетним опытом разработки сайтов. 
+
+ПЕРЕД НАЧАЛОМ РАБОТЫ:
+1. Представься как эксперт в области разработки сайтов
+2. Проанализируй тематику сайта и определи ключевые особенности
+3. Создай правильные подходящие названия разделов, которые лучше всего индексируются поисковыми системами и не привлекают блокировки Google
 
 ТЕМАТИКА САЙТА: ${siteTheme}
 ЯЗЫК: ${language}
@@ -1078,22 +1122,36 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
 - РАЗДЕЛ6 (TESTIMONIALS) - раздел с отзывами/мнениями клиентов
 - РАЗДЕЛ7 (UNIVERSAL) - дополнительный раздел/еще информация
 
-ТРЕБОВАНИЯ:
-1. Названия должны подходить под тематику сайта
-2. Названия должны быть краткими (1-2 слова)
-3. Названия должны быть понятными для пользователей
-4. Используй выбранный язык
-5. НЕ используй стандартные названия - придумай уникальные, подходящие именно для этой тематики
+КРИТИЧЕСКИ ВАЖНЫЕ ТРЕБОВАНИЯ:
+1. Если в тематике сайта есть что-то про услуги - ОБЯЗАТЕЛЬНО должно содержаться одно название про услуги
+2. Названия должны подходить под тематику сайта
+3. Названия должны быть краткими (1-2 слова)
+4. Названия должны быть понятными для пользователей
+5. Используй выбранный язык
+6. НЕ используй стандартные названия - придумай уникальные, подходящие именно для этой тематики
+7. Названия должны быть SEO-оптимизированными и безопасными для поисковых систем
+8. Избегай названий, которые могут вызвать блокировки Google
 
-ОТВЕТ В ФОРМАТЕ JSON:
+ОТВЕТ В ФОРМАТЕ JSON (две части - оригинал и перевод):
 {
-  "ABOUT": "название",
-  "SERVICES": "название", 
-  "FEATURES": "название",
-  "NEWS": "название",
-  "FAQ": "название",
-  "TESTIMONIALS": "название",
-  "UNIVERSAL": "название"
+  "sections": {
+    "ABOUT": "название",
+    "SERVICES": "название", 
+    "FEATURES": "название",
+    "NEWS": "название",
+    "FAQ": "название",
+    "TESTIMONIALS": "название",
+    "UNIVERSAL": "название"
+  },
+  "translations": {
+    "ABOUT": "перевод на русский",
+    "SERVICES": "перевод на русский", 
+    "FEATURES": "перевод на русский",
+    "NEWS": "перевод на русский",
+    "FAQ": "перевод на русский",
+    "TESTIMONIALS": "перевод на русский",
+    "UNIVERSAL": "перевод на русский"
+  }
 }`;
 
       // Здесь должен быть вызов к GPT API
@@ -1404,48 +1462,6 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
               value={promptType}
               onChange={(e) => setPromptType(e.target.value)}
             >
-              <FormControlLabel 
-                value="full" 
-                control={<Radio />} 
-                label={
-                  <Box>
-                    <Typography variant="body1" component="div">
-                      <strong>Полный промпт</strong> (оригинальный)
-                    </Typography>
-                    <Typography variant="body2" color="textSecondary">
-                      Включает все разделы и правовые документы. Может быть слишком длинным для некоторых AI моделей.
-                    </Typography>
-                  </Box>
-                }
-              />
-              <FormControlLabel 
-                value="optimized" 
-                control={<Radio />} 
-                label={
-                  <Box>
-                    <Typography variant="body1" component="div">
-                      <strong>Оптимизированный промпт</strong> (рекомендуется)
-                    </Typography>
-                    <Typography variant="body2" color="textSecondary">
-                      Сокращенная версия без правовых документов. Лучше работает с большинством AI моделей.
-                    </Typography>
-                  </Box>
-                }
-              />
-              <FormControlLabel 
-                value="legal_only" 
-                control={<Radio />} 
-                label={
-                  <Box>
-                    <Typography variant="body1" component="div">
-                      <strong>Только правовые документы</strong>
-                    </Typography>
-                    <Typography variant="body2" color="textSecondary">
-                      Специализированный промпт только для генерации правовых документов. Гарантирует полные результаты.
-                    </Typography>
-                  </Box>
-                }
-              />
               <FormControlLabel 
                 value="manual_elements" 
                 control={<Radio />} 
@@ -2636,6 +2652,8 @@ const AiParser = ({
     theme: 'CUSTOM',
     customTheme: '',
     language: '',
+    country: '',
+    customCountry: '',
     contentStyle: 'PROFESSIONAL',
     additionalKeywords: '',
     usePrice: false,
@@ -2667,6 +2685,19 @@ const AiParser = ({
       return WEBSITE_THEMES[globalSettings.theme];
     }
     return 'общая тематика';
+  };
+
+  // Функция для получения текущей страны
+  const getCurrentCountry = () => {
+    if (globalSettings.country === 'CUSTOM' && globalSettings.customCountry) {
+      return globalSettings.customCountry;
+    } else if (globalSettings.country) {
+      const countryObj = COUNTRIES.find(country => country.code === globalSettings.country);
+      if (countryObj) {
+        return countryObj.label;
+      }
+    }
+    return 'не выбрана';
   };
   
   // Добавляем состояние для настроек промпта полного сайта
@@ -2704,7 +2735,14 @@ const AiParser = ({
 
   // Функция для получения названия раздела (пользовательское или по умолчанию)
   const getSectionLabel = (section) => {
-    return customSectionLabels[section] || defaultSectionLabels[section];
+    const originalLabel = customSectionLabels[section] || defaultSectionLabels[section];
+    const translation = customSectionTranslations[section];
+    
+    if (translation) {
+      return `${originalLabel} (${translation})`;
+    }
+    
+    return originalLabel;
   };
   const [fullSiteSettings, setFullSiteSettings] = useState({
     includedSections: {
@@ -3023,7 +3061,44 @@ const AiParser = ({
             // Добавляем специальные требования для формата
             additionalRequirements.push(`ТРЕБОВАНИЕ: НЕ указывайте текст "карточка 1:", "карточка 2:", "карточка 3:" и т.д.`);
             additionalRequirements.push(`ТРЕБОВАНИЕ: Просто создавайте заголовок и содержимое каждой карточки без нумерации`);
-            additionalRequirements.push(`ТРЕБОВАНИЕ: Каждая карточка должна иметь ОТДЕЛЬНЫЙ заголовок и ОТДЕЛЬНОЕ содержимое`);
+            
+            // Жесткие требования к формату
+            additionalRequirements.push(`ТРЕБОВАНИЕ: ОБЯЗАТЕЛЬНО используйте разделитель " * " (пробел-звездочка-пробел) между каждым элементом`);
+            additionalRequirements.push(`ТРЕБОВАНИЕ: НЕ используйте обычный текст без разделителей!`);
+            additionalRequirements.push(`ТРЕБОВАНИЕ: Строка СОДЕРЖИМОЕ: ОБЯЗАТЕЛЬНА и должна содержать ВСЕ карточки через звездочки`);
+            additionalRequirements.push(`ТРЕБОВАНИЕ: Каждая карточка = заголовок + содержимое, разделенные звездочкой`);
+            
+            // КРИТИЧЕСКИ ВАЖНЫЕ требования для соблюдения формата
+            additionalRequirements.push(`КРИТИЧЕСКИ ВАЖНО: НЕ создавайте отдельные блоки для каждой карточки!`);
+            additionalRequirements.push(`КРИТИЧЕСКИ ВАЖНО: ВСЕ карточки должны быть в ОДНОЙ строке СОДЕРЖИМОЕ через звездочки!`);
+            additionalRequirements.push(`КРИТИЧЕСКИ ВАЖНО: НЕ разбивайте карточки на отдельные строки или абзацы!`);
+            additionalRequirements.push(`КРИТИЧЕСКИ ВАЖНО: Формат: [заголовок карточки 1] * [содержимое карточки 1] * [заголовок карточки 2] * [содержимое карточки 2] * ...`);
+            additionalRequirements.push(`КРИТИЧЕСКИ ВАЖНО: НЕ используйте переносы строк внутри СОДЕРЖИМОЕ!`);
+            
+            // ДОПОЛНИТЕЛЬНЫЕ жесткие запреты
+            additionalRequirements.push(`ЗАПРЕЩЕНО: Создавать пустые строки между карточками!`);
+            additionalRequirements.push(`ЗАПРЕЩЕНО: Размещать каждую карточку на отдельной строке!`);
+            additionalRequirements.push(`ЗАПРЕЩЕНО: Использовать абзацы или отступы для карточек!`);
+            additionalRequirements.push(`ЗАПРЕЩЕНО: Создавать структуру "Вопрос 1: ... Ответ 1: ..." - только через звездочки!`);
+            additionalRequirements.push(`ОБЯЗАТЕЛЬНО: Строка СОДЕРЖИМОЕ должна быть ОДНОЙ непрерывной строкой!`);
+            
+            // ПРИМЕР ПРАВИЛЬНОГО ФОРМАТА
+            additionalRequirements.push(`ПРИМЕР ПРАВИЛЬНОГО ФОРМАТА:`);
+            additionalRequirements.push(`СОДЕРЖИМОЕ: Заголовок первой карточки * Содержимое первой карточки * Заголовок второй карточки * Содержимое второй карточки * Заголовок третьей карточки * Содержимое третьей карточки`);
+            additionalRequirements.push(`НЕ ДЕЛАЙТЕ ТАК:`);
+            additionalRequirements.push(`СОДЕРЖИМОЕ: Заголовок первой карточки`);
+            additionalRequirements.push(`Содержимое первой карточки`);
+            additionalRequirements.push(`Заголовок второй карточки`);
+            additionalRequirements.push(`Содержимое второй карточки`);
+            
+            // ДОПОЛНИТЕЛЬНЫЕ жесткие запреты для generateElementRequirements
+            additionalRequirements.push(`КРИТИЧЕСКИ ВАЖНО: НЕ создавайте отдельные блоки для каждой карточки!`);
+            additionalRequirements.push(`КРИТИЧЕСКИ ВАЖНО: ВСЕ карточки должны быть в ОДНОЙ строке СОДЕРЖИМОЕ через звездочки!`);
+            additionalRequirements.push(`КРИТИЧЕСКИ ВАЖНО: НЕ разбивайте карточки на отдельные строки или абзацы!`);
+            additionalRequirements.push(`КРИТИЧЕСКИ ВАЖНО: НЕ используйте переносы строк внутри СОДЕРЖИМОЕ!`);
+            additionalRequirements.push(`ЗАПРЕЩЕНО: Создавать пустые строки между карточками!`);
+            additionalRequirements.push(`ЗАПРЕЩЕНО: Размещать каждую карточку на отдельной строке!`);
+            additionalRequirements.push(`ОБЯЗАТЕЛЬНО: Строка СОДЕРЖИМОЕ должна быть ОДНОЙ непрерывной строкой!`);
           } else {
             // Для остальных элементов заменяем как обычно
           if (settings.minContent > 0) {
@@ -3138,7 +3213,7 @@ const AiParser = ({
 КРИТИЧЕСКИ ВАЖНО: 
 1. Весь контент, включая ID секций, ДОЛЖЕН быть на одном языке (который указан в настройках)
 2. ⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE - для КАЖДОГО раздела указывайте имя HTML страницы на английском языке, подходящее под название раздела (максимум 2 слова, через дефис). ЭТО ПОЛЕ ОБЯЗАТЕЛЬНО ДЛЯ ВСЕХ РАЗДЕЛОВ!
-3. ID секций: буквы "ID" всегда на английском языке, название секции после двоеточия - на ${languageName}
+3. ID секций: буквы "ID" всегда на английском языке, название секции после двоеточия - на выбранном языке
 4. Не использовать смешанные языки или транслитерацию
 5. КАЖДЫЙ раздел ОБЯЗАТЕЛЬНО должен начинаться с "=== РАЗДЕЛ: ИМЯ ===" и ОБЯЗАТЕЛЬНО заканчиваться "=== КОНЕЦ РАЗДЕЛА ==="
 6. НЕ ИСПОЛЬЗУЙТЕ символы экранирования (\) перед разделителями ===
@@ -3185,7 +3260,7 @@ const AiParser = ({
     if (settings.includedSections.SERVICES) {
       sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('SERVICES')} ===
 ⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('SERVICES')} (подходящее имя на английском языке, максимум 2 слова)
-ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом. ВАЖНО: НЕ дублируй слово "ID" - пиши только название секции после двоеточия. Между словом и предлогом должен быть всегда пробел, не в коем случае не слитно]
 [Заголовок раздела ${getWordRange('SERVICES', 'sectionTitle')}]
 [Описание раздела ${getWordRange('SERVICES', 'sectionDescription')}]
 
@@ -3211,7 +3286,7 @@ ID: [название секции на ${languageName}, желательно о
     if (settings.includedSections.FEATURES) {
       sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('FEATURES')} ===
 ⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('FEATURES')} (подходящее имя на английском языке, максимум 2 слова)
-ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом. ВАЖНО: НЕ дублируй слово "ID" - пиши только название секции после двоеточия. Между словом и предлогом должен быть всегда пробел, не в коем случае не слитно]
 [Заголовок раздела ${getWordRange('FEATURES', 'sectionTitle')}]
 [Описание раздела ${getWordRange('FEATURES', 'sectionDescription')}]
 
@@ -3233,7 +3308,7 @@ ID: [название секции на ${languageName}, желательно о
     if (settings.includedSections.NEWS) {
       sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('NEWS')} ===
 ⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('NEWS')} (подходящее имя на английском языке, максимум 2 слова)
-ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом. ВАЖНО: НЕ дублируй слово "ID" - пиши только название секции после двоеточия. Между словом и предлогом должен быть всегда пробел, не в коем случае не слитно]
 [Заголовок раздела ${getWordRange('NEWS', 'sectionTitle')}]
 [Описание раздела ${getWordRange('NEWS', 'sectionDescription')}]
 
@@ -3255,7 +3330,7 @@ ID: [название секции на ${languageName}, желательно о
     if (settings.includedSections.FAQ) {
       sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('FAQ')} ===
 ⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('FAQ')} (подходящее имя на английском языке, максимум 2 слова)
-ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом. ВАЖНО: НЕ дублируй слово "ID" - пиши только название секции после двоеточия. Между словом и предлогом должен быть всегда пробел, не в коем случае не слитно]
 [Заголовок раздела ${getWordRange('FAQ', 'sectionTitle')}]
 [Описание раздела ${getWordRange('FAQ', 'sectionDescription')}]
 
@@ -3273,7 +3348,7 @@ ID: [название секции на ${languageName}, желательно о
     if (settings.includedSections.TESTIMONIALS) {
       sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('TESTIMONIALS')} ===
 ⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('TESTIMONIALS')} (подходящее имя на английском языке, максимум 2 слова)
-ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом. ВАЖНО: НЕ дублируй слово "ID" - пиши только название секции после двоеточия. Между словом и предлогом должен быть всегда пробел, не в коем случае не слитно]
 [Заголовок раздела ${getWordRange('TESTIMONIALS', 'sectionTitle')}]
 [Описание раздела ${getWordRange('TESTIMONIALS', 'sectionDescription')}]
 
@@ -3299,7 +3374,7 @@ ID: [название секции на ${languageName}, желательно о
     if (settings.includedSections.UNIVERSAL) {
       sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('UNIVERSAL')} ===
 ⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('UNIVERSAL')} (подходящее имя на английском языке, максимум 2 слова)
-ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом. ВАЖНО: НЕ дублируй слово "ID" - пиши только название секции после двоеточия. Между словом и предлогом должен быть всегда пробел, не в коем случае не слитно]
 [Заголовок раздела ${getWordRange('UNIVERSAL', 'sectionTitle')}]
 [Описание раздела ${getWordRange('UNIVERSAL', 'sectionDescription')}]
 
@@ -3325,7 +3400,7 @@ ID: [название секции на ${languageName}, желательно о
 
 ([Описание на выбранном языке, 15-20 слов, пример: "Свяжитесь с нами для оформления заявки или получения бесплатной консультации по вашему вопросу"])
 
-[Полный адрес в стандартном формате страны, включая:
+[Полный адрес для страны ${getCurrentCountry()} в стандартном формате, включая:
 - Для России: город, улица, дом, индекс (например: "Москва, ул. Большая Семёновская, д. 40, 107023")
 - Для США: улица, город, штат, zip (например: "2500 N Forest Rd, Getzville, NY 14068")
 - Для Германии: улица, почтовый код, город (например: "Mehringdamm 33, 10961 Berlin")
@@ -3457,8 +3532,8 @@ info@company.com
 
     sectionsPrompt += `Важные требования:
 1. Разделители === РАЗДЕЛ: ИМЯ === всегда на русском языке
-2. Заголовки внутри разделов - на выбранном языке
-3. Весь контент (включая ID) - на выбранном языке
+2. Заголовки внутри разделов - на ${languageName}
+3. Весь контент (включая ID) - на ${languageName}
 4. Не использовать специальные символы и форматирование
 5. Каждый элемент должен начинаться с новой строки
 6. Между карточками/пунктами оставлять ОДНУ пустую строку
@@ -3636,7 +3711,7 @@ info@company.com
     if (settings.includedSections.SERVICES) {
       sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('SERVICES')} ===
 ⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('SERVICES')} (подходящее имя на английском языке, максимум 2 слова)
-ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом. ВАЖНО: НЕ дублируй слово "ID" - пиши только название секции после двоеточия. Между словом и предлогом должен быть всегда пробел, не в коем случае не слитно]
 [Заголовок ${getWordRange('SERVICES', 'sectionTitle')}]
 [Описание ${getWordRange('SERVICES', 'sectionDescription')}]
 
@@ -3658,7 +3733,7 @@ ID: [название секции на ${languageName}, желательно о
     if (settings.includedSections.FEATURES) {
       sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('FEATURES')} ===
 ⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('FEATURES')} (подходящее имя на английском языке, максимум 2 слова)
-ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом. ВАЖНО: НЕ дублируй слово "ID" - пиши только название секции после двоеточия. Между словом и предлогом должен быть всегда пробел, не в коем случае не слитно]
 [Заголовок ${getWordRange('FEATURES', 'sectionTitle')}]
 [Описание ${getWordRange('FEATURES', 'sectionDescription')}]
 
@@ -3672,7 +3747,7 @@ ID: [название секции на ${languageName}, желательно о
     if (settings.includedSections.NEWS) {
       sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('NEWS')} ===
 ⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('NEWS')} (подходящее имя на английском языке, максимум 2 слова)
-ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом. ВАЖНО: НЕ дублируй слово "ID" - пиши только название секции после двоеточия. Между словом и предлогом должен быть всегда пробел, не в коем случае не слитно]
 [Заголовок ${getWordRange('NEWS', 'sectionTitle')}]
 [Описание ${getWordRange('NEWS', 'sectionDescription')}]
 
@@ -3686,7 +3761,7 @@ ID: [название секции на ${languageName}, желательно о
     if (settings.includedSections.FAQ) {
       sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('FAQ')} ===
 ⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('FAQ')} (подходящее имя на английском языке, максимум 2 слова)
-ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом. ВАЖНО: НЕ дублируй слово "ID" - пиши только название секции после двоеточия. Между словом и предлогом должен быть всегда пробел, не в коем случае не слитно]
 [Заголовок ${getWordRange('FAQ', 'sectionTitle')}]
 [Описание ${getWordRange('FAQ', 'sectionDescription')}]
 
@@ -3700,7 +3775,7 @@ ID: [название секции на ${languageName}, желательно о
     if (settings.includedSections.TESTIMONIALS) {
       sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('TESTIMONIALS')} ===
 ⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('TESTIMONIALS')} (подходящее имя на английском языке, максимум 2 слова)
-ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом. ВАЖНО: НЕ дублируй слово "ID" - пиши только название секции после двоеточия. Между словом и предлогом должен быть всегда пробел, не в коем случае не слитно]
 [Заголовок ${getWordRange('TESTIMONIALS', 'sectionTitle')}]
 [Описание ${getWordRange('TESTIMONIALS', 'sectionDescription')}]
 
@@ -3714,7 +3789,7 @@ ID: [название секции на ${languageName}, желательно о
     if (settings.includedSections.UNIVERSAL) {
       sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('UNIVERSAL')} ===
 ⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('UNIVERSAL')} (подходящее имя на английском языке, максимум 2 слова)
-ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом. ВАЖНО: НЕ дублируй слово "ID" - пиши только название секции после двоеточия. Между словом и предлогом должен быть всегда пробел, не в коем случае не слитно]
 [Заголовок ${getWordRange('UNIVERSAL', 'sectionTitle')}]
 [Описание ${getWordRange('UNIVERSAL', 'sectionDescription')}]
 
@@ -3730,7 +3805,7 @@ ID: [название секции на ${languageName}, желательно о
 ⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('CONTACTS')} (подходящее имя на английском языке, максимум 2 слова)
 [Заголовок на выбранном языке]
 
-([Описание, 15-20 слов])
+([Описание на выбранном языке, 15-20 слов])
 
 [Полный адрес в стандартном формате страны, включая:
 - Для России: город, улица, дом, индекс (например: "Москва, ул. Большая Семёновская, д. 40, 107023")
@@ -3768,7 +3843,7 @@ ID: [название секции на ${languageName}, желательно о
     if (settings.includedSections.UNIVERSAL) {
       sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('UNIVERSAL')} ===
 ⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('UNIVERSAL')} (подходящее имя на английском языке, максимум 2 слова)
-ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом. ВАЖНО: НЕ дублируй слово "ID" - пиши только название секции после двоеточия. Между словом и предлогом должен быть всегда пробел, не в коем случае не слитно]
 [Заголовок ${getWordRange('UNIVERSAL', 'sectionTitle')}]
 [Описание ${getWordRange('UNIVERSAL', 'sectionDescription')}]
 
@@ -3781,7 +3856,7 @@ ID: [название секции на ${languageName}, желательно о
 
     sectionsPrompt += `ТРЕБОВАНИЯ:
 1. Весь контент на одном языке (указанном в настройках)
-2. ID секций: буквы "ID" всегда на английском, название секции после двоеточия - на ${languageName}
+2. ID секций: буквы "ID" всегда на английском, название секции после двоеточия - на выбранном языке
 3. Не использовать форматирование Markdown/HTML
 4. Каждый раздел должен заканчиваться "=== КОНЕЦ РАЗДЕЛА ==="
 5. Не пропускать указанные разделы
@@ -3823,7 +3898,7 @@ ID: [название секции на ${languageName}, желательно о
 КРИТИЧЕСКИ ВАЖНО: 
 1. Весь контент, включая ID секций, ДОЛЖЕН быть на одном языке (который указан в настройках)
 2. ⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE - для КАЖДОГО раздела указывайте имя HTML страницы на английском языке, подходящее под название раздела (максимум 2 слова, через дефис). ЭТО ПОЛЕ ОБЯЗАТЕЛЬНО ДЛЯ ВСЕХ РАЗДЕЛОВ!
-3. ID секций: буквы "ID" всегда на английском языке, название секции после двоеточия - на ${languageName}
+3. ID секций: буквы "ID" всегда на английском языке, название секции после двоеточия - на выбранном языке
 4. Не использовать смешанные языки или транслитерацию
 5. КАЖДЫЙ раздел ОБЯЗАТЕЛЬНО должен начинаться с "=== РАЗДЕЛ: ИМЯ ===" и ОБЯЗАТЕЛЬНО заканчиваться "=== КОНЕЦ РАЗДЕЛА ==="
 6. НЕ ИСПОЛЬЗУЙТЕ символы экранирования (\) перед разделителями === 
@@ -3855,7 +3930,7 @@ AI ЭЛЕМЕНТЫ - ИСПОЛЬЗУЙТЕ ТОЛЬКО ВЫБРАННЫЕ:
     if (settings.includedSections.SERVICES) {
       sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('SERVICES')} ===
 ⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('SERVICES')} (подходящее имя на английском языке, максимум 2 слова)
-ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом. ВАЖНО: НЕ дублируй слово "ID" - пиши только название секции после двоеточия. Между словом и предлогом должен быть всегда пробел, не в коем случае не слитно]
 [Заголовок раздела ${getWordRange('SERVICES', 'sectionTitle')}]
 [Описание раздела ${getWordRange('SERVICES', 'sectionDescription')}]
 
@@ -3866,7 +3941,7 @@ ID: [название секции на ${languageName}, желательно о
     if (settings.includedSections.FEATURES) {
       sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('FEATURES')} ===
 ⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('FEATURES')} (подходящее имя на английском языке, максимум 2 слова)
-ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом. ВАЖНО: НЕ дублируй слово "ID" - пиши только название секции после двоеточия. Между словом и предлогом должен быть всегда пробел, не в коем случае не слитно]
 [Заголовок раздела ${getWordRange('FEATURES', 'sectionTitle')}]
 [Описание раздела ${getWordRange('FEATURES', 'sectionDescription')}]
 
@@ -3877,7 +3952,7 @@ ID: [название секции на ${languageName}, желательно о
     if (settings.includedSections.NEWS) {
       sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('NEWS')} ===
 ⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('NEWS')} (подходящее имя на английском языке, максимум 2 слова)
-ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом. ВАЖНО: НЕ дублируй слово "ID" - пиши только название секции после двоеточия. Между словом и предлогом должен быть всегда пробел, не в коем случае не слитно]
 [Заголовок раздела ${getWordRange('NEWS', 'sectionTitle')}]
 [Описание раздела ${getWordRange('NEWS', 'sectionDescription')}]
 
@@ -3888,7 +3963,7 @@ ID: [название секции на ${languageName}, желательно о
     if (settings.includedSections.UNIVERSAL) {
       sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('UNIVERSAL')} ===
 ⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('UNIVERSAL')} (подходящее имя на английском языке, максимум 2 слова)
-ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом. ВАЖНО: НЕ дублируй слово "ID" - пиши только название секции после двоеточия. Между словом и предлогом должен быть всегда пробел, не в коем случае не слитно]
 [Заголовок раздела ${getWordRange('UNIVERSAL', 'sectionTitle')}]
 [Описание раздела ${getWordRange('UNIVERSAL', 'sectionDescription')}]
 
@@ -3899,7 +3974,7 @@ ID: [название секции на ${languageName}, желательно о
     if (settings.includedSections.FAQ) {
       sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('FAQ')} ===
 ⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('FAQ')} (подходящее имя на английском языке, максимум 2 слова)
-ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом. ВАЖНО: НЕ дублируй слово "ID" - пиши только название секции после двоеточия. Между словом и предлогом должен быть всегда пробел, не в коем случае не слитно]
 [Заголовок раздела ${getWordRange('FAQ', 'sectionTitle')}]
 [Описание раздела ${getWordRange('FAQ', 'sectionDescription')}]
 
@@ -3910,7 +3985,7 @@ ID: [название секции на ${languageName}, желательно о
     if (settings.includedSections.TESTIMONIALS) {
       sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('TESTIMONIALS')} ===
 ⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('TESTIMONIALS')} (подходящее имя на английском языке, максимум 2 слова)
-ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом. ВАЖНО: НЕ дублируй слово "ID" - пиши только название секции после двоеточия. Между словом и предлогом должен быть всегда пробел, не в коем случае не слитно]
 [Заголовок раздела ${getWordRange('TESTIMONIALS', 'sectionTitle')}]
 [Описание раздела ${getWordRange('TESTIMONIALS', 'sectionDescription')}]
 
@@ -3923,8 +3998,8 @@ ID: [название секции на ${languageName}, желательно о
 ⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('CONTACTS')} (подходящее имя на английском языке, максимум 2 слова)
 [Заголовок раздела на выбранном языке]
 ([Описание на выбранном языке, 15-20 слов])
-[Полный адрес в стандартном формате страны]
-[Телефон в местном формате с кодом страны]
+[Полный адрес для страны ${getCurrentCountry()} в стандартном формате]
+[Телефон в местном формате для страны ${getCurrentCountry()} с кодом страны]
 [Email]
 === КОНЕЦ РАЗДЕЛА ===\n\n`;
     }
@@ -4322,7 +4397,7 @@ ID: [название секции на ${languageName}, желательно о
       
       sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('ABOUT')} ===
 ⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('ABOUT')} (подходящее имя на английском языке, максимум 2 слова)
-ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом. ВАЖНО: НЕ дублируй слово "ID" - пиши только название секции после двоеточия. Между словом и предлогом должен быть всегда пробел, не в коем случае не слитно]
 [Заголовок раздела ${getWordRange('ABOUT', 'sectionTitle')}]
 [Описание раздела ${getWordRange('ABOUT', 'sectionDescription')}]
 
@@ -4336,7 +4411,7 @@ ${aboutElements.map(element => generateElementPrompt(element)).join('\n\n')}
       
       sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('SERVICES')} ===
 ⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('SERVICES')} (подходящее имя на английском языке, максимум 2 слова)
-ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом. ВАЖНО: НЕ дублируй слово "ID" - пиши только название секции после двоеточия. Между словом и предлогом должен быть всегда пробел, не в коем случае не слитно]
 [Заголовок раздела ${getWordRange('SERVICES', 'sectionTitle')}]
 [Описание раздела ${getWordRange('SERVICES', 'sectionDescription')}]
 
@@ -4350,7 +4425,7 @@ ${servicesElements.map(element => generateElementPrompt(element)).join('\n\n')}
       
       sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('FEATURES')} ===
 ⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('FEATURES')} (подходящее имя на английском языке, максимум 2 слова)
-ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом. ВАЖНО: НЕ дублируй слово "ID" - пиши только название секции после двоеточия. Между словом и предлогом должен быть всегда пробел, не в коем случае не слитно]
 [Заголовок раздела ${getWordRange('FEATURES', 'sectionTitle')}]
 [Описание раздела ${getWordRange('FEATURES', 'sectionDescription')}]
 
@@ -4364,7 +4439,7 @@ ${featuresElements.map(element => generateElementPrompt(element)).join('\n\n')}
       
       sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('NEWS')} ===
 ⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('NEWS')} (подходящее имя на английском языке, максимум 2 слова)
-ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом. ВАЖНО: НЕ дублируй слово "ID" - пиши только название секции после двоеточия. Между словом и предлогом должен быть всегда пробел, не в коем случае не слитно]
 [Заголовок раздела ${getWordRange('NEWS', 'sectionTitle')}]
 [Описание раздела ${getWordRange('NEWS', 'sectionDescription')}]
 
@@ -4378,7 +4453,7 @@ ${newsElements.map(element => generateElementPrompt(element)).join('\n\n')}
       
       sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('FAQ')} ===
 ⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('FAQ')} (подходящее имя на английском языке, максимум 2 слова)
-ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом. ВАЖНО: НЕ дублируй слово "ID" - пиши только название секции после двоеточия. Между словом и предлогом должен быть всегда пробел, не в коем случае не слитно]
 [Заголовок раздела ${getWordRange('FAQ', 'sectionTitle')}]
 [Описание раздела ${getWordRange('FAQ', 'sectionDescription')}]
 
@@ -4392,7 +4467,7 @@ ${faqElements.map(element => generateElementPrompt(element)).join('\n\n')}
       
       sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('TESTIMONIALS')} ===
 ⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('TESTIMONIALS')} (подходящее имя на английском языке, максимум 2 слова)
-ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом. ВАЖНО: НЕ дублируй слово "ID" - пиши только название секции после двоеточия. Между словом и предлогом должен быть всегда пробел, не в коем случае не слитно]
 [Заголовок раздела ${getWordRange('TESTIMONIALS', 'sectionTitle')}]
 [Описание раздела ${getWordRange('TESTIMONIALS', 'sectionDescription')}]
 
@@ -4408,7 +4483,7 @@ ${testimonialsElements.map(element => generateElementPrompt(element)).join('\n\n
       
       sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('UNIVERSAL')} ===
 ⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('UNIVERSAL')} (подходящее имя на английском языке, максимум 2 слова)
-ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом. ВАЖНО: НЕ дублируй слово "ID" - пиши только название секции после двоеточия. Между словом и предлогом должен быть всегда пробел, не в коем случае не слитно]
 [Заголовок раздела ${getWordRange('UNIVERSAL', 'sectionTitle')}]
 [Описание раздела ${getWordRange('UNIVERSAL', 'sectionDescription')}]
 
@@ -4423,15 +4498,17 @@ ${universalElements.map(element => generateElementPrompt(element)).join('\n\n')}
     if (settings.includedSections.CONTACTS) {
       sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('CONTACTS')} ===
 ⚠️ ОБЯЗАТЕЛЬНО: NAME PAGE: ${generateNamePage('CONTACTS')} (подходящее имя на английском языке, максимум 2 слова)
+
 Требуемый формат:
-1. Первая строка - заголовок "Контакты" (используется язык основного контента)
-2. Вторая строка - пустая
-3. Третья строка - описание в скобках (должно содержать призыв оставить заявку или связаться, например: "Свяжитесь с нами для получения консультации" или "Оставьте заявку, и мы свяжемся с вами в ближайшее время")
-4. Четвертая строка - пустая
-5. Далее контактные данные в строгом порядке:
-   - Адрес (ОЧЕНЬ ВАЖНО: формат адреса должен строго соответствовать международным стандартам для выбранной страны)
+1. Пустая строка
+2. Заголовок на ${languageName}
+3. Пустая строка
+4. Описание в скобках на ${languageName} (должно содержать призыв оставить заявку или связаться, например: "Свяжитесь с нами для получения консультации" или "Оставьте заявку, и мы свяжемся с вами в ближайшее время")
+5. Пустая строка
+6. Далее контактные данные в строгом порядке:
+   - Адрес (ОЧЕНЬ ВАЖНО: формат адреса должен строго соответствовать международным стандартам для страны ${getCurrentCountry()})
    - Пустая строка
-   - Телефон (используйте правильный формат номера для выбранной страны)
+   - Телефон (используйте правильный формат номера для страны ${getCurrentCountry()})
    - Пустая строка
    - Email
 
@@ -4467,6 +4544,7 @@ ${universalElements.map(element => generateElementPrompt(element)).join('\n\n')}
 - Израиль: HaYarkon Street 99, Tel Aviv-Yafo, 6340133, Israel
 
 Пример структуры:
+
 Контакты
 
 (Мы ценим каждого клиента и готовы оказать профессиональную поддержку. Свяжитесь с нами для получения консультации или оставьте заявку, и наши специалисты оперативно ответят на все ваши вопросы)
@@ -4497,7 +4575,7 @@ info@your-law.com
     if (settings.includedSections.LEGAL) {
       sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('LEGAL')} ===
 NAME PAGE: legal-documents
-ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом, при этом буквы "ID" всегда на английском]
+ID: [название секции на ${languageName}, желательно одно слово или с коротким предлогом. ВАЖНО: НЕ дублируй слово "ID" - пиши только название секции после двоеточия. Между словом и предлогом должен быть всегда пробел, не в коем случае не слитно]
 
 Создайте следующие документы:
 1. Политика конфиденциальности (1200-2000 слов)
@@ -4511,7 +4589,7 @@ ID: [название секции на ${languageName}, желательно о
 
     sectionsPrompt += `ТРЕБОВАНИЯ:
 1. Весь контент на одном языке (указанном в настройках)
-2. ID секций: буквы "ID" всегда на английском, название секции после двоеточия - на ${languageName}
+2. ID секций: буквы "ID" всегда на английском, название секции после двоеточия - на выбранном языке
 3. Не использовать форматирование Markdown/HTML
 4. Каждый раздел должен заканчиваться "=== КОНЕЦ РАЗДЕЛА ==="
 5. Не пропускать указанные разделы
@@ -4790,8 +4868,10 @@ ID: [название секции на ${languageName}, желательно о
       languageCode = 'ru';
     }
 
-    let enhancedPrompt = `Создайте контент для сайта "${theme}" на ${language}.\n`;
+    const currentCountry = getCurrentCountry();
+    let enhancedPrompt = `Создайте контент для сайта "${theme}" на ${language} для страны ${currentCountry}.\n`;
     enhancedPrompt += `Стиль контента: ${CONTENT_STYLES[globalSettings.contentStyle]}.\n`;
+    enhancedPrompt += `Актуальная информация: Сейчас 2025 год, используйте свежие даты в контенте.\n`;
     enhancedPrompt += `ВАЖНО: Не используйте никакого форматирования (Markdown, HTML). Не используйте символы **, ---, ###, _ или другие специальные символы для форматирования. Выдавайте чистый текст.\n`;
 
     if (globalSettings.additionalKeywords) {
@@ -4837,6 +4917,86 @@ ID: [название секции на ${languageName}, желательно о
 2. ПОЛНОСТЬЮ УДАЛИТЕ любые дополнительные комментарии, вопросы или предложения после последнего документа.
 3. НЕ ДОБАВЛЯЙТЕ фразы типа "Надеюсь, это помогло", "Нужно ли еще что-то" или любые другие завершающие комментарии.
 4. Ответ должен заканчиваться последним разделом последнего документа БЕЗ каких-либо добавлений.`;
+      
+      return enhancedPrompt;
+    }
+
+    // Специальная обработка для промпта контактов
+    if (targetSection === 'CONTACTS') {
+      // Получаем текущую страну
+      const currentCountry = getCurrentCountry();
+      
+      // Добавляем дополнительное указание перед промптом для лучшего понимания AI
+      enhancedPrompt = `Создайте контент для сайта "${theme}" на ${language} для страны ${currentCountry}.\n`;
+      enhancedPrompt += `Стиль контента: ${CONTENT_STYLES[globalSettings.contentStyle]}.\n`;
+      enhancedPrompt += `Актуальная информация: Сейчас 2025 год, используйте свежие даты в контенте.\n`;
+      enhancedPrompt += `ВАЖНО: Не используйте никакого форматирования (Markdown, HTML). Не используйте символы **, ---, ###, _ или другие специальные символы для форматирования. Выдавайте чистый текст.\n\n`;
+      
+      if (globalSettings.additionalKeywords) {
+        enhancedPrompt += `Ключевые особенности: ${globalSettings.additionalKeywords}\n`;
+      }
+
+      const features = [];
+      if (globalSettings.usePrice) features.push('указывать цены');
+      if (globalSettings.usePromotions) features.push('включать акции и спецпредложения');
+      if (globalSettings.useContacts) features.push('добавлять контактную информацию');
+      if (globalSettings.useSocial) features.push('упоминать социальные сети');
+
+      if (features.length > 0) {
+        enhancedPrompt += `Особенности контента: ${features.join(', ')}.\n`;
+      }
+
+      if (globalSettings.customInstructions) {
+        enhancedPrompt += `Дополнительные требования: ${globalSettings.customInstructions}\n`;
+      }
+
+      enhancedPrompt += `\nОПТИМИЗИРОВАННЫЙ ПРОМПТ ПОЛНОГО САЙТА\n\n`;
+      enhancedPrompt += `Создайте контент для сайта для страны ${currentCountry} согласно указанным разделам.\n`;
+      enhancedPrompt += `Актуальная информация: Сейчас 2025 год, используйте свежие даты в контенте.\n\n`;
+      enhancedPrompt += `ФОРМАТ РАЗДЕЛИТЕЛЕЙ:\n`;
+      enhancedPrompt += `=== РАЗДЕЛ: ИМЯ ===\n`;
+      enhancedPrompt += `(контент раздела)\n`;
+      enhancedPrompt += `=== КОНЕЦ РАЗДЕЛА ===\n\n`;
+      enhancedPrompt += `ВАЖНО: Каждый раздел ОБЯЗАТЕЛЬНО должен заканчиваться "=== КОНЕЦ РАЗДЕЛА ==="\n\n`;
+      enhancedPrompt += `=== РАЗДЕЛ: КОНТАКТЫ ===\n`;
+      enhancedPrompt += `ВАЖНО: Весь раздел контактов должен быть СТРОГО на ${language}!\n\n`;
+      enhancedPrompt += `[Заголовок на ${language}]\n\n`;
+      enhancedPrompt += `([Описание на ${language}, 15-20 слов])\n\n`;
+      enhancedPrompt += `[Полный адрес для страны ${getCurrentCountry()} в формате: полный адрес согласно местным стандартам адресации с указанием страны]\n\n`;
+      enhancedPrompt += `[Телефон в местном формате с кодом страны для ${getCurrentCountry()}]\n\n`;
+      enhancedPrompt += `[Email]\n\n`;
+      enhancedPrompt += `КРИТИЧЕСКИ ВАЖНО О ФОРМАТЕ КОНТАКТОВ:\n`;
+      enhancedPrompt += `- Адрес должен быть реальным и существующим для страны ${getCurrentCountry()}\n`;
+      enhancedPrompt += `- Использовать только РЕАЛЬНЫЕ адреса, которые существуют и отображаются на Google Maps\n`;
+      enhancedPrompt += `- НЕ использовать адреса государственных учреждений, известных достопримечательностей или публичных мест\n`;
+      enhancedPrompt += `- Использовать адреса обычных офисных зданий, бизнес-центров, торговых центров или жилых комплексов в стране ${getCurrentCountry()}\n`;
+      enhancedPrompt += `- Формат телефона должен соответствовать национальным стандартам страны ${getCurrentCountry()} с международным кодом\n`;
+      enhancedPrompt += `- Email будет автоматически создан как info@[название-сайта].com\n\n`;
+      enhancedPrompt += `КРИТИЧЕСКИ ВАЖНО - ФОРМАТ ВЫВОДА:\n`;
+      enhancedPrompt += `Каждый элемент контактов (заголовок, описание, адрес, телефон, email) ОБЯЗАТЕЛЬНО должен быть разделен ОДНОЙ пустой строкой.\n\n`;
+      enhancedPrompt += `Пример ПРАВИЛЬНОГО формата (адаптируйте под ${language}):\n`;
+      enhancedPrompt += `Контакты\n\n`;
+      enhancedPrompt += `(Описание контактов)\n\n`;
+      enhancedPrompt += `[Реальный адрес для страны ${getCurrentCountry()}]\n\n`;
+      enhancedPrompt += `[Телефон для страны ${getCurrentCountry()}]\n\n`;
+      enhancedPrompt += `info@company.com\n\n`;
+      enhancedPrompt += `КРИТИЧЕСКИ ВАЖНО:\n`;
+      enhancedPrompt += `1. Заголовок "Контакты" и описание должны быть переведены на ${language}\n`;
+      enhancedPrompt += `2. Строго следуйте этому формату с пустыми строками между каждым элементом!\n`;
+      enhancedPrompt += `=== КОНЕЦ РАЗДЕЛА ===\n\n`;
+      enhancedPrompt += `ТРЕБОВАНИЯ:\n`;
+      enhancedPrompt += `1. Весь контент на одном языке (указанном в настройках)\n`;
+      enhancedPrompt += `2. ID секций: буквы "ID" всегда на английском, название секции после двоеточия - на ${language}\n`;
+      enhancedPrompt += `3. Не использовать форматирование Markdown/HTML\n`;
+      enhancedPrompt += `4. Каждый раздел должен заканчиваться "=== КОНЕЦ РАЗДЕЛА ==="\n`;
+      enhancedPrompt += `5. Не пропускать указанные разделы\n`;
+      enhancedPrompt += `6. КРИТИЧЕСКИ ВАЖНО ДЛЯ АДРЕСОВ:\n`;
+      enhancedPrompt += `   - Использовать только РЕАЛЬНЫЕ адреса, которые существуют на Google Maps для страны ${getCurrentCountry()}\n`;
+      enhancedPrompt += `   - НЕ использовать: известные улицы/места, правительственные здания, достопримечательности\n`;
+      enhancedPrompt += `   - Использовать адреса обычных бизнес-центров, офисных зданий, торговых центров\n`;
+      enhancedPrompt += `7. КРИТИЧЕСКИ ВАЖНО ДЛЯ РАЗДЕЛА MERCI:\n`;
+      enhancedPrompt += `   - Сообщение благодарности и текст кнопки ОБЯЗАТЕЛЬНО должны быть на ${language}\n`;
+      enhancedPrompt += `   - НЕ использовать русский язык по умолчанию, если выбран другой язык только не забудь про name page только исправь это для контактов больше ничего не трогай\n`;
       
       return enhancedPrompt;
     }
@@ -8032,7 +8192,7 @@ ID: [название секции на ${languageName}, желательно о
                     console.log(`✅ Поле pageName для секции ${section.id}:`, section.pageName);
                     
                     // Используем заголовок секции для названия в меню
-                    let menuText = section.id;
+                    let menuText = section.id.replace(/_/g, ' '); // Убираем подчеркивания из отображения
                     let menuId = section.id;
 
                     if (sectionId === 'news') {

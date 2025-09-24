@@ -4804,24 +4804,40 @@ export const parseContacts = (content, headerData = {}) => {
       email: ''
     };
     
-    // Обрабатываем по позициям блоков, а не по ключевым словам
-    if (blocks.length >= 1) {
-      contactData.title = cleanEmailsInText(blocks[0]);
+    // Обрабатываем блоки, пропуская NAME PAGE
+    let titleFound = false;
+    let descriptionFound = false;
+    let currentIndex = 0;
+    
+    // Ищем заголовок (первый блок, который не является NAME PAGE)
+    for (let i = 0; i < blocks.length; i++) {
+      const block = blocks[i];
+      if (!block.toLowerCase().match(/^name page[:\s]/i)) {
+        contactData.title = cleanEmailsInText(block);
+        titleFound = true;
+        currentIndex = i + 1;
+        break;
+      }
     }
     
-    if (blocks.length >= 2) {
-      // Проверяем, если описание в скобках
-      const description = blocks[1];
-      if (description.startsWith('(') && description.endsWith(')')) {
-        contactData.description = cleanEmailsInText(description.slice(1, -1).trim());
-      } else {
-        contactData.description = cleanEmailsInText(description);
+    // Ищем описание (следующий блок после заголовка, который не является NAME PAGE)
+    for (let i = currentIndex; i < blocks.length; i++) {
+      const block = blocks[i];
+      if (!block.toLowerCase().match(/^name page[:\s]/i)) {
+        // Проверяем, если описание в скобках
+        if (block.startsWith('(') && block.endsWith(')')) {
+          contactData.description = cleanEmailsInText(block.slice(1, -1).trim());
+        } else {
+          contactData.description = cleanEmailsInText(block);
+        }
+        descriptionFound = true;
+        currentIndex = i + 1;
+        break;
       }
     }
     
     // Оставшиеся блоки обрабатываем как информационные поля в порядке:
     // адрес, телефон, email
-    let currentIndex = 2;
     
     // Перебираем оставшиеся блоки и распределяем их по полям
     for (let i = currentIndex; i < blocks.length; i++) {
@@ -5166,24 +5182,44 @@ export const parseContactsFull = (content, headerData = {}) => {
       }
     }
     
-    // Обрабатываем по позициям блоков, а не по ключевым словам
-    if (blocks.length >= 1) {
-      contactData.title = cleanServiceFields(cleanEmailsInText(blocks[0]));
+    // Обрабатываем блоки, пропуская NAME PAGE
+    let titleFound = false;
+    let descriptionFound = false;
+    let currentIndex = 0;
+    
+    // Ищем заголовок (первый блок, который не является NAME PAGE)
+    for (let i = 0; i < blocks.length; i++) {
+      const block = blocks[i];
+      console.log(`🔍 parseContactsFull: Проверяем блок ${i} на заголовок:`, block);
+      if (!block.toLowerCase().match(/^name page[:\s]/i)) {
+        contactData.title = cleanServiceFields(cleanEmailsInText(block));
+        titleFound = true;
+        currentIndex = i + 1;
+        console.log('✅ parseContactsFull: Найден заголовок:', contactData.title);
+        break;
+      }
     }
     
-    if (blocks.length >= 2) {
-      // Проверяем, если описание в скобках
-      const description = blocks[1];
-      if (description.startsWith('(') && description.endsWith(')')) {
-        contactData.description = cleanServiceFields(cleanEmailsInText(description.slice(1, -1).trim()));
-      } else {
-        contactData.description = cleanServiceFields(cleanEmailsInText(description));
+    // Ищем описание (следующий блок после заголовка, который не является NAME PAGE)
+    for (let i = currentIndex; i < blocks.length; i++) {
+      const block = blocks[i];
+      console.log(`🔍 parseContactsFull: Проверяем блок ${i} на описание:`, block);
+      if (!block.toLowerCase().match(/^name page[:\s]/i)) {
+        // Проверяем, если описание в скобках
+        if (block.startsWith('(') && block.endsWith(')')) {
+          contactData.description = cleanServiceFields(cleanEmailsInText(block.slice(1, -1).trim()));
+        } else {
+          contactData.description = cleanServiceFields(cleanEmailsInText(block));
+        }
+        descriptionFound = true;
+        currentIndex = i + 1;
+        console.log('✅ parseContactsFull: Найдено описание:', contactData.description);
+        break;
       }
     }
     
     // Оставшиеся блоки обрабатываем как информационные поля в порядке:
     // адрес, телефон, email
-    let currentIndex = 2;
     
     // Перебираем оставшиеся блоки и распределяем их по полям
     for (let i = currentIndex; i < blocks.length; i++) {

@@ -3881,8 +3881,52 @@ const generateContactPage = (siteData) => {
 
   // 🗺️ Генерируем Google карту с адресом (улучшенная версия)
   const generateMapSection = () => {
-    if (contactData.address) {
-      const fullAddress = `${contactData.address}, ${contactData.city || 'Москва'}`;
+    // Приоритет 1: Если есть mapUrl (как в одностраничном экспорте)
+    if (contactData.showMap && contactData.mapUrl) {
+      return `
+        <div class="contact-map-container" style="
+          margin-top: 3rem;
+          border-radius: 12px;
+          overflow: hidden;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        ">
+          <div style="position: relative; width: 100%; height: 400px;">
+            <iframe
+              src="${contactData.mapUrl}"
+              width="100%"
+              height="100%"
+              style="border: 0;"
+              allowfullscreen=""
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade"
+              title="Карта: ${contactData.address || 'Адрес'}">
+            </iframe>
+            ${contactData.address ? `
+              <div style="
+                position: absolute;
+                bottom: 10px;
+                left: 10px;
+                background: rgba(255, 255, 255, 0.9);
+                padding: 8px 12px;
+                border-radius: 6px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 14px;
+                color: #333;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+              ">
+                <span style="color: #1976d2;">📍</span>
+                <span>${contactData.address}${contactData.city ? `, ${contactData.city}` : ''}</span>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }
+    // Приоритет 2: Если есть адрес, генерируем Google Maps
+    else if (contactData.address) {
+      const fullAddress = `${contactData.address}${contactData.city ? `, ${contactData.city}` : ''}`;
       const encodedAddress = encodeURIComponent(fullAddress);
       
       return `
@@ -3921,12 +3965,6 @@ const generateContactPage = (siteData) => {
               <span>${fullAddress}</span>
             </div>
           </div>
-        </div>
-      `;
-    } else if (contactData.showMap && contactData.mapUrl) {
-      return `
-        <div class="contact-map">
-          <iframe src="${contactData.mapUrl}" style="width: 100%; height: 300px; border: 0;" allowfullscreen loading="lazy"></iframe>
         </div>
       `;
     }
@@ -4095,7 +4133,10 @@ const getContactFileName = (contactData = null) => {
 
 const getSectionDisplayName = (sectionId, sectionData) => {
   // Используем заголовок секции или ID как fallback
-  return sectionData?.title || sectionId || 'Раздел';
+  const displayName = sectionData?.title || sectionId || 'Раздел';
+  
+  // Очищаем отображение от подчеркиваний - заменяем на пробелы
+  return displayName.replace(/_/g, ' ');
 };
 
 // Простые заглушки для остальных функций
