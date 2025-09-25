@@ -334,45 +334,47 @@ const CardsGridManager = ({
                           try {
                             const { imageCacheService } = await import('../../../utils/imageCacheService');
                             
-                            // Генерируем уникальное имя файла на основе названия карточки
-                            const cardTitle = newCardData.title || `card_${Date.now()}`;
-                            const sanitizedTitle = cardTitle.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
-                            const timestamp = Date.now();
-                            const cardId = newCardData.id || Date.now();
-                            const fileExtension = file.name.split('.').pop();
-                            const fileName = `card_${sanitizedTitle}_${cardId}_${timestamp}.${fileExtension}`;
+                            // Используем новую функцию обработки изображений карточек
+                            const { processCardImage } = await import('../../../utils/cardImageProcessor');
                             
-                            await imageCacheService.saveImage(fileName, file);
-                            
-                            const metadata = {
-                              fileName: fileName,
-                              originalName: file.name,
-                              cardTitle: cardTitle,
-                              cardId: cardId,
-                              size: file.size,
-                              type: file.type,
-                              uploadDate: new Date().toISOString()
+                            const sectionData = {
+                              id: 'grid-section',
+                              title: 'Cards Grid Section'
                             };
-                            await imageCacheService.saveMetadata(`site-images-metadata-${fileName}`, metadata);
                             
-                            const blob = await imageCacheService.getImage(fileName);
-                            if (blob) {
-                              const url = URL.createObjectURL(blob);
-                              setNewCardData({ 
-                                ...newCardData, 
-                                imageUrl: url,
-                                imageAlt: metadata.cardTitle || metadata.originalName || 'Изображение',
-                                fileName: fileName
-                              });
+                            const cardData = {
+                              id: newCardData.id || Date.now(),
+                              title: newCardData.title || `card_${Date.now()}`,
+                              index: 0
+                            };
+                            
+                            const result = await processCardImage(file, cardData, sectionData);
+                            
+                            if (!result.success) {
+                              throw new Error(result.error);
+                            }
+                            
+                            const fileName = result.fileName;
+                            const metadata = result.metadata;
+                            
+                            setNewCardData({ 
+                              ...newCardData, 
+                              imageUrl: result.url,
+                              imageAlt: metadata.cardTitle || metadata.originalName || 'Изображение',
+                              fileName: result.fileName
+                            });
                               
                               // Принудительно обновляем компонент ImageUploadPreview
                               setTimeout(() => {
                                 const event = new CustomEvent('imageUploaded', { 
-                                  detail: { fileName, url, metadata } 
+                                  detail: { 
+                                    fileName: result.fileName, 
+                                    url: result.url, 
+                                    metadata: result.metadata 
+                                  } 
                                 });
                                 window.dispatchEvent(event);
                               }, 100);
-                            }
                           } catch (error) {
                             console.error('Ошибка при загрузке изображения:', error);
                           }

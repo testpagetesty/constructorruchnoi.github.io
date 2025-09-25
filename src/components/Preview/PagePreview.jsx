@@ -823,7 +823,22 @@ const PagePreview = ({
       case 'image-card':
         renderedElement = (
           <ImageCard 
-            {...elementProps} 
+            key={`${sectionId}-${element.id}`}
+            {...elementProps}
+            // 🔥 ИСПРАВЛЕНИЕ: Передаем правильные ID
+            id={element.id}
+            cardId={element.id}
+            sectionId={sectionId}
+            sectionTitle={sectionTitle}
+            onUpdate={(updatedData) => {
+              console.log(`🔄 [PagePreview] ImageCard onUpdate called:`, updatedData);
+              // Обновляем элемент в секции через onElementUpdate
+              if (onElementUpdate) {
+                onElementUpdate(sectionId, element.id, updatedData);
+              } else {
+                console.warn(`🔄 [PagePreview] onElementUpdate not available for ImageCard`);
+              }
+            }}
             onAddElement={(newElement) => {
               // Добавляем новый элемент в секцию
               onAddElement(sectionId, newElement);
@@ -2094,7 +2109,7 @@ const PagePreview = ({
                       <Box sx={{ mt: 3 }}>
                         {console.log(`[PagePreview] Section ${section.id} has ${section.contentElements.length} content elements:`, section.contentElements)}
                         {section.contentElements.map((element) => (
-                          <Box key={element.id} sx={{ mb: 2 }}>
+                          <Box key={`${section.id}-${element.id}`} sx={{ mb: 2 }}>
                             {renderContentElement(element, section.id)}
                   </Box>
                         ))}
@@ -2106,7 +2121,7 @@ const PagePreview = ({
                       <Box sx={{ mt: 3 }}>
                         {console.log(`[PagePreview] Section ${section.id} has ${section.elements.length} AI elements:`, section.elements)}
                         {section.elements.map((element) => (
-                          <Box key={element.id} sx={{ mb: 2 }}>
+                          <Box key={`${section.id}-${element.id}`} sx={{ mb: 2 }}>
                             {renderContentElement(element, section.id)}
                           </Box>
                         ))}
@@ -2124,7 +2139,7 @@ const PagePreview = ({
               <Box sx={{ mt: 4 }}>
                 {console.log(`[PagePreview] Regular section ${section.id} has ${section.contentElements.length} content elements:`, section.contentElements)}
                 {section.contentElements.map((element) => (
-                  <Box key={element.id} sx={{ mb: 3 }}>
+                  <Box key={`${section.id}-${element.id}`} sx={{ mb: 3 }}>
                     {renderContentElement(element, section.id)}
                   </Box>
                 ))}

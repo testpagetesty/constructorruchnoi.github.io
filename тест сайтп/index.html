@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>БизнесЛидер</title>
+    <meta name="description" content="Мы предлагаем современные инструменты и экспертную поддержку для развития компаний в 2025 году. Наш подход сочетает инновации, практические решения и надежное сопровождение для достижения долгосрочного результата.">
+    <link rel="icon" type="image/png" href="assets/images/Favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/styles.css">
+    
+    <style>
+      /* Contact section styles - точно как в contacts.html */
+      .contact-section {
+        padding: 4rem 2rem;
+        width: 100%;
+        margin: 0;
+        position: relative;
+        z-index: 2;
+      }
+      
+      .contact-container {
+        max-width: 1140px;
+        margin: 0 auto;
+        padding: 0 20px;
+      }
+      
+      .contact-header {
+        text-align: center;
+        margin-bottom: 3rem;
+      }
+      
+      .contact-title {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        position: relative;
+        display: inline-block;
+      }
+      
+      .contact-title::after {
+        content: '';
+        position: absolute;
+        bottom: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 50px;
+        height: 3px;
+        background-color: currentColor;
+      }
+      
+      .contact-description {
+        font-size: 1.1rem;
+        max-width: 800px;
+        margin: 0 auto;
+        line-height: 1.6;
+      }
+      
+      .contact-content {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-bottom: 3rem;
+      }
+      
+      .contact-form-container {
+        padding: 2.5rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        border: 1px solid #ddd;
+      }
+      
+      .contact-form .form-group {
+        margin-bottom: 1.5rem;
+      }
+      
+      .contact-form label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+      }
+      
+      .contact-form input,
+      .contact-form textarea {
+        width: 100%;
+        padding: 0.85rem 1rem;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 1rem;
+        box-sizing: border-box;
+        font-family: inherit;
+      }
+      
+      .contact-form textarea {
+        resize: vertical;
+        min-height: 100px;
+      }
+      
+      .contact-form button {
+        width: 100%;
+        padding: 0.9rem 1.5rem;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 500;
+        font-size: 1rem;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      }
+      
+      .contact-form button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+      }
+      
+      .contact-info-container {
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        border: 1px solid #ddd;
+      }
+      
+      .info-title {
+        font-size: 1.5rem;
+        margin-bottom: 1.5rem;
+        text-align: center;
+      }
+      
+      .contact-info-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 1rem;
+        padding: 8px 0;
+      }
+
+      .contact-icon {
+        color: #1976d2; /* Default icon color */
+        font-size: 1.2rem;
+        min-width: 24px;
+        text-align: center;
+      }
+      
+      .contact-map,
+      .contact-map-container {
+        margin-top: 2rem;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      
+      .contact-map iframe,
+      .contact-map-container iframe {
+        width: 100%;
+        height: 300px;
+        border: 0;
+      }
+      
+      @media (max-width: 768px) {
+        .contact-section {
+          padding: 2rem 1rem;
+        }
+
+        .contact-title {
+          font-size: 2rem;
+        }
+
+        .contact-description {
+          font-size: 1.1rem;
+        }
+
+        .contact-content {
+          grid-template-columns: 1fr;
+        }
+        
+        .contact-form-container,
+        .contact-info-container {
+          padding: 1.5rem;
+        }
+      }
+      
+      /* Styles for .contact-info (the inner container for text items) */
+      .contact-info {
+        border-radius: 15px;
+        padding: 2rem;
+      }
+    </style>
+    
+    <!-- React и основные библиотеки -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Material-UI -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+    <script src="https://unpkg.com/@mui/material@5.15.10/umd/material-ui.production.min.js"></script>
+    <script src="https://unpkg.com/@emotion/react@11.14.0/dist/emotion-react.umd.min.js"></script>
+    <script src="https://unpkg.com/@emotion/styled@11.14.1/dist/emotion-styled.umd.min.js"></script>
+    
+    <!-- Дополнительные библиотеки для элементов -->
+    <script src="https://unpkg.com/framer-motion@12.23.0/dist/framer-motion.js"></script>
+    <script src="https://unpkg.com/react-countup@6.5.3/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-confetti@6.4.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/qrcode.react@4.2.0/lib/index.umd.js"></script>
+    <script src="https://unpkg.com/react-player@3.1.0/dist/ReactPlayer.js"></script>
+    <script src="https://unpkg.com/react-rating-stars-component@2.2.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-text-transition@3.1.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-share@5.2.2/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-copy-to-clipboard@5.1.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-color@2.19.3/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-datepicker@8.4.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-select@5.10.1/dist/react-select.umd.js"></script>
+    <script src="https://unpkg.com/react-scroll@1.9.3/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-rnd@10.5.2/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-image-crop@11.0.10/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-markdown@9.0.1/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-plotly.js@2.6.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-apexcharts@1.7.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/react-chartjs-2@5.3.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/recharts@3.0.2/lib/index.umd.js"></script>
+    <script src="https://unpkg.com/apexcharts@4.7.0/dist/apexcharts.min.js"></script>
+    <script src="https://unpkg.com/chart.js@4.5.0/dist/chart.umd.js"></script>
+    <script src="https://unpkg.com/plotly.js@3.0.1/dist/plotly.min.js"></script>
+    <script src="https://unpkg.com/swiper@11.2.10/swiper-bundle.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/swiper@11.2.10/swiper-bundle.min.css" />
+    <script src="https://unpkg.com/axios@1.6.7/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/dayjs@1.11.13/dayjs.min.js"></script>
+    <script src="https://unpkg.com/marked@15.0.10/marked.min.js"></script>
+    <script src="https://unpkg.com/uuid@11.1.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/browser-image-compression@2.0.2/dist/browser-image-compression.umd.js"></script>
+    <script src="https://unpkg.com/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="https://unpkg.com/formik@2.4.6/dist/formik.umd.min.js"></script>
+    <script src="https://unpkg.com/yup@1.6.1/dist/yup.umd.min.js"></script>
+    <script src="https://unpkg.com/react-hook-form@7.59.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@hookform/resolvers@5.1.1/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/slate@0.117.2/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/slate-react@0.117.3/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/slate-history@0.113.1/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/react@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/starter-kit@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-color@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-highlight@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-image@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-link@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-table@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-text-align@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-underline@2.25.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@dnd-kit/core@6.3.1/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@dnd-kit/sortable@10.0.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@dnd-kit/utilities@3.2.2/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@visx/visx@3.12.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/victory@37.3.6/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/zustand@5.0.6/umd/index.production.min.js"></script>
+</head>
+<body>
+    
+    
+    <header class="site-header" style="--header-bg-color: #ffffff; --header-title-color: #1976d2; --header-link-color: #333333">
+      <div class="header-content">
+        <div class="site-branding">
+          <h1 class="site-title">
+            <a href="index.html">БизнесЛидер</a>
+          </h1>
+          <div class="site-domain" style="display: none;"></div>
+        </div>
+        <nav class="site-nav">
+          <button class="menu-toggle" aria-label="Открыть меню">
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
+          <ul class="nav-menu">
+            <li><a href="about-us.html" class="nav-link">о компании</a></li><li><a href="contact.html" class="nav-link">контакты</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+    
+    <main>
+        <section class="hero-section hero-animation-zoom" style="
+    position: relative;
+    overflow: hidden;
+    min-height: 500px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  background-image: none;">
+    <div class="hero-bg-animation" style="background-image: url('assets/images/hero.jpg'); filter: blur(0.1px);"></div>
+    
+      <div class="hero-overlay" style="
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(rgba(0,0,0,0.001), rgba(0,0,0,0.001));
+        backdrop-filter: none;
+        z-index: 2;
+      "></div>
+    
+    <div class="container">
+      <div class="hero-content" style="
+        position: relative;
+        z-index: 3;
+        text-align: center;
+        padding: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+      ">
+        <div class="hero-text-wrapper" style="
+          background: rgba(0, 0, 0, 0.4);
+          backdrop-filter: blur(0.1px);
+          padding: 2rem 3rem;
+          border-radius: 20px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+          max-width: 800px;
+          margin: 0 auto;
+        ">
+          <h1 class="hero-title" style="
+            color: #1976d2;
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9), -1px -1px 2px rgba(255, 255, 255, 0.8), 1px 1px 2px rgba(255, 255, 255, 0.6), 0 0 20px rgba(0, 0, 0, 0.5), 0 0 40px rgba(255, 255, 255, 0.3);
+            -webkit-text-stroke: 1px rgba(255, 255, 255, 0.3);
+            filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.8));
+            font-family: 'Montserrat', sans-serif;
+          ">Уверенные шаги к вашему успеху</h1>
+          <p class="hero-subtitle" style="
+            color: #333333;
+            font-size: 1.5rem;
+            font-weight: 300;
+            margin-bottom: 1rem;
+            opacity: 0.9;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.9), -1px -1px 1px rgba(255, 255, 255, 0.7), 0 0 15px rgba(0, 0, 0, 0.5), 0 0 25px rgba(255, 255, 255, 0.2);
+            -webkit-text-stroke: 0.5px rgba(255, 255, 255, 0.2);
+            filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.7));
+            font-family: 'Montserrat', sans-serif;
+          ">Мы предлагаем современные инструменты и экспертную поддержку для развития компаний в 2025 году. Наш подход сочетает инновации, практические решения и надежное сопровождение для достижения долгосрочного результата.</p>
+          
+          
+        </div>
+      </div>
+    </div>
+  </section>
+        
+        
+        
+        
+        
+        
+    </main>
+    
+    <footer class="site-footer" style="background: linear-gradient(135deg, #2c3e50, #34495e)">
+      <div class="footer-container" style="color: #ffffff;">
+        <div class="footer-content">
+          <div class="footer-info">
+            <h3 style="color: #ffffff;">БизнесЛидер</h3>
+            <p style="color: #ffffff;">📍 г. Москва, ул. Примерная, д. 1</p>
+            <p style="color: #ffffff;">📞 +7 (XXX) XXX-XX-XX</p>
+            <p style="color: #ffffff;">✉️ info@example.com</p>
+          </div>
+          
+            <div class="footer-links">
+              <h4 style="color: #ffffff;">Menu</h4>
+              <ul>
+                <li><a href="index.html" style="color: #ffffff;">БизнесЛидер</a></li>
+                <li><a href="about-us.html" style="color: #ffffff;">о компании</a></li>
+                <li><a href="contact.html" style="color: #ffffff;">контакты</a></li>
+              </ul>
+            </div>
+          
+          <div class="footer-contact">
+            <h4 style="color: #ffffff;">Legal Information</h4>
+            <ul>
+              <li><a href="privacy-policy.html" style="color: #ffffff;">Privacy Policy</a></li>
+              <li><a href="terms-of-service.html" style="color: #ffffff;">Terms of Service</a></li>
+              <li><a href="cookie-policy.html" style="color: #ffffff;">Cookie Policy</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <p style="color: #ffffff;">&copy; 2025 БизнесЛидер. All rights reserved.</p>
+        </div>
+      </div>
+    </footer>
+    
+    <script src="assets/js/script.js"></script>
+</body>
+</html>

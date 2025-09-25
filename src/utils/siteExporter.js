@@ -35,6 +35,23 @@ export const exportSite = async (siteData) => {
   const jsDir = assetsDir.folder('js');
   const imagesDir = assetsDir.folder('images');
   
+  // Добавляем placeholder изображение как SVG
+  try {
+    const placeholderSvg = `<svg width="300" height="200" xmlns="http://www.w3.org/2000/svg">
+      <rect width="100%" height="100%" fill="#f8f9fa" stroke="#dee2e6" stroke-width="1"/>
+      <text x="50%" y="45%" font-family="Arial, sans-serif" font-size="14" fill="#6c757d" text-anchor="middle">
+        Изображение
+      </text>
+      <text x="50%" y="55%" font-family="Arial, sans-serif" font-size="14" fill="#6c757d" text-anchor="middle">
+        не найдено
+      </text>
+    </svg>`;
+    imagesDir.file('placeholder.svg', placeholderSvg);
+    console.log('✅ Placeholder SVG image added to single-page export');
+  } catch (error) {
+    console.error('❌ Error adding placeholder image to single-page export:', error);
+  }
+  
   // Add chat open sound if live chat is enabled
   console.log('🔍 Checking live chat status:', {
     liveChatData: siteData.liveChatData,
@@ -1991,7 +2008,7 @@ function generateElementHTML(element) {
   }
 }
 
-function generateCardHTML(card, cardType, index) {
+export function generateCardHTML(card, cardType, index) {
   const cardStyles = [];
   
   if (card.backgroundColor) {
@@ -2017,9 +2034,22 @@ function generateCardHTML(card, cardType, index) {
   if (card.imageUrl) {
     // Если это blob URL (кешированное изображение), используем имя файла
     if (card.imageUrl.startsWith('blob:')) {
-      // Извлекаем имя файла из метаданных или генерируем
-      const fileName = card.fileName || `image-${index}.jpg`;
-      imageSrc = `assets/images/${fileName}`;
+      // Используем fileName из метаданных карточки для правильного пути
+      if (card.fileName) {
+        // Проверяем, является ли это изображением карточки (новый формат)
+        if (card.fileName.startsWith('card_')) {
+          imageSrc = `assets/images/cards/${card.fileName}`;
+          console.log(`🖼️ Using card image path: ${imageSrc}`);
+        } else {
+          // Старый формат или изображение секции
+          imageSrc = `assets/images/${card.fileName}`;
+        }
+      } else {
+        // Fallback для старых изображений без fileName
+        const fileName = `image-${index}.jpg`;
+        imageSrc = `assets/images/${fileName}`;
+        console.warn(`⚠️ Using fallback filename: ${imageSrc}`);
+      }
     } else {
       // Внешний URL
       imageSrc = card.imageUrl;
@@ -2059,13 +2089,17 @@ function generateCardHTML(card, cardType, index) {
     gridClasses = `card-grid-${card.gridSize}`;
   }
 
+  // Проверяем, что это не заглушка
+  const isPlaceholder = imageSrc && (imageSrc.includes('placeholder') || imageSrc.includes('via.placeholder') || imageSrc.includes('text=Изображение'));
+  const shouldShowImage = imageSrc && imageSrc.trim() && !isPlaceholder;
+  
   return `
     <div class="card image-card ${animationClasses} ${gridClasses}" data-card-id="${card.id || ''}" style="${cardStyles.join('; ')}" ${animationData}>
-      ${imageSrc ? `
+      ${shouldShowImage ? `
         <div class="card-image">
           <img src="${imageSrc}" alt="${imageAlt}" loading="lazy">
         </div>
-      ` : ''}
+      ` : `<!-- No image: src="${imageSrc}", isPlaceholder=${isPlaceholder} -->`}
       <div class="card-content">
         ${card.title ? `<h3 class="card-title">${card.title}</h3>` : ''}
         ${card.text ? `<p class="card-text">${card.text}</p>` : ''}

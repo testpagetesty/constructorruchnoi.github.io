@@ -4,6 +4,18 @@ import EditorPanel from '../components/Editor/EditorPanel';
 import PagePreview from '../components/Preview/PagePreview';
 import Link from 'next/link';
 
+// 🔥 НОВОЕ: Автоматическая очистка кеша изображений при запуске
+const clearImageCache = async () => {
+  try {
+    console.log('🧹 Auto-clearing image cache on app start...');
+    const { imageCacheService } = await import('../utils/imageCacheService');
+    await imageCacheService.clearAll();
+    console.log('✅ Image cache cleared successfully');
+  } catch (error) {
+    console.warn('⚠️ Failed to clear image cache:', error);
+  }
+};
+
 // Очистка localStorage от данных казино
 const clearCasinoData = () => {
   const casinoKeys = [
@@ -185,7 +197,14 @@ const saveDocumentToFile = async (documentName, content) => {
 export default function Home() {
   // Очищаем данные казино при загрузке компонента и загружаем hero изображение
   useEffect(() => {
-    clearCasinoData();
+    // 🔥 НОВОЕ: Автоматическая очистка кеша изображений при каждом запуске/обновлении страницы
+    const initializeApp = async () => {
+      console.log('🚀 Initializing app - clearing image cache...');
+      await clearImageCache();
+      clearCasinoData();
+    };
+    
+    initializeApp();
     
     // Принудительно загружаем hero изображение в кеш при первой загрузке
     const preloadHeroImage = async () => {
@@ -227,6 +246,36 @@ export default function Home() {
     preloadHeroImage();
   }, []);
 
+  // 🔥 НОВОЕ: Дополнительная очистка кеша при обновлении страницы
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      console.log('🔄 Page refresh detected - clearing image cache...');
+      // Синхронная очистка для события beforeunload
+      if (typeof window !== 'undefined' && window.indexedDB) {
+        const request = indexedDB.open('site-images-db', 2);
+        request.onsuccess = (event) => {
+          const db = event.target.result;
+          if (db.objectStoreNames.contains('images')) {
+            const transaction = db.transaction(['images'], 'readwrite');
+            const store = transaction.objectStore('images');
+            store.clear();
+          }
+          if (db.objectStoreNames.contains('metadata')) {
+            const transaction = db.transaction(['metadata'], 'readwrite');
+            const store = transaction.objectStore('metadata');
+            store.clear();
+          }
+        };
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
   const [headerData, setHeaderData] = useState(initialHeaderData);
   const [heroData, setHeroData] = useState(initialHeroData);
   const [sectionsData, setSectionsData] = useState(initialSectionsData);
@@ -252,9 +301,15 @@ export default function Home() {
   const [constructorMode, setConstructorMode] = useState(false);
   const [selectedElement, setSelectedElement] = useState(null);
 
-  const handleConstructorModeChange = (newMode) => {
+  const handleConstructorModeChange = async (newMode) => {
     setConstructorMode(newMode);
     console.log('Constructor mode changed to:', newMode ? 'Constructor' : 'Manual');
+    
+    // 🔥 НОВОЕ: Очищаем кеш изображений при переключении в режим конструктора
+    if (newMode) {
+      console.log('🧹 Clearing image cache due to constructor mode activation...');
+      await clearImageCache();
+    }
   };
 
   console.log('Home component state:', {
@@ -378,46 +433,97 @@ export default function Home() {
         return updatedSections;
       }
       
+      // Обрабатываем contentElements
       if (section && section.contentElements) {
-        const updatedElements = section.contentElements.map(element => {
-          if (element.id === elementId) {
-            if (typeof fieldOrElement === 'object' && fieldOrElement !== null && fieldOrElement.id) {
-              console.log('🎴 [index.jsx] Updating multiple-cards element:', elementId);
-              console.log('🎴 [index.jsx] Old element:', element);
-              console.log('🎴 [index.jsx] New element:', fieldOrElement);
-              return fieldOrElement;
-            }
-            else if (fieldOrElement === 'customStyles' && typeof value === 'object' && value !== null) {
-              console.log('🎯 [index.jsx] Updating customStyles for element:', elementId, 'with value:', value);
-              return { ...element, customStyles: value };
-            }
-            else if (fieldOrElement === 'data' && typeof value === 'object' && value !== null) {
-              console.log('🔧 [index.jsx] Updating element data:', elementId, 'type:', element.type);
-              console.log('🔧 [index.jsx] Current element.data:', element.data);
-              console.log('🔧 [index.jsx] New value:', value);
-              
-              // 🔥 ИСПРАВЛЕНИЕ: Для multiple-cards, продвинутых диаграмм, временной шкалы, CTA секции и других элементов с colorSettings обновляем все поля
-              if (['advanced-area-chart', 'advanced-pie-chart', 'advanced-line-chart', 'multiple-cards', 'timeline-component', 'accordion', 'qr-code', 'rating', 'progress-bars', 'cta-section'].includes(element.type)) {
-                console.log('🔧 [index.jsx] Advanced element - updating all fields');
-                const updated = { ...element, ...value };
-                console.log('🔧 [index.jsx] Updated advanced element:', updated);
-                return updated;
-              } else {
-                const updated = { ...element, data: { ...element.data, ...value } };
-                console.log('🔧 [index.jsx] Updated regular element:', updated);
-                return updated;
+        const elementFound = section.contentElements.find(el => el.id === elementId);
+        if (elementFound) {
+          const updatedElements = section.contentElements.map(element => {
+            if (element.id === elementId) {
+              if (typeof fieldOrElement === 'object' && fieldOrElement !== null && fieldOrElement.id) {
+                console.log('🎴 [index.jsx] Updating multiple-cards element in contentElements:', elementId);
+                return fieldOrElement;
               }
-            } else {
-              return { ...element, data: { ...element.data, [fieldOrElement]: value } };
+              else if (fieldOrElement === 'customStyles' && typeof value === 'object' && value !== null) {
+                console.log('🎯 [index.jsx] Updating customStyles for contentElement:', elementId);
+                return { ...element, customStyles: value };
+              }
+              else if (fieldOrElement === 'data' && typeof value === 'object' && value !== null) {
+                console.log('🔧 [index.jsx] Updating contentElement data:', elementId, 'type:', element.type);
+                
+                if (['advanced-area-chart', 'advanced-pie-chart', 'advanced-line-chart', 'multiple-cards', 'timeline-component', 'accordion', 'qr-code', 'rating', 'progress-bars', 'cta-section'].includes(element.type)) {
+                  console.log('🔧 [index.jsx] Advanced contentElement - updating all fields');
+                  const updated = { ...element, ...value };
+                  console.log('🔧 [index.jsx] Updated advanced contentElement:', updated);
+                  return updated;
+                } else {
+                  const updated = { ...element, data: { ...element.data, ...value } };
+                  console.log('🔧 [index.jsx] Updated regular contentElement:', updated);
+                  return updated;
+                }
+              } else if (typeof fieldOrElement === 'object' && fieldOrElement !== null) {
+                // 🔥 НОВОЕ: Обработка полного обновления элемента (для ImageCard)
+                console.log('🖼️ [index.jsx] Full update for contentElement ImageCard:', elementId, 'new data:', fieldOrElement);
+                return { ...element, ...fieldOrElement };
+              } else {
+                return { ...element, data: { ...element.data, [fieldOrElement]: value } };
+              }
             }
-          }
-          return element;
-        });
-        
-        updatedSections[sectionId] = {
-          ...section,
-          contentElements: updatedElements
-        };
+            return element;
+          });
+          
+          updatedSections[sectionId] = {
+            ...section,
+            contentElements: updatedElements
+          };
+          return updatedSections;
+        }
+      }
+      
+      // 🔥 НОВОЕ: Обрабатываем elements (от AI парсера)
+      if (section && section.elements) {
+        const elementFound = section.elements.find(el => el.id === elementId);
+        if (elementFound) {
+          console.log('🤖 [index.jsx] Updating AI element in elements array:', elementId);
+          
+          const updatedElements = section.elements.map(element => {
+            if (element.id === elementId) {
+              if (typeof fieldOrElement === 'object' && fieldOrElement !== null && fieldOrElement.id) {
+                console.log('🎴 [index.jsx] Updating multiple-cards AI element:', elementId);
+                return fieldOrElement;
+              }
+              else if (fieldOrElement === 'customStyles' && typeof value === 'object' && value !== null) {
+                console.log('🎯 [index.jsx] Updating customStyles for AI element:', elementId);
+                return { ...element, customStyles: value };
+              }
+              else if (fieldOrElement === 'data' && typeof value === 'object' && value !== null) {
+                console.log('🔧 [index.jsx] Updating AI element data:', elementId, 'type:', element.type);
+                
+                if (['advanced-area-chart', 'advanced-pie-chart', 'advanced-line-chart', 'multiple-cards', 'timeline-component', 'accordion', 'qr-code', 'rating', 'progress-bars', 'cta-section'].includes(element.type)) {
+                  console.log('🔧 [index.jsx] Advanced AI element - updating all fields');
+                  const updated = { ...element, ...value };
+                  console.log('🔧 [index.jsx] Updated advanced AI element:', updated);
+                  return updated;
+                } else {
+                  const updated = { ...element, data: { ...element.data, ...value } };
+                  console.log('🔧 [index.jsx] Updated regular AI element:', updated);
+                  return updated;
+                }
+              } else if (typeof fieldOrElement === 'object' && fieldOrElement !== null) {
+                // 🔥 КРИТИЧНО: Обработка полного обновления элемента (для ImageCard от AI)
+                console.log('🖼️ [index.jsx] Full update for AI element ImageCard:', elementId, 'new data:', fieldOrElement);
+                return { ...element, ...fieldOrElement };
+              } else {
+                return { ...element, data: { ...element.data, [fieldOrElement]: value } };
+              }
+            }
+            return element;
+          });
+          
+          updatedSections[sectionId] = {
+            ...section,
+            elements: updatedElements
+          };
+        }
       }
       
       return updatedSections;

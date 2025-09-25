@@ -21,7 +21,7 @@ class ImageCacheService {
     }
 
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open(this.dbName, 1);
+      const request = indexedDB.open(this.dbName, 2); // Увеличиваем версию для добавления нового store
 
       request.onerror = () => reject(request.error);
       request.onsuccess = () => {
@@ -31,8 +31,15 @@ class ImageCacheService {
 
       request.onupgradeneeded = (event) => {
         const db = event.target.result;
+        
+        // Создаем store для изображений
         if (!db.objectStoreNames.contains(this.storeName)) {
           db.createObjectStore(this.storeName);
+        }
+        
+        // 🔥 НОВОЕ: Создаем store для метаданных
+        if (!db.objectStoreNames.contains('metadata')) {
+          db.createObjectStore('metadata');
         }
       };
     });
@@ -97,28 +104,64 @@ class ImageCacheService {
 
   async saveMetadata(key, metadata) {
     try {
-      localStorage.setItem(key, JSON.stringify(metadata));
+      const db = await this.init();
+      if (!db) return Promise.resolve();
+      
+      return new Promise((resolve, reject) => {
+        const transaction = this.db.transaction(['metadata'], 'readwrite');
+        const store = transaction.objectStore('metadata');
+        const request = store.put(metadata, key);
+
+        request.onsuccess = () => {
+          console.log(`🗄️ Metadata saved to IndexedDB: ${key}`, metadata);
+          resolve();
+        };
+        request.onerror = () => reject(request.error);
+      });
     } catch (error) {
       console.error('Error saving metadata:', error);
-      throw error;
+      return Promise.resolve();
     }
   }
 
-  getMetadata(key) {
+  async getMetadata(key) {
     try {
-      const metadata = localStorage.getItem(key);
-      return metadata ? JSON.parse(metadata) : null;
+      const db = await this.init();
+      if (!db) return null;
+      
+      return new Promise((resolve, reject) => {
+        const transaction = this.db.transaction(['metadata'], 'readonly');
+        const store = transaction.objectStore('metadata');
+        const request = store.get(key);
+
+        request.onsuccess = () => resolve(request.result || null);
+        request.onerror = () => reject(request.error);
+      });
     } catch (error) {
       console.error('Error getting metadata:', error);
       return null;
     }
   }
 
-  deleteMetadata(key) {
+  async deleteMetadata(key) {
     try {
-      localStorage.removeItem(key);
+      const db = await this.init();
+      if (!db) return Promise.resolve();
+      
+      return new Promise((resolve, reject) => {
+        const transaction = this.db.transaction(['metadata'], 'readwrite');
+        const store = transaction.objectStore('metadata');
+        const request = store.delete(key);
+
+        request.onsuccess = () => {
+          console.log(`🗑️ Metadata deleted from IndexedDB: ${key}`);
+          resolve();
+        };
+        request.onerror = () => reject(request.error);
+      });
     } catch (error) {
       console.error('Error deleting metadata:', error);
+      return Promise.resolve();
     }
   }
 
@@ -170,20 +213,44 @@ class ImageCacheService {
   }
 
   // Получить все метаданные
-  getAllMetadata() {
+  async getAllMetadata() {
     try {
-      const metadata = {};
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('site-images-metadata-')) {
-          try {
-            metadata[key] = JSON.parse(localStorage.getItem(key));
-          } catch (e) {
-            console.warn('Invalid metadata for key:', key);
-          }
-        }
-      }
-      return metadata;
+      const db = await this.init();
+      if (!db) return {};
+      
+      return new Promise((resolve, reject) => {
+        const transaction = this.db.transaction(['metadata'], 'readonly');
+        const store = transaction.objectStore('metadata');
+        const request = store.getAll();
+        const keysRequest = store.getAllKeys();
+
+        let results = {};
+        let keys = [];
+
+        request.onsuccess = () => {
+          const values = request.result;
+          
+          keysRequest.onsuccess = () => {
+            keys = keysRequest.result;
+            
+            // Объединяем ключи и значения
+            keys.forEach((key, index) => {
+              if (key.includes('site-images-metadata-') || 
+                  key.includes('card-image-metadata-') ||
+                  (key.includes('card_') && key.includes('_ImageMetadata'))) {
+                results[key] = values[index];
+              }
+            });
+            
+            console.log(`🗄️ Retrieved ${Object.keys(results).length} metadata entries from IndexedDB`);
+            resolve(results);
+          };
+          
+          keysRequest.onerror = () => reject(keysRequest.error);
+        };
+        
+        request.onerror = () => reject(request.error);
+      });
     } catch (error) {
       console.error('Error getting all metadata:', error);
       return {};
@@ -195,22 +262,56 @@ class ImageCacheService {
     try {
       const db = await this.init();
       if (db) {
-        const transaction = this.db.transaction([this.storeName], 'readwrite');
-        const store = transaction.objectStore(this.storeName);
-        await store.clear();
+        // Очистить изображения
+        const imagesTransaction = this.db.transaction([this.storeName], 'readwrite');
+        const imagesStore = imagesTransaction.objectStore(this.storeName);
+        await new Promise((resolve, reject) => {
+          const request = imagesStore.clear();
+          request.onsuccess = () => resolve();
+          request.onerror = () => reject(request.error);
+        });
+
+        // Очистить метаданные
+        const metadataTransaction = this.db.transaction(['metadata'], 'readwrite');
+        const metadataStore = metadataTransaction.objectStore('metadata');
+        await new Promise((resolve, reject) => {
+          const request = metadataStore.clear();
+          request.onsuccess = () => resolve();
+          request.onerror = () => reject(request.error);
+        });
       }
       
-      // Очистить метаданные
-      const keys = Object.keys(localStorage);
-      keys.forEach(key => {
-        if (key.startsWith('site-images-metadata-')) {
-          localStorage.removeItem(key);
-        }
-      });
-      
-      console.log('Image cache cleared successfully');
+      console.log('🗄️ Image cache and metadata cleared successfully from IndexedDB');
     } catch (error) {
       console.error('Error clearing cache:', error);
+    }
+  }
+
+  // Получить все ключи метаданных
+  async getAllMetadataKeys() {
+    try {
+      const db = await this.init();
+      if (!db) return [];
+      
+      return new Promise((resolve, reject) => {
+        const transaction = this.db.transaction(['metadata'], 'readonly');
+        const store = transaction.objectStore('metadata');
+        const request = store.getAllKeys();
+
+        request.onsuccess = () => {
+          const allKeys = request.result || [];
+          const filteredKeys = allKeys.filter(key => 
+            key.includes('site-images-metadata-') || 
+            key.includes('card-image-metadata-') ||
+            (key.includes('card_') && key.includes('_ImageMetadata'))
+          );
+          resolve(filteredKeys);
+        };
+        request.onerror = () => reject(request.error);
+      });
+    } catch (error) {
+      console.error('Error getting all metadata keys:', error);
+      return [];
     }
   }
 
@@ -218,7 +319,7 @@ class ImageCacheService {
   async getCacheStats() {
     try {
       const keys = await this.getAllImageKeys();
-      const metadata = this.getAllMetadata();
+      const metadata = await this.getAllMetadata();
       
       let totalSize = 0;
       const images = [];
@@ -252,6 +353,67 @@ class ImageCacheService {
   isCacheAvailable() {
     return typeof window !== 'undefined' && window.indexedDB && window.localStorage;
   }
+
+  // Псевдоним для deleteImage для совместимости
+  async removeImage(key) {
+    return this.deleteImage(key);
+  }
+
+  // Полная очистка кеша карточек для отладки
+  async clearAllCardImages() {
+    try {
+      console.log('🗑️ CLEARING ALL CARD IMAGES...');
+      
+      // Получаем все ключи localStorage
+      const allKeys = Object.keys(localStorage);
+      
+      // Находим все ключи, связанные с карточками
+      const cardKeys = allKeys.filter(key => 
+        key.startsWith('card-image-metadata-') || 
+        (key.startsWith('site-images-') && key.includes('card_'))
+      );
+      
+      console.log(`🗑️ Found ${cardKeys.length} card-related keys to remove:`, cardKeys);
+      
+      // Удаляем все найденные ключи
+      for (const key of cardKeys) {
+        try {
+          if (key.startsWith('card-image-metadata-')) {
+            // Это метаданные - пробуем удалить связанный blob
+            const metadata = JSON.parse(localStorage.getItem(key));
+            if (metadata && metadata.fileName) {
+              await this.deleteImage(metadata.fileName);
+              console.log(`🗑️ Deleted blob: ${metadata.fileName}`);
+            }
+          }
+          
+          // Удаляем ключ из localStorage
+          localStorage.removeItem(key);
+          console.log(`🗑️ Removed key: ${key}`);
+        } catch (error) {
+          console.warn(`⚠️ Error removing ${key}:`, error);
+          // Принудительно удаляем даже при ошибке
+          localStorage.removeItem(key);
+        }
+      }
+      
+      console.log(`🗑️ Card cache cleanup completed. Removed ${cardKeys.length} keys.`);
+      return cardKeys.length;
+      
+    } catch (error) {
+      console.error('Error clearing card images cache:', error);
+      return 0;
+    }
+  }
 }
 
-export const imageCacheService = new ImageCacheService(); 
+export const imageCacheService = new ImageCacheService();
+
+// Глобальная функция для отладки (доступна в консоли браузера)
+if (typeof window !== 'undefined') {
+  window.clearCardImagesCache = async () => {
+    const count = await imageCacheService.clearAllCardImages();
+    console.log(`🎉 Cleared ${count} card images from cache!`);
+    return count;
+  };
+} 

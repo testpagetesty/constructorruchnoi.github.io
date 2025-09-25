@@ -310,7 +310,7 @@ const MultiPagePreview = ({
   };
 
   // Функция для рендеринга элементов контента
-  const renderContentElement = (element, sectionId) => {
+  const renderContentElement = (element, sectionId, section = null) => {
     if (!element || !element.type) {
       console.warn('[MultiPagePreview] Invalid element:', element);
       return null;
@@ -1138,7 +1138,15 @@ const MultiPagePreview = ({
       case 'image-card':
       case 'imagecard':
         try {
-          return <ImageCard {...elementProps} />;
+          return <ImageCard 
+            key={`${sectionId}-${element.id}`}
+            {...elementProps}
+            // 🔥 ИСПРАВЛЕНИЕ: Передаем правильные ID
+            id={element.id}
+            cardId={element.id}
+            sectionId={sectionId}
+            sectionTitle={section?.title || section?.data?.title}
+          />;
         } catch (error) {
           console.error('[MultiPagePreview] Error rendering ImageCard:', error);
           return <Box sx={{ p: 2, border: '1px dashed #ff0000', borderRadius: 1, mb: 2 }}>
@@ -1837,7 +1845,7 @@ const MultiPagePreview = ({
                         </Box>
                         {featuredSection.data.elements.map((element) => (
                           <Box key={element.id} sx={{ mb: 3 }}>
-                            {renderContentElement(element, featuredSection.id)}
+                            {renderContentElement(element, featuredSection.id, featuredSection)}
                           </Box>
                         ))}
                       </Box>
@@ -1919,8 +1927,8 @@ const MultiPagePreview = ({
                     </Button>
                   </Box>
                   {section.data.elements.map((element) => (
-                    <Box key={element.id} sx={{ mb: 3 }}>
-                      {renderContentElement(element, section.id)}
+                    <Box key={`${section.id}-${element.id}`} sx={{ mb: 3 }}>
+                      {renderContentElement(element, section.id, section)}
                     </Box>
                   ))}
                 </Box>
@@ -2056,8 +2064,8 @@ const MultiPagePreview = ({
               </Box>
               {console.log(`[MultiPagePreview] Section ${sectionData.id} has ${sectionData.contentElements.length} content elements:`, sectionData.contentElements)}
               {sectionData.contentElements.map((element) => (
-                <Box key={element.id} sx={{ mb: 3 }}>
-                  {renderContentElement(element, sectionData.id)}
+                <Box key={`${sectionData.id}-${element.id}`} sx={{ mb: 3 }}>
+                  {renderContentElement(element, sectionData.id, sectionData)}
                 </Box>
               ))}
             </Box>

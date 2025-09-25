@@ -3306,7 +3306,7 @@ const EditorPanel = ({
     }
   };
   // Функция для генерации HTML элементов контента
-  const generateContentElementHTML = (element, isMultiPage = false) => {
+  const generateContentElementHTML = (element, isMultiPage = false, currentSectionId = null) => {
     const elementId = `element-${element.id}`;
     
     // Извлекаем данные элемента
@@ -4583,24 +4583,100 @@ const EditorPanel = ({
           opacity: ${imageCardColorSettings.imageOpacity || 1};
         `;
         
+        // 🔥 ВЫНЕСЛИ НАРУЖУ: Определяем правильный путь к изображению для экспорта
+        // Проверяем, что это не заглушка
+        const isPlaceholder = element.imageUrl && (
+          element.imageUrl.includes('placeholder') || 
+          element.imageUrl.includes('via.placeholder') || 
+          element.imageUrl.includes('text=Изображение')
+        );
+        const shouldShowImage = element.imageUrl && element.imageUrl.trim() && !isPlaceholder;
+        
+        console.log(`🖼️ EditorPanel image check: imageUrl="${element.imageUrl}", isPlaceholder=${isPlaceholder}, shouldShow=${shouldShowImage}`);
+        
+        // Определяем правильный путь к изображению для экспорта
+        let finalImageSrc = 'assets/images/placeholder.svg';
+        
+        // Проверяем глобальный маппинг экспортированных изображений
+        console.log(`🖼️ EditorPanel checking mapping for element.id: ${element.id}, sectionId: ${currentSectionId}`);
+        console.log(`🖼️ EditorPanel window.cardImageFileMap exists:`, !!window.cardImageFileMap);
+        console.log(`🖼️ EditorPanel window.cardImageFileMap size:`, window.cardImageFileMap ? window.cardImageFileMap.size : 0);
+        
+        if (window.cardImageFileMap && element.id && currentSectionId) {
+          // ПРИОРИТЕТ 1: Пытаемся найти по uniqueKey формата "cardId__SECTION__sectionId"
+          const uniqueKey = `${element.id}__SECTION__${currentSectionId}`;
+          const exportedFileName = window.cardImageFileMap.get(uniqueKey);
+          if (exportedFileName) {
+            finalImageSrc = `assets/images/${exportedFileName}`;
+            console.log(`🖼️ EditorPanel using exported file from uniqueKey: ${finalImageSrc} (uniqueKey: ${uniqueKey})`);
+          } else {
+            // ПРИОРИТЕТ 2: Пытаемся найти по ID элемента (для обратной совместимости)
+            const fallbackFileName = window.cardImageFileMap.get(element.id);
+            if (fallbackFileName) {
+              finalImageSrc = `assets/images/${fallbackFileName}`;
+              console.log(`🖼️ EditorPanel using exported file from elementId: ${finalImageSrc} (elementId: ${element.id})`);
+            } else {
+              console.log(`🖼️ EditorPanel no mapping found for uniqueKey: ${uniqueKey} or elementId: ${element.id}`);
+              console.log(`🖼️ EditorPanel available mapping keys:`, Array.from(window.cardImageFileMap.keys()));
+              
+              // ПРИОРИТЕТ 3: Попробуем найти по pattern matching
+              for (const [key, fileName] of window.cardImageFileMap.entries()) {
+                if (key.includes(element.id) && key.includes(currentSectionId)) {
+                  finalImageSrc = `assets/images/${fileName}`;
+                  console.log(`🖼️ EditorPanel found by pattern matching: ${finalImageSrc} (key: ${key})`);
+                  break;
+                }
+              }
+            }
+          }
+        } else if (window.cardImageFileMap && element.id) {
+          // Fallback если нет currentSectionId
+          const exportedFileName = window.cardImageFileMap.get(element.id);
+          if (exportedFileName) {
+            finalImageSrc = `assets/images/${exportedFileName}`;
+            console.log(`🖼️ EditorPanel using exported file (no sectionId): ${finalImageSrc} (elementId: ${element.id})`);
+          }
+        }
+        
+        // Fallback логика если не нашли в маппинге
+        if (finalImageSrc === 'assets/images/placeholder.svg') {
+          if (element.fileName && element.fileName.startsWith('card_')) {
+            // Используем fileName если он есть и это карточка
+            finalImageSrc = `assets/images/${element.fileName}`;
+            console.log(`🖼️ EditorPanel using fileName: ${finalImageSrc}`);
+          } else if (element.imageUrl && !isPlaceholder) {
+            // Если нет fileName но есть imageUrl и это не placeholder
+            if (element.imageUrl.startsWith('blob:')) {
+              // Для blob URL пытаемся найти соответствующий экспортированный файл
+              console.log(`🖼️ EditorPanel found blob URL, using placeholder for now: ${element.imageUrl}`);
+              // В будущем здесь можно добавить логику поиска по метаданным
+            } else {
+              // Внешний URL - используем как есть
+              finalImageSrc = element.imageUrl;
+              console.log(`🖼️ EditorPanel using external URL: ${finalImageSrc}`);
+            }
+          }
+        }
+        
+        console.log(`🖼️ EditorPanel FINAL IMAGE SRC: ${finalImageSrc}`);
+
         return `
           <div id="${elementId}" class="content-element image-card" style="${imageCardContainerStyles} cursor: pointer;" onclick="openModal${elementId.replace(/-/g, '_')}()">
-            ${element.imageUrl ? `
-              <img src="${element.imageUrl}" alt="${element.imageAlt || ''}" style="${imageStyles}">
-            ` : `
-              <div style="
-                width: 100%;
-                height: 200px;
-                background: linear-gradient(45deg, #f0f0f0, #e0e0e0);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: #999;
-                font-size: 1.2rem;
-              ">
-                Изображение
-              </div>
-            `}
+            ${(() => {
+              
+              // Всегда показываем контейнер изображения для правильной структуры
+              return `
+                <div class="service-image" style="
+                  width: 100%;
+                  height: 200px;
+                  overflow: hidden;
+                  border-radius: ${imageCardColorSettings.borderRadius || 12}px;
+                  margin-bottom: 1rem;
+                ">
+                  <img src="${finalImageSrc}" alt="${element.imageAlt || ''}" style="${imageStyles}">
+                </div>
+              `;
+            })()}
             <div style="padding: ${imageCardColorSettings.padding || 24}px;">
               <h3 style="
                 color: ${imageCardTitleColor};
@@ -4629,18 +4705,21 @@ const EditorPanel = ({
             height: 100%;
             background-color: rgba(0,0,0,0.5);
             backdrop-filter: blur(5px);
+            justify-content: center;
+            align-items: center;
           ">
             <div style="
               position: relative;
               background-color: transparent;
               margin: 5% auto;
               padding: 0;
-              width: 90%;
-              max-width: 800px;
+              width: auto;
+              max-width: 90vw;
               max-height: 90vh;
               overflow: auto;
               border-radius: 16px;
               box-shadow: none;
+              display: inline-block;
             ">
               <!-- Контент модального окна -->
               <div id="modal-content-${elementId.replace(/-/g, '_')}" style="
@@ -4654,21 +4733,32 @@ const EditorPanel = ({
                 padding: ${imageCardColorSettings.padding || 24}px;
                 box-shadow: ${imageCardColorSettings.boxShadow ? '0 8px 32px rgba(0,0,0,0.15)' : '0 4px 12px rgba(0,0,0,0.1)'};
                 opacity: ${imageCardColorSettings.sectionBackground?.opacity || 1};
+                width: auto;
+                max-width: 90vw;
+                max-height: 90vh;
+                overflow: auto;
               ">
-                ${element.imageUrl ? `
-                  <div style="
+                ${finalImageSrc && finalImageSrc !== 'assets/images/placeholder.svg' ? `
+                  <div id="modal-image-container-${elementId.replace(/-/g, '_')}" style="
                     width: 100%;
-                    height: 300px;
                     margin-bottom: 24px;
                     border-radius: ${imageCardColorSettings.borderRadius || 12}px;
                     overflow: hidden;
-                    flex-shrink: 0;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
                   ">
-                    <img src="${element.imageUrl}" alt="${element.imageAlt || ''}" style="
-                      width: 100%;
-                      height: 100%;
-                      object-fit: cover;
-                    ">
+                    <img id="modal-image-${elementId.replace(/-/g, '_')}" src="${finalImageSrc}" alt="${element.imageAlt || ''}" style="
+                      max-width: calc(90vw - 48px);
+                      max-height: calc(80vh - 150px);
+                      width: auto;
+                      height: auto;
+                      object-fit: contain;
+                      cursor: zoom-in;
+                      transition: transform 0.3s ease;
+                      border-radius: ${imageCardColorSettings.borderRadius || 12}px;
+                      display: block;
+                    " onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
                   </div>
                 ` : ''}
                 <h2 style="
@@ -4703,7 +4793,7 @@ const EditorPanel = ({
               if (modal && modalContent) {
                 console.log('🔥 [ImageCard Modal] Элементы найдены, показываем модальное окно...');
                 
-                modal.style.display = 'block';
+                modal.style.display = 'flex';
                 
                 // Анимация появления
                 modalContent.style.opacity = '0';
@@ -6078,8 +6168,7 @@ const EditorPanel = ({
                   " onclick="openMultipleCardModal${elementId.replace(/-/g, '_')}(${index})" data-card-index="${index}" 
                      onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.15)'" 
                      onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='${cardBoxShadow}'">
-                    ${card.imageUrl ? `
-                      <div style="
+                    <div class="service-image" style="
                         width: 100%;
                         height: 140px;
                         margin-bottom: 1rem;
@@ -6087,14 +6176,41 @@ const EditorPanel = ({
                         overflow: hidden;
                         flex-shrink: 0;
                       ">
-                        <img src="${card.imageUrl}" alt="${card.imageAlt || card.title || 'Изображение'}" style="
+                      <img src="${(() => {
+                        // Определяем правильный путь к изображению для карточки
+                        let cardImageSrc = 'assets/images/placeholder.svg';
+                        
+                        // Проверяем глобальный маппинг экспортированных изображений
+                        if (window.cardImageFileMap && card.id) {
+                          const exportedFileName = window.cardImageFileMap.get(card.id);
+                          if (exportedFileName) {
+                            cardImageSrc = 'assets/images/' + exportedFileName;
+                            console.log('🖼️ Multiple-cards using exported file: ' + cardImageSrc + ' (cardId: ' + card.id + ')');
+                          } else {
+                            console.log('🖼️ Multiple-cards no mapping found for card ID: ' + card.id);
+                          }
+                        }
+                        
+                        // Fallback логика
+                        if (cardImageSrc === 'assets/images/placeholder.svg') {
+                          if (card.fileName && card.fileName.startsWith('card_')) {
+                            cardImageSrc = 'assets/images/' + card.fileName;
+                            console.log('🖼️ Multiple-cards using fileName: ' + cardImageSrc);
+                          } else if (card.imageUrl && card.imageUrl.trim() && !card.imageUrl.includes('placeholder')) {
+                            cardImageSrc = card.imageUrl;
+                            console.log('🖼️ Multiple-cards using imageUrl: ' + cardImageSrc);
+                          }
+                        }
+                        
+                        console.log('🖼️ Multiple-cards FINAL SRC: ' + cardImageSrc);
+                        return cardImageSrc;
+                      })()}" alt="${card.imageAlt || card.title || 'Изображение'}" style="
                           width: 100%;
                           height: 100%;
                           object-fit: cover;
                   transition: transform 0.3s ease;
                         " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
                       </div>
-                    ` : ''}
                     ${card.title ? `
                   <h4 style="
                         color: ${cardTitleColor};
@@ -11015,6 +11131,29 @@ const EditorPanel = ({
         z-index: 2;
       }
 
+      /* Service image styles for image cards */
+      .service-image {
+        width: 100%;
+        overflow: hidden;
+        position: relative;
+        background: #f8f9fa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+      }
+
+      .service-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+      }
+
+      .service-image:hover img {
+        transform: scale(1.05);
+      }
+
       /* Card headings and text */
       .card-title {
         color: #1a237e;
@@ -14425,7 +14564,7 @@ const EditorPanel = ({
             console.log('First card customStyles:', element.cards[0].customStyles);
           }
         }
-      return generateContentElementHTML(element, true); // true = многостраничный режим
+      return generateContentElementHTML(element, true, sectionId); // true = многостраничный режим, передаем sectionId
     }).join('');
     
     return `<!DOCTYPE html>
@@ -15713,10 +15852,140 @@ const EditorPanel = ({
 </urlset>`;
   };
 
+  // Функция для предварительного экспорта изображений карточек (для создания маппинга)
+  const exportCardImagesForHTML = async () => {
+    console.log('🔥EXPORT🔥 exportCardImagesForHTML STARTED!');
+    
+    try {
+      // Получаем все ключи метаданных
+      const allKeys = await imageCacheService.getAllMetadataKeys();
+      console.log(`🔥EXPORT🔥 Total metadata keys: ${allKeys.length}`);
+
+      // Ищем все возможные ключи изображений карточек
+      const cardImageKeys = allKeys.filter(key => key.startsWith('card-image-metadata-'));
+      const newStyleCardKeys = allKeys.filter(key => key.match(/^card_\w+_.*_ImageMetadata$/));
+      
+      console.log(`🔥EXPORT🔥 Found ${cardImageKeys.length} old-style card image keys`);
+      console.log(`🔥EXPORT🔥 Found ${newStyleCardKeys.length} new-style card metadata keys`);
+
+      // Получаем текущие карточки на сайте
+      const currentCardIds = new Set();
+      
+      console.log(`🔥EXPORT🔥 sectionsData type:`, typeof sectionsData);
+      console.log(`🔥EXPORT🔥 sectionsData isArray:`, Array.isArray(sectionsData));
+      console.log(`🔥EXPORT🔥 sectionsData keys:`, Object.keys(sectionsData));
+      
+      if (Array.isArray(sectionsData)) {
+        // Если это массив
+        sectionsData.forEach(sectionData => {
+          [sectionData.elements, sectionData.contentElements, sectionData.cards].forEach(elements => {
+            if (elements) {
+              elements.forEach(element => {
+                if ((element.type === 'image-card' || element.type === 'card') && element.id) {
+                  const uniqueKey = `${element.id}__SECTION__${sectionData.id}`;
+                  currentCardIds.add(uniqueKey);
+                }
+              });
+            }
+          });
+        });
+      } else if (sectionsData && typeof sectionsData === 'object') {
+        // Если это объект
+        Object.entries(sectionsData).forEach(([sectionId, sectionData]) => {
+          console.log(`🔥EXPORT🔥 Processing section object: ${sectionId}`, sectionData);
+          [sectionData.elements, sectionData.contentElements, sectionData.cards].forEach(elements => {
+            if (elements) {
+              elements.forEach(element => {
+                if ((element.type === 'image-card' || element.type === 'card') && element.id) {
+                  const uniqueKey = `${element.id}__SECTION__${sectionData.id}`;
+                  currentCardIds.add(uniqueKey);
+                  console.log(`🔥EXPORT🔥 Added card to pre-export: ${uniqueKey}`);
+                }
+              });
+            }
+          });
+        });
+      }
+
+      console.log(`🔥EXPORT🔥 Found ${currentCardIds.size} current cards on site`);
+
+      // Создаем маппинг изображений карточек
+      const cardImagesMap = new Map();
+      
+      // Обрабатываем новый стиль метаданных
+      for (const key of newStyleCardKeys) {
+        try {
+          const metadata = await imageCacheService.getMetadata(key);
+          if (metadata && metadata.cardId && metadata.sectionId) {
+            const uniqueKey = `${metadata.cardId}__SECTION__${metadata.sectionId}`;
+            if (currentCardIds.has(uniqueKey)) {
+              const uploadDate = new Date(metadata.lastModified || metadata.uploadDate);
+              const existing = cardImagesMap.get(uniqueKey);
+              
+              if (!existing || uploadDate > existing.uploadDate) {
+                cardImagesMap.set(uniqueKey, {
+                  metadata: {
+                    fileName: metadata.filename || metadata.fileName,
+                    uploadDate: metadata.lastModified || metadata.uploadDate
+                  },
+                  cardId: metadata.cardId,
+                  sectionId: metadata.sectionId,
+                  uploadDate
+                });
+              }
+            }
+          }
+        } catch (error) {
+          console.warn(`🔥EXPORT🔥 Error processing ${key}:`, error);
+        }
+      }
+
+      console.log(`🔥EXPORT🔥 Processing ${cardImagesMap.size} unique cards with images`);
+
+      // Create a map for card image filenames
+      const cardImageFileMap = new Map();
+      
+      // Export images and create mapping
+      for (const [uniqueCardKey, imageInfo] of cardImagesMap) {
+        try {
+          const metadata = imageInfo.metadata;
+          const cardId = imageInfo.cardId;
+          const sectionId = imageInfo.sectionId;
+          
+          // Generate deterministic filename
+          const cardHash = cardId.split('_').pop() || cardId.substring(0, 8);
+          const sectionHash = sectionId.split('_').pop() || sectionId.substring(0, 8);
+          const deterministicHash = (cardId + '_' + sectionId).split('').reduce((a, b) => {
+            a = ((a << 5) - a) + b.charCodeAt(0);
+            return a & a;
+          }, 0).toString(36).substring(0, 6);
+          const cleanFileName = `card_${sectionHash}_${cardHash}_${deterministicHash}.jpg`;
+          
+          // Store mapping
+          cardImageFileMap.set(uniqueCardKey, cleanFileName);
+          cardImageFileMap.set(cardId, cleanFileName);
+          
+          console.log(`🔥EXPORT🔥 Pre-mapped: ${uniqueCardKey} -> ${cleanFileName}`);
+        } catch (error) {
+          console.error(`🔥EXPORT🔥 Error pre-mapping card:`, error);
+        }
+      }
+
+      // Store the mapping globally for HTML generation
+      window.cardImageFileMap = cardImageFileMap;
+      
+      console.log(`🔥EXPORT🔥 Pre-export mapping completed: ${cardImageFileMap.size} entries`);
+      console.log(`🔥EXPORT🔥 Mapping keys:`, Array.from(cardImageFileMap.keys()));
+      
+    } catch (error) {
+      console.error('🔥EXPORT🔥 Error in exportCardImagesForHTML:', error);
+    }
+  };
+
   const handleDownloadSite = async () => {
-    console.log('🚀🚀🚀 [DEBUG] handleDownloadSite STARTED!');
-    console.log('🔧 [DEBUG] currentConstructorMode:', currentConstructorMode);
-    console.log('🔧 [DEBUG] sectionsData:', sectionsData);
+    console.log('🔥EXPORT🔥 handleDownloadSite STARTED!');
+    console.log('🔥EXPORT🔥 currentConstructorMode:', currentConstructorMode);
+    console.log('🔥EXPORT🔥 sectionsData:', sectionsData);
 
     try {
       const zip = new JSZip();
@@ -16012,6 +16281,10 @@ const EditorPanel = ({
       } else {
         // Ручной режим - генерируем многостраничный сайт
         console.log('📄📄📄 USING MULTI-PAGE MODE (Manual mode) 📄📄📄');
+        
+        // СНАЧАЛА экспортируем изображения карточек, чтобы создать маппинг
+        console.log('🔥EXPORT🔥 Pre-exporting card images for HTML generation...');
+        await exportCardImagesForHTML();
         
         // Генерируем главную страницу
         const indexContent = generateMultiPageIndex(siteData);
@@ -16488,6 +16761,11 @@ if (file_put_contents($sitemapFile, $updatedContent) !== false) {
         console.error('Error getting site background image from cache:', error);
       }
 
+      // 🔥 НОВОЕ: Get all metadata keys from IndexedDB instead of localStorage
+      console.log('🔥EXPORT🔥 Getting all metadata keys from IndexedDB...');
+      const allKeys = await imageCacheService.getAllMetadataKeys();
+      console.log(`🔥EXPORT🔥 Total metadata keys from IndexedDB: ${allKeys.length}`);
+
       // Export gallery images
       console.log('🖼️ [handleDownloadSite] Начинаем экспорт изображений галереи');
       try {
@@ -16496,7 +16774,6 @@ if (file_put_contents($sitemapFile, $updatedContent) !== false) {
         
         // Отладочная информация о кеше
         console.log('🖼️ [handleDownloadSite] Проверяем содержимое localStorage:');
-        const allKeys = Object.keys(localStorage);
         const imageKeys = allKeys.filter(key => key.includes('image') || key.includes('gallery'));
         console.log('🖼️ [handleDownloadSite] Ключи с изображениями:', imageKeys);
         imageKeys.forEach(key => {
@@ -16698,6 +16975,436 @@ if (file_put_contents($sitemapFile, $updatedContent) !== false) {
         console.log(`🖼️ [handleDownloadSite] Экспорт завершен. Обработано изображений: ${processedImages.size}`);
       } catch (error) {
         console.error('Error exporting gallery images:', error);
+      }
+
+      // Export card images (only latest for each card)
+      console.log('🔥EXPORT🔥 Starting card images export...');
+      try {
+        // Ищем все возможные ключи изображений
+        const cardImageKeys = allKeys.filter(key => key.startsWith('card-image-metadata-'));
+        const allImageKeys = allKeys.filter(key => key.includes('image') || key.includes('card'));
+        const siteImageKeys = allKeys.filter(key => key.startsWith('site-images-metadata-'));
+        // NEW: keys saved by ImageCard.jsx like card_<cardId>_<sectionId>_ImageMetadata
+        const newStyleCardKeys = allKeys.filter(key => key.startsWith('card_') && key.endsWith('_ImageMetadata'));
+        
+        console.log(`🔥EXPORT🔥 Found ${cardImageKeys.length} card image keys:`, cardImageKeys);
+        console.log(`🔥EXPORT🔥 Found ${allImageKeys.length} ALL image-related keys:`, allImageKeys.slice(0, 20));
+        console.log(`🔥EXPORT🔥 Found ${siteImageKeys.length} site image keys:`, siteImageKeys.slice(0, 10));
+        console.log(`🔥EXPORT🔥 Found ${newStyleCardKeys.length} NEW-STYLE card metadata keys:`, newStyleCardKeys.slice(0, 10));
+        
+        // Сначала получаем список всех актуальных карточек на сайте
+        console.log('🔥EXPORT🔥 Getting current cards from site...');
+        const currentCardIds = new Set();
+        
+        // Проходим по всем секциям и собираем ID актуальных карточек
+        console.log(`🔥EXPORT🔥 siteData.sectionsData structure:`, siteData.sectionsData);
+        
+        // Проверяем два формата данных: объект с ключами и массив
+        if (Array.isArray(siteData.sectionsData)) {
+          // Если это массив
+          siteData.sectionsData.forEach((sectionData, index) => {
+            const sectionId = sectionData.id || index;
+            console.log(`🔥EXPORT🔥 Checking section ${sectionId} (array format) for cards...`);
+            console.log(`🔥EXPORT🔥 Section data:`, sectionData);
+            
+            // Проверяем все возможные места, где могут быть карточки
+            [sectionData.elements, sectionData.contentElements, sectionData.cards].forEach((elements, elemIndex) => {
+              if (elements) {
+                console.log(`🔥EXPORT🔥 Found ${elements.length} elements in group ${elemIndex}:`, elements);
+                elements.forEach(element => {
+                  if ((element.type === 'image-card' || element.type === 'card') && element.id) {
+                    const uniqueKey = `${element.id}__SECTION__${sectionId}`;
+                    currentCardIds.add(uniqueKey);
+                    console.log(`🔥EXPORT🔥 Found current card (array): ${uniqueKey}`);
+                    
+                    // Проверяем, есть ли изображение прямо в данных карточки
+                    if (element.imageUrl || element.image) {
+                      console.log(`🔥EXPORT🔥 Card has direct image: imageUrl=${element.imageUrl}, image=${element.image}`);
+                      
+                      // Если это blob URL, пытаемся найти соответствующий файл
+                      if (element.imageUrl && element.imageUrl.startsWith('blob:')) {
+                        console.log(`🔥EXPORT🔥 Card has blob image, fileName=${element.fileName}`);
+                      }
+                    }
+                  }
+                });
+              }
+            });
+          });
+        } else {
+          // Если это объект
+          Object.entries(siteData.sectionsData || {}).forEach(([sectionId, sectionData]) => {
+            console.log(`🔥EXPORT🔥 Checking section ${sectionId} (object format) for cards...`);
+            console.log(`🔥EXPORT🔥 Section data:`, sectionData);
+            
+            // Проверяем все возможные места, где могут быть карточки
+            [sectionData.elements, sectionData.contentElements, sectionData.cards].forEach((elements, elemIndex) => {
+              if (elements) {
+                console.log(`🔥EXPORT🔥 Found ${elements.length} elements in group ${elemIndex}:`, elements);
+                elements.forEach(element => {
+                  if ((element.type === 'image-card' || element.type === 'card') && element.id) {
+                    const uniqueKey = `${element.id}__SECTION__${sectionId}`;
+                    currentCardIds.add(uniqueKey);
+                    console.log(`🔥EXPORT🔥 Found current card (object): ${uniqueKey}`);
+                    
+                    // Проверяем, есть ли изображение прямо в данных карточки
+                    if (element.imageUrl || element.image) {
+                      console.log(`🔥EXPORT🔥 Card has direct image: imageUrl=${element.imageUrl}, image=${element.image}`);
+                      
+                      // Если это blob URL, пытаемся найти соответствующий файл
+                      if (element.imageUrl && element.imageUrl.startsWith('blob:')) {
+                        console.log(`🔥EXPORT🔥 Card has blob image, fileName=${element.fileName}`);
+                      }
+                    }
+                  }
+                });
+              }
+            });
+          });
+        }
+        
+        console.log(`🔥EXPORT🔥 Found ${currentCardIds.size} current cards on site:`, Array.from(currentCardIds));
+
+        // Теперь очищаем "призрачные" метаданные (метаданные без blob'ов) и устаревшие карточки
+        console.log('🔥EXPORT🔥 Cleaning phantom and obsolete metadata...');
+        const phantomKeys = [];
+        const obsoleteKeys = [];
+        
+        for (const key of cardImageKeys) {
+          try {
+            const metadata = await imageCacheService.getMetadata(key);
+            if (metadata && metadata.fileName) {
+              const cardId = metadata.cardId;
+              const sectionId = metadata.sectionId || 'default-section';
+              const uniqueKey = `${cardId}__SECTION__${sectionId}`;
+              
+              // Проверяем, существует ли эта карточка на сайте
+              if (!currentCardIds.has(uniqueKey)) {
+                obsoleteKeys.push(key);
+                // Удаляем blob
+                try {
+                  await imageCacheService.deleteImage(metadata.fileName);
+                  console.log(`🔥EXPORT🔥 Removed obsolete blob: ${metadata.fileName}`);
+                } catch (e) {
+                  console.warn(`🔥EXPORT🔥 Could not remove blob: ${metadata.fileName}`);
+                }
+                // Удаляем метаданные
+                await imageCacheService.deleteMetadata(key);
+                console.log(`🔥EXPORT🔥 Removed OBSOLETE metadata for non-existent card: ${key} (uniqueKey: ${uniqueKey})`);
+                continue;
+              }
+              
+              // Проверяем, есть ли blob
+              const blob = await imageCacheService.getImage(metadata.fileName);
+              if (!blob) {
+                phantomKeys.push(key);
+                await imageCacheService.deleteMetadata(key);
+                console.log(`🔥EXPORT🔥 Removed phantom metadata: ${key}`);
+              }
+            }
+          } catch (error) {
+            phantomKeys.push(key);
+            await imageCacheService.deleteMetadata(key);
+            console.log(`🔥EXPORT🔥 Removed corrupted metadata: ${key}`);
+          }
+        }
+        
+        // Получаем обновленный список ключей после очистки
+        const cleanCardImageKeys = allKeys.filter(key => 
+          key.startsWith('card-image-metadata-') && 
+          !phantomKeys.includes(key) &&
+          !obsoleteKeys.includes(key)
+        );
+        
+        console.log(`🔥EXPORT🔥 After cleanup: ${cleanCardImageKeys.length} valid keys (removed ${phantomKeys.length} phantom keys, ${obsoleteKeys.length} obsolete keys)`);
+        
+        // Group images by cardId+sectionId combination and keep only the latest one
+        const cardImagesMap = new Map();
+        
+        for (const key of cleanCardImageKeys) {
+          try {
+            const metadata = await imageCacheService.getMetadata(key);
+            const cardId = metadata.cardId;
+            const sectionId = metadata.sectionId || 'unknown-section';
+            // Создаем уникальный ключ: cardId + sectionId
+            const uniqueCardKey = `${cardId}__SECTION__${sectionId}`;
+            const uploadDate = new Date(metadata.uploadDate);
+            
+            console.log(`🔥EXPORT🔥 Found image for unique card ${uniqueCardKey}:`);
+            console.log(`  - fileName: ${metadata.fileName}`);
+            console.log(`  - uploadDate: ${metadata.uploadDate}`);
+            console.log(`  - cardTitle: ${metadata.cardTitle}`);
+            console.log(`  - sectionId: ${metadata.sectionId}`);
+            console.log(`  - sectionTitle: ${metadata.sectionTitle}`);
+            console.log(`  - FULL cardId: "${cardId}"`);
+            console.log(`  - uniqueCardKey: "${uniqueCardKey}"`);
+            
+            if (!cardImagesMap.has(uniqueCardKey) || uploadDate > cardImagesMap.get(uniqueCardKey).uploadDate) {
+              cardImagesMap.set(uniqueCardKey, {
+                key: key,
+                metadata: metadata,
+                uploadDate: uploadDate,
+                cardId: cardId,
+                sectionId: sectionId
+              });
+              console.log(`🔥EXPORT🔥 Updated LATEST image for unique card ${uniqueCardKey}: ${metadata.fileName} (${metadata.uploadDate})`);
+            } else {
+              console.log(`🔥EXPORT🔥 Skipping OLDER image for unique card ${uniqueCardKey}: ${metadata.fileName} (${metadata.uploadDate})`);
+            }
+          } catch (error) {
+            console.error(`🔥EXPORT🔥 Error parsing metadata for ${key}:`, error);
+          }
+        }
+
+        // NEW: also consider NEW-STYLE card metadata keys
+        for (const key of newStyleCardKeys) {
+          try {
+            console.log(`🔥EXPORT🔥 [NEW-STYLE] Processing key: ${key}`);
+            const metadata = await imageCacheService.getMetadata(key);
+            console.log(`🔥EXPORT🔥 [NEW-STYLE] Raw metadata:`, metadata);
+            
+            if (!metadata || !metadata.filename) {
+              console.log(`🔥EXPORT🔥 [NEW-STYLE] Skipping - no metadata or filename`);
+              continue;
+            }
+            
+            const cardId = metadata.cardId; // saved by ImageCard
+            const sectionId = metadata.sectionId;
+            console.log(`🔥EXPORT🔥 [NEW-STYLE] cardId: ${cardId}, sectionId: ${sectionId}`);
+            
+            if (!cardId || !sectionId) {
+              // fallback: derive from key if fields missing
+              const raw = key.substring('card_'.length, key.length - '_ImageMetadata'.length);
+              const parts = raw.split('_');
+              const sid = parts.pop();
+              const cid = parts.join('_');
+              metadata.cardId = metadata.cardId || cid;
+              metadata.sectionId = metadata.sectionId || sid;
+              console.log(`🔥EXPORT🔥 [NEW-STYLE] Fallback - cardId: ${metadata.cardId}, sectionId: ${metadata.sectionId}`);
+            }
+            
+            const uniqueKey = `${metadata.cardId}__SECTION__${metadata.sectionId || 'unknown-section'}`;
+            console.log(`🔥EXPORT🔥 [NEW-STYLE] uniqueKey: ${uniqueKey}`);
+            console.log(`🔥EXPORT🔥 [NEW-STYLE] currentCardIds has this key:`, currentCardIds.has(uniqueKey));
+            console.log(`🔥EXPORT🔥 [NEW-STYLE] All currentCardIds:`, Array.from(currentCardIds));
+            
+            if (!currentCardIds.has(uniqueKey)) {
+              console.log(`🔥EXPORT🔥 [NEW-STYLE] Skipping - card not found in current cards`);
+              continue;
+            }
+            
+            const uploadDate = new Date(metadata.lastModified || metadata.uploadDate || new Date().toISOString());
+            if (!cardImagesMap.has(uniqueKey) || uploadDate > cardImagesMap.get(uniqueKey).uploadDate) {
+              cardImagesMap.set(uniqueKey, {
+                key,
+                metadata: { fileName: metadata.filename, ...metadata },
+                uploadDate,
+                cardId: metadata.cardId,
+                sectionId: metadata.sectionId || 'unknown-section'
+              });
+              console.log(`🔥EXPORT🔥 [NEW-STYLE] Updated LATEST image for ${uniqueKey}: ${metadata.filename}`);
+            }
+          } catch (e) {
+            console.warn('🔥EXPORT🔥 Failed to parse NEW-STYLE card metadata:', key, e);
+          }
+        }
+        
+        console.log(`🔥EXPORT🔥 Processing ${cardImagesMap.size} unique cards with images`);
+        
+        // Create a map for card image filenames to update HTML generation
+        const cardImageFileMap = new Map();
+        
+        // ВСЕГДА экспортируем изображения в zip, но используем детерминированные имена
+        console.log(`🔥EXPORT🔥 Exporting ${cardImagesMap.size} card images to zip`);
+        
+        // Export only the latest image for each unique card
+        for (const [uniqueCardKey, imageInfo] of cardImagesMap) {
+          try {
+            const metadata = imageInfo.metadata;
+            const cardId = imageInfo.cardId;
+            const sectionId = imageInfo.sectionId;
+            console.log(`🔥EXPORT🔥 Processing latest image for unique card ${uniqueCardKey} (cardId: ${cardId}, section: ${sectionId}): ${metadata.fileName}`);
+            
+            // Try to get the image blob - first try the exact filename, then try without extension
+            let imageBlob = await imageCacheService.getImage(metadata.fileName);
+            
+            // If not found, try alternative names
+            if (!imageBlob) {
+              console.log(`🔥EXPORT🔥 Trying alternative names for: ${metadata.fileName}`);
+              
+              // Try without .jpg extension
+              const nameWithoutExt = metadata.fileName.replace(/\.[^/.]+$/, "");
+              imageBlob = await imageCacheService.getImage(nameWithoutExt);
+              
+              if (!imageBlob) {
+                // Try with different extensions
+                const extensions = ['.png', '.jpeg', '.webp', '.gif'];
+                for (const ext of extensions) {
+                  imageBlob = await imageCacheService.getImage(nameWithoutExt + ext);
+                  if (imageBlob) {
+                    console.log(`🔥EXPORT🔥 Found blob with extension: ${ext}`);
+                    break;
+                  }
+                }
+              }
+              
+              // Try to find by searching all localStorage keys
+              if (!imageBlob) {
+                console.log(`🔥EXPORT🔥 Searching localStorage for blob...`);
+                const allImageKeys = Object.keys(localStorage).filter(key => 
+                  key.startsWith('site-images-') && !key.includes('metadata')
+                );
+                
+                for (const imageKey of allImageKeys) {
+                  try {
+                    const blob = await imageCacheService.getImage(imageKey.replace('site-images-', ''));
+                    if (blob) {
+                      console.log(`🔥EXPORT🔥 Found blob with key: ${imageKey}`);
+                      imageBlob = blob;
+                      break;
+                    }
+                  } catch (e) {
+                    // Continue searching
+                  }
+                }
+              }
+            }
+            
+            if (imageBlob) {
+              // Generate a clean filename using cardId + sectionId for uniqueness (ДЕТЕРМИНИРОВАННЫЙ)
+              const cardHash = cardId.split('_').pop() || cardId.substring(0, 8);
+              const sectionHash = sectionId.split('_').pop() || sectionId.substring(0, 8);
+              // Используем детерминированный хеш ТОЛЬКО из cardId и sectionId (без metadata.fileName)
+              const deterministicHash = (cardId + '_' + sectionId).split('').reduce((a, b) => {
+                a = ((a << 5) - a) + b.charCodeAt(0);
+                return a & a;
+              }, 0).toString(36).substring(0, 6);
+              const cleanFileName = `card_${sectionHash}_${cardHash}_${deterministicHash}.jpg`;
+              
+              console.log(`🔥EXPORT🔥 Generated deterministic filename: ${cleanFileName}`);
+              console.log(`🔥EXPORT🔥 Components: cardHash=${cardHash}, sectionHash=${sectionHash}, deterministicHash=${deterministicHash}`);
+              
+              imagesFolder.file(cleanFileName, imageBlob);
+              
+              // Store mapping for HTML generation (use uniqueCardKey for mapping)
+              cardImageFileMap.set(uniqueCardKey, cleanFileName);
+              cardImageFileMap.set(cardId, cleanFileName); // Also store by cardId for backward compatibility
+              
+              console.log(`🔥EXPORT🔥 Added card image to zip: ${cleanFileName} (original: ${metadata.fileName}, uniqueKey: ${uniqueCardKey})`);
+            } else {
+              console.warn(`🔥EXPORT🔥 No blob found for card image: ${metadata.fileName}`);
+              
+              // Debug: list all available image keys
+              const allKeys = Object.keys(localStorage).filter(key => key.includes('site-images'));
+              console.log(`🔥EXPORT🔥 Available image keys:`, allKeys.slice(0, 10)); // Show first 10
+            }
+          } catch (error) {
+            console.error(`🔥EXPORT🔥 Error processing card ${cardId}:`, error);
+          }
+        }
+        
+        // Store the mapping globally for HTML generation (temporary solution)
+        window.cardImageFileMap = cardImageFileMap;
+        
+        console.log(`🔥EXPORT🔥 Card images export completed: ${cardImagesMap.size} unique cards processed`);
+        
+        // ДОПОЛНИТЕЛЬНО: Ищем изображения карточек в обычном кеше site-images-metadata-
+        console.log('🔥EXPORT🔥 Searching for card images in regular site images cache...');
+        
+        const regularImageKeys = allKeys.filter(key => key.startsWith('site-images-metadata-'));
+        let foundCardImages = 0;
+        
+        for (const key of regularImageKeys) {
+          try {
+            const metadata = await imageCacheService.getMetadata(key);
+            console.log(`🔥EXPORT🔥 Checking regular image metadata:`, metadata);
+            
+            // Проверяем, связано ли это изображение с карточкой
+            if (metadata && (
+              metadata.cardId || 
+              metadata.cardTitle || 
+              (metadata.fileName && metadata.fileName.includes('card')) ||
+              key.includes('card')
+            )) {
+              console.log(`🔥EXPORT🔥 Found potential card image in regular cache: ${key}`);
+              
+              const imageBlob = await imageCacheService.getImage(metadata.fileName);
+              if (imageBlob) {
+                const cleanFileName = `card_regular_${foundCardImages}_${Date.now()}.jpg`;
+                imagesFolder.file(cleanFileName, imageBlob);
+                foundCardImages++;
+                console.log(`🔥EXPORT🔥 Added card image from regular cache: ${cleanFileName} (original: ${metadata.fileName})`);
+              }
+            }
+          } catch (error) {
+            // Пропускаем поврежденные метаданные
+          }
+        }
+        
+        console.log(`🔥EXPORT🔥 Found ${foundCardImages} additional card images in regular cache`);
+        
+        // ТРЕТИЙ СПОСОБ: Экспортируем изображения напрямую из данных карточек
+        console.log('🔥EXPORT🔥 Exporting images directly from card data...');
+        
+        let directCardImages = 0;
+        const processCardImages = async (elements, sectionId) => {
+          if (!elements) return;
+          
+          for (const element of elements) {
+            if ((element.type === 'image-card' || element.type === 'card') && (element.imageUrl || element.image)) {
+              const imageUrl = element.imageUrl || element.image;
+              console.log(`🔥EXPORT🔥 Processing direct card image: ${imageUrl}`);
+              
+              if (imageUrl && imageUrl.startsWith('blob:')) {
+                try {
+                  // Пытаемся получить blob из URL
+                  const response = await fetch(imageUrl);
+                  const blob = await response.blob();
+                  
+                  if (blob) {
+                    const cleanFileName = `card_direct_${sectionId}_${element.id}_${directCardImages}.jpg`;
+                    imagesFolder.file(cleanFileName, blob);
+                    directCardImages++;
+                    console.log(`🔥EXPORT🔥 Added direct card image: ${cleanFileName} from ${imageUrl}`);
+                  }
+                } catch (error) {
+                  console.warn(`🔥EXPORT🔥 Could not fetch blob from ${imageUrl}:`, error);
+                  
+                  // Пытаемся найти по fileName
+                  if (element.fileName) {
+                    const imageBlob = await imageCacheService.getImage(element.fileName);
+                    if (imageBlob) {
+                      const cleanFileName = `card_filename_${sectionId}_${element.id}_${directCardImages}.jpg`;
+                      imagesFolder.file(cleanFileName, imageBlob);
+                      directCardImages++;
+                      console.log(`🔥EXPORT🔥 Added card image by fileName: ${cleanFileName} (${element.fileName})`);
+                    }
+                  }
+                }
+              }
+            }
+          }
+        };
+        
+        // Обрабатываем карточки из всех секций
+        if (Array.isArray(siteData.sectionsData)) {
+          for (const [index, sectionData] of siteData.sectionsData.entries()) {
+            const sectionId = sectionData.id || index;
+            await processCardImages(sectionData.elements, sectionId);
+            await processCardImages(sectionData.contentElements, sectionId);
+            await processCardImages(sectionData.cards, sectionId);
+          }
+        } else {
+          for (const [sectionId, sectionData] of Object.entries(siteData.sectionsData || {})) {
+            await processCardImages(sectionData.elements, sectionId);
+            await processCardImages(sectionData.contentElements, sectionId);
+            await processCardImages(sectionData.cards, sectionId);
+          }
+        }
+        
+        console.log(`🔥EXPORT🔥 Found ${directCardImages} direct card images from card data`);
+      } catch (error) {
+        console.error('🔥EXPORT🔥 Error exporting card images:', error);
       }
 
       // Add images from sections

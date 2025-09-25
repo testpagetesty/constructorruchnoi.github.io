@@ -38,6 +38,7 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import AddIcon from '@mui/icons-material/Add';
 import AnimationWrapper from '../AnimationWrapper';
 import { uploadAndSaveImage, generateCardId } from '../../../utils/imageConverter';
+import { processCardImage } from '../../../utils/cardImageProcessor';
 import ImageUploadPreview from './ImageUploadPreview';
 import AnimationControls from '../AnimationControls';
 import PageSelector from './PageSelector';
@@ -45,6 +46,7 @@ import ImageCacheStats from './ImageCacheStats';
 import { v4 as uuidv4 } from 'uuid';
 import CardModal from './CardModal';
 import ColorSettings from '../TextComponents/ColorSettings';
+import { imageCacheService } from '../../../utils/imageCacheService';
 
 const ImageCard = ({
   id,
@@ -80,10 +82,21 @@ const ImageCard = ({
   gridSize = 'medium',
   onClick = null,
   maxTitleHeight = 0,
-  sx = {} // Добавляем sx пропс
+  sx = {}, // Добавляем sx пропс
+  // Новые пропсы для работы с секциями
+  sectionId,
+  sectionTitle,
+  cardIndex,
+  ...props // Добавляем остальные пропсы
 }) => {
   // Генерируем уникальный ID если не передан
-  const [cardId] = useState(() => id || generateCardId('card', title));
+  const [cardId] = useState(() => {
+    if (id) return id;
+    // Создаем действительно уникальный ID с timestamp и random
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 8);
+    return `card_${timestamp}_${random}`;
+  });
   const [currentTitle, setCurrentTitle] = useState(title);
   const [currentContent, setCurrentContent] = useState(content);
   const [currentImageUrl, setCurrentImageUrl] = useState(imageUrl);
@@ -513,89 +526,120 @@ const ImageCard = ({
     const file = event.target.files[0];
     if (!file) return;
 
+    console.log(`🖼️ Starting image upload for card ${cardId}, file:`, file.name);
     setIsUploading(true);
     setUploadError('');
 
     try {
-      // Импортируем утилиты для обработки изображений
-      const { processImageUpload } = await import('../../../utils/imageConverter');
-      const { imageCacheService } = await import('../../../utils/imageCacheService');
+      // Проверяем, что imageCacheService доступен
+      if (!imageCacheService) {
+        throw new Error('imageCacheService не доступен');
+      }
+
+      // 🔥 УПРОЩЕННАЯ ЛОГИКА: Пропускаем агрессивную очистку для ускорения
+      console.log(`🚀 Skipping cleanup for faster upload...`);
       
-      // Используем уникальный ID карточки
-      const cardTitle = currentTitle || 'image-card';
+      // Получаем данные секции из родительского компонента
+      const sectionData = {
+        id: sectionId || 'default-section',
+        title: sectionTitle || 'Unnamed Section'
+      };
       
-      console.log('Загрузка изображения для карточки:', cardId, 'с названием:', cardTitle);
+      const cardData = {
+        id: cardId,
+        title: currentTitle || 'image-card',
+        index: cardIndex || 0
+      };
       
-      // Обрабатываем загрузку изображения (конвертация в JPG, оптимизация, уникальное имя)
-      const result = await processImageUpload(file, cardId, cardTitle);
+      console.log(`🖼️ ImageCard props:`, { cardId, sectionId, sectionTitle, id, title, currentTitle });
+      console.log(`🖼️ Uploading NEW image for card ${cardData.id} in section ${sectionData.id}`);
+      
+      // Используем новую функцию обработки изображений карточек
+      console.log(`🔧 Processing image with processCardImage...`);
+      
+      // Добавляем таймаут для отладки
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout: обработка изображения заняла слишком много времени')), 30000)
+      );
+      
+      const result = await Promise.race([
+        processCardImage(file, cardData, sectionData),
+        timeoutPromise
+      ]);
+      console.log(`🔧 processCardImage result:`, result);
       
       if (!result.success) {
         throw new Error(result.error);
       }
       
-      // Сохраняем изображение в кеш
-      await imageCacheService.saveImage(result.fileName, result.file);
+      console.log(`✅ Image processed successfully, updating UI...`);
       
-      // Сохраняем расширенные метаданные с правильным cardId
-      const metadata = {
-        fileName: result.fileName,
-        originalName: result.originalName,
-        originalType: result.originalType,
-        cardTitle: cardTitle,
-        cardId: cardId, // Используем уникальный cardId из состояния
-        size: result.size,
-        width: result.width,
-        height: result.height,
-        uploadDate: new Date().toISOString(),
-        processed: true,
-        format: 'jpg'
+      // Обновляем состояние карточки
+      setCurrentImageUrl(result.url);
+      setCurrentImageAlt(cardData.title);
+      
+      // 🔥 НОВАЯ СИСТЕМА: Сохраняем метаданные карточки по образцу системы секций
+      const cardMetadataKey = `card_${cardData.id}_${sectionData.id}_ImageMetadata`;
+      const cardImageMetadata = {
+        filename: result.fileName,
+        type: 'image/jpeg',
+        size: result.metadata.size,
+        lastModified: new Date().toISOString(),
+        cardId: cardData.id,
+        sectionId: sectionData.id,
+        originalPath: result.url
       };
       
-      console.log('Сохранение метаданных с cardId:', cardId, metadata);
-      await imageCacheService.saveMetadata(`site-images-metadata-${result.fileName}`, metadata);
+      // 🔥 НОВОЕ: Сохраняем в IndexedDB вместо localStorage
+      await imageCacheService.saveMetadata(cardMetadataKey, cardImageMetadata);
+      console.log(`✅ Card image metadata saved to IndexedDB: ${cardMetadataKey}`, cardImageMetadata);
       
-      // Получаем blob из кеша для создания URL
-      const blob = await imageCacheService.getImage(result.fileName);
-      const imageUrl = URL.createObjectURL(blob);
-      
-      // Обновляем локальное состояние
-      setCurrentImageUrl(imageUrl);
-      setCurrentImageAlt(cardTitle);
-      
-      // Обновляем родительский компонент немедленно
+      // Обновляем родительский компонент ТОЛЬКО с данными изображения
       if (onUpdate) {
         onUpdate({
-          imageUrl: imageUrl,
-          imageAlt: cardTitle,
+          imageUrl: result.url,
+          imageAlt: cardData.title,
           fileName: result.fileName,
-          cardId: cardId,
-          metadata: metadata
+          cardId: cardData.id,
+          metadata: result.metadata,
+          // 🔥 ВАЖНО: Добавляем дополнительные данные для экспорта
+          exportImagePath: `assets/images/cards/${result.fileName}`,
+          hasImage: true
         });
       }
       
-      // Отправляем событие для обновления ImageUploadPreview
+      // Отправляем событие для обновления превью
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('cardImageUploaded', { 
+          detail: { 
+            cardId: cardData.id,
+            sectionId: sectionData.id,
+            fileName: result.fileName,
+            url: result.url,
+            metadata: result.metadata
+          } 
+        }));
+      }, 100);
+      
+      // Отправляем старое событие для совместимости с ImageUploadPreview
       setTimeout(() => {
         const event = new CustomEvent('imageUploaded', { 
           detail: { 
             fileName: result.fileName, 
-            url: imageUrl, 
-            metadata,
-            cardId: cardId,
-            cardTitle: cardTitle
+            url: result.url, 
+            metadata: result.metadata,
+            cardId: cardData.id,
+            cardTitle: cardData.title
           } 
         });
         window.dispatchEvent(event);
       }, 100);
       
-      console.log('Изображение успешно обработано и загружено:', {
-        fileName: result.fileName,
-        originalName: result.originalName,
-        size: result.size,
-        dimensions: `${result.width}x${result.height}`,
-        cardId: cardId
-      });
+      console.log(`✅ Card image uploaded successfully: ${result.fileName}`);
+      console.log(`📊 Image details: ${result.metadata.width}x${result.metadata.height}, ${Math.round(result.metadata.size/1024)}KB`);
+      
     } catch (error) {
-      console.error('Ошибка при загрузке изображения:', error);
+      console.error('❌ Error uploading card image:', error);
       setUploadError('Ошибка при загрузке изображения: ' + error.message);
     } finally {
       setIsUploading(false);

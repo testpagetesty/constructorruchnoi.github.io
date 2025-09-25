@@ -4,6 +4,10 @@ import { exportCookieConsentData } from './cookieConsentExporter';
 import { cleanHTML, cleanCSS, cleanJavaScript } from './codeCleanup';
 import { generateLiveChatHTML, generateLiveChatCSS, generateLiveChatJS } from './liveChatExporter';
 import { imageCacheService } from './imageCacheService';
+// Импортируем функцию генерации HTML карточек из одностраничного экспорта
+import { generateCardHTML } from './siteExporter';
+// Импортируем функцию экспорта кешированных изображений
+import { exportCachedImages } from './imageConverter';
 
 // Экспорт многостраничного сайта (ручной режим)
 export const exportMultiPageSite = async (siteData) => {
@@ -18,22 +22,58 @@ export const exportMultiPageSite = async (siteData) => {
   const jsDir = assetsDir.folder('js');
   const imagesDir = assetsDir.folder('images');
   
+  // Добавляем placeholder изображение как SVG
+  try {
+    const placeholderSvg = `<svg width="300" height="200" xmlns="http://www.w3.org/2000/svg">
+      <rect width="100%" height="100%" fill="#f8f9fa" stroke="#dee2e6" stroke-width="1"/>
+      <text x="50%" y="45%" font-family="Arial, sans-serif" font-size="14" fill="#6c757d" text-anchor="middle">
+        Изображение
+      </text>
+      <text x="50%" y="55%" font-family="Arial, sans-serif" font-size="14" fill="#6c757d" text-anchor="middle">
+        не найдено
+      </text>
+    </svg>`;
+    imagesDir.file('placeholder.svg', placeholderSvg);
+    console.log('✅ Placeholder SVG image added to export');
+  } catch (error) {
+    console.error('❌ Error adding placeholder image:', error);
+  }
+  
   // Добавляем общие стили
   cssDir.file('styles.css', generateCommonStyles());
   
   // Добавляем общий JavaScript
   jsDir.file('app.js', generateCommonJS(siteData));
   
+  // Экспортируем все кешированные изображения (включая изображения секций и карточек)
+  try {
+    console.log('🔥EXPORT🔥 Starting multipage site image export...');
+    const cachedImagesCount = await exportCachedImages(zip, assetsDir);
+    console.log(`🔥EXPORT🔥 Multipage export completed: ${cachedImagesCount} images`);
+  } catch (error) {
+    console.error('🔥EXPORT🔥 Error exporting cached images:', error);
+  }
+  
+  // 🔥 НОВОЕ: Экспортируем изображения карточек по образцу системы секций
+  try {
+    console.log('🔥CARD-EXPORT🔥 [multiPageSiteExporter] Starting card images export...');
+    console.log('🔥CARD-EXPORT🔥 [multiPageSiteExporter] siteData.sectionsData:', siteData.sectionsData);
+    const cardImagesCount = await exportCardImages(zip, assetsDir, siteData);
+    console.log(`🔥CARD-EXPORT🔥 [multiPageSiteExporter] Card images export completed: ${cardImagesCount} images`);
+  } catch (error) {
+    console.error('🔥CARD-EXPORT🔥 [multiPageSiteExporter] Error exporting card images:', error);
+  }
+  
   // Создаем отдельные HTML страницы
-  zip.file('index.html', generateIndexPage(siteData));
+  zip.file('index.html', await generateIndexPage(siteData));
   
   // Генерируем страницы для каждой секции
-  Object.entries(siteData.sectionsData || {}).forEach(([sectionId, sectionData]) => {
+  for (const [sectionId, sectionData] of Object.entries(siteData.sectionsData || {})) {
     const fileName = getSectionFileName(sectionId, sectionData);
     if (fileName) {
-      zip.file(`${fileName}.html`, generateSectionPage(siteData, sectionId, sectionData));
+      zip.file(`${fileName}.html`, await generateSectionPage(siteData, sectionId, sectionData));
     }
-  });
+  }
   
   // Создаем страницу контактов
   if (siteData.contactData) {
@@ -78,8 +118,8 @@ export const exportMultiPageSite = async (siteData) => {
           console.error('❌ Error converting blob image:', error);
         }
       } else {
-        // Получаем метаданные hero изображения из кеша
-        const heroImageMetadata = JSON.parse(localStorage.getItem('heroImageMetadata') || '{}');
+        // Получаем метаданные hero изображения из IndexedDB
+        const heroImageMetadata = await imageCacheService.getMetadata('heroImageMetadata') || {};
         if (heroImageMetadata.filename) {
           const blob = await imageCacheService.getImage(heroImageMetadata.filename);
           if (blob) {
@@ -106,8 +146,91 @@ export const exportMultiPageSite = async (siteData) => {
   saveAs(content, `${fileName}-multipage.zip`);
 };
 
+// Helper: resolve exported card image filename for given card/section
+const resolveCardImageFileName = async (card, sectionId) => {
+  try {
+    if (!card) return null;
+    console.log(`🔍 Resolving card image filename for card ${card.id} in section ${sectionId}`);
+    
+    const cid = card.id;
+    const sid = sectionId;
+    
+    // Способ 1: Проверяем свойство exportImagePath
+    if (card.exportImagePath && card.exportImagePath.includes('assets/images/')) {
+      const fileName = card.exportImagePath.replace('assets/images/', '');
+      console.log(`✅ Found exportImagePath: ${fileName}`);
+      return fileName;
+    }
+    
+    // Способ 2: Проверяем свойство fileName напрямую
+    if (card.fileName && card.fileName.startsWith('card_')) {
+      console.log(`✅ Found fileName directly: ${card.fileName}`);
+      return card.fileName;
+    }
+    
+    // Способ 2: Ищем метаданные в IndexedDB
+    if (cid && sid) {
+      const metadataKey = `card_${cid}_${sid}_ImageMetadata`;
+      console.log(`🔍 Checking metadata key: ${metadataKey}`);
+      try {
+        const cardMetadata = await imageCacheService.getMetadata(metadataKey);
+        if (cardMetadata && cardMetadata.filename) {
+          console.log(`✅ Found filename in metadata: ${cardMetadata.filename}`);
+          return cardMetadata.filename;
+        }
+      } catch (error) {
+        console.warn(`⚠️ Failed to get metadata for ${metadataKey}:`, error);
+      }
+    }
+    
+    // Способ 3: Проверяем imageUrl для blob URLs и пытаемся найти соответствующий файл
+    if (card.imageUrl && card.imageUrl.startsWith('blob:')) {
+      console.log(`🔍 Card has blob URL, searching for matching filename...`);
+      
+      // Пытаемся найти все файлы карточек в кеше
+      try {
+        const allMetadataKeys = await imageCacheService.getAllMetadataKeys();
+        const cardKeys = allMetadataKeys.filter(key => 
+          key.includes(`card_${cid}`) || key.includes(`${cid}_${sid}`)
+        );
+        
+        if (cardKeys.length > 0) {
+          console.log(`🔍 Found potential card keys:`, cardKeys);
+          // Берем первый найденный ключ
+          const firstKey = cardKeys[0];
+          const metadata = await imageCacheService.getMetadata(firstKey);
+          if (metadata && metadata.filename) {
+            console.log(`✅ Found filename from cache search: ${metadata.filename}`);
+            return metadata.filename;
+          }
+        }
+      } catch (error) {
+        console.warn(`⚠️ Error searching cache for card image:`, error);
+      }
+      
+      // Fallback: создаем имя файла
+      const timestamp = Date.now();
+      const fallbackFileName = `card_${sid}_${cid}_image_${timestamp}.jpg`;
+      console.log(`⚠️ Using fallback filename: ${fallbackFileName}`);
+      return fallbackFileName;
+    }
+    
+    // Способ 4: Возвращаем существующий fileName
+    if (card.fileName) {
+      console.log(`✅ Using existing fileName: ${card.fileName}`);
+      return card.fileName;
+    }
+    
+    console.warn(`❌ Could not resolve filename for card ${cid}`);
+    return null;
+  } catch (error) {
+    console.error(`❌ Error resolving card image filename:`, error);
+    return card?.fileName || null;
+  }
+};
+
 // Генерация главной страницы (index.html)
-const generateIndexPage = (siteData) => {
+const generateIndexPage = async (siteData) => {
   console.log('🎯 [MULTIPAGE EXPORT] generateIndexPage called with siteData:', siteData);
   
   const headerData = siteData.headerData || {};
@@ -247,7 +370,7 @@ const generateIndexPage = (siteData) => {
     
     <main>
         ${generateHeroSection(siteData)}
-        ${generateFeaturedSection(siteData)}
+        ${await generateFeaturedSection(siteData)}
         ${generateSectionsPreview(siteData)}
         ${generateContactPreview(siteData)}
     </main>
@@ -260,7 +383,7 @@ const generateIndexPage = (siteData) => {
 };
 
 // Генерация страницы секции
-const generateSectionPage = (siteData, sectionId, sectionData) => {
+const generateSectionPage = async (siteData, sectionId, sectionData) => {
   const headerData = siteData.headerData || {};
   const siteName = headerData.siteName || 'My Site';
   const languageCode = headerData.language || 'ru';
@@ -395,7 +518,7 @@ const generateSectionPage = (siteData, sectionId, sectionData) => {
     
     <main>
         ${generateBreadcrumbs(siteData, sectionId, sectionData)}
-        ${generateSectionContent(sectionData, sectionId)}
+        ${await generateSectionContent(sectionData, sectionId)}
     </main>
     
     ${generateCommonFooter(siteData)}
@@ -679,7 +802,7 @@ export const generateHeroSection = (siteData) => {
 // Старая функция generateSectionsPreview удалена - заменена на новую версию с поддержкой режимов отображения
 
 // Функция для генерации выделенного раздела
-const generateFeaturedSection = (siteData) => {
+const generateFeaturedSection = async (siteData) => {
   const heroData = siteData.heroData || {};
   const homePageSettings = heroData.homePageSettings || {};
   
@@ -735,9 +858,9 @@ const generateFeaturedSection = (siteData) => {
   }
   
   // Генерируем контент элементов
-  const elementsHtml = (featuredSectionData.contentElements || featuredSectionData.elements || featuredSectionData.aiElements || []).map((element, index) => {
-    return generateContentElementHTML(element);
-  }).join('');
+  const elementsHtml = (await Promise.all((featuredSectionData.contentElements || featuredSectionData.elements || featuredSectionData.aiElements || []).map(async (element, index) => {
+    return await generateContentElementHTML(element);
+  }))).join('');
   
   return `
     <section class="featured-section" style="
@@ -983,7 +1106,7 @@ const generateContactPreview = (siteData) => {
 };
 
 // Генерация контента секции
-const generateSectionContent = (sectionData, sectionId) => {
+const generateSectionContent = async (sectionData, sectionId) => {
   const title = sectionData.title || getSectionDisplayName(sectionId, sectionData);
   const description = sectionData.description || '';
   const elements = sectionData.elements || [];
@@ -1025,18 +1148,26 @@ const generateSectionContent = (sectionData, sectionId) => {
       <div class="section-elements">`;
   
   // Генерируем элементы контента
-  elements.forEach(element => {
-    html += generateContentElementHTML(element);
-  });
+  for (const element of elements) {
+    html += await generateContentElementHTML(element);
+  }
   
   html += '</div></div></section>';
   return html;
 };
 
 // Новая функция для генерации HTML элементов контента с правильными стилями
-const generateContentElementHTML = (element) => {
+const generateContentElementHTML = async (element) => {
   const elementId = `element-${element.id}`;
   const elementData = element.data || element;
+  
+  console.log(`🔍 [generateContentElementHTML] Processing element:`, {
+    type: element.type,
+    id: element.id,
+    hasData: !!element.data,
+    elementKeys: Object.keys(element),
+    dataKeys: element.data ? Object.keys(element.data) : null
+  });
   
   // Функция для применения настроек цветов из ColorSettings
   const applyColorSettings = (colorSettings, defaultStyles = {}) => {
@@ -2136,66 +2267,90 @@ const generateContentElementHTML = (element) => {
       `;
 
     case 'image-card':
+      // Используем экспортированное имя файла, если доступно
+      {
+        console.log(`🖼️ Processing image-card for export:`, elementData);
+        console.log(`🖼️ Image-card element properties:`, {
+          id: elementData.id,
+          type: elementData.type,
+          image: elementData.image,
+          imageUrl: elementData.imageUrl,
+          src: elementData.src,
+          exportImagePath: elementData.exportImagePath,
+          title: elementData.title,
+          content: elementData.content
+        });
+        
+        // Способ 1: Используем готовый путь exportImagePath
+        let imgSrc = '';
+        if (elementData.exportImagePath) {
+          imgSrc = elementData.exportImagePath;
+          console.log(`✅ Using exportImagePath: ${imgSrc}`);
+        } else {
+          // Способ 2: Резолвим имя файла
+          const exportedFile = await resolveCardImageFileName(elementData, sectionId);
+          if (exportedFile) {
+            imgSrc = `assets/images/${exportedFile}`;
+            console.log(`🔍 Resolved image path from cache: ${imgSrc}`);
+          } else {
+            // Способ 3: Fallback - используем оригинальные пути
+            imgSrc = elementData.image || elementData.imageUrl || elementData.src || '';
+            
+            // Если это blob URL, попытаемся найти соответствующий файл по имени
+            if (imgSrc && imgSrc.startsWith('blob:')) {
+              console.log(`🔍 Found blob URL, trying to resolve to file path: ${imgSrc}`);
+              // Попытка найти файл по ID элемента
+              const possibleFileName = `card_${elementData.id}_image.jpg`;
+              imgSrc = `assets/images/${possibleFileName}`;
+              console.log(`🔍 Converted blob to potential file path: ${imgSrc}`);
+            }
+            
+            console.log(`🔍 Using fallback image path: ${imgSrc}`);
+          }
+        }
+        
+        const title = elementData.title || '';
+        const text = elementData.content || '';
+        const btnText = elementData.buttonText || '';
+        const btnUrl = elementData.buttonUrl || '#';
+        const cardBg = elementData.backgroundColor || '#ffffff';
+        const border = elementData.borderColor || '#e0e0e0';
+        const radius = elementData.borderRadius || 8;
+        const tColor = elementData.titleColor || '#333333';
+        const cColor = elementData.contentColor || '#666666';
+        
+        console.log(`🖼️ Final image source for card: ${imgSrc}`);
+        console.log(`🖼️ Image paths check:`, {
+          exportImagePath: elementData.exportImagePath,
+          imageUrl: elementData.imageUrl,
+          image: elementData.image,
+          src: elementData.src,
+          finalImgSrc: imgSrc
+        });
+        
+        // Проверяем, что imgSrc существует и не заглушка
+        const isPlaceholder = imgSrc && (imgSrc.includes('placeholder') || imgSrc.includes('via.placeholder') || imgSrc.includes('text=Изображение'));
+        const shouldShowImage = imgSrc && imgSrc.trim() && !isPlaceholder;
+        console.log(`🖼️ Image decision: shouldShow=${shouldShowImage}, isPlaceholder=${isPlaceholder}, finalPath=${imgSrc || 'assets/images/placeholder.svg'}`);
+        
       return `
-        <div id="${elementId}" class="content-element image-card" style="
-          max-width: 400px;
-          margin: 2rem auto;
-          background: ${elementData.backgroundColor || '#ffffff'};
-          border: 1px solid ${elementData.borderColor || '#e0e0e0'};
-          border-radius: ${elementData.borderRadius || 8}px;
-          overflow: hidden;
-          box-shadow: ${elementData.showShadow !== false ? '0 2px 8px rgba(0,0,0,0.1)' : 'none'};
-        ">
-          ${elementData.image ? `
-            <img src="${elementData.image}" alt="${elementData.title || 'Card image'}" style="
-              width: 100%;
-              height: ${elementData.imageHeight || 200}px;
-              object-fit: cover;
+          <div id="${elementId}" class="content-element">
+            <div class="service-block" style="
+              background:${cardBg};
+              border:1px solid ${border};
+              border-radius:${radius}px;
+              padding:16px;
             ">
-          ` : `
-            <div style="
-              height: ${elementData.imageHeight || 200}px;
-              background: #f5f5f5;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              color: #999;
-              font-style: italic;
-            ">📷 Изображение</div>
-          `}
-          <div style="padding: 1.5rem;">
-            ${elementData.title ? `
-              <h3 style="
-                color: ${elementData.titleColor || '#333333'};
-                font-size: ${elementData.titleFontSize || 20}px;
-                margin-bottom: 1rem;
-              ">${elementData.title}</h3>
-            ` : ''}
-            ${elementData.content ? `
-              <p style="
-                color: ${elementData.contentColor || '#666666'};
-                font-size: ${elementData.contentFontSize || 14}px;
-                line-height: 1.6;
-                margin-bottom: ${elementData.buttonText ? '1.5rem' : '0'};
-              ">${elementData.content}</p>
-            ` : ''}
-            ${elementData.buttonText ? `
-              <a href="${elementData.buttonUrl || '#'}" style="
-                display: inline-block;
-                padding: 10px 20px;
-                background: ${elementData.buttonBgColor || '#1976d2'};
-                color: ${elementData.buttonTextColor || '#ffffff'};
-                text-decoration: none;
-                border-radius: 6px;
-                font-weight: 500;
-                font-size: 14px;
-                transition: background-color 0.3s;
-              " onmouseover="this.style.backgroundColor='${elementData.buttonHoverColor || '#1565c0'}'" 
-                 onmouseout="this.style.backgroundColor='${elementData.buttonBgColor || '#1976d2'}'">${elementData.buttonText}</a>
-            ` : ''}
+              <div class="service-image" style="height:160px;overflow:hidden;border-radius:${radius}px;margin-bottom:12px;">
+                <img src="${imgSrc || 'assets/images/placeholder.svg'}" alt="${title}" style="width:100%;height:100%;object-fit:cover"/>
+              </div>
+              ${title ? `<h3 style="color:${tColor};margin:0 0 8px 0">${title}</h3>` : ''}
+              ${text ? `<p style="color:${cColor};margin:0 0 12px 0">${text}</p>` : ''}
+              ${btnText ? `<a href="${btnUrl}" class="btn">${btnText}</a>` : ''}
           </div>
         </div>
       `;
+      }
 
     case 'multiple-cards':
       console.log('🔥🔥🔥 [MULTIPLE-CARDS EXPORT] НАЧАЛО ОБРАБОТКИ!');
@@ -2284,34 +2439,42 @@ const generateContentElementHTML = (element) => {
             max-width: 1200px;
             margin: 0 auto;
           ">
-            ${cards.map(card => `
-              <div style="
-                background: ${cardBgColor};
-                opacity: ${cardOpacity};
-                border: ${multipleCardsColorSettings?.borderWidth || 1}px solid ${cardBorderColor};
-                border-radius: ${multipleCardsColorSettings?.borderRadius || 8}px;
-                padding: ${multipleCardsColorSettings?.padding ? `${multipleCardsColorSettings.padding}px` : '1.5rem'};
-                box-shadow: ${multipleCardsColorSettings?.boxShadow ? '0 2px 8px rgba(0,0,0,0.1)' : 'none'};
-                text-align: ${elementData.textAlign || 'center'};
-                transition: transform 0.3s ease;
-                cursor: pointer;
-              " onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='translateY(0)'" onclick="openCardModal('${card.title || ''}', '${card.content || ''}', '${cardBgColor}', '${cardTitleColor}', '${cardTextColor}', '${JSON.stringify(multipleCardsColorSettings).replace(/'/g, "\\'")}')">
-                ${card.title ? `
-                  <h4 style="
-                    color: ${cardTitleColor};
-                    font-size: ${multipleCardsColorSettings?.textFields?.titleFontSize || 20}px;
-                    margin-bottom: 1rem;
-                  ">${card.title}</h4>
-                ` : ''}
-                ${card.content ? `
-                  <p style="
-                    color: ${cardTextColor};
-                    font-size: ${multipleCardsColorSettings?.textFields?.textFontSize || 14}px;
-                    line-height: 1.6;
-                  ">${card.content}</p>
-                ` : ''}
+            ${(await Promise.all(cards.map(async (card, index) => {
+              const exportedFile = await resolveCardImageFileName(card, sectionId);
+              let imgSrc = '';
+              if (exportedFile) {
+                imgSrc = `assets/images/${exportedFile}`;
+                console.log(`🔍 Multiple-cards: Using cached image: ${imgSrc}`);
+              } else {
+                imgSrc = card.image || card.imageUrl || card.src || '';
+                
+                // Если это blob URL, попытаемся найти соответствующий файл по имени
+                if (imgSrc && imgSrc.startsWith('blob:')) {
+                  console.log(`🔍 Multiple-cards: Found blob URL, trying to resolve: ${imgSrc}`);
+                  const possibleFileName = `card_${card.id}_image.jpg`;
+                  imgSrc = `assets/images/${possibleFileName}`;
+                  console.log(`🔍 Multiple-cards: Converted blob to file path: ${imgSrc}`);
+                }
+                
+                console.log(`🔍 Multiple-cards: Using fallback image: ${imgSrc}`);
+              }
+              const title = card.title || '';
+              const text = card.content || '';
+              return `
+                <div class="service-block" style="
+                  background:${cardBgColor};
+                  border:1px solid ${cardBorderColor};
+                  border-radius:${elementData.borderRadius || 8}px;
+                  padding:16px;
+                ">
+                  <div class="service-image" style="height:160px;overflow:hidden;border-radius:${elementData.borderRadius || 8}px;margin-bottom:12px;">
+                    <img src="${imgSrc || 'assets/images/placeholder.svg'}" alt="${title}" style="width:100%;height:100%;object-fit:cover"/>
+                  </div>
+                  ${title ? `<h3 style=\"color:${cardTitleColor};margin:0 0 8px 0\">${title}</h3>` : ''}
+                  ${text ? `<p style=\"color:${cardTextColor};margin:0 0 12px 0\">${text}</p>` : ''}
               </div>
-            `).join('')}
+              `;
+            }))).join('')}
           </div>
         </div>
       `;
@@ -3768,6 +3931,7 @@ const generateContentElementHTML = (element) => {
     `;
 
     default:
+      console.warn(`❌ [generateContentElementHTML] Unknown element type: ${element.type}`, element);
       return `<div id="${elementId}" class="content-element">Неизвестный тип элемента: ${element.type}</div>`;
   }
 };
@@ -5671,6 +5835,41 @@ body {
 .contact-info-container {
   animation: fadeInUp 0.6s ease-out;
 }
+
+/* Стили для карточек с изображениями */
+.service-block {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.service-block:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.service-image {
+  width: 100%;
+  height: 160px;
+  overflow: hidden;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  position: relative;
+}
+
+.service-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.service-image:hover img {
+  transform: scale(1.05);
+}
 }`;
 
 const generateCommonJS = (siteData) => `// Общий JavaScript для многостраничного сайта
@@ -6429,3 +6628,117 @@ const generateSafeFileName = (siteData) => {
   const siteName = siteData.headerData?.siteName || 'my-site';
   return siteName.toLowerCase().replace(/[^a-z0-9]/g, '-');
 }; 
+
+// 🔥 НОВАЯ ФУНКЦИЯ: Экспорт изображений карточек по образцу системы секций
+const exportCardImages = async (zip, assetsDir, siteData) => {
+  const imagesDir = assetsDir.folder('images');
+  // Используем прямо imagesDir без подпапки cards
+  let exportedCount = 0;
+  
+  console.log('🔥CARD-EXPORT🔥 Starting card images export...');
+  
+  try {
+    // Проходим по всем секциям и ищем карточки - ТОЧНО КАК В СИСТЕМЕ СЕКЦИЙ
+    const sections = Object.entries(siteData.sectionsData || {});
+    
+    for (const [sectionId, sectionData] of sections) {
+      console.log(`🔥CARD-EXPORT🔥 Processing section: ${sectionId}`);
+      
+      // Проверяем все возможные массивы карточек
+      const cardArrays = [
+        sectionData.elements || [],
+        sectionData.contentElements || [],
+        sectionData.cards || []
+      ];
+      
+      for (const cards of cardArrays) {
+        for (const card of cards) {
+          if ((card.type === 'image-card' || card.type === 'card') && card.id) {
+            console.log(`🔥CARD-EXPORT🔥 Checking card ${card.id} in section ${sectionId}`, card);
+            
+            let imageExported = false;
+            
+            // Способ 1: Используем fileName из данных карточки
+            if (card.fileName && card.fileName.startsWith('card_')) {
+              console.log(`🔥CARD-EXPORT🔥 Found fileName in card data: ${card.fileName}`);
+              try {
+                const blob = await imageCacheService.getImage(card.fileName);
+                if (blob) {
+                  console.log(`🔥CARD-EXPORT🔥 ✅ Found blob for fileName: ${card.fileName}, size: ${blob.size}`);
+                  imagesDir.file(card.fileName, blob);
+                  exportedCount++;
+                  imageExported = true;
+                  console.log(`🔥CARD-EXPORT🔥 ✅ Card image exported from fileName: ${card.fileName}`);
+                }
+              } catch (error) {
+                console.warn(`🔥CARD-EXPORT🔥 Failed to get blob for fileName: ${card.fileName}`, error);
+              }
+            }
+            
+            // Способ 2: Ищем метаданные по ключу (только если не экспортировано выше)
+            if (!imageExported) {
+              const metadataKey = `card_${card.id}_${sectionId}_ImageMetadata`;
+              console.log(`🔥CARD-EXPORT🔥 Looking for metadata key: ${metadataKey}`);
+              
+              try {
+                const cardImageMetadata = await imageCacheService.getMetadata(metadataKey) || {};
+                console.log(`🔥CARD-EXPORT🔥 Found metadata:`, cardImageMetadata);
+                
+                if (cardImageMetadata.filename) {
+                  // ТОЧНО КАК В СИСТЕМЕ СЕКЦИЙ: получаем blob из кеша
+                  console.log(`🔥CARD-EXPORT🔥 Trying to get blob for: ${cardImageMetadata.filename}`);
+                  const blob = await imageCacheService.getImage(cardImageMetadata.filename);
+                  
+                  if (blob) {
+                    console.log(`🔥CARD-EXPORT🔥 ✅ Card image found in cache: ${cardImageMetadata.filename}, size: ${blob.size}`);
+                    imagesDir.file(cardImageMetadata.filename, blob);
+                    exportedCount++;
+                    imageExported = true;
+                    console.log(`🔥CARD-EXPORT🔥 ✅ Card image successfully added to zip: ${cardImageMetadata.filename}`);
+                  } else {
+                    console.warn(`🔥CARD-EXPORT🔥 ❌ Card image not found in cache: ${cardImageMetadata.filename}`);
+                  
+                  // ТОЧНО КАК В СИСТЕМЕ СЕКЦИЙ: пытаемся загрузить по originalPath
+                  if (cardImageMetadata.originalPath) {
+                    console.log(`🔥CARD-EXPORT🔥 Trying originalPath: ${cardImageMetadata.originalPath}`);
+                    try {
+                      const response = await fetch(cardImageMetadata.originalPath);
+                      if (response.ok) {
+                        const fetchedBlob = await response.blob();
+                        console.log(`🔥CARD-EXPORT🔥 ✅ Fetched from URL, size: ${fetchedBlob.size}`);
+                        imagesDir.file(cardImageMetadata.filename, fetchedBlob);
+                        exportedCount++;
+                        console.log(`🔥CARD-EXPORT🔥 ✅ Card image successfully fetched from URL and added to zip: ${cardImageMetadata.filename}`);
+                      } else {
+                        console.warn(`🔥CARD-EXPORT🔥 ❌ Failed to fetch from URL, status: ${response.status}`);
+                      }
+                    } catch (fetchError) {
+                      console.error(`🔥CARD-EXPORT🔥 ❌ Error fetching card image from URL:`, fetchError);
+                    }
+                  } else {
+                    console.warn(`🔥CARD-EXPORT🔥 ❌ No originalPath available`);
+                  }
+                }
+              } else {
+                console.warn(`🔥CARD-EXPORT🔥 ❌ No filename in metadata for card ${card.id}`);
+              }
+              } catch (error) {
+                console.error(`🔥CARD-EXPORT🔥 Error parsing metadata for card ${card.id}:`, error);
+              }
+            }
+            
+            if (!imageExported) {
+              console.warn(`🔥CARD-EXPORT🔥 ⚠️ No image exported for card ${card.id} in section ${sectionId}`);
+            }
+          }
+        }
+      }
+    }
+    
+    console.log(`🔥CARD-EXPORT🔥 Card images export completed: ${exportedCount} images exported`);
+    return exportedCount;
+  } catch (error) {
+    console.error('🔥CARD-EXPORT🔥 Error in exportCardImages:', error);
+    return 0;
+  }
+};

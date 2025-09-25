@@ -66,7 +66,8 @@ export const generateCardId = (baseId, title) => {
   // Используем UUID для абсолютной уникальности
   const uuid = uuidv4();
   const timestamp = Date.now();
-  const sanitizedTitle = (title || 'card').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+  // Ограничиваем длину заголовка до 20 символов
+  const sanitizedTitle = (title || 'card').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase().substring(0, 20);
   return `card_${sanitizedTitle}_${timestamp}_${uuid.substring(0, 8)}`;
 };
 
@@ -225,8 +226,15 @@ export const getAllCachedImages = async () => {
     const images = [];
     const keys = Object.keys(localStorage);
     
+    console.log(`🔥EXPORT🔥 Scanning localStorage keys: ${keys.length} total`);
+    
+    let cardImageKeys = 0;
+    let siteImageKeys = 0;
+    
     for (const key of keys) {
+      // Ищем как обычные метаданные изображений, так и метаданные карточек
       if (key.startsWith('site-images-metadata-')) {
+        siteImageKeys++;
         const metadata = imageCacheService.getMetadata(key);
         if (metadata) {
           const blob = await imageCacheService.getImage(metadata.fileName);
@@ -236,10 +244,29 @@ export const getAllCachedImages = async () => {
               url: URL.createObjectURL(blob),
               metadata: metadata
             });
+            console.log(`🔥EXPORT🔥 Found site image: ${metadata.fileName}`);
+          }
+        }
+      } else if (key.startsWith('card-image-metadata-')) {
+        cardImageKeys++;
+        const metadata = imageCacheService.getMetadata(key);
+        if (metadata) {
+          const blob = await imageCacheService.getImage(metadata.fileName);
+          if (blob) {
+            images.push({
+              fileName: metadata.fileName,
+              url: URL.createObjectURL(blob),
+              metadata: metadata
+            });
+            console.log(`🔥EXPORT🔥 Found card image: ${metadata.fileName}`);
+          } else {
+            console.warn(`🔥EXPORT🔥 No blob for card image: ${metadata.fileName}`);
           }
         }
       }
     }
+    
+    console.log(`🔥EXPORT🔥 Scan complete: ${siteImageKeys} site images, ${cardImageKeys} card images, ${images.length} total found`);
     
     return images;
   } catch (error) {
@@ -252,6 +279,9 @@ export const getAllCachedImages = async () => {
 export const exportCachedImages = async (zip, assetsDir) => {
   try {
     const images = await getAllCachedImages();
+    console.log(`🔥EXPORT🔥 Found ${images.length} cached images to export`);
+    
+    let exportedCount = 0;
     
     for (const image of images) {
       const blob = await imageCacheService.getImage(image.fileName);
@@ -261,10 +291,16 @@ export const exportCachedImages = async (zip, assetsDir) => {
         
         // Также добавляем в корень assets для совместимости
         assetsDir.file(image.fileName, blob);
+        
+        console.log(`🔥EXPORT🔥 Added image: ${image.fileName}`);
+        exportedCount++;
+      } else {
+        console.warn(`🔥EXPORT🔥 No blob found for: ${image.fileName}`);
       }
     }
     
-    return images.length;
+    console.log(`🔥EXPORT🔥 Successfully exported ${exportedCount} images`);
+    return exportedCount;
   } catch (error) {
     console.error('Ошибка при экспорте изображений:', error);
     return 0;
