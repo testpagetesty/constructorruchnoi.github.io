@@ -727,11 +727,29 @@ const MultipleCardsEditor = ({
                              const { imageCacheService } = await import('../../../utils/imageCacheService');
                              
                              // Генерируем уникальное имя файла на основе названия карточки
-                             const cardTitle = card.title || `card_${card.id}`;
-                             const sanitizedTitle = cardTitle.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+                             const cardTitle = card.title || 'untitled';
+                             // Очищаем название и убираем лишние подчеркивания
+                             let sanitizedTitle = cardTitle
+                               .replace(/[^\w\s]/g, '') // Удаляем спецсимволы, оставляем буквы, цифры, пробелы (включая русские)
+                               .replace(/\s+/g, '_') // Заменяем пробелы на одно подчеркивание
+                               .replace(/_+/g, '_') // Заменяем множественные подчеркивания на одно
+                               .replace(/^_|_$/g, '') // Убираем подчеркивания в начале и конце
+                               .toLowerCase()
+                               .substring(0, 30); // Ограничиваем длину до 30 символов
+                             
+                             // Если после очистки ничего не осталось, используем 'untitled'
+                             if (!sanitizedTitle || sanitizedTitle.length < 2) {
+                               sanitizedTitle = 'untitled';
+                             }
+                             
                              const timestamp = Date.now();
                              const fileExtension = file.name.split('.').pop();
                              const fileName = `card_${sanitizedTitle}_${card.id}_${timestamp}.${fileExtension}`;
+                             
+                             console.log('🔥🔥🔥 FILENAME-DEBUG: MultipleCardsEditor - Creating fileName');
+                             console.log('🔥🔥🔥 FILENAME-DEBUG: MultipleCardsEditor - Original cardTitle:', cardTitle);
+                             console.log('🔥🔥🔥 FILENAME-DEBUG: MultipleCardsEditor - Sanitized title:', sanitizedTitle);
+                             console.log('🔥🔥🔥 FILENAME-DEBUG: MultipleCardsEditor - Generated fileName:', fileName);
                              
                              await imageCacheService.saveImage(fileName, file);
                              

@@ -149,38 +149,52 @@ export const exportMultiPageSite = async (siteData) => {
 // Helper: resolve exported card image filename for given card/section
 const resolveCardImageFileName = async (card, sectionId) => {
   try {
-    if (!card) return null;
-    console.log(`🔍 Resolving card image filename for card ${card.id} in section ${sectionId}`);
+    if (!card) {
+      console.log(`🔥🔥🔥 FILENAME-DEBUG: resolveCardImageFileName - card is null/undefined`);
+      return null;
+    }
+    console.log(`🔥🔥🔥 FILENAME-DEBUG: resolveCardImageFileName START for card ${card.id} in section ${sectionId}`);
+    console.log(`🔥🔥🔥 FILENAME-DEBUG: resolveCardImageFileName - card.fileName = "${card.fileName}"`);
+    console.log(`🔥🔥🔥 FILENAME-DEBUG: resolveCardImageFileName - card.exportImagePath = "${card.exportImagePath}"`);
     
     const cid = card.id;
     const sid = sectionId;
     
-    // Способ 1: Проверяем свойство exportImagePath
+    // Способ 1: Проверяем свойство fileName напрямую (ПРИОРИТЕТ!)
+    if (card.fileName && card.fileName.startsWith('card_')) {
+      console.log(`🔥🔥🔥 FILENAME-DEBUG: resolveCardImageFileName - Using fileName directly: ${card.fileName}`);
+      return card.fileName;
+    } else {
+      console.log(`🔥🔥🔥 FILENAME-DEBUG: resolveCardImageFileName - No valid fileName found, checking other methods`);
+    }
+    
+    // Способ 2: Проверяем свойство exportImagePath
     if (card.exportImagePath && card.exportImagePath.includes('assets/images/')) {
       const fileName = card.exportImagePath.replace('assets/images/', '');
-      console.log(`✅ Found exportImagePath: ${fileName}`);
+      console.log(`🔥🔥🔥 FILENAME-DEBUG: resolveCardImageFileName - Found exportImagePath: ${fileName}`);
       return fileName;
+    } else {
+      console.log(`🔥🔥🔥 FILENAME-DEBUG: resolveCardImageFileName - No exportImagePath found`);
     }
     
-    // Способ 2: Проверяем свойство fileName напрямую
-    if (card.fileName && card.fileName.startsWith('card_')) {
-      console.log(`✅ Found fileName directly: ${card.fileName}`);
-      return card.fileName;
-    }
-    
-    // Способ 2: Ищем метаданные в IndexedDB
+    // Способ 3: Ищем метаданные в IndexedDB
     if (cid && sid) {
       const metadataKey = `card_${cid}_${sid}_ImageMetadata`;
-      console.log(`🔍 Checking metadata key: ${metadataKey}`);
+      console.log(`🔥🔥🔥 FILENAME-DEBUG: resolveCardImageFileName - Checking metadata key: ${metadataKey}`);
       try {
         const cardMetadata = await imageCacheService.getMetadata(metadataKey);
+        console.log(`🔥🔥🔥 FILENAME-DEBUG: resolveCardImageFileName - Retrieved metadata:`, cardMetadata);
         if (cardMetadata && cardMetadata.filename) {
-          console.log(`✅ Found filename in metadata: ${cardMetadata.filename}`);
+          console.log(`🔥🔥🔥 FILENAME-DEBUG: resolveCardImageFileName - Found filename in metadata: ${cardMetadata.filename}`);
           return cardMetadata.filename;
+        } else {
+          console.log(`🔥🔥🔥 FILENAME-DEBUG: resolveCardImageFileName - No filename in metadata`);
         }
       } catch (error) {
-        console.warn(`⚠️ Failed to get metadata for ${metadataKey}:`, error);
+        console.log(`🔥🔥🔥 FILENAME-DEBUG: resolveCardImageFileName - Failed to get metadata for ${metadataKey}:`, error);
       }
+    } else {
+      console.log(`🔥🔥🔥 FILENAME-DEBUG: resolveCardImageFileName - No cid or sid for metadata lookup`);
     }
     
     // Способ 3: Проверяем imageUrl для blob URLs и пытаемся найти соответствующий файл
@@ -215,16 +229,11 @@ const resolveCardImageFileName = async (card, sectionId) => {
       return fallbackFileName;
     }
     
-    // Способ 4: Возвращаем существующий fileName
-    if (card.fileName) {
-      console.log(`✅ Using existing fileName: ${card.fileName}`);
-      return card.fileName;
-    }
-    
-    console.warn(`❌ Could not resolve filename for card ${cid}`);
+    console.log(`🔥🔥🔥 FILENAME-DEBUG: resolveCardImageFileName - Could not resolve filename for card ${cid}, returning null`);
     return null;
   } catch (error) {
-    console.error(`❌ Error resolving card image filename:`, error);
+    console.log(`🔥🔥🔥 FILENAME-DEBUG: resolveCardImageFileName - Error resolving card image filename:`, error);
+    console.log(`🔥🔥🔥 FILENAME-DEBUG: resolveCardImageFileName - Returning fallback: ${card?.fileName || null}`);
     return card?.fileName || null;
   }
 };
@@ -378,6 +387,16 @@ const generateIndexPage = async (siteData) => {
     ${generateCommonFooter(siteData)}
     
     <script src="assets/js/app.js"></script>
+    <script>
+      // Re-initialize typewriter animations after page load
+      document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(() => {
+          if (window.reinitializeTypewriters) {
+            window.reinitializeTypewriters();
+          }
+        }, 500);
+      });
+    </script>
 </body>
 </html>`;
 };
@@ -859,7 +878,7 @@ const generateFeaturedSection = async (siteData) => {
   
   // Генерируем контент элементов
   const elementsHtml = (await Promise.all((featuredSectionData.contentElements || featuredSectionData.elements || featuredSectionData.aiElements || []).map(async (element, index) => {
-    return await generateContentElementHTML(element);
+    return await generateContentElementHTML(element, featuredSectionData.id);
   }))).join('');
   
   return `
@@ -869,7 +888,7 @@ const generateFeaturedSection = async (siteData) => {
         (sectionColorSettings.sectionBackground.useGradient ? 
           `linear-gradient(${sectionColorSettings.sectionBackground.gradientDirection}, ${sectionColorSettings.sectionBackground.gradientColor1}, ${sectionColorSettings.sectionBackground.gradientColor2})` :
           sectionColorSettings.sectionBackground.solidColor) : 
-        '#f8f9fa'
+        'transparent'
       };
       margin: 0;
     ">
@@ -975,7 +994,7 @@ const generateSectionsPreview = (siteData) => {
   const cardClass = 'preview-card';
   
   return `
-    <section class="sections-preview mode-${displayMode}" style="padding: 4rem 0; background: #f8f9fa;">
+    <section class="sections-preview mode-${displayMode}" style="padding: 4rem 0; background: transparent;">
       <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0 2rem;">
         <h2 style="
           text-align: center;
@@ -1033,7 +1052,7 @@ const generateContactPreview = (siteData) => {
   const contactFileName = getContactFileName(contactData);
   
   return `
-    <section class="contact-preview" style="padding: 4rem 0; background: #ffffff;">
+    <section class="contact-preview" style="padding: 4rem 0; background: transparent;">
       <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0 2rem;">
         <div class="contact-preview-content" style="
           text-align: center;
@@ -1149,7 +1168,7 @@ const generateSectionContent = async (sectionData, sectionId) => {
   
   // Генерируем элементы контента
   for (const element of elements) {
-    html += await generateContentElementHTML(element);
+    html += await generateContentElementHTML(element, sectionId);
   }
   
   html += '</div></div></section>';
@@ -1157,7 +1176,7 @@ const generateSectionContent = async (sectionData, sectionId) => {
 };
 
 // Новая функция для генерации HTML элементов контента с правильными стилями
-const generateContentElementHTML = async (element) => {
+const generateContentElementHTML = async (element, sectionId = null) => {
   const elementId = `element-${element.id}`;
   const elementData = element.data || element;
   
@@ -2440,23 +2459,33 @@ const generateContentElementHTML = async (element) => {
             margin: 0 auto;
           ">
             ${(await Promise.all(cards.map(async (card, index) => {
-              const exportedFile = await resolveCardImageFileName(card, sectionId);
+              console.log(`🔥🔥🔥 FILENAME-DEBUG: Processing card ${card.id} in section ${sectionId}`);
+              console.log(`🔥🔥🔥 FILENAME-DEBUG: Card data:`, card);
+              console.log(`🔥🔥🔥 FILENAME-DEBUG: card.fileName = "${card.fileName}"`);
+              console.log(`🔥🔥🔥 FILENAME-DEBUG: card.imageUrl = "${card.imageUrl}"`);
+              console.log(`🔥🔥🔥 FILENAME-DEBUG: card.image = "${card.image}"`);
+              console.log(`🔥🔥🔥 FILENAME-DEBUG: card.src = "${card.src}"`);
+              
+              // Используем функцию resolveCardImageFileName которая теперь правильно приоритизирует fileName
               let imgSrc = '';
+              const exportedFile = await resolveCardImageFileName(card, sectionId);
+              console.log(`🔥🔥🔥 FILENAME-DEBUG: resolveCardImageFileName returned: "${exportedFile}"`);
+              
               if (exportedFile) {
                 imgSrc = `assets/images/${exportedFile}`;
-                console.log(`🔍 Multiple-cards: Using cached image: ${imgSrc}`);
+                console.log(`🔥🔥🔥 FILENAME-DEBUG: FINAL imgSrc from resolved: ${imgSrc}`);
               } else {
+                // Fallback к прямым свойствам карточки
                 imgSrc = card.image || card.imageUrl || card.src || '';
+                console.log(`🔥🔥🔥 FILENAME-DEBUG: Using fallback properties: ${imgSrc}`);
                 
-                // Если это blob URL, попытаемся найти соответствующий файл по имени
+                // Если это blob URL, создаем простое имя файла
                 if (imgSrc && imgSrc.startsWith('blob:')) {
-                  console.log(`🔍 Multiple-cards: Found blob URL, trying to resolve: ${imgSrc}`);
-                  const possibleFileName = `card_${card.id}_image.jpg`;
-                  imgSrc = `assets/images/${possibleFileName}`;
-                  console.log(`🔍 Multiple-cards: Converted blob to file path: ${imgSrc}`);
+                  console.log(`🔥🔥🔥 FILENAME-DEBUG: Found blob URL, clearing imgSrc`);
+                  imgSrc = ''; // Не показываем изображение если не можем его найти
                 }
                 
-                console.log(`🔍 Multiple-cards: Using fallback image: ${imgSrc}`);
+                console.log(`🔥🔥🔥 FILENAME-DEBUG: FINAL imgSrc from fallback: ${imgSrc}`);
               }
               const title = card.title || '';
               const text = card.content || '';
@@ -2467,9 +2496,11 @@ const generateContentElementHTML = async (element) => {
                   border-radius:${elementData.borderRadius || 8}px;
                   padding:16px;
                 ">
-                  <div class="service-image" style="height:160px;overflow:hidden;border-radius:${elementData.borderRadius || 8}px;margin-bottom:12px;">
-                    <img src="${imgSrc || 'assets/images/placeholder.svg'}" alt="${title}" style="width:100%;height:100%;object-fit:cover"/>
-                  </div>
+                  ${imgSrc && imgSrc.trim() && !imgSrc.includes('placeholder') ? `
+                    <div class="service-image" style="height:160px;overflow:hidden;border-radius:${elementData.borderRadius || 8}px;margin-bottom:12px;">
+                      <img src="${imgSrc}" alt="${title}" style="width:100%;height:100%;object-fit:cover"/>
+                    </div>
+                  ` : ''}
                   ${title ? `<h3 style=\"color:${cardTitleColor};margin:0 0 8px 0\">${title}</h3>` : ''}
                   ${text ? `<p style=\"color:${cardTextColor};margin:0 0 12px 0\">${text}</p>` : ''}
               </div>
@@ -5620,11 +5651,38 @@ body {
   @media (max-width: 768px) {
     .featured-content {
       grid-template-columns: 1fr !important;
-      gap: 2rem;
+      gap: 2rem !important;
+    }
+
+    .featured-section .container {
+      padding: 0 1rem !important;
+    }
+
+    .featured-text h2 {
+      font-size: 2rem !important;
+      text-align: center !important;
+    }
+
+    .featured-text p {
+      font-size: 1.1rem !important;
+      text-align: center !important;
+    }
+
+    .featured-elements {
+      text-align: center !important;
+    }
+
+    .featured-actions {
+      text-align: center !important;
     }
 
     .sections-preview.mode-cards .preview-grid {
       grid-template-columns: 1fr;
+    }
+
+    .contact-preview-content {
+      grid-template-columns: 1fr !important;
+      gap: 2rem !important;
     }
 
 
@@ -5966,6 +6024,15 @@ function initContentElements() {
   // Initialize typewriter text
   const typewriters = document.querySelectorAll('.typewriter');
   typewriters.forEach(initTypewriter);
+  
+  // Re-initialize typewriter text after a short delay to catch dynamically loaded content
+  setTimeout(() => {
+    const newTypewriters = document.querySelectorAll('.typewriter:not([data-initialized])');
+    newTypewriters.forEach(element => {
+      element.setAttribute('data-initialized', 'true');
+      initTypewriter(element);
+    });
+  }, 100);
 }
 
 // Function to animate counters
@@ -6051,11 +6118,21 @@ function initTypewriter(element) {
       typeSpeed = speed;
     }
     
-    setTimeout(typeText, typeSpeed);
-  }
-  
-  // Start the typewriter effect
-  typeText();
+  setTimeout(typeText, typeSpeed);
+}
+
+// Start the typewriter effect
+typeText();
+}
+
+// Global function to re-initialize typewriter animations
+window.reinitializeTypewriters = function() {
+  const typewriters = document.querySelectorAll('.typewriter:not([data-initialized])');
+  typewriters.forEach(element => {
+    element.setAttribute('data-initialized', 'true');
+    initTypewriter(element);
+  });
+};
 }
 
 // ===========================================
@@ -6653,7 +6730,35 @@ const exportCardImages = async (zip, assetsDir, siteData) => {
       
       for (const cards of cardArrays) {
         for (const card of cards) {
-          if ((card.type === 'image-card' || card.type === 'card') && card.id) {
+          // Обрабатываем элемент типа multiple-cards
+          if (card.type === 'multiple-cards' && card.data?.cards) {
+            console.log(`🔥CARD-EXPORT🔥 Found multiple-cards element in section ${sectionId}:`, card);
+            
+            // Экспортируем изображения из всех карточек внутри multiple-cards
+            for (const innerCard of card.data.cards) {
+              if (innerCard.id && innerCard.fileName && innerCard.fileName.startsWith('card_')) {
+                console.log(`🔥CARD-EXPORT🔥 Processing inner card ${innerCard.id} with fileName: ${innerCard.fileName}`);
+                
+                try {
+                  const blob = await imageCacheService.getImage(innerCard.fileName);
+                  if (blob) {
+                    console.log(`🔥CARD-EXPORT🔥 ✅ Found blob for inner card fileName: ${innerCard.fileName}, size: ${blob.size}`);
+                    imagesDir.file(innerCard.fileName, blob);
+                    exportedCount++;
+                    console.log(`🔥CARD-EXPORT🔥 ✅ Inner card image exported: ${innerCard.fileName}`);
+                  } else {
+                    console.warn(`🔥CARD-EXPORT🔥 ❌ No blob found for inner card fileName: ${innerCard.fileName}`);
+                  }
+                } catch (error) {
+                  console.warn(`🔥CARD-EXPORT🔥 Failed to get blob for inner card fileName: ${innerCard.fileName}`, error);
+                }
+              } else {
+                console.log(`🔥CARD-EXPORT🔥 Skipping inner card without fileName: ${innerCard.id}`);
+              }
+            }
+          }
+          // Обрабатываем обычные карточки
+          else if ((card.type === 'image-card' || card.type === 'card') && card.id) {
             console.log(`🔥CARD-EXPORT🔥 Checking card ${card.id} in section ${sectionId}`, card);
             
             let imageExported = false;

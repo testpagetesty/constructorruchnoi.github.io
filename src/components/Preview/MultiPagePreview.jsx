@@ -119,7 +119,7 @@ const PageContainer = styled(Box)(({ theme }) => ({
   minHeight: '100vh',
   display: 'flex',
   flexDirection: 'column',
-  backgroundColor: '#ffffff',
+  backgroundColor: 'transparent', // Убираем белый фон по умолчанию
 }));
 
 const PageContent = styled(Box)(({ theme }) => ({
@@ -171,6 +171,146 @@ const MultiPagePreview = ({
   const [heroImageUrl, setHeroImageUrl] = useState(null);
 
   console.log('[MultiPagePreview] 🎯 Component mounted/updated');
+  
+  // Применение настроек фона шапки
+  useEffect(() => {
+    console.log('[MultiPagePreview] 🎨 Applying header background settings:', headerData);
+    console.log('[MultiPagePreview] 🎨 siteBackgroundType:', headerData?.siteBackgroundType);
+    console.log('[MultiPagePreview] 🎨 siteBackgroundColor:', headerData?.siteBackgroundColor);
+    
+    // Используем небольшую задержку, чтобы убедиться, что DOM готов
+    setTimeout(() => {
+      // Находим основной контейнер
+      const previewArea = document.querySelector('.multipage-preview-container');
+      console.log('[MultiPagePreview] 🎨 Found preview area:', !!previewArea);
+      
+      if (!previewArea) {
+        console.error('[MultiPagePreview] ❌ Preview area not found! Available elements:', 
+          Array.from(document.querySelectorAll('[class*="preview"]')).map(el => el.className));
+        return;
+      }
+
+      // Удаляем существующие фоновые элементы
+      const existingBackground = previewArea.querySelector('.background-image');
+      const existingOverlay = previewArea.querySelector('.site-overlay');
+      if (existingBackground) {
+        existingBackground.remove();
+        console.log('[MultiPagePreview] 🎨 Removed existing background');
+      }
+      if (existingOverlay) {
+        existingOverlay.remove();
+        console.log('[MultiPagePreview] 🎨 Removed existing overlay');
+      }
+
+      // Применяем фон в зависимости от типа
+      if (headerData?.siteBackgroundType === 'solid') {
+        console.log('[MultiPagePreview] 🎨 Applying solid background:', headerData.siteBackgroundColor);
+        
+        // Применяем к контейнеру с высоким приоритетом
+        previewArea.style.setProperty('background', headerData.siteBackgroundColor || '#ffffff', 'important');
+        previewArea.style.setProperty('backgroundColor', headerData.siteBackgroundColor || '#ffffff', 'important');
+        previewArea.style.setProperty('backgroundImage', 'none', 'important');
+        
+        // НЕ применяем к body, чтобы не затронуть панель редактирования
+        // document.body.style.setProperty('backgroundColor', headerData.siteBackgroundColor || '#ffffff', 'important');
+        
+        console.log('[MultiPagePreview] 🎨 Applied solid background, final style:', previewArea.style.backgroundColor);
+      } else if (headerData?.siteBackgroundType === 'gradient') {
+        const gradientStyle = `linear-gradient(${headerData?.siteGradientDirection || 'to right'}, 
+          ${headerData?.siteGradientColor1 || '#ffffff'}, 
+          ${headerData?.siteGradientColor2 || '#f5f5f5'})`;
+        console.log('[MultiPagePreview] 🎨 Applying gradient background:', gradientStyle);
+        
+        // Применяем к контейнеру с высоким приоритетом
+        previewArea.style.setProperty('background', gradientStyle, 'important');
+        previewArea.style.setProperty('backgroundColor', 'transparent', 'important');
+        previewArea.style.setProperty('backgroundImage', 'none', 'important');
+        
+        // НЕ применяем к body, чтобы не затронуть панель редактирования
+        // document.body.style.setProperty('background', gradientStyle, 'important');
+        // document.body.style.setProperty('backgroundColor', 'transparent', 'important');
+        
+        console.log('[MultiPagePreview] 🎨 Applied gradient background, final style:', previewArea.style.background);
+      } else if (headerData?.siteBackgroundType === 'image') {
+        console.log('[MultiPagePreview] 🎨 Applying image background');
+        
+        // Создаем фоновое изображение
+        const backgroundImage = document.createElement('div');
+        backgroundImage.className = 'background-image';
+        backgroundImage.style.position = 'fixed';
+        backgroundImage.style.top = '0';
+        backgroundImage.style.left = '0';
+        backgroundImage.style.right = '0';
+        backgroundImage.style.bottom = '0';
+        backgroundImage.style.background = `url('/images/hero/fon.jpg') no-repeat center center fixed`;
+        backgroundImage.style.backgroundSize = 'cover';
+        backgroundImage.style.zIndex = '-2';
+        
+        // Применяем размытие
+        if (headerData?.siteBackgroundBlur > 0) {
+          backgroundImage.style.filter = `blur(${headerData.siteBackgroundBlur}px)`;
+        }
+        
+        previewArea.appendChild(backgroundImage);
+        console.log('[MultiPagePreview] 🎨 Added background image element');
+        
+        // Добавляем затемнение
+        if (headerData?.siteBackgroundDarkness > 0) {
+          const overlay = document.createElement('div');
+          overlay.className = 'site-overlay';
+          overlay.style.position = 'fixed';
+          overlay.style.top = '0';
+          overlay.style.left = '0';
+          overlay.style.width = '100%';
+          overlay.style.height = '100%';
+          overlay.style.backgroundColor = `rgba(0, 0, 0, ${headerData.siteBackgroundDarkness / 100})`;
+          overlay.style.zIndex = '-1';
+          previewArea.appendChild(overlay);
+          console.log('[MultiPagePreview] 🎨 Added overlay element');
+        }
+
+        // Сбрасываем стили контейнера
+        previewArea.style.setProperty('background', 'none', 'important');
+        previewArea.style.setProperty('backgroundColor', 'transparent', 'important');
+        
+        // НЕ сбрасываем стили body, чтобы не затронуть панель редактирования
+        // document.body.style.setProperty('background', 'none', 'important');
+        // document.body.style.setProperty('backgroundColor', 'transparent', 'important');
+      } else {
+        console.log('[MultiPagePreview] 🎨 Removing background (default)');
+        // По умолчанию убираем фон
+        previewArea.style.setProperty('background', 'none', 'important');
+        previewArea.style.setProperty('backgroundColor', 'transparent', 'important');
+        previewArea.style.setProperty('backgroundImage', 'none', 'important');
+        
+        // НЕ сбрасываем стили body, чтобы не затронуть панель редактирования
+        // document.body.style.setProperty('background', 'none', 'important');
+        // document.body.style.setProperty('backgroundColor', 'transparent', 'important');
+      }
+      
+      console.log('[MultiPagePreview] 🎨 Final container styles:', {
+        background: previewArea.style.background,
+        backgroundColor: previewArea.style.backgroundColor,
+        backgroundImage: previewArea.style.backgroundImage
+      });
+    }, 100);
+    
+    // Cleanup function для удаления фоновых элементов при размонтировании
+    return () => {
+      // НЕ сбрасываем стили body, чтобы не затронуть панель редактирования
+      // document.body.style.background = '';
+      // document.body.style.backgroundColor = '';
+      
+      // Удаляем фоновые элементы только из области превью
+      const previewArea = document.querySelector('.multipage-preview-container');
+      if (previewArea) {
+        const backgroundImage = previewArea.querySelector('.background-image');
+        const overlay = previewArea.querySelector('.site-overlay');
+        if (backgroundImage) backgroundImage.remove();
+        if (overlay) overlay.remove();
+      }
+    };
+  }, [headerData]);
   
   // Загрузка hero изображения из кеша
   useEffect(() => {
@@ -2039,15 +2179,11 @@ const MultiPagePreview = ({
           {sectionData?.contentElements && sectionData.contentElements.length > 0 && (
             <Box sx={{ 
               mt: 4,
-              // Обработка sectionBackground для фона секции
-              ...(sectionData.contentElements[0]?.colorSettings?.sectionBackground?.enabled ? {
-                background: sectionData.contentElements[0].colorSettings.sectionBackground.useGradient 
-                  ? `linear-gradient(${sectionData.contentElements[0].colorSettings.sectionBackground.gradientDirection || 'to right'}, ${sectionData.contentElements[0].colorSettings.sectionBackground.gradientColor1}, ${sectionData.contentElements[0].colorSettings.sectionBackground.gradientColor2})`
-                  : sectionData.contentElements[0].colorSettings.sectionBackground.solidColor,
-                borderRadius: '16px',
-                padding: '24px',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
-              } : {})
+              // НЕ применяем sectionBackground из элементов к секции
+              // sectionBackground должен применяться только к отдельным элементам
+              borderRadius: '16px',
+              padding: '24px',
+              backgroundColor: 'transparent' // Убираем фиксированный фон секции
             }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                 <Typography variant="h4" sx={{ color: '#1976d2' }}>
@@ -2194,7 +2330,17 @@ const MultiPagePreview = ({
   };
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Box 
+      className="multipage-preview-container"
+      sx={{ 
+        height: '100%', 
+        minHeight: '100vh',
+        display: 'flex', 
+        flexDirection: 'column', 
+        position: 'relative',
+        width: '100%'
+      }}
+    >
       {/* Навигационная панель временно отключена */}
       
       {/* Содержимое страницы */}
@@ -2474,7 +2620,7 @@ const SectionsPreview = ({ sectionsData, headerData, homePageSettings }) => {
   };
   
   return (
-    <Box sx={{ padding: '4rem 0', background: '#f8f9fa' }}>
+    <Box sx={{ padding: '4rem 0', background: 'transparent' }}>
       <Container maxWidth="lg">
         <Typography variant="h2" sx={{
           textAlign: 'center',
@@ -2570,7 +2716,7 @@ const ContactPreview = ({ contactData }) => {
   console.log('🔍 [ContactPreview] contactData:', contactData);
   
   return (
-    <Box sx={{ padding: '4rem 0', background: '#ffffff' }}>
+    <Box sx={{ padding: '4rem 0', background: 'transparent' }}>
       <Container maxWidth="lg">
         <Box sx={{
           textAlign: 'center',

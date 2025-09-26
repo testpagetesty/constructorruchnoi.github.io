@@ -2895,11 +2895,7 @@ const FeaturedSectionPreview = ({ featuredSectionId, sectionsData, headerData })
   return (
     <Box sx={{ 
       padding: '4rem 0',
-      background: sectionColorSettings?.sectionBackground?.enabled ? 
-        (sectionColorSettings.sectionBackground.useGradient ? 
-          `linear-gradient(${sectionColorSettings.sectionBackground.gradientDirection}, ${sectionColorSettings.sectionBackground.gradientColor1}, ${sectionColorSettings.sectionBackground.gradientColor2})` :
-          sectionColorSettings.sectionBackground.solidColor) : 
-        '#f8f9fa',
+      background: '#f8f9fa', // Убираем применение sectionBackground к секции
       margin: 0
     }}>
       <Container maxWidth="lg">

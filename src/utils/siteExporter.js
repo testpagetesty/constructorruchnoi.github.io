@@ -1875,27 +1875,19 @@ const generateSections = (siteData) => {
 };
 
 function generateSectionHTML(section) {
-  // Получаем настройки фона секции из элементов
-  const sectionColorSettings = section.elements?.find(el => el.colorSettings?.sectionBackground?.enabled)?.colorSettings;
+  // НЕ получаем настройки фона секции из элементов
+  // sectionBackground должен применяться только к отдельным элементам, а не к секции
+  // const sectionColorSettings = section.elements?.find(el => el.colorSettings?.sectionBackground?.enabled)?.colorSettings;
   
-  // Генерируем стили для контейнера секции
-  let sectionStyles = '';
-  if (sectionColorSettings?.sectionBackground?.enabled) {
-    const { sectionBackground } = sectionColorSettings;
-    const backgroundStyle = sectionBackground.useGradient 
-      ? `linear-gradient(${sectionBackground.gradientDirection}, ${sectionBackground.gradientColor1}, ${sectionBackground.gradientColor2})`
-      : sectionBackground.solidColor;
-    
-    sectionStyles = `style="
-      background: ${backgroundStyle};
-      opacity: ${sectionBackground.opacity || 1};
-      border-radius: ${sectionColorSettings.borderRadius || 20}px;
-      padding: ${sectionColorSettings.padding || 24}px;
+  // Генерируем стили для контейнера секции (фиксированные)
+  let sectionStyles = `style="
+      background: #f8f9fa;
+      border-radius: 20px;
+      padding: 24px;
       margin: 2rem auto;
       max-width: 1200px;
-      box-shadow: ${sectionColorSettings.boxShadow ? '0 4px 20px rgba(0,0,0,0.1)' : '0 10px 30px rgba(0,0,0,0.08)'};
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
     "`;
-  }
 
   if (section.cardType === 'none') {
     return `
