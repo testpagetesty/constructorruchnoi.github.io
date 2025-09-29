@@ -11,6 +11,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ViewCarouselIcon from '@mui/icons-material/ViewCarousel';
 import ImageCard from './ImageCard';
+import ImageCardWithUpload from './ImageCardWithUpload';
 import BasicCard from './BasicCard';
 import CardModal from './CardModal';
 import AnimationWrapper from '../AnimationWrapper';
@@ -44,7 +45,8 @@ const MultipleCardsSection = ({
   onEdit,
   onDelete,
   editable = true,
-  onCardUpdate
+  onCardUpdate,
+  showUploadButtons = false // Новый пропс для показа кнопок загрузки
 }) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedCard, setSelectedCard] = useState(null);
@@ -327,7 +329,12 @@ const MultipleCardsSection = ({
     };
 
     if (cardType === 'image-card') {
-      return <ImageCard {...commonProps} />;
+      // Используем ImageCardWithUpload если включены кнопки загрузки
+      if (showUploadButtons && editable) {
+        return <ImageCardWithUpload {...commonProps} />;
+      } else {
+        return <ImageCard {...commonProps} />;
+      }
     } else {
       return <BasicCard {...commonProps} />;
     }

@@ -1106,7 +1106,17 @@ const PagePreview = ({
             sectionStyles={element.sectionStyles || element.data?.sectionStyles}
             onEdit={() => {}}
             onDelete={() => {}}
-            editable={false}
+            editable={constructorMode} // Включаем редактирование в режиме конструктора
+            showUploadButtons={constructorMode} // Показываем кнопки загрузки в режиме конструктора
+            onCardUpdate={(cardId, updatedData) => {
+              // Обновляем карточку в элементе
+              const updatedCards = (element.cards || element.data?.cards || []).map(card => 
+                card.id === cardId ? { ...card, ...updatedData } : card
+              );
+              if (onElementUpdate) {
+                onElementUpdate(sectionId, element.id, 'cards', updatedCards);
+              }
+            }}
           />
         );
         break;
@@ -1453,6 +1463,9 @@ const PagePreview = ({
     
     console.log(`[PagePreview] Rendering section ${section.id}:`, section);
     console.log(`[PagePreview] Section has ${section.contentElements ? section.contentElements.length : 0} content elements`);
+    console.log(`[PagePreview] Section description:`, section.description);
+    console.log(`[PagePreview] Section description type:`, typeof section.description);
+    console.log(`[PagePreview] Section description length:`, section.description ? section.description.length : 0);
     
     // Получаем URL изображения, учитывая возможную структуру данных
     const getFirstImageUrl = (images) => {
@@ -2769,6 +2782,8 @@ const PagePreview = ({
               
               if (featuredSection) {
                 const [sectionId, sectionContent] = featuredSection;
+                console.log(`[PagePreview] Featured section ${sectionId} content:`, sectionContent);
+                console.log(`[PagePreview] Featured section description:`, sectionContent?.description);
                 return (
                   <Box
                     key={sectionId}

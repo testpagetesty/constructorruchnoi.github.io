@@ -178,6 +178,12 @@ const ImageCard = ({
   const [isEditing, setIsEditing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
+  
+  // Проверяем, является ли изображение placeholder
+  const isPlaceholderImage = !currentImageUrl || 
+                            currentImageUrl.includes('placeholder') || 
+                            currentImageUrl.includes('via.placeholder') ||
+                            currentImageUrl === 'https://via.placeholder.com/300x200?text=Изображение';
   const [currentAnimationSettings, setCurrentAnimationSettings] = useState(animationSettings);
   const [animationExpanded, setAnimationExpanded] = useState(false);
   const [linkType, setLinkType] = useState('external');
@@ -503,7 +509,10 @@ const ImageCard = ({
     if (event && (
       event.target.closest('.MuiIconButton-root') ||
       event.target.closest('.MuiButton-root') ||
-      event.target.closest('.card-overlay')
+      event.target.closest('.card-overlay') ||
+      event.target.closest('.upload-button') ||
+      event.target.closest('[data-upload-area]') ||
+      (event.currentTarget && event.currentTarget.querySelector('[data-upload-area]:hover'))
     )) {
       return;
     }
@@ -793,6 +802,43 @@ const ImageCard = ({
       );
     }
 
+    if (isPlaceholderImage) {
+      return (
+        <Box
+          data-upload-area="true"
+          sx={{
+            ...imageStyles,
+            backgroundColor: '#f8f9fa',
+            border: '2px dashed #dee2e6',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#6c757d',
+            textAlign: 'center',
+            padding: 3,
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            '&:hover': {
+              backgroundColor: '#e9ecef',
+              borderColor: '#adb5bd'
+            }
+          }}
+          onClick={(e) => { e.stopPropagation(); handleUploadClick(); }}
+          onMouseDown={(e) => e.stopPropagation()}
+          onMouseUp={(e) => e.stopPropagation()}
+        >
+          <CloudUploadIcon sx={{ fontSize: 48, mb: 2, color: '#adb5bd', pointerEvents: 'none' }} />
+          <Typography variant="body1" sx={{ fontWeight: 500, mb: 1, pointerEvents: 'none' }}>
+            Переместите сюда картинку или загрузите
+          </Typography>
+          <Typography variant="caption" sx={{ color: '#6c757d', pointerEvents: 'none' }}>
+            Нажмите для выбора файла
+          </Typography>
+        </Box>
+      );
+    }
+
     return (
       <CardMedia
         component="img"
@@ -914,23 +960,47 @@ const ImageCard = ({
             }}
           >
             <Box sx={{ display: 'flex', gap: 0.5 }}>
-              <Tooltip title="Загрузить изображение">
-                <IconButton
-                  size="small"
-                  onClick={handleUploadClick}
-                  disabled={isUploading}
-                  sx={{
-                    backgroundColor: 'rgba(255,255,255,0.9)',
-                    '&:hover': { backgroundColor: 'rgba(255,255,255,1)' }
-                  }}
-                >
-                  {isUploading ? (
-                    <CircularProgress size={16} />
-                  ) : (
-                    <CloudUploadIcon fontSize="small" />
-                  )}
-                </IconButton>
-              </Tooltip>
+              <Box
+                className="upload-button"
+                onClick={(e) => { e.stopPropagation(); handleUploadClick(); }}
+                sx={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(25, 118, 210, 0.9)',
+                  backdropFilter: 'blur(4px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                  border: '2px solid rgba(255,255,255,0.8)',
+                  '&:hover': {
+                    backgroundColor: 'rgba(25, 118, 210, 1)',
+                    transform: 'scale(1.05)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+                  },
+                  '&:active': {
+                    transform: 'scale(0.95)'
+                  }
+                }}
+              >
+                {isUploading ? (
+                  <Box
+                    sx={{
+                      width: 18,
+                      height: 18,
+                      border: '2px solid #fff',
+                      borderTop: '2px solid transparent',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite'
+                    }}
+                  />
+                ) : (
+                  <CloudUploadIcon sx={{ color: 'white', fontSize: 18 }} />
+                )}
+              </Box>
               <Tooltip title="Редактировать">
                 <IconButton
                   size="small"

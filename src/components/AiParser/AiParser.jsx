@@ -6422,17 +6422,14 @@ ID: [название секции на ${languageName}, желательно о
           type: 'json_copied'
         }]);
         
-        const message = jsonPromptDescription && jsonPromptDescription.trim() 
-          ? `✅ JSON для ${selectedElements.size} элементов с требованиями к стилю скопирован в буфер обмена!`
-          : `✅ JSON для ${selectedElements.size} элементов скопирован в буфер обмена!`;
-        alert(message);
+        // Закрываем диалог выбора элементов
+        setShowElementSelector(false);
       }).catch(() => {
         // Fallback - показываем в консоли
         console.log('📋 JSON для выбранных элементов:', jsonWithStyleRequirements);
-        const fallbackMessage = jsonPromptDescription && jsonPromptDescription.trim() 
-          ? 'JSON с требованиями к стилю выведен в консоль (F12)'
-          : 'JSON выведен в консоль (F12)';
-        alert(fallbackMessage);
+        
+        // Закрываем диалог выбора элементов даже при ошибке
+        setShowElementSelector(false);
       });
 
     } catch (error) {
@@ -9403,9 +9400,6 @@ ID: [название секции на ${languageName}, желательно о
         <AccordionDetails sx={{ p: 0 }}>
           <Paper sx={{ boxShadow: 'none' }}>
             <Box sx={{ p: 2, borderBottom: '1px solid rgba(0, 0, 0, 0.12)' }}>
-              <Typography variant="body2" sx={{ color: 'rgba(0, 0, 0, 0.7)', mb: 2 }}>
-                Сканирование элементов и создание JSON дизайн-системы для отправки в GPT-5
-              </Typography>
               <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
                 <Button
                   variant="contained"
@@ -9420,55 +9414,6 @@ ID: [название секции на ${languageName}, желательно о
                   }}
                 >
                   📋 Выбрать элементы
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="primary"
-                  onClick={() => handleScanElements()}
-                  startIcon={<TuneIcon />}
-                  sx={{
-                    color: '#2196f3',
-                    borderColor: '#2196f3',
-                    '&:hover': {
-                      borderColor: '#1976d2',
-                      backgroundColor: 'rgba(33, 150, 243, 0.04)'
-                    }
-                  }}
-                >
-                  🔍 Сканировать все
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="secondary"
-                  onClick={() => handleApplyStylesToAllElements()}
-                  startIcon={<StyleIcon />}
-                  sx={{
-                    color: '#9c27b0',
-                    borderColor: '#9c27b0',
-                    '&:hover': {
-                      borderColor: '#7b1fa2',
-                      backgroundColor: 'rgba(156, 39, 176, 0.04)'
-                    }
-                  }}
-                >
-                  🎨 Применить стили
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="info"
-                  onClick={() => setShowDesignSystemDialog(true)}
-                  startIcon={<TuneIcon />}
-                  disabled={!generatedDesignSystem}
-                  sx={{
-                    color: '#ff9800',
-                    borderColor: '#ff9800',
-                    '&:hover': {
-                      borderColor: '#f57c00',
-                      backgroundColor: 'rgba(255, 152, 0, 0.04)'
-                    }
-                  }}
-                >
-                  📋 Показать JSON
                 </Button>
               </Box>
             </Box>
@@ -9488,7 +9433,7 @@ ID: [название секции на ${languageName}, желательно о
                   onChange={(e) => setJsonPromptDescription(e.target.value)}
                   sx={{ mb: 2 }}
                   variant="outlined"
-                  helperText="Это описание будет автоматически добавлено к JSON при копировании для лучшего понимания GPT-5"
+                  helperText=""
                 />
                 <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
                   <Button
@@ -9615,13 +9560,7 @@ ID: [название секции на ${languageName}, желательно о
                     </Box>
                   </Paper>
                 </Box>
-              ) : (
-                <Box sx={{ textAlign: 'center', py: 3 }}>
-                  <Typography variant="body1" sx={{ color: 'rgba(0, 0, 0, 0.6)' }}>
-                    Нажмите "Сканировать элементы" для создания JSON дизайн-системы
-                  </Typography>
-                </Box>
-              )}
+              ) : null}
               
               {/* Поле для ввода JSON от GPT-5 */}
               <Box sx={{ mt: 3 }}>
@@ -9630,7 +9569,7 @@ ID: [название секции на ${languageName}, желательно о
                 </Typography>
                 <Paper sx={{ p: 2, bgcolor: '#fff3e0', border: '1px solid #ffb74d', borderRadius: '8px' }}>
                   <Typography variant="body2" sx={{ mb: 2, color: 'rgba(0, 0, 0, 0.7)' }}>
-                    Вставьте JSON с готовыми стилями, полученный от GPT-5. Для элемента typography используйте поля: headingType, textColor, textAlign, customStyles.color, colorSettings.borderColor
+                    Вставьте JSON с готовыми стилями, полученный от GPT-5.
                   </Typography>
                   <TextField
                     fullWidth
@@ -9930,35 +9869,6 @@ ID: [название секции на ${languageName}, желательно о
                   </Button>
                 </span>
               </Tooltip>
-              {targetSection === 'LEGAL' && (
-                <Tooltip title="Скопировать оптимизированный промпт для правовых документов" arrow placement="top">
-                  <span>
-                    <Button
-                      variant="contained"
-                      color="secondary"
-                      onClick={() => {
-                        const legalPrompt = applyGlobalSettings(generateLegalDocumentsPrompt());
-                        navigator.clipboard.writeText(legalPrompt)
-                          .then(() => {
-                            setParserMessage('Оптимизированный промпт для правовых документов скопирован в буфер обмена.');
-                            handleClearText();
-                          })
-                          .catch(() => {
-                            setParserMessage('Не удалось скопировать промпт.');
-                          });
-                      }}
-                      startIcon={<ContentCopyIcon sx={{ fontSize: '0.9rem' }} />}
-                      sx={{
-                        background: 'linear-gradient(45deg, #ed6c02 30%, #ff9800 90%)',
-                        '&:hover': {
-                          background: 'linear-gradient(45deg, #e65100 30%, #f57c00 90%)'
-                        }
-                      }}
-                    >
-                      Промпт Legal
-                    </Button>
-                  </span>
-                </Tooltip>              )}
               </Box>
               
               <TextField

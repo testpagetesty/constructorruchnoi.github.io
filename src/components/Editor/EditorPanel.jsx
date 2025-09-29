@@ -7032,13 +7032,13 @@ const EditorPanel = ({
 
               min-height: ${(elementData.fontSize || 32) * 1.2}px;
 
-            display: flex;
+            display: block;
 
-            align-items: center;
-
-            justify-content: center;
+            text-align: center;
 
               position: relative;
+
+              line-height: 1.2;
 
             }
 
@@ -7048,9 +7048,15 @@ const EditorPanel = ({
 
               font-family: ${elementData.fontFamily || 'Courier New, monospace'};
 
-              white-space: nowrap;
+              white-space: pre-wrap;
 
               overflow: hidden;
+
+              word-wrap: break-word;
+
+              max-width: 100%;
+
+              display: inline;
 
             }
 
@@ -7058,7 +7064,7 @@ const EditorPanel = ({
 
             .typewriter-cursor {
 
-              animation: blink 1s infinite;
+              animation: blink 1.5s infinite;
 
               margin-left: 2px;
 
@@ -7068,15 +7074,19 @@ const EditorPanel = ({
 
               user-select: none;
 
+              display: inline;
+
+              opacity: 0.8;
+
             }
 
             
 
             @keyframes blink {
 
-              0%, 50% { opacity: 1; }
+              0%, 70% { opacity: 1; }
 
-              51%, 100% { opacity: 0; }
+              71%, 100% { opacity: 0.3; }
 
             }
 
@@ -25316,7 +25326,7 @@ const EditorPanel = ({
 
               const cursor = element.querySelector('.typewriter-cursor');
 
-              if (cursor) cursor.style.opacity = '0.3';
+              if (cursor) cursor.style.display = 'none';
 
               return;
 
@@ -26892,9 +26902,9 @@ const EditorPanel = ({
 
     const sectionColorSettings = featuredSectionData.colorSettings || {};
 
-    const titleColor = sectionColorSettings?.textFields?.title || '#1a237e';
+    const titleColor = sectionColorSettings?.textFields?.title || featuredSectionData.titleColor || '#1a237e';
 
-    const descriptionColor = sectionColorSettings?.textFields?.description || '#455a64';
+    const descriptionColor = sectionColorSettings?.textFields?.description || featuredSectionData.descriptionColor || '#455a64';
 
     const contentColor = sectionColorSettings?.textFields?.content || '#455a64';
 
@@ -26994,7 +27004,7 @@ const EditorPanel = ({
                 font-weight: 700;
 
                 margin-bottom: 1.5rem;
-
+                text-align: center;
                 font-family: 'Montserrat', sans-serif;
 
               ">${sectionTitle}</h2>
@@ -27012,7 +27022,7 @@ const EditorPanel = ({
                   line-height: 1.6;
 
                   margin-bottom: 2rem;
-
+                  text-align: center;
                   font-family: 'Montserrat', sans-serif;
 
                 ">${sectionDescription}</p>
@@ -29627,6 +29637,81 @@ const EditorPanel = ({
 
     <script>
 
+      // Function to initialize typewriter effect
+      function initTypewriter(element) {
+        const texts = JSON.parse(element.dataset.texts || '["Default text"]');
+        const speed = parseInt(element.dataset.speed) || 150;
+        const pauseTime = parseInt(element.dataset.pause) || 2000;
+        const repeat = element.dataset.repeat !== 'false';
+        
+        // Find the text content span
+        const textContentSpan = element.querySelector('.typewriter-text-content');
+        if (!textContentSpan) {
+          console.error('Typewriter text content span not found');
+          return;
+        }
+        
+        let textIndex = 0;
+        let charIndex = 0;
+        let isDeleting = false;
+        
+        function typeText() {
+          const fullText = texts[textIndex];
+          let displayText = '';
+          
+          if (isDeleting) {
+            displayText = fullText.substring(0, charIndex - 1);
+            charIndex--;
+          } else {
+            displayText = fullText.substring(0, charIndex + 1);
+            charIndex++;
+          }
+          
+          // Update only the text content, cursor stays separate
+          textContentSpan.textContent = displayText;
+          
+          let typeSpeed = speed;
+          
+          if (isDeleting) {
+            typeSpeed = speed / 2;
+          }
+          
+          if (!isDeleting && charIndex === fullText.length) {
+            // Finished typing, pause before deleting
+            typeSpeed = pauseTime;
+            isDeleting = true;
+          } else if (isDeleting && charIndex === 0) {
+            // Finished deleting, move to next text
+            isDeleting = false;
+            textIndex = (textIndex + 1) % texts.length;
+            
+            // If not repeating and we've gone through all texts, stop
+            if (!repeat && textIndex === 0) {
+              // Show final text and hide cursor
+              textContentSpan.textContent = texts[0];
+              const cursor = element.querySelector('.typewriter-cursor');
+              if (cursor) cursor.style.display = 'none';
+              return;
+            }
+            
+            typeSpeed = speed;
+          }
+          
+          setTimeout(typeText, typeSpeed);
+        }
+        
+        // Start typewriter when element is visible
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              typeText();
+              observer.unobserve(entry.target);
+            }
+          });
+        });
+        observer.observe(element);
+      }
+
       // Инициализация галереи изображений
 
       function initImageGalleries() {
@@ -29793,107 +29878,29 @@ const EditorPanel = ({
 
         
 
-        // Initialize typewriter text
+        // Initialize typewriter text with new structure
 
         const typewriters = document.querySelectorAll('.typewriter');
 
-        typewriters.forEach(typewriter => {
+        typewriters.forEach(initTypewriter);
 
-          const texts = JSON.parse(typewriter.dataset.texts || '["Привет, мир!"]');
+        
 
-          const speed = parseInt(typewriter.dataset.speed) || 150;
+        // Re-initialize typewriter text after a short delay to catch dynamically loaded content
 
-          const pauseTime = parseInt(typewriter.dataset.pause) || 2000;
+        setTimeout(() => {
 
-          const repeat = typewriter.dataset.repeat !== 'false';
+          const newTypewriters = document.querySelectorAll('.typewriter:not([data-initialized])');
 
-          
+          newTypewriters.forEach(element => {
 
-          let currentTextIndex = 0;
+            element.setAttribute('data-initialized', 'true');
 
-          let currentCharIndex = 0;
+            initTypewriter(element);
 
-          let isDeleting = false;
+          });
 
-          
-
-          function typeWriter() {
-
-            const currentText = texts[currentTextIndex];
-
-            
-
-            if (isDeleting) {
-
-              typewriter.textContent = currentText.substring(0, currentCharIndex - 1);
-
-              currentCharIndex--;
-
-            } else {
-
-              typewriter.textContent = currentText.substring(0, currentCharIndex + 1);
-
-              currentCharIndex++;
-
-            }
-
-            
-
-            let typeSpeed = speed;
-
-            if (isDeleting) {
-
-              typeSpeed /= 2;
-
-            }
-
-            
-
-            if (!isDeleting && currentCharIndex === currentText.length) {
-
-              typeSpeed = pauseTime;
-
-              isDeleting = true;
-
-            } else if (isDeleting && currentCharIndex === 0) {
-
-              isDeleting = false;
-
-              currentTextIndex = (currentTextIndex + 1) % texts.length;
-
-              typeSpeed = 500;
-
-            }
-
-            
-
-            setTimeout(typeWriter, typeSpeed);
-
-          }
-
-          
-
-          // Start typewriter when element is visible
-
-          const observer = new IntersectionObserver((entries) => {
-
-            entries.forEach(entry => {
-
-              if (entry.isIntersecting) {
-
-                typeWriter();
-
-                observer.unobserve(entry.target);
-
-              }
-
-            });
-
-                     });
-
-           observer.observe(typewriter);
-
-         });
+        }, 100);
 
          
 

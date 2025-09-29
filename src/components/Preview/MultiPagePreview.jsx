@@ -1402,7 +1402,17 @@ const MultiPagePreview = ({
               })()}
               onEdit={() => {}}
               onDelete={() => {}}
-              editable={false}
+              editable={true} // Включаем редактирование для показа кнопок
+              showUploadButtons={true} // В MultiPagePreview всегда показываем кнопки загрузки
+              onCardUpdate={(cardId, updatedData) => {
+                // Обновляем карточку в элементе
+                const updatedCards = (element.data?.cards || element.cards || []).map(card => 
+                  card.id === cardId ? { ...card, ...updatedData } : card
+                );
+                if (onElementUpdate) {
+                  onElementUpdate(sectionId, element.id, 'data', { cards: updatedCards });
+                }
+              }}
             />
             {/* Подсказка о возможности редактирования */}
             <Box
@@ -1967,9 +1977,27 @@ const MultiPagePreview = ({
                 
                 return (
                   <Box>
-                    <Typography variant="h4" gutterBottom sx={{ color: '#1976d2', textAlign: 'center' }}>
+                    <Typography variant="h4" gutterBottom sx={{ 
+                      color: featuredSection.data?.titleColor || '#1976d2', 
+                      textAlign: 'center' 
+                    }}>
                       {featuredSection.title}
                     </Typography>
+                    {featuredSection.data?.description && (
+                      <Typography 
+                        variant="h6" 
+                        component="p" 
+                        sx={{ 
+                          mb: 4, 
+                          textAlign: 'center',
+                          color: featuredSection.data?.descriptionColor || '#666',
+                          maxWidth: '1200px',
+                          margin: '0 auto 2rem auto'
+                        }}
+                      >
+                        {featuredSection.data.description}
+                      </Typography>
+                    )}
                     {featuredSection.data?.elements && featuredSection.data.elements.length > 0 ? (
                       <Box>
                         <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>

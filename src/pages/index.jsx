@@ -567,9 +567,7 @@ export default function Home() {
             🏗️ Конструктор сайтов
           </Typography>
           <Box sx={{ display: 'flex', gap: 1 }}>
-            <Link href="/" passHref>
-              <Button color="inherit">Главная</Button>
-            </Link>
+            {/* Скрываем кнопку "Главная" так как есть другая кнопка главная */}
             <Link href="/test-image-system" passHref>
               <Button color="inherit" variant="outlined">
                 🖼️ Тест изображений
