@@ -45,6 +45,7 @@ import TuneIcon from '@mui/icons-material/Tune';
 import StyleIcon from '@mui/icons-material/Style';
 import ShuffleIcon from '@mui/icons-material/Shuffle';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import CircularProgress from '@mui/material/CircularProgress';
 import { CARD_TYPES } from '../../utils/configUtils';
 import GlobalSettings, { WEBSITE_THEMES, LANGUAGES, COUNTRIES, CONTENT_STYLES } from './GlobalSettings';
@@ -639,6 +640,10 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
   const [selectedElements, setSelectedElements] = useState({});
   const [customPrompts, setCustomPrompts] = useState({});
   
+  // Состояния для модального окна настроек элементов
+  const [activeSettingsElement, setActiveSettingsElement] = useState(null);
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+  
   // Инициализируем разделы первого этапа при открытии диалога
   useEffect(() => {
     if (open && currentStep === 1) {
@@ -689,14 +694,14 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
       // Текстовые элементы
       'typography': { minContent: 70 },
       'rich-text': { minTitle: 30, minContent: 70 },
-      'blockquote': { minTitle: 20, minContent: 70 },
-      'list': { minContent: 70 },
-      'callout': { minTitle: 30, minContent: 70 },
+      'blockquote': { minTitle: 20, minContent: 70, minQuotes: 1 },
+      'list': { minContent: 70, minItems: 6 },
+      'callout': { minTitle: 30, minContent: 70, minCallouts: 1 },
       'gradient-text': { minContent: 60 },
-      'animated-counter': { minTitle: 60 },
-      'typewriter-text': { minContent: 70 },
-      'highlight-text': { minContent: 50 },
-      'testimonial-card': { minContent: 60 },
+      'animated-counter': { minTitle: 60, minCounters: 1 },
+      'typewriter-text': { minContent: 70, minTypewriters: 1 },
+      'highlight-text': { minContent: 50, minHighlights: 1 },
+      'testimonial-card': { minContent: 60, minTestimonials: 1 },
       
       // Интерактивные элементы
       'faq-section': { minTitle: 40, minContent: 40, minQuestions: 5 },
@@ -711,15 +716,15 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
       'image-gallery': { minTitle: 35, minContent: 60 },
       
       // Карточки
-      'basic-card': { minTitle: 18, minContent: 60 },
-      'image-card': { minTitle: 20, minContent: 70 },
+      'basic-card': { minTitle: 18, minContent: 60, minCards: 1 },
+      'image-card': { minTitle: 20, minContent: 70, minCards: 1 },
       'multiple-cards': { minTitle: 20, minContent: 70, minCards: 4 },
       
       // Диаграммы и графики
-      'bar-chart': { minTitle: 20, minContent: 50, minColumns: 8, minDataPoints: 8 },
+      'bar-chart': { minTitle: 20, minContent: 50, minColumns: 8 },
       'advanced-line-chart': { minTitle: 20, minContent: 40, minColumns: 7, minDataPoints: 5 },
-      'advanced-pie-chart': { minTitle: 20, minContent: 30, minDataPoints: 5 },
-      'advanced-area-chart': { minTitle: 20, minContent: 40, minColumns: 7, minDataPoints: 5 },
+      'advanced-pie-chart': { minTitle: 20, minColumns: 7 },
+      'advanced-area-chart': { minTitle: 20, minDataPoints: 5 },
       'chartjs-bar': { minTitle: 20, minContent: 50, minColumns: 8, minDataPoints: 8 },
       'chartjs-line': { minTitle: 20, minContent: 40, minColumns: 7, minDataPoints: 5 },
       'chartjs-pie': { minTitle: 20, minContent: 30, minDataPoints: 5 },
@@ -746,6 +751,35 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
       'cta-section': { minTitle: 20, minContent: 40 },
       'full-multipage-site': { minTitle: 20, minContent: 40 }
     };
+  };
+
+  // Функции для управления модальным окном настроек элементов
+  const openElementSettings = (sectionKey, elementKey) => {
+    setActiveSettingsElement({ section: sectionKey, element: elementKey });
+    setSettingsModalOpen(true);
+  };
+
+  const closeElementSettings = () => {
+    setActiveSettingsElement(null);
+    setSettingsModalOpen(false);
+  };
+
+  // Функция для получения текущих настроек элемента с fallback
+  const getCurrentElementSettings = (sectionKey, elementKey) => {
+    const settingsKey = `${sectionKey}_${elementKey}`;
+    return elementSettings[settingsKey] || elementSettings[elementKey] || {};
+  };
+
+  // Функция для определения, в каком разделе элемент активен (больше не используется)
+  const getActiveSectionForElement = (element) => {
+    // Все разделы из всех этапов
+    const sections = ['HERO', 'ABOUT', 'FEATURES', 'NEWS', 'SERVICES', 'FAQ', 'CONTACTS', 'TESTIMONIALS', 'LEGAL_DOCUMENTS', 'MERCI', 'UNIVERSAL'];
+    for (const section of sections) {
+      if (selectedElements[section]?.has(element)) {
+        return section;
+      }
+    }
+    return 'UNIVERSAL'; // fallback
   };
 
   const [elementSettings, setElementSettings] = useState(getDefaultElementSettings());
@@ -901,14 +935,21 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
   };
 
   // Функция для обработки изменений настроек конкретного элемента
-  const handleElementSettingChange = (elementKey, field, value) => {
-    setElementSettings(prev => ({
-      ...prev,
-      [elementKey]: {
-        ...prev[elementKey],
-        [field]: value
-      }
-    }));
+  const handleElementSettingChange = (sectionKey, elementKey, field, value) => {
+    const settingsKey = `${sectionKey}_${elementKey}`;
+    
+    setElementSettings(prev => {
+      // Получаем текущие настройки для раздела или дефолтные настройки для элемента
+      const currentSettings = prev[settingsKey] || prev[elementKey] || {};
+      
+      return {
+        ...prev,
+        [settingsKey]: {
+          ...currentSettings,
+          [field]: value
+        }
+      };
+    });
   };
 
   // Функция для получения всех выбранных элементов
@@ -952,6 +993,10 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
       const nextStep = currentStep + 1;
       setCurrentStep(nextStep);
       
+      // Сбрасываем выбранные элементы и их настройки при переходе на следующий этап
+      setSelectedElements({});
+      setElementSettings(getDefaultElementSettings());
+      
       // Автоматически активируем разделы следующего этапа
       setTimeout(() => {
         const nextStepSections = STEP_SECTIONS[nextStep];
@@ -970,6 +1015,10 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
     if (currentStep > 1) {
       const prevStep = currentStep - 1;
       setCurrentStep(prevStep);
+      
+      // Сбрасываем выбранные элементы и их настройки при возврате на предыдущий этап
+      setSelectedElements({});
+      setElementSettings(getDefaultElementSettings());
       
       // Автоматически активируем разделы предыдущего этапа
       setTimeout(() => {
@@ -1009,7 +1058,8 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
     CONTACTS: 'Контакты',
     MERCI: 'Сообщение благодарности',
     LEGAL: 'Правовые документы',
-    UNIVERSAL: 'Универсальная секция'
+    UNIVERSAL: 'Универсальная секция',
+    AGE_VERIFICATION: 'Подтверждение возраста'
   };
 
   // Функция для получения названия раздела (пользовательское или по умолчанию)
@@ -1434,6 +1484,7 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
   };
 
   return (
+    <>
     <Dialog 
       open={open} 
       onClose={onClose}
@@ -2017,15 +2068,39 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
                             />
                           }
                           label={
-                            <Typography
-                              sx={{
-                                color: isDisabled ? 'text.disabled' : 'text.primary',
-                                textDecoration: isDisabled ? 'line-through' : 'none'
-                              }}
-                            >
-                              {ELEMENT_PROMPTS[element]?.name || element}
-                              {isDisabled && ' (отключено)'}
-                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Typography
+                                sx={{
+                                  color: isDisabled ? 'text.disabled' : 'text.primary',
+                                  textDecoration: isDisabled ? 'line-through' : 'none'
+                                }}
+                              >
+                                {ELEMENT_PROMPTS[element]?.name || element}
+                                {isDisabled && ' (отключено)'}
+                              </Typography>
+                              {!isDisabled && (selectedElements.ABOUT?.has(element) || false) && (
+                                <Tooltip title="Настройки элемента">
+                                  <IconButton 
+                                    size="small" 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openElementSettings('ABOUT', element);
+                                    }}
+                                    sx={{ 
+                                      p: 0.5,
+                                      color: 'text.secondary',
+                                      transition: 'all 0.2s',
+                                      '&:hover': { 
+                                        color: 'primary.main',
+                                        transform: 'scale(1.1)' 
+                                      }
+                                    }}
+                                  >
+                                    <ArrowDropDownIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              )}
+                            </Box>
                           }
                           sx={{
                             opacity: isDisabled ? 0.6 : 1,
@@ -2074,15 +2149,39 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
                             />
                           }
                           label={
-                            <Typography
-                              sx={{
-                                color: isDisabled ? 'text.disabled' : 'text.primary',
-                                textDecoration: isDisabled ? 'line-through' : 'none'
-                              }}
-                            >
-                              {ELEMENT_PROMPTS[element]?.name || element}
-                              {isDisabled && ' (отключено)'}
-                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Typography
+                                sx={{
+                                  color: isDisabled ? 'text.disabled' : 'text.primary',
+                                  textDecoration: isDisabled ? 'line-through' : 'none'
+                                }}
+                              >
+                                {ELEMENT_PROMPTS[element]?.name || element}
+                                {isDisabled && ' (отключено)'}
+                              </Typography>
+                              {!isDisabled && (selectedElements.SERVICES?.has(element) || false) && (
+                                <Tooltip title="Настройки элемента">
+                                  <IconButton 
+                                    size="small" 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openElementSettings('SERVICES', element);
+                                    }}
+                                    sx={{ 
+                                      p: 0.5,
+                                      color: 'text.secondary',
+                                      transition: 'all 0.2s',
+                                      '&:hover': { 
+                                        color: 'primary.main',
+                                        transform: 'scale(1.1)' 
+                                      }
+                                    }}
+                                  >
+                                    <ArrowDropDownIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              )}
+                            </Box>
                           }
                           sx={{
                             opacity: isDisabled ? 0.6 : 1,
@@ -2131,15 +2230,39 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
                             />
                           }
                           label={
-                            <Typography
-                              sx={{
-                                color: isDisabled ? 'text.disabled' : 'text.primary',
-                                textDecoration: isDisabled ? 'line-through' : 'none'
-                              }}
-                            >
-                              {ELEMENT_PROMPTS[element]?.name || element}
-                              {isDisabled && ' (отключено)'}
-                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Typography
+                                sx={{
+                                  color: isDisabled ? 'text.disabled' : 'text.primary',
+                                  textDecoration: isDisabled ? 'line-through' : 'none'
+                                }}
+                              >
+                                {ELEMENT_PROMPTS[element]?.name || element}
+                                {isDisabled && ' (отключено)'}
+                              </Typography>
+                              {!isDisabled && (selectedElements.FEATURES?.has(element) || false) && (
+                                <Tooltip title="Настройки элемента">
+                                  <IconButton 
+                                    size="small" 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openElementSettings('FEATURES', element);
+                                    }}
+                                    sx={{ 
+                                      p: 0.5,
+                                      color: 'text.secondary',
+                                      transition: 'all 0.2s',
+                                      '&:hover': { 
+                                        color: 'primary.main',
+                                        transform: 'scale(1.1)' 
+                                      }
+                                    }}
+                                  >
+                                    <ArrowDropDownIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              )}
+                            </Box>
                           }
                           sx={{
                             opacity: isDisabled ? 0.6 : 1,
@@ -2188,15 +2311,39 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
                             />
                           }
                           label={
-                            <Typography
-                              sx={{
-                                color: isDisabled ? 'text.disabled' : 'text.primary',
-                                textDecoration: isDisabled ? 'line-through' : 'none'
-                              }}
-                            >
-                              {ELEMENT_PROMPTS[element]?.name || element}
-                              {isDisabled && ' (отключено)'}
-                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Typography
+                                sx={{
+                                  color: isDisabled ? 'text.disabled' : 'text.primary',
+                                  textDecoration: isDisabled ? 'line-through' : 'none'
+                                }}
+                              >
+                                {ELEMENT_PROMPTS[element]?.name || element}
+                                {isDisabled && ' (отключено)'}
+                              </Typography>
+                              {!isDisabled && (selectedElements.NEWS?.has(element) || false) && (
+                                <Tooltip title="Настройки элемента">
+                                  <IconButton 
+                                    size="small" 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openElementSettings('NEWS', element);
+                                    }}
+                                    sx={{ 
+                                      p: 0.5,
+                                      color: 'text.secondary',
+                                      transition: 'all 0.2s',
+                                      '&:hover': { 
+                                        color: 'primary.main',
+                                        transform: 'scale(1.1)' 
+                                      }
+                                    }}
+                                  >
+                                    <ArrowDropDownIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              )}
+                            </Box>
                           }
                           sx={{
                             opacity: isDisabled ? 0.6 : 1,
@@ -2245,15 +2392,39 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
                             />
                           }
                           label={
-                            <Typography
-                              sx={{
-                                color: isDisabled ? 'text.disabled' : 'text.primary',
-                                textDecoration: isDisabled ? 'line-through' : 'none'
-                              }}
-                            >
-                              {ELEMENT_PROMPTS[element]?.name || element}
-                              {isDisabled && ' (отключено)'}
-                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Typography
+                                sx={{
+                                  color: isDisabled ? 'text.disabled' : 'text.primary',
+                                  textDecoration: isDisabled ? 'line-through' : 'none'
+                                }}
+                              >
+                                {ELEMENT_PROMPTS[element]?.name || element}
+                                {isDisabled && ' (отключено)'}
+                              </Typography>
+                              {!isDisabled && (selectedElements.FAQ?.has(element) || false) && (
+                                <Tooltip title="Настройки элемента">
+                                  <IconButton 
+                                    size="small" 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openElementSettings('FAQ', element);
+                                    }}
+                                    sx={{ 
+                                      p: 0.5,
+                                      color: 'text.secondary',
+                                      transition: 'all 0.2s',
+                                      '&:hover': { 
+                                        color: 'primary.main',
+                                        transform: 'scale(1.1)' 
+                                      }
+                                    }}
+                                  >
+                                    <ArrowDropDownIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              )}
+                            </Box>
                           }
                           sx={{
                             opacity: isDisabled ? 0.6 : 1,
@@ -2302,15 +2473,39 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
                             />
                           }
                           label={
-                            <Typography
-                              sx={{
-                                color: isDisabled ? 'text.disabled' : 'text.primary',
-                                textDecoration: isDisabled ? 'line-through' : 'none'
-                              }}
-                            >
-                              {ELEMENT_PROMPTS[element]?.name || element}
-                              {isDisabled && ' (отключено)'}
-                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Typography
+                                sx={{
+                                  color: isDisabled ? 'text.disabled' : 'text.primary',
+                                  textDecoration: isDisabled ? 'line-through' : 'none'
+                                }}
+                              >
+                                {ELEMENT_PROMPTS[element]?.name || element}
+                                {isDisabled && ' (отключено)'}
+                              </Typography>
+                              {!isDisabled && (selectedElements.TESTIMONIALS?.has(element) || false) && (
+                                <Tooltip title="Настройки элемента">
+                                  <IconButton 
+                                    size="small" 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openElementSettings('TESTIMONIALS', element);
+                                    }}
+                                    sx={{ 
+                                      p: 0.5,
+                                      color: 'text.secondary',
+                                      transition: 'all 0.2s',
+                                      '&:hover': { 
+                                        color: 'primary.main',
+                                        transform: 'scale(1.1)' 
+                                      }
+                                    }}
+                                  >
+                                    <ArrowDropDownIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              )}
+                            </Box>
                           }
                           sx={{
                             opacity: isDisabled ? 0.6 : 1,
@@ -2359,15 +2554,39 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
                             />
                           }
                           label={
-                            <Typography
-                              sx={{
-                                color: isDisabled ? 'text.disabled' : 'text.primary',
-                                textDecoration: isDisabled ? 'line-through' : 'none'
-                              }}
-                            >
-                              {ELEMENT_PROMPTS[element]?.name || element}
-                              {isDisabled && ' (отключено)'}
-                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Typography
+                                sx={{
+                                  color: isDisabled ? 'text.disabled' : 'text.primary',
+                                  textDecoration: isDisabled ? 'line-through' : 'none'
+                                }}
+                              >
+                                {ELEMENT_PROMPTS[element]?.name || element}
+                                {isDisabled && ' (отключено)'}
+                              </Typography>
+                              {!isDisabled && (selectedElements.UNIVERSAL?.has(element) || false) && (
+                                <Tooltip title="Настройки элемента">
+                                  <IconButton 
+                                    size="small" 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openElementSettings('UNIVERSAL', element);
+                                    }}
+                                    sx={{ 
+                                      p: 0.5,
+                                      color: 'text.secondary',
+                                      transition: 'all 0.2s',
+                                      '&:hover': { 
+                                        color: 'primary.main',
+                                        transform: 'scale(1.1)' 
+                                      }
+                                    }}
+                                  >
+                                    <ArrowDropDownIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              )}
+                            </Box>
                           }
                           sx={{
                             opacity: isDisabled ? 0.6 : 1,
@@ -2398,12 +2617,31 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
                         return (
                           <Grid item xs={12} sm={6} md={4} key={elementKey}>
                             <Box sx={{ p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#fafafa' }}>
-                              <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600, color: '#1976d2' }}>
-                                {element?.name || elementKey}
-                              </Typography>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#1976d2' }}>
+                                  {element?.name || elementKey}
+                                </Typography>
+                                <Tooltip title="Настройки элемента">
+                                  <IconButton 
+                                    size="small" 
+                                    onClick={() => openElementSettings(elementKey)}
+                                    sx={{ 
+                                      p: 0.5,
+                                      color: 'text.secondary',
+                                      transition: 'all 0.2s',
+                                      '&:hover': { 
+                                        color: 'primary.main',
+                                        transform: 'scale(1.1)' 
+                                      }
+                                    }}
+                                  >
+                                    <ArrowDropDownIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              </Box>
                               
                               {/* Настройки для заголовка */}
-                              {element?.hasTitle !== false && (
+                              {element?.hasTitle !== false && elementKey !== 'list' && elementKey !== 'typewriter-text' && elementKey !== 'highlight-text' && elementKey !== 'testimonial-card' && elementKey !== 'typography' && (
                                 <Box sx={{ mb: 1 }}>
                                   <Typography variant="caption" color="textSecondary">
                                     Мин. слов в заголовке:
@@ -2420,7 +2658,7 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
                               )}
                               
                               {/* Настройки для содержимого */}
-                              {element?.hasContent !== false && (
+                              {element?.hasContent !== false && elementKey !== 'advanced-pie-chart' && elementKey !== 'advanced-area-chart' && (
                                 <Box sx={{ mb: 1 }}>
                                   <Typography variant="caption" color="textSecondary">
                                     Мин. слов в содержимом:
@@ -2485,6 +2723,22 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
                                 </Box>
                               )}
                               
+                              {(elementKey === 'basic-card' || elementKey === 'image-card') && (
+                                <Box sx={{ mb: 1 }}>
+                                  <Typography variant="caption" color="textSecondary">
+                                    Мин. количество карточек:
+                                  </Typography>
+                                  <TextField
+                                    size="small"
+                                    type="number"
+                                    value={settings.minCards || 1}
+                                    onChange={(e) => handleElementSettingChange(elementKey, 'minCards', parseInt(e.target.value) || 0)}
+                                    inputProps={{ min: 2, max: 20 }}
+                                    sx={{ width: '100%', mt: 0.5 }}
+                                  />
+                                </Box>
+                              )}
+                              
                               {elementKey === 'timeline-component' && (
                                 <Box sx={{ mb: 1 }}>
                                   <Typography variant="caption" color="textSecondary">
@@ -2532,8 +2786,172 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
                                 </>
                               )}
                               
+                              {elementKey === 'list' && (
+                                <Box sx={{ mb: 1 }}>
+                                  <Typography variant="caption" color="textSecondary">
+                                    Мин. количество пунктов:
+                                  </Typography>
+                                  <TextField
+                                    size="small"
+                                    type="number"
+                                    value={settings.minItems || 6}
+                                    onChange={(e) => handleElementSettingChange(elementKey, 'minItems', parseInt(e.target.value) || 0)}
+                                    inputProps={{ min: 2, max: 20 }}
+                                    sx={{ width: '100%', mt: 0.5 }}
+                                  />
+                                </Box>
+                              )}
+                              
+                              {elementKey === 'blockquote' && (
+                                <Box sx={{ mb: 1 }}>
+                                  <Typography variant="caption" color="textSecondary">
+                                    Мин. количество цитат:
+                                  </Typography>
+                                  <TextField
+                                    size="small"
+                                    type="number"
+                                    value={settings.minQuotes || 1}
+                                    onChange={(e) => handleElementSettingChange(elementKey, 'minQuotes', parseInt(e.target.value) || 0)}
+                                    inputProps={{ min: 2, max: 20 }}
+                                    sx={{ width: '100%', mt: 0.5 }}
+                                  />
+                                </Box>
+                              )}
+                              
+                              {elementKey === 'callout' && (
+                                <Box sx={{ mb: 1 }}>
+                                  <Typography variant="caption" color="textSecondary">
+                                    Мин. количество выносок:
+                                  </Typography>
+                                  <TextField
+                                    size="small"
+                                    type="number"
+                                    value={settings.minCallouts || 1}
+                                    onChange={(e) => handleElementSettingChange(elementKey, 'minCallouts', parseInt(e.target.value) || 0)}
+                                    inputProps={{ min: 2, max: 20 }}
+                                    sx={{ width: '100%', mt: 0.5 }}
+                                  />
+                                </Box>
+                              )}
+                              
+                              {elementKey === 'animated-counter' && (
+                                <Box sx={{ mb: 1 }}>
+                                  <Typography variant="caption" color="textSecondary">
+                                    Мин. количество счётчиков:
+                                  </Typography>
+                                  <TextField
+                                    size="small"
+                                    type="number"
+                                    value={settings.minCounters || 1}
+                                    onChange={(e) => handleElementSettingChange(elementKey, 'minCounters', parseInt(e.target.value) || 0)}
+                                    inputProps={{ min: 2, max: 20 }}
+                                    sx={{ width: '100%', mt: 0.5 }}
+                                  />
+                                </Box>
+                              )}
+                              
+                              {elementKey === 'typewriter-text' && (
+                                <Box sx={{ mb: 1 }}>
+                                  <Typography variant="caption" color="textSecondary">
+                                    Мин. количество эффектов:
+                                  </Typography>
+                                  <TextField
+                                    size="small"
+                                    type="number"
+                                    value={settings.minTypewriters || 1}
+                                    onChange={(e) => handleElementSettingChange(elementKey, 'minTypewriters', parseInt(e.target.value) || 0)}
+                                    inputProps={{ min: 2, max: 20 }}
+                                    sx={{ width: '100%', mt: 0.5 }}
+                                  />
+                                </Box>
+                              )}
+                              
+                              {elementKey === 'highlight-text' && (
+                                <Box sx={{ mb: 1 }}>
+                                  <Typography variant="caption" color="textSecondary">
+                                    Мин. количество выделенных текстов:
+                                  </Typography>
+                                  <TextField
+                                    size="small"
+                                    type="number"
+                                    value={settings.minHighlights || 1}
+                                    onChange={(e) => handleElementSettingChange(elementKey, 'minHighlights', parseInt(e.target.value) || 0)}
+                                    inputProps={{ min: 2, max: 20 }}
+                                    sx={{ width: '100%', mt: 0.5 }}
+                                  />
+                                </Box>
+                              )}
+                              
+                              {elementKey === 'testimonial-card' && (
+                                <Box sx={{ mb: 1 }}>
+                                  <Typography variant="caption" color="textSecondary">
+                                    Мин. количество отзывов:
+                                  </Typography>
+                                  <TextField
+                                    size="small"
+                                    type="number"
+                                    value={settings.minTestimonials || 1}
+                                    onChange={(e) => handleElementSettingChange(elementKey, 'minTestimonials', parseInt(e.target.value) || 0)}
+                                    inputProps={{ min: 2, max: 20 }}
+                                    sx={{ width: '100%', mt: 0.5 }}
+                                  />
+                                </Box>
+                              )}
+                              
                               {/* Настройки для диаграмм */}
-                              {['bar-chart', 'advanced-line-chart', 'advanced-pie-chart', 'advanced-area-chart', 'chartjs-bar', 'chartjs-line', 'chartjs-pie', 'chartjs-doughnut', 'chartjs-area', 'apex-line', 'apex-chart', 'apex-area-chart', 'apex-bar-chart', 'apex-line-chart', 'apex-pie-chart', 'apex-donut-chart'].includes(elementKey) && (
+                              {/* Настройки для bar-chart - только колонки */}
+                              {elementKey === 'bar-chart' && (
+                                <Box sx={{ mb: 1 }}>
+                                  <Typography variant="caption" color="textSecondary">
+                                    Мин. колонок:
+                                  </Typography>
+                                  <TextField
+                                    size="small"
+                                    type="number"
+                                    value={settings.minColumns || 4}
+                                    onChange={(e) => handleElementSettingChange(elementKey, 'minColumns', parseInt(e.target.value) || 0)}
+                                    inputProps={{ min: 2, max: 10 }}
+                                    sx={{ width: '100%', mt: 0.5 }}
+                                  />
+                                </Box>
+                              )}
+                              
+                              {/* Настройки для advanced-pie-chart - только колонки */}
+                              {elementKey === 'advanced-pie-chart' && (
+                                <Box sx={{ mb: 1 }}>
+                                  <Typography variant="caption" color="textSecondary">
+                                    Мин. колонок:
+                                  </Typography>
+                                  <TextField
+                                    size="small"
+                                    type="number"
+                                    value={settings.minColumns || 4}
+                                    onChange={(e) => handleElementSettingChange(elementKey, 'minColumns', parseInt(e.target.value) || 0)}
+                                    inputProps={{ min: 2, max: 10 }}
+                                    sx={{ width: '100%', mt: 0.5 }}
+                                  />
+                                </Box>
+                              )}
+                              
+                              {/* Настройки для advanced-area-chart - только точки данных */}
+                              {elementKey === 'advanced-area-chart' && (
+                                <Box sx={{ mb: 1 }}>
+                                  <Typography variant="caption" color="textSecondary">
+                                    Мин. точек данных:
+                                  </Typography>
+                                  <TextField
+                                    size="small"
+                                    type="number"
+                                    value={settings.minDataPoints || 5}
+                                    onChange={(e) => handleElementSettingChange(elementKey, 'minDataPoints', parseInt(e.target.value) || 0)}
+                                    inputProps={{ min: 2, max: 20 }}
+                                    sx={{ width: '100%', mt: 0.5 }}
+                                  />
+                                </Box>
+                              )}
+                              
+                              {/* Настройки для других диаграмм - колонки и точки данных */}
+                              {['advanced-line-chart', 'chartjs-bar', 'chartjs-line', 'chartjs-pie', 'chartjs-doughnut', 'chartjs-area', 'apex-line', 'apex-chart', 'apex-area-chart', 'apex-bar-chart', 'apex-line-chart', 'apex-pie-chart', 'apex-donut-chart'].includes(elementKey) && (
                                 <>
                                   <Box sx={{ mb: 1 }}>
                                     <Typography variant="caption" color="textSecondary">
@@ -2607,6 +3025,373 @@ const FullSitePromptSettings = ({ open, onClose, onSave, initialSettings, curren
         </Button>
       </DialogActions>
     </Dialog>
+
+    {/* Модальное окно для настроек элементов */}
+    <Dialog 
+      open={settingsModalOpen} 
+      onClose={closeElementSettings}
+      maxWidth="sm"
+      fullWidth
+    >
+      <DialogTitle>
+        Настройки для "{activeSettingsElement && ELEMENT_PROMPTS[activeSettingsElement.element]?.name}" в разделе "{activeSettingsElement && activeSettingsElement.section}"
+      </DialogTitle>
+      <DialogContent>
+        {activeSettingsElement && (
+          <Box sx={{ mt: 2 }}>
+            {/* Настройки для заголовка */}
+            {ELEMENT_PROMPTS[activeSettingsElement.element]?.hasTitle !== false && activeSettingsElement.element !== 'list' && activeSettingsElement.element !== 'typewriter-text' && activeSettingsElement.element !== 'highlight-text' && activeSettingsElement.element !== 'testimonial-card' && activeSettingsElement.element !== 'typography' && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="caption" color="textSecondary">
+                  Мин. слов в заголовке:
+                </Typography>
+                <TextField
+                  size="small"
+                  type="number"
+                  value={getCurrentElementSettings(activeSettingsElement.section, activeSettingsElement.element)?.minTitle || 10}
+                  onChange={(e) => handleElementSettingChange(activeSettingsElement.section, activeSettingsElement.element, 'minTitle', parseInt(e.target.value) || 0)}
+                  inputProps={{ min: 0, max: 1000 }}
+                  sx={{ width: '100%', mt: 0.5 }}
+                />
+              </Box>
+            )}
+            
+            {/* Настройки для содержимого */}
+            {ELEMENT_PROMPTS[activeSettingsElement.element]?.hasContent !== false && activeSettingsElement.element !== 'advanced-pie-chart' && activeSettingsElement.element !== 'advanced-area-chart' && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="caption" color="textSecondary">
+                  Мин. слов в содержимом:
+                </Typography>
+                <TextField
+                  size="small"
+                  type="number"
+                  value={getCurrentElementSettings(activeSettingsElement.section, activeSettingsElement.element)?.minContent || 20}
+                  onChange={(e) => handleElementSettingChange(activeSettingsElement.section, activeSettingsElement.element, 'minContent', parseInt(e.target.value) || 0)}
+                  inputProps={{ min: 0, max: 2000 }}
+                  sx={{ width: '100%', mt: 0.5 }}
+                />
+              </Box>
+            )}
+            
+            {/* Дополнительные настройки для специфических элементов */}
+            {activeSettingsElement.element === 'faq-section' && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="caption" color="textSecondary">
+                  Мин. количество вопросов:
+                </Typography>
+                <TextField
+                  size="small"
+                  type="number"
+                  value={getCurrentElementSettings(activeSettingsElement.section, activeSettingsElement.element)?.minQuestions || 5}
+                  onChange={(e) => handleElementSettingChange(activeSettingsElement.section, activeSettingsElement.element, 'minQuestions', parseInt(e.target.value) || 0)}
+                  inputProps={{ min: 1, max: 20 }}
+                  sx={{ width: '100%', mt: 0.5 }}
+                />
+              </Box>
+            )}
+            
+            {activeSettingsElement.element === 'accordion' && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="caption" color="textSecondary">
+                  Мин. количество пунктов:
+                </Typography>
+                <TextField
+                  size="small"
+                  type="number"
+                  value={getCurrentElementSettings(activeSettingsElement.section, activeSettingsElement.element)?.minQuestions || 8}
+                  onChange={(e) => handleElementSettingChange(activeSettingsElement.section, activeSettingsElement.element, 'minQuestions', parseInt(e.target.value) || 0)}
+                  inputProps={{ min: 1, max: 20 }}
+                  sx={{ width: '100%', mt: 0.5 }}
+                />
+              </Box>
+            )}
+            
+            {activeSettingsElement.element === 'multiple-cards' && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="caption" color="textSecondary">
+                  Мин. количество карточек:
+                </Typography>
+                <TextField
+                  size="small"
+                  type="number"
+                  value={getCurrentElementSettings(activeSettingsElement.section, activeSettingsElement.element)?.minCards || 4}
+                  onChange={(e) => handleElementSettingChange(activeSettingsElement.section, activeSettingsElement.element, 'minCards', parseInt(e.target.value) || 0)}
+                  inputProps={{ min: 2, max: 20 }}
+                  sx={{ width: '100%', mt: 0.5 }}
+                />
+              </Box>
+            )}
+            
+            {(activeSettingsElement.element === 'basic-card' || activeSettingsElement.element === 'image-card') && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="caption" color="textSecondary">
+                  Мин. количество карточек:
+                </Typography>
+                <TextField
+                  size="small"
+                  type="number"
+                  value={getCurrentElementSettings(activeSettingsElement.section, activeSettingsElement.element)?.minCards || 1}
+                  onChange={(e) => handleElementSettingChange(activeSettingsElement.section, activeSettingsElement.element, 'minCards', parseInt(e.target.value) || 0)}
+                  inputProps={{ min: 2, max: 20 }}
+                  sx={{ width: '100%', mt: 0.5 }}
+                />
+              </Box>
+            )}
+            
+            {activeSettingsElement.element === 'timeline-component' && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="caption" color="textSecondary">
+                  Мин. количество точек:
+                </Typography>
+                <TextField
+                  size="small"
+                  type="number"
+                  value={getCurrentElementSettings(activeSettingsElement.section, activeSettingsElement.element)?.minDataPoints || 5}
+                  onChange={(e) => handleElementSettingChange(activeSettingsElement.section, activeSettingsElement.element, 'minDataPoints', parseInt(e.target.value) || 0)}
+                  inputProps={{ min: 2, max: 20 }}
+                  sx={{ width: '100%', mt: 0.5 }}
+                />
+              </Box>
+            )}
+            
+            {activeSettingsElement.element === 'data-table' && (
+              <>
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="caption" color="textSecondary">
+                    Мин. строк:
+                  </Typography>
+                  <TextField
+                    size="small"
+                    type="number"
+                    value={getCurrentElementSettings(activeSettingsElement.section, activeSettingsElement.element)?.minRows || 5}
+                    onChange={(e) => handleElementSettingChange(activeSettingsElement.section, activeSettingsElement.element, 'minRows', parseInt(e.target.value) || 0)}
+                    inputProps={{ min: 2, max: 20 }}
+                    sx={{ width: '100%', mt: 0.5 }}
+                  />
+                </Box>
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="caption" color="textSecondary">
+                    Мин. колонок:
+                  </Typography>
+                  <TextField
+                    size="small"
+                    type="number"
+                    value={getCurrentElementSettings(activeSettingsElement.section, activeSettingsElement.element)?.minColumns || 4}
+                    onChange={(e) => handleElementSettingChange(activeSettingsElement.section, activeSettingsElement.element, 'minColumns', parseInt(e.target.value) || 0)}
+                    inputProps={{ min: 2, max: 10 }}
+                    sx={{ width: '100%', mt: 0.5 }}
+                  />
+                </Box>
+              </>
+            )}
+            
+            {activeSettingsElement.element === 'list' && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="caption" color="textSecondary">
+                  Мин. количество пунктов:
+                </Typography>
+                <TextField
+                  size="small"
+                  type="number"
+                  value={getCurrentElementSettings(activeSettingsElement.section, activeSettingsElement.element)?.minItems || 6}
+                  onChange={(e) => handleElementSettingChange(activeSettingsElement.section, activeSettingsElement.element, 'minItems', parseInt(e.target.value) || 0)}
+                  inputProps={{ min: 2, max: 20 }}
+                  sx={{ width: '100%', mt: 0.5 }}
+                />
+              </Box>
+            )}
+            
+            {activeSettingsElement.element === 'blockquote' && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="caption" color="textSecondary">
+                  Мин. количество цитат:
+                </Typography>
+                <TextField
+                  size="small"
+                  type="number"
+                  value={getCurrentElementSettings(activeSettingsElement.section, activeSettingsElement.element)?.minQuotes || 1}
+                  onChange={(e) => handleElementSettingChange(activeSettingsElement.section, activeSettingsElement.element, 'minQuotes', parseInt(e.target.value) || 0)}
+                  inputProps={{ min: 2, max: 20 }}
+                  sx={{ width: '100%', mt: 0.5 }}
+                />
+              </Box>
+            )}
+            
+            {activeSettingsElement.element === 'callout' && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="caption" color="textSecondary">
+                  Мин. количество выносок:
+                </Typography>
+                <TextField
+                  size="small"
+                  type="number"
+                  value={getCurrentElementSettings(activeSettingsElement.section, activeSettingsElement.element)?.minCallouts || 1}
+                  onChange={(e) => handleElementSettingChange(activeSettingsElement.section, activeSettingsElement.element, 'minCallouts', parseInt(e.target.value) || 0)}
+                  inputProps={{ min: 2, max: 20 }}
+                  sx={{ width: '100%', mt: 0.5 }}
+                />
+              </Box>
+            )}
+            
+            {activeSettingsElement.element === 'animated-counter' && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="caption" color="textSecondary">
+                  Мин. количество счётчиков:
+                </Typography>
+                <TextField
+                  size="small"
+                  type="number"
+                  value={getCurrentElementSettings(activeSettingsElement.section, activeSettingsElement.element)?.minCounters || 1}
+                  onChange={(e) => handleElementSettingChange(activeSettingsElement.section, activeSettingsElement.element, 'minCounters', parseInt(e.target.value) || 0)}
+                  inputProps={{ min: 2, max: 20 }}
+                  sx={{ width: '100%', mt: 0.5 }}
+                />
+              </Box>
+            )}
+            
+            {activeSettingsElement.element === 'typewriter-text' && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="caption" color="textSecondary">
+                  Мин. количество эффектов:
+                </Typography>
+                <TextField
+                  size="small"
+                  type="number"
+                  value={getCurrentElementSettings(activeSettingsElement.section, activeSettingsElement.element)?.minTypewriters || 1}
+                  onChange={(e) => handleElementSettingChange(activeSettingsElement.section, activeSettingsElement.element, 'minTypewriters', parseInt(e.target.value) || 0)}
+                  inputProps={{ min: 2, max: 20 }}
+                  sx={{ width: '100%', mt: 0.5 }}
+                />
+              </Box>
+            )}
+            
+            {activeSettingsElement.element === 'highlight-text' && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="caption" color="textSecondary">
+                  Мин. количество выделенных текстов:
+                </Typography>
+                <TextField
+                  size="small"
+                  type="number"
+                  value={getCurrentElementSettings(activeSettingsElement.section, activeSettingsElement.element)?.minHighlights || 1}
+                  onChange={(e) => handleElementSettingChange(activeSettingsElement.section, activeSettingsElement.element, 'minHighlights', parseInt(e.target.value) || 0)}
+                  inputProps={{ min: 2, max: 20 }}
+                  sx={{ width: '100%', mt: 0.5 }}
+                />
+              </Box>
+            )}
+            
+            {activeSettingsElement.element === 'testimonial-card' && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="caption" color="textSecondary">
+                  Мин. количество отзывов:
+                </Typography>
+                <TextField
+                  size="small"
+                  type="number"
+                  value={getCurrentElementSettings(activeSettingsElement.section, activeSettingsElement.element)?.minTestimonials || 1}
+                  onChange={(e) => handleElementSettingChange(activeSettingsElement.section, activeSettingsElement.element, 'minTestimonials', parseInt(e.target.value) || 0)}
+                  inputProps={{ min: 2, max: 20 }}
+                  sx={{ width: '100%', mt: 0.5 }}
+                />
+              </Box>
+            )}
+            
+            {/* Настройки для диаграмм */}
+            {activeSettingsElement.element === 'bar-chart' && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="caption" color="textSecondary">
+                  Мин. колонок:
+                </Typography>
+                <TextField
+                  size="small"
+                  type="number"
+                  value={getCurrentElementSettings(activeSettingsElement.section, activeSettingsElement.element)?.minColumns || 4}
+                  onChange={(e) => handleElementSettingChange(activeSettingsElement.section, activeSettingsElement.element, 'minColumns', parseInt(e.target.value) || 0)}
+                  inputProps={{ min: 2, max: 10 }}
+                  sx={{ width: '100%', mt: 0.5 }}
+                />
+              </Box>
+            )}
+            
+            {activeSettingsElement.element === 'advanced-pie-chart' && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="caption" color="textSecondary">
+                  Мин. колонок:
+                </Typography>
+                <TextField
+                  size="small"
+                  type="number"
+                  value={getCurrentElementSettings(activeSettingsElement.section, activeSettingsElement.element)?.minColumns || 4}
+                  onChange={(e) => handleElementSettingChange(activeSettingsElement.section, activeSettingsElement.element, 'minColumns', parseInt(e.target.value) || 0)}
+                  inputProps={{ min: 2, max: 10 }}
+                  sx={{ width: '100%', mt: 0.5 }}
+                />
+              </Box>
+            )}
+            
+            {activeSettingsElement.element === 'advanced-area-chart' && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="caption" color="textSecondary">
+                  Мин. точек данных:
+                </Typography>
+                <TextField
+                  size="small"
+                  type="number"
+                  value={getCurrentElementSettings(activeSettingsElement.section, activeSettingsElement.element)?.minDataPoints || 5}
+                  onChange={(e) => handleElementSettingChange(activeSettingsElement.section, activeSettingsElement.element, 'minDataPoints', parseInt(e.target.value) || 0)}
+                  inputProps={{ min: 2, max: 20 }}
+                  sx={{ width: '100%', mt: 0.5 }}
+                />
+              </Box>
+            )}
+            
+            {['advanced-line-chart', 'chartjs-bar', 'chartjs-line', 'chartjs-pie', 'chartjs-doughnut', 'chartjs-area', 'apex-line', 'apex-chart', 'apex-area-chart', 'apex-bar-chart', 'apex-line-chart', 'apex-pie-chart', 'apex-donut-chart'].includes(activeSettingsElement.element) && (
+              <>
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="caption" color="textSecondary">
+                    Мин. колонок:
+                  </Typography>
+                  <TextField
+                    size="small"
+                    type="number"
+                    value={getCurrentElementSettings(activeSettingsElement.section, activeSettingsElement.element)?.minColumns || 4}
+                    onChange={(e) => handleElementSettingChange(activeSettingsElement.section, activeSettingsElement.element, 'minColumns', parseInt(e.target.value) || 0)}
+                    inputProps={{ min: 2, max: 10 }}
+                    sx={{ width: '100%', mt: 0.5 }}
+                  />
+                </Box>
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="caption" color="textSecondary">
+                    Мин. точек данных:
+                  </Typography>
+                  <TextField
+                    size="small"
+                    type="number"
+                    value={getCurrentElementSettings(activeSettingsElement.section, activeSettingsElement.element)?.minDataPoints || 5}
+                    onChange={(e) => handleElementSettingChange(activeSettingsElement.section, activeSettingsElement.element, 'minDataPoints', parseInt(e.target.value) || 0)}
+                    inputProps={{ min: 2, max: 20 }}
+                    sx={{ width: '100%', mt: 0.5 }}
+                  />
+                </Box>
+              </>
+            )}
+          </Box>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={closeElementSettings}>
+          Отмена
+        </Button>
+        <Button 
+          onClick={closeElementSettings}
+          variant="contained"
+        >
+          Применить
+        </Button>
+      </DialogActions>
+    </Dialog>
+    </>
   );
 };
 
@@ -2730,7 +3515,8 @@ const AiParser = ({
     CONTACTS: 'Контакты',
     MERCI: 'Сообщение благодарности',
     LEGAL: 'Правовые документы',
-    UNIVERSAL: 'Универсальная секция'
+    UNIVERSAL: 'Универсальная секция',
+    AGE_VERIFICATION: 'Подтверждение возраста'
   };
 
   // Функция для получения названия раздела (пользовательское или по умолчанию)
@@ -2866,26 +3652,32 @@ const AiParser = ({
   // const [constructorMode, setConstructorMode] = useState(true); // Удалено - используем пропсы
   
   // Функция для генерации строки с минимальными требованиями для элемента
-  const generateElementRequirements = (elementKey, elementSettings) => {
-    const settings = elementSettings[elementKey];
+  const generateElementRequirements = (elementKey, elementSettings, sectionKey = null) => {
+    const settingsKey = sectionKey ? `${sectionKey}_${elementKey}` : elementKey;
+    let settings = elementSettings[settingsKey];
+    
+    // Если настройки для конкретного раздела не найдены, используем глобальные настройки
+    if (!settings && sectionKey) {
+      settings = elementSettings[elementKey];
+    }
     
     // Импортируем функцию getElementConfig из ElementPromptsSection
     const getElementConfig = (elementKey) => {
       const configs = {
         // Только содержимое
         'typography': { hasContent: true },
-        'list': { hasContent: true },
+        'list': { hasContent: true, hasItems: true },
         'gradient-text': { hasContent: true },
-        'typewriter-text': { hasContent: true },
-        'highlight-text': { hasContent: true },
-        'testimonial-card': { hasContent: true },
+        'typewriter-text': { hasContent: true, hasTypewriters: true },
+        'highlight-text': { hasContent: true, hasHighlights: true },
+        'testimonial-card': { hasContent: true, hasTestimonials: true },
         'share-buttons': { hasContent: true },
         
         // Заголовок + содержимое
         'rich-text': { hasTitle: true, hasContent: true },
-        'blockquote': { hasTitle: true, hasContent: true },
-        'callout': { hasTitle: true, hasContent: true },
-        'animated-counter': { hasTitle: true }, // Убираем hasContent - у него специфическая структура
+        'blockquote': { hasTitle: true, hasContent: true, hasQuotes: true },
+        'callout': { hasTitle: true, hasContent: true, hasCallouts: true },
+        'animated-counter': { hasTitle: true, hasCounters: true },
         'faq-section': { 
           hasTitle: true, 
           hasContent: true, 
@@ -2893,8 +3685,8 @@ const AiParser = ({
         },
         'timeline-component': { hasTitle: true, hasContent: true, hasDataPoints: true },
         'image-gallery': { hasTitle: true, hasContent: true },
-        'basic-card': { hasTitle: true, hasContent: true },
-        'image-card': { hasTitle: true, hasContent: true },
+        'basic-card': { hasTitle: true, hasContent: true, hasCards: true },
+        'image-card': { hasTitle: true, hasContent: true, hasCards: true },
         'accordion': { hasTitle: true, hasContent: true },
         'qr-code': { hasTitle: true },
         'color-picker': { hasTitle: true, hasContent: true },
@@ -2908,8 +3700,8 @@ const AiParser = ({
         // Графики - данные и столбцы/категории
         'bar-chart': { hasTitle: true, hasContent: true, hasDataPoints: true, hasColumns: true },
         'advanced-line-chart': { hasTitle: true, hasContent: true, hasDataPoints: true, hasColumns: true },
-        'advanced-pie-chart': { hasTitle: true, hasContent: true, hasDataPoints: true },
-        'advanced-area-chart': { hasTitle: true, hasContent: true, hasDataPoints: true, hasColumns: true },
+        'advanced-pie-chart': { hasTitle: true, hasColumns: true },
+        'advanced-area-chart': { hasTitle: true, hasDataPoints: true },
         'chartjs-bar': { hasTitle: true, hasContent: true, hasDataPoints: true, hasColumns: true },
         'chartjs-doughnut': { hasTitle: true, hasContent: true, hasDataPoints: true },
         'apex-line': { hasTitle: true, hasContent: true, hasDataPoints: true, hasColumns: true },
@@ -3023,7 +3815,6 @@ const AiParser = ({
             // Специальная обработка для rating
             if (settings.minTitle > 0) {
               requirements.push(`ЗАГОЛОВОК: [что оценивается] НЕ МЕНЕЕ ${settings.minTitle} слов`);
-              additionalRequirements.push(`ТРЕБОВАНИЕ: Заголовок должен содержать НЕ МЕНЕЕ ${settings.minTitle} слов - проверяйте по количеству слов`);
             } else {
               requirements.push(`ЗАГОЛОВОК: [что оценивается]`);
             }
@@ -3118,9 +3909,13 @@ const AiParser = ({
       additionalRequirements.push(`ТРЕБОВАНИЕ: Минимум ${settings.minRows} строк в таблице`);
     }
     
-    if (settings.minColumns > 0) {
+    if (settings.minColumns > 0 && elementKey !== 'advanced-area-chart') {
       if (isChart) {
-        additionalRequirements.push(`ТРЕБОВАНИЕ: Минимум ${settings.minColumns} категорий на графике (например: Янв, Фев, Мар, Апр, Май...)`);
+        if (elementKey === 'bar-chart') {
+          additionalRequirements.push(`ТРЕБОВАНИЕ: Точно ${settings.minColumns} категорий на графике (например: Bitcoin, Ethereum, iPhone, Samsung, Москва, Лондон, Продажи, Клиенты...)`);
+        } else {
+          additionalRequirements.push(`ТРЕБОВАНИЕ: Минимум ${settings.minColumns} категорий на графике (например: Bitcoin, Ethereum, iPhone, Samsung, Москва, Лондон, Продажи, Клиенты...)`);
+        }
       } else {
         additionalRequirements.push(`ТРЕБОВАНИЕ: Минимум ${settings.minColumns} столбцов в таблице`);
       }
@@ -3130,7 +3925,7 @@ const AiParser = ({
       additionalRequirements.push(`ТРЕБОВАНИЕ: Минимум ${settings.minCards} карточек`);
     }
     
-    if (settings.minDataPoints > 0) {
+    if (settings.minDataPoints > 0 && elementKey !== 'bar-chart') {
       if (elementKey.includes('timeline')) {
         additionalRequirements.push(`ТРЕБОВАНИЕ: Минимум ${settings.minDataPoints} событий на временной шкале`);
       } else {
@@ -3140,6 +3935,34 @@ const AiParser = ({
     
     if (settings.minQuestions > 0) {
       additionalRequirements.push(`ТРЕБОВАНИЕ: Минимум ${settings.minQuestions} вопросов`);
+    }
+    
+    if (settings.minItems > 0) {
+      additionalRequirements.push(`ТРЕБОВАНИЕ: Точно ${settings.minItems} пунктов в списке`);
+    }
+    
+    if (settings.minQuotes > 0) {
+      additionalRequirements.push(`ТРЕБОВАНИЕ: Точно ${settings.minQuotes} цитат`);
+    }
+    
+    if (settings.minCallouts > 0) {
+      additionalRequirements.push(`ТРЕБОВАНИЕ: Точно ${settings.minCallouts} выносок`);
+    }
+    
+    if (settings.minCounters > 0) {
+      additionalRequirements.push(`ТРЕБОВАНИЕ: Точно ${settings.minCounters} счётчиков`);
+    }
+    
+    if (settings.minTypewriters > 0) {
+      additionalRequirements.push(`ТРЕБОВАНИЕ: Точно ${settings.minTypewriters} эффектов печатной машинки`);
+    }
+    
+    if (settings.minHighlights > 0) {
+      additionalRequirements.push(`ТРЕБОВАНИЕ: Точно ${settings.minHighlights} выделенных текстов`);
+    }
+    
+    if (settings.minTestimonials > 0) {
+      additionalRequirements.push(`ТРЕБОВАНИЕ: Точно ${settings.minTestimonials} отзывов`);
     }
     
     // Объединяем основные поля и дополнительные требования
@@ -4013,6 +4836,24 @@ ID: [название секции на ${languageName}, желательно о
 === КОНЕЦ РАЗДЕЛА ===\n\n`;
     }
 
+    // Добавляем проверку возраста если включена в настройках
+    if (globalSettings.enableAgeVerification) {
+      const minimumAge = globalSettings.minimumAge || 18;
+      const ageTheme = globalSettings.ageVerificationTheme || 'default';
+      
+      sectionsPrompt += `=== РАЗДЕЛ: ${getSectionNameForPrompt('AGE_VERIFICATION')} ===
+
+Заголовок
+[Заголовок проверки возраста на выбранном языке]
+
+Возраст
+[Основной текст проверки возраста на выбранном языке] * [Текст кнопки подтверждения на выбранном языке] * [Текст кнопки отказа на выбранном языке] * [Сообщение для несовершеннолетних на выбранном языке]
+
+ВАЖНО: Текст должен быть адаптирован под выбранный язык и страну. Для Великобритании используйте примеры как на сайтах казино. Минимальный возраст: ${minimumAge} лет. Тема дизайна: ${ageTheme}.
+
+=== КОНЕЦ РАЗДЕЛА ===\n\n`;
+    }
+
     return sectionsPrompt;
   };
 
@@ -4109,6 +4950,36 @@ ID: [название секции на ${languageName}, желательно о
         basePrompt += 'Просто создавайте заголовок и содержимое каждой карточки без нумерации!\n\n';
       }
       
+      // Добавляем специальные требования для basic-card, если он выбран
+      if (isElementSelectedGlobal(selectedElements, 'basic-card')) {
+        basePrompt += 'КРИТИЧЕСКИ ВАЖНО для basic-card:\n';
+        basePrompt += 'СОЗДАЙТЕ ТОЧНОЕ количество карточек, указанное в требованиях!\n';
+        basePrompt += 'Если указано "5 карточек" - создайте РОВНО 5 карточек\n';
+        basePrompt += 'Если указано "3 карточки" - создайте РОВНО 3 карточки\n';
+        basePrompt += 'НЕ создавайте больше или меньше карточек!\n';
+        basePrompt += 'КАЖДАЯ карточка должна начинаться с:\n';
+        basePrompt += 'ТИП: basic-card\n';
+        basePrompt += 'ЗАГОЛОВОК: [заголовок карточки]\n';
+        basePrompt += 'СОДЕРЖИМОЕ: [описание карточки]\n';
+        basePrompt += 'НЕ указывайте текст "карточка 1:", "карточка 2:", "карточка 3:" и т.д.!\n';
+        basePrompt += 'Просто создавайте заголовок и содержимое каждой карточки без нумерации!\n\n';
+      }
+      
+      // Добавляем специальные требования для image-card, если он выбран
+      if (isElementSelectedGlobal(selectedElements, 'image-card')) {
+        basePrompt += 'КРИТИЧЕСКИ ВАЖНО для image-card:\n';
+        basePrompt += 'СОЗДАЙТЕ ТОЧНОЕ количество карточек, указанное в требованиях!\n';
+        basePrompt += 'Если указано "5 карточек" - создайте РОВНО 5 карточек\n';
+        basePrompt += 'Если указано "3 карточки" - создайте РОВНО 3 карточки\n';
+        basePrompt += 'НЕ создавайте больше или меньше карточек!\n';
+        basePrompt += 'КАЖДАЯ карточка должна начинаться с:\n';
+        basePrompt += 'ТИП: image-card\n';
+        basePrompt += 'ЗАГОЛОВОК: [заголовок карточки]\n';
+        basePrompt += 'СОДЕРЖИМОЕ: [описание карточки]\n';
+        basePrompt += 'НЕ указывайте текст "карточка 1:", "карточка 2:", "карточка 3:" и т.д.!\n';
+        basePrompt += 'Просто создавайте заголовок и содержимое каждой карточки без нумерации!\n\n';
+      }
+      
       const selectedElementsArray = Array.from(selectedElements.GLOBAL);
       selectedElementsArray.forEach(elementKey => {
         const element = ELEMENT_PROMPTS[elementKey];
@@ -4149,10 +5020,10 @@ ID: [название секции на ${languageName}, желательно о
           
           // Если не нашли пример, создаем базовый с учетом настроек
           if (!example.trim()) {
-            example = `ТИП: ${elementKey}\n${generateElementRequirements(elementKey, elementSettings)}\n`;
+            example = `ТИП: ${elementKey}\n${generateElementRequirements(elementKey, elementSettings, sectionKey)}\n`;
           } else {
             // Если нашли пример, дополняем его требованиями из настроек
-            const requirements = generateElementRequirements(elementKey, elementSettings);
+            const requirements = generateElementRequirements(elementKey, elementSettings, sectionKey);
             if (requirements) {
               const requirementLines = requirements.split('\n');
               
@@ -4249,7 +5120,7 @@ ID: [название секции на ${languageName}, желательно о
     };
 
     // Функция для генерации полного промпта элемента
-    const generateElementPrompt = (elementKey) => {
+    const generateElementPrompt = (elementKey, sectionKey = null) => {
       const element = ELEMENT_PROMPTS[elementKey];
       if (!element) {
         console.warn(`[generateElementPrompt] Element not found: ${elementKey}`);
@@ -4295,11 +5166,11 @@ ID: [название секции на ${languageName}, желательно о
       // Если не нашли пример, создаем базовый с учетом настроек
       if (!example.trim()) {
         console.warn(`[generateElementPrompt] No example found for ${elementKey}, creating basic prompt`);
-        example = `ТИП: ${elementKey}\n${generateElementRequirements(elementKey, elementSettings)}\n`;
+        example = `ТИП: ${elementKey}\n${generateElementRequirements(elementKey, elementSettings, sectionKey)}\n`;
       } else {
         console.log(`[generateElementPrompt] Found example for ${elementKey}`);
         // Если нашли пример, дополняем его требованиями из настроек
-        const requirements = generateElementRequirements(elementKey, elementSettings);
+        const requirements = generateElementRequirements(elementKey, elementSettings, sectionKey);
         if (requirements) {
           const requirementLines = requirements.split('\n');
           
@@ -4318,6 +5189,144 @@ ID: [название секции на ${languageName}, желательно о
             example += '\n' + additionalReqs.join('\n');
           }
         }
+      }
+      
+      // Добавляем специальные требования для карточных элементов
+      if (elementKey === 'basic-card' || elementKey === 'image-card') {
+        const cardType = elementKey === 'basic-card' ? 'basic-card' : 'image-card';
+        example += `\n\nКРИТИЧЕСКИ ВАЖНО для ${cardType}:\n`;
+        example += 'СОЗДАЙТЕ ТОЧНОЕ количество карточек, указанное в требованиях!\n';
+        example += 'Если указано "5 карточек" - создайте РОВНО 5 карточек\n';
+        example += 'Если указано "3 карточки" - создайте РОВНО 3 карточки\n';
+        example += 'НЕ создавайте больше или меньше карточек!\n';
+        example += 'КАЖДАЯ карточка должна начинаться с:\n';
+        example += `ТИП: ${cardType}\n`;
+        example += 'ЗАГОЛОВОК: [заголовок карточки]\n';
+        example += 'СОДЕРЖИМОЕ: [описание карточки]\n';
+        example += 'НЕ указывайте текст "карточка 1:", "карточка 2:", "карточка 3:" и т.д.!\n';
+        example += 'Просто создавайте заголовок и содержимое каждой карточки без нумерации!';
+      }
+      
+      // Добавляем специальные требования для списка
+      if (elementKey === 'list') {
+        example += `\n\nКРИТИЧЕСКИ ВАЖНО для list:\n`;
+        example += 'НЕ создавайте готовые списки, нумерованные списки или маркированные списки!\n';
+        example += 'ОБЯЗАТЕЛЬНО используйте ТОЛЬКО формат в поле СОДЕРЖИМОЕ:\n';
+        example += 'пункт 1 * пункт 2 * пункт 3 * пункт 4 * пункт 5 * пункт 6\n';
+        example += 'ЗАПРЕЩЕНО: Создавать списки с цифрами, точками, тире или другими символами!\n';
+        example += 'ЗАПРЕЩЕНО: Создавать готовые списки вне поля СОДЕРЖИМОЕ!\n';
+        example += 'ОБЯЗАТЕЛЬНО: Каждый пункт отделен звездочками БЕЗ квадратных скобок!\n';
+        example += 'ФОРМАТ СОДЕРЖИМОЕ: текст пункта * текст пункта * текст пункта';
+      }
+      
+      // Добавляем специальные требования для цитат
+      if (elementKey === 'blockquote') {
+        example += `\n\nКРИТИЧЕСКИ ВАЖНО для blockquote:\n`;
+        example += 'КАЖДАЯ цитата должна начинаться с:\n';
+        example += 'ТИП: blockquote\n';
+        example += 'ЗАГОЛОВОК: [заголовок цитаты]\n';
+        example += 'СОДЕРЖИМОЕ: [текст цитаты]\n';
+        example += 'НЕ указывайте текст "цитата 1:", "цитата 2:", "цитата 3:" и т.д.!\n';
+        example += 'Просто создавайте заголовок и содержимое каждой цитаты без нумерации!';
+      }
+      
+      // Добавляем специальные требования для выносок
+      if (elementKey === 'callout') {
+        example += `\n\nКРИТИЧЕСКИ ВАЖНО для callout:\n`;
+        example += 'КАЖДАЯ выноска должна начинаться с:\n';
+        example += 'ТИП: callout\n';
+        example += 'ЗАГОЛОВОК: [заголовок выноски]\n';
+        example += 'СОДЕРЖИМОЕ: [текст выноски]\n';
+        example += 'НЕ указывайте текст "выноска 1:", "выноска 2:", "выноска 3:" и т.д.!\n';
+        example += 'Просто создавайте заголовок и содержимое каждой выноски без нумерации!';
+      }
+      
+      // Добавляем специальные требования для анимированных счётчиков
+      if (elementKey === 'animated-counter') {
+        example += `\n\nКРИТИЧЕСКИ ВАЖНО для animated-counter:\n`;
+        example += 'КАЖДЫЙ счётчик должен начинаться с:\n';
+        example += 'ТИП: animated-counter\n';
+        example += 'ЗАГОЛОВОК: [заголовок счётчика]\n';
+        example += 'СОДЕРЖИМОЕ: [описание счётчика]\n';
+        example += 'НЕ указывайте текст "счётчик 1:", "счётчик 2:", "счётчик 3:" и т.д.!\n';
+        example += 'Просто создавайте заголовок и содержимое каждого счётчика без нумерации!\n';
+        example += 'ВАЖНО: Каждый элемент должен содержать УКАЗАННОЕ количество слов в СОДЕРЖИМОЕ!\n';
+        example += 'НЕ распределяйте слова между элементами - каждый элемент должен быть полным!';
+      }
+      
+      // Добавляем специальные требования для эффектов печатной машинки
+      if (elementKey === 'typewriter-text') {
+        example += `\n\nКРИТИЧЕСКИ ВАЖНО для typewriter-text:\n`;
+        example += 'КАЖДЫЙ эффект должен начинаться с:\n';
+        example += 'ТИП: typewriter-text\n';
+        example += 'СОДЕРЖИМОЕ: [текст для печати]\n';
+        example += 'НЕ указывайте текст "эффект 1:", "эффект 2:", "эффект 3:" и т.д.!\n';
+        example += 'Просто создавайте содержимое каждого эффекта без нумерации!\n';
+        example += 'ВАЖНО: Каждый элемент должен содержать УКАЗАННОЕ количество слов в СОДЕРЖИМОЕ!\n';
+        example += 'НЕ распределяйте слова между элементами - каждый элемент должен быть полным!';
+      }
+      
+      // Добавляем специальные требования для выделенных текстов
+      if (elementKey === 'highlight-text') {
+        example += `\n\nКРИТИЧЕСКИ ВАЖНО для highlight-text:\n`;
+        example += 'КАЖДЫЙ выделенный текст должен начинаться с:\n';
+        example += 'ТИП: highlight-text\n';
+        example += 'СОДЕРЖИМОЕ: [текст для выделения]\n';
+        example += 'НЕ указывайте текст "выделение 1:", "выделение 2:", "выделение 3:" и т.д.!\n';
+        example += 'Просто создавайте содержимое каждого выделенного текста без нумерации!\n';
+        example += 'ВАЖНО: Каждый элемент должен содержать УКАЗАННОЕ количество слов в СОДЕРЖИМОЕ!\n';
+        example += 'НЕ распределяйте слова между элементами - каждый элемент должен быть полным!';
+      }
+      
+      // Добавляем специальные требования для отзывов
+      if (elementKey === 'testimonial-card') {
+        example += `\n\nКРИТИЧЕСКИ ВАЖНО для testimonial-card:\n`;
+        example += 'КАЖДЫЙ отзыв должен начинаться с:\n';
+        example += 'ТИП: testimonial-card\n';
+        example += 'СОДЕРЖИМОЕ: [Имя клиента] * [Должность] * [Компания] * [Текст отзыва] * [Рейтинг]\n';
+        example += 'НЕ указывайте текст "отзыв 1:", "отзыв 2:", "отзыв 3:" и т.д.!\n';
+        example += 'Просто создавайте содержимое каждого отзыва без нумерации!\n';
+        example += 'ВАЖНО: Каждый элемент должен содержать УКАЗАННОЕ количество слов в СОДЕРЖИМОЕ!\n';
+        example += 'НЕ распределяйте слова между элементами - каждый элемент должен быть полным!';
+      }
+      
+      // Добавляем специальные требования для FAQ секции
+      if (elementKey === 'faq-section') {
+        example += `\n\nКРИТИЧЕСКИ ВАЖНО для faq-section:\n`;
+        example += 'НЕ добавляйте пустые строки между полями!\n';
+        example += 'Структура должна быть БЕЗ ПРОБЕЛОВ:\n';
+        example += 'ТИП: faq-section\n';
+        example += 'ЗАГОЛОВОК: [заголовок секции]\n';
+        example += 'СОДЕРЖИМОЕ: [вопрос 1] * [ответ 1] * [вопрос 2] * [ответ 2] * [вопрос 3] * [ответ 3]\n';
+        example += 'ЗАПРЕЩЕНО: Добавлять пустые строки между ЗАГОЛОВОК и СОДЕРЖИМОЕ!\n';
+        example += 'ЗАПРЕЩЕНО: Использовать знак | (вертикальная черта) в содержимом!\n';
+        example += 'ОБЯЗАТЕЛЬНО: Все поля должны идти подряд без пропусков!\n';
+        example += 'ОБЯЗАТЕЛЬНО: Используйте только знак * для разделения элементов!';
+      }
+      
+      // Добавляем специальные требования для аккордеона
+      if (elementKey === 'accordion') {
+        example += `\n\nКРИТИЧЕСКИ ВАЖНО для accordion:\n`;
+        example += 'НЕ добавляйте пустые строки между полями!\n';
+        example += 'Структура должна быть БЕЗ ПРОБЕЛОВ:\n';
+        example += 'ТИП: accordion\n';
+        example += 'ЗАГОЛОВОК: [заголовок секции]\n';
+        example += 'СОДЕРЖИМОЕ: [вопрос 1] * [ответ 1] * [вопрос 2] * [ответ 2] * [вопрос 3] * [ответ 3]\n';
+        example += 'ЗАПРЕЩЕНО: Добавлять пустые строки между ЗАГОЛОВОК и СОДЕРЖИМОЕ!\n';
+        example += 'ОБЯЗАТЕЛЬНО: Все поля должны идти подряд без пропусков!';
+      }
+      
+      // Добавляем короткий пример для таблицы данных
+      if (elementKey === 'data-table') {
+        example += `\n\nПример правильного формата:\n`;
+        example += 'ЗАГОЛОВОК: Наши услуги\n';
+        example += 'СОДЕРЖИМОЕ: Услуга | Описание | Сроки | Стоимость * Консультации | Персональные советы | 1 день | 10000 рублей * Договоры | Подготовка документов | 2 дня | 15000 рублей';
+      }
+      
+      // Добавляем специальные требования для typography
+      if (elementKey === 'typography') {
+        example += `\n\nКРИТИЧЕСКИ ВАЖНО для typography:\n`;
+        example += 'В формируемом тексте НЕ должно быть пустых строк! Весь текст должен быть сплошным без разрывов и пустых строк.';
       }
       
       return example.trim();
@@ -4403,7 +5412,7 @@ ID: [название секции на ${languageName}, желательно о
 [Заголовок раздела ${getWordRange('ABOUT', 'sectionTitle')}]
 [Описание раздела ${getWordRange('ABOUT', 'sectionDescription')}]
 
-${aboutElements.map(element => generateElementPrompt(element)).join('\n\n')}
+${aboutElements.map(element => generateElementPrompt(element, 'ABOUT')).join('\n\n')}
 
 === КОНЕЦ РАЗДЕЛА ===\n\n`;
     }
@@ -4417,7 +5426,7 @@ ID: [название секции на ${languageName}, желательно о
 [Заголовок раздела ${getWordRange('SERVICES', 'sectionTitle')}]
 [Описание раздела ${getWordRange('SERVICES', 'sectionDescription')}]
 
-${servicesElements.map(element => generateElementPrompt(element)).join('\n\n')}
+${servicesElements.map(element => generateElementPrompt(element, 'SERVICES')).join('\n\n')}
 
 === КОНЕЦ РАЗДЕЛА ===\n\n`;
     }
@@ -4431,7 +5440,7 @@ ID: [название секции на ${languageName}, желательно о
 [Заголовок раздела ${getWordRange('FEATURES', 'sectionTitle')}]
 [Описание раздела ${getWordRange('FEATURES', 'sectionDescription')}]
 
-${featuresElements.map(element => generateElementPrompt(element)).join('\n\n')}
+${featuresElements.map(element => generateElementPrompt(element, 'FEATURES')).join('\n\n')}
 
 === КОНЕЦ РАЗДЕЛА ===\n\n`;
     }
@@ -4445,7 +5454,7 @@ ID: [название секции на ${languageName}, желательно о
 [Заголовок раздела ${getWordRange('NEWS', 'sectionTitle')}]
 [Описание раздела ${getWordRange('NEWS', 'sectionDescription')}]
 
-${newsElements.map(element => generateElementPrompt(element)).join('\n\n')}
+${newsElements.map(element => generateElementPrompt(element, 'NEWS')).join('\n\n')}
 
 === КОНЕЦ РАЗДЕЛА ===\n\n`;
     }
@@ -4459,7 +5468,7 @@ ID: [название секции на ${languageName}, желательно о
 [Заголовок раздела ${getWordRange('FAQ', 'sectionTitle')}]
 [Описание раздела ${getWordRange('FAQ', 'sectionDescription')}]
 
-${faqElements.map(element => generateElementPrompt(element)).join('\n\n')}
+${faqElements.map(element => generateElementPrompt(element, 'FAQ')).join('\n\n')}
 
 === КОНЕЦ РАЗДЕЛА ===\n\n`;
     }
@@ -4475,7 +5484,7 @@ ID: [название секции на ${languageName}, желательно о
 
 ВАЖНО: Создайте минимум 5 отзывов для данного раздела.
 
-${testimonialsElements.map(element => generateElementPrompt(element)).join('\n\n')}
+${testimonialsElements.map(element => generateElementPrompt(element, 'TESTIMONIALS')).join('\n\n')}
 
 === КОНЕЦ РАЗДЕЛА ===\n\n`;
     }
@@ -4491,7 +5500,7 @@ ID: [название секции на ${languageName}, желательно о
 
 ВАЖНО: Создайте универсальную секцию, которая будет релевантна тематике сайта. Эта секция должна дополнять основной контент и быть полезной для посетителей сайта.
 
-${universalElements.map(element => generateElementPrompt(element)).join('\n\n')}
+${universalElements.map(element => generateElementPrompt(element, 'UNIVERSAL')).join('\n\n')}
 
 === КОНЕЦ РАЗДЕЛА ===\n\n`;
     }
@@ -4655,6 +5664,36 @@ ID: [название секции на ${languageName}, желательно о
         basePrompt += 'Просто создавайте заголовок и содержимое каждой карточки без нумерации!\n\n';
       }
       
+      // Добавляем специальные требования для basic-card, если он выбран
+      if (isElementSelectedGlobal(selectedElements, 'basic-card')) {
+        basePrompt += 'КРИТИЧЕСКИ ВАЖНО для basic-card:\n';
+        basePrompt += 'СОЗДАЙТЕ ТОЧНОЕ количество карточек, указанное в требованиях!\n';
+        basePrompt += 'Если указано "5 карточек" - создайте РОВНО 5 карточек\n';
+        basePrompt += 'Если указано "3 карточки" - создайте РОВНО 3 карточки\n';
+        basePrompt += 'НЕ создавайте больше или меньше карточек!\n';
+        basePrompt += 'КАЖДАЯ карточка должна начинаться с:\n';
+        basePrompt += 'ТИП: basic-card\n';
+        basePrompt += 'ЗАГОЛОВОК: [заголовок карточки]\n';
+        basePrompt += 'СОДЕРЖИМОЕ: [описание карточки]\n';
+        basePrompt += 'НЕ указывайте текст "карточка 1:", "карточка 2:", "карточка 3:" и т.д.!\n';
+        basePrompt += 'Просто создавайте заголовок и содержимое каждой карточки без нумерации!\n\n';
+      }
+      
+      // Добавляем специальные требования для image-card, если он выбран
+      if (isElementSelectedGlobal(selectedElements, 'image-card')) {
+        basePrompt += 'КРИТИЧЕСКИ ВАЖНО для image-card:\n';
+        basePrompt += 'СОЗДАЙТЕ ТОЧНОЕ количество карточек, указанное в требованиях!\n';
+        basePrompt += 'Если указано "5 карточек" - создайте РОВНО 5 карточек\n';
+        basePrompt += 'Если указано "3 карточки" - создайте РОВНО 3 карточки\n';
+        basePrompt += 'НЕ создавайте больше или меньше карточек!\n';
+        basePrompt += 'КАЖДАЯ карточка должна начинаться с:\n';
+        basePrompt += 'ТИП: image-card\n';
+        basePrompt += 'ЗАГОЛОВОК: [заголовок карточки]\n';
+        basePrompt += 'СОДЕРЖИМОЕ: [описание карточки]\n';
+        basePrompt += 'НЕ указывайте текст "карточка 1:", "карточка 2:", "карточка 3:" и т.д.!\n';
+        basePrompt += 'Просто создавайте заголовок и содержимое каждой карточки без нумерации!\n\n';
+      }
+      
       const selectedElementsArray = Array.from(selectedElements.GLOBAL);
       selectedElementsArray.forEach(elementKey => {
         const element = ELEMENT_PROMPTS[elementKey];
@@ -4695,10 +5734,10 @@ ID: [название секции на ${languageName}, желательно о
           
           // Если не нашли пример, создаем базовый с учетом настроек
           if (!example.trim()) {
-            example = `ТИП: ${elementKey}\n${generateElementRequirements(elementKey, elementSettings)}\n`;
+            example = `ТИП: ${elementKey}\n${generateElementRequirements(elementKey, elementSettings, sectionKey)}\n`;
           } else {
             // Если нашли пример, дополняем его требованиями из настроек
-            const requirements = generateElementRequirements(elementKey, elementSettings);
+            const requirements = generateElementRequirements(elementKey, elementSettings, sectionKey);
             if (requirements) {
               const requirementLines = requirements.split('\n');
               
@@ -4755,7 +5794,7 @@ ID: [название секции на ${languageName}, желательно о
       targetSection === 'ABOUT' ? 'информацию о' :
       'раздел'} для сайта.`;
     
-    const enhancedPrompt = applyGlobalSettings(prompt);
+    const enhancedPrompt = applyGlobalSettings(prompt, null);
     
     navigator.clipboard.writeText(enhancedPrompt)
       .then(() => {
@@ -4790,20 +5829,20 @@ ID: [название секции на ${languageName}, желательно о
     
     if (promptType === 'legal_only') {
       // Генерируем только промпт для правовых документов
-      finalPrompt = applyGlobalSettings(generateLegalDocumentsPrompt());
+      finalPrompt = applyGlobalSettings(generateLegalDocumentsPrompt(), currentStep);
       setParserMessage('Специализированный промпт для правовых документов скопирован в буфер обмена.');
     } else if (promptType === 'optimized') {
       // Генерируем оптимизированный промпт без правовых документов с учетом выбранных элементов
       console.log('[handleFullSiteSettingsSave] Calling generateOptimizedFullSitePromptWithElements with elements:', Array.from(selectedElements));
       const optimizedPrompt = generateOptimizedFullSitePromptWithElements(settings, selectedElements, customPrompts, elementSettings, getSectionLabelWithData);
-      finalPrompt = applyGlobalSettings(optimizedPrompt);
+      finalPrompt = applyGlobalSettings(optimizedPrompt, currentStep);
       const totalElements = Object.values(selectedElements).reduce((sum, sectionElements) => sum + (sectionElements?.size || 0), 0);
       setParserMessage(`Оптимизированный промпт полного сайта с ${totalElements} элементами скопирован в буфер обмена.`);
     } else if (promptType === 'manual_elements') {
       // Генерируем промпт с ручным выбором элементов, исключая стандартные разделы
       console.log('[handleFullSiteSettingsSave] Calling generateManualElementsPrompt with elements:', Array.from(selectedElements));
       const manualPrompt = generateManualElementsPrompt(settings, selectedElements, customPrompts, elementSettings, getSectionLabelWithData, defaultSectionLabels);
-      finalPrompt = applyGlobalSettings(manualPrompt);
+      finalPrompt = applyGlobalSettings(manualPrompt, currentStep);
       
       const stepLabels = {
         1: 'Главная + О нас + Преимущества',
@@ -4817,7 +5856,7 @@ ID: [название секции на ${languageName}, желательно о
       // Оригинальный полный промпт (по умолчанию) с учетом выбранных элементов
       console.log('[handleFullSiteSettingsSave] Calling generateFullSitePromptWithElements with elements:', Array.from(selectedElements));
       const fullSitePrompt = generateFullSitePromptWithElements(settings, selectedElements, customPrompts, elementSettings, getSectionLabelWithData);
-      finalPrompt = applyGlobalSettings(fullSitePrompt);
+      finalPrompt = applyGlobalSettings(fullSitePrompt, currentStep);
       const totalElements = Object.values(selectedElements).reduce((sum, sectionElements) => sum + (sectionElements?.size || 0), 0);
       setParserMessage(`Полный промпт сайта с ${totalElements} элементами скопирован в буфер обмена.`);
     }
@@ -4834,7 +5873,7 @@ ID: [название секции на ${languageName}, желательно о
   };
 
   // Функция для применения глобальных настроек к промпту
-  const applyGlobalSettings = (promptText) => {
+  const applyGlobalSettings = (promptText, currentStep = null) => {
     const theme = globalSettings.theme === 'CUSTOM' 
       ? globalSettings.customTheme 
       : WEBSITE_THEMES[globalSettings.theme];
@@ -5001,6 +6040,46 @@ ID: [название секции на ${languageName}, желательно о
       enhancedPrompt += `   - НЕ использовать русский язык по умолчанию, если выбран другой язык только не забудь про name page только исправь это для контактов больше ничего не трогай\n`;
       
       return enhancedPrompt;
+    }
+
+    // Добавляем настройки проверки возраста если включена ТОЛЬКО для первого этапа
+    if (globalSettings.enableAgeVerification && (currentStep === null || currentStep === 1)) {
+      const minimumAge = globalSettings.minimumAge || 18;
+      const ageTheme = globalSettings.ageVerificationTheme || 'default';
+      
+      enhancedPrompt += `\n🔞 ОБЯЗАТЕЛЬНЫЙ РАЗДЕЛ ПРОВЕРКИ ВОЗРАСТА:\n`;
+      enhancedPrompt += `Включена проверка возраста для сайта.\n`;
+      enhancedPrompt += `Минимальный возраст: ${minimumAge} лет\n`;
+      enhancedPrompt += `Тема дизайна: ${ageTheme}\n`;
+      enhancedPrompt += `Язык проверки: ${language}\n`;
+      enhancedPrompt += `Страна: ${currentCountry}\n\n`;
+      
+      if (ageTheme === 'casino') {
+        enhancedPrompt += `ВАЖНО: Используйте стиль проверки возраста как на сайтах казино в Великобритании.\n`;
+      } else if (ageTheme === 'gaming') {
+        enhancedPrompt += `ВАЖНО: Используйте стиль проверки возраста как на игровых сайтах.\n`;
+      } else if (ageTheme === 'adult') {
+        enhancedPrompt += `ВАЖНО: Используйте стиль проверки возраста для взрослого контента.\n`;
+      }
+      
+      enhancedPrompt += `\nОБЯЗАТЕЛЬНО СОЗДАЙТЕ РАЗДЕЛ ПРОВЕРКИ ВОЗРАСТА В СЛЕДУЮЩЕМ ФОРМАТЕ:\n`;
+      enhancedPrompt += `=== РАЗДЕЛ: Подтверждение возраста ===\n`;
+      enhancedPrompt += `[Заголовок проверки возраста на ${language}]\n`;
+      enhancedPrompt += `[Основной текст проверки возраста на ${language}] * [Текст кнопки подтверждения на ${language}] * [Текст кнопки отказа на ${language}] * [Сообщение для несовершеннолетних на ${language}] * [Заголовок окна отказа на ${language}] * [Текст кнопки выхода на ${language}]\n`;
+      enhancedPrompt += `=== КОНЕЦ РАЗДЕЛА ===\n\n`;
+      
+      enhancedPrompt += `КРИТИЧЕСКИ ВАЖНО:\n`;
+      enhancedPrompt += `- Весь текст должен быть на ${language}\n`;
+      enhancedPrompt += `- Адаптируйте под страну ${currentCountry}\n`;
+      enhancedPrompt += `- Минимальный возраст: ${minimumAge} лет\n`;
+      enhancedPrompt += `- Используйте символ "*" для разделения ВСЕХ 6 полей:\n`;
+      enhancedPrompt += `  1. Основной текст\n`;
+      enhancedPrompt += `  2. Кнопка подтверждения\n`;
+      enhancedPrompt += `  3. Кнопка отказа\n`;
+      enhancedPrompt += `  4. Сообщение для несовершеннолетних\n`;
+      enhancedPrompt += `  5. Заголовок окна отказа (например: "Доступ запрещен")\n`;
+      enhancedPrompt += `  6. Текст кнопки выхода (например: "Покинуть сайт")\n`;
+      enhancedPrompt += `- Создайте реалистичные тексты как на настоящих сайтах\n\n`;
     }
 
     // Стандартная обработка для других типов промптов
@@ -8233,6 +9312,39 @@ ID: [название секции на ${languageName}, желательно о
 
               // Заменяем существующий код создания menuItems этой функцией
               const menuItems = processOrderedSections();
+              
+              // Добавляем раздел проверки возраста, если он есть
+              if (parsedData.ageVerification) {
+                console.log('🔞 Добавляем раздел проверки возраста в sectionsData:', parsedData.ageVerification);
+                
+                // Формируем description из всех полей для совместимости
+                let fullDescription = parsedData.ageVerification.content || '';
+                if (parsedData.ageVerification.confirmText || parsedData.ageVerification.rejectText || parsedData.ageVerification.underageMessage) {
+                  const parts = [
+                    parsedData.ageVerification.content || '',
+                    parsedData.ageVerification.confirmText || 'Мне есть 18 лет',
+                    parsedData.ageVerification.rejectText || 'Мне нет 18 лет',
+                    parsedData.ageVerification.underageMessage || 'Доступ запрещен'
+                  ].filter(part => part.trim());
+                  
+                  fullDescription = parts.join(' * ');
+                }
+                
+                updatedSections['age-verification'] = {
+                  id: 'age-verification',
+                  title: parsedData.ageVerification.title || 'Подтверждение возраста',
+                  description: fullDescription,
+                  pageName: 'age-verification',
+                  cardType: 'NONE',
+                  cards: [],
+                  elements: [],
+                  contentElements: [],
+                  ageVerificationData: parsedData.ageVerification // Сохраняем полные данные
+                };
+                
+                console.log('✅ Раздел проверки возраста добавлен в updatedSections:', updatedSections['age-verification']);
+                console.log('🔞 ageVerificationData:', parsedData.ageVerification);
+              }
               
               console.log('Обновленные секции перед применением:', updatedSections);
 

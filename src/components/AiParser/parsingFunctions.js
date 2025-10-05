@@ -39,6 +39,7 @@ export const SECTION_KEYWORDS = {
   CONTACTS: ['контакты', 'свяжитесь с нами', 'связаться', 'contacts', 'contact us', 'get in touch'],
   LEGAL: ['правовые документы', 'документы', 'политика', 'соглашение', 'legal documents', 'policy', 'terms'],
   MERCI: ['merci', 'благодарность', 'спасибо', 'thank you', 'thanks', 'сообщение благодарности'],
+  AGE_VERIFICATION: ['подтверждение возраста', 'проверка возраста', 'age verification', '18+', 'взрослый контент'],
   UNIVERSAL: ['универсальная', 'дополнительная', 'универсальная секция', 'universal', 'additional', 'extra']
 };
 
@@ -54,7 +55,10 @@ export const detectSectionType = (sectionName, sectionContent = '', sectionIndex
     'contacts': 'CONTACTS', 
     'merci': 'MERCI',
     'правовые документы': 'LEGAL',
-    'legal documents': 'LEGAL'
+    'legal documents': 'LEGAL',
+    'подтверждение возраста': 'AGE_VERIFICATION',
+    'age verification': 'AGE_VERIFICATION',
+    'проверка возраста': 'AGE_VERIFICATION'
   };
   
   // Проверяем специальные разделы по ключевым словам в названии
@@ -70,7 +74,8 @@ export const detectSectionType = (sectionName, sectionContent = '', sectionIndex
     HERO: ['название сайта', 'заголовок hero', 'главный заголовок', 'site name', 'первая строка - название сайта'],
     CONTACTS: ['телефон:', 'email:', 'адрес:', 'phone:', 'address:', '@', '+7', '+971', '+1'],
     LEGAL: ['политика конфиденциальности', 'пользовательское соглашение', 'privacy policy', 'terms of use', 'cookie policy'],
-    MERCI: ['спасибо за обращение', 'благодарим', 'thank you for', 'thanks for', 'сообщение благодарности', 'текст кнопки']
+    MERCI: ['спасибо за обращение', 'благодарим', 'thank you for', 'thanks for', 'сообщение благодарности', 'текст кнопки'],
+    AGE_VERIFICATION: ['мне есть 18 лет', 'мне нет 18 лет', 'подтвердите возраст', 'age verification', '18+', 'взрослый контент', 'проверка возраста']
   };
   
   for (const [sectionType, indicators] of Object.entries(specialContentIndicators)) {
@@ -2724,7 +2729,67 @@ const createElementByType = (type, titleParam, content, index, elementData = {})
       };
     }
 
-
+    case 'age-verification': {
+      // Парсим проверку возраста: [основной текст] * [текст кнопки подтверждения] * [текст кнопки отказа] * [сообщение для несовершеннолетних]
+      let content = '';
+      let confirmText = 'Мне есть 18 лет';
+      let rejectText = 'Мне нет 18 лет';
+      let underageMessage = 'Доступ к сайту разрешен только лицам старше 18 лет. Если вам нет 18 лет, пожалуйста, покиньте сайт.';
+      
+      if (cleanContent) {
+        const parts = cleanContent.split('*').map(part => part.trim()).filter(part => part);
+        if (parts.length >= 4) {
+          content = parts[0];
+          confirmText = parts[1];
+          rejectText = parts[2];
+          underageMessage = parts[3];
+        } else if (parts.length === 3) {
+          content = parts[0];
+          confirmText = parts[1];
+          rejectText = parts[2];
+        } else if (parts.length === 2) {
+          content = parts[0];
+          confirmText = parts[1];
+        } else if (parts.length === 1) {
+          content = parts[0];
+        }
+      }
+      
+      console.log('[createElementByType] Age-verification parsed:', { 
+        content, 
+        confirmText, 
+        rejectText, 
+        underageMessage,
+        originalContent: cleanContent 
+      });
+      
+      return {
+        ...baseElement,
+        type: 'age-verification',
+        title: titleParam || 'Подтверждение возраста',
+        content: content || 'Этот сайт содержит контент, предназначенный только для лиц старше 18 лет. Пожалуйста, подтвердите свой возраст для продолжения.',
+        confirmText: confirmText,
+        rejectText: rejectText,
+        underageMessage: underageMessage,
+        theme: 'default',
+        language: 'ru',
+        showTitle: true,
+        titleColor: '#1976d2',
+        contentColor: '#333333',
+        borderColor: '#e0e0e0',
+        backgroundColor: '#ffffff',
+        borderRadius: 12,
+        padding: 24,
+        animationSettings: {
+          animationType: 'fadeIn',
+          delay: 0,
+          triggerOnView: true,
+          triggerOnce: true,
+          threshold: 0.1,
+          disabled: false
+        }
+      };
+    }
 
     default:
       return baseElement;
@@ -2747,8 +2812,8 @@ export const parseAIElements = (content) => {
     console.log(`🔍 Строка ${i}: "${line}"`);
     
     if (!line) {
-      // Для элементов typography, list, gradient-text, typewriter-text, highlight-text, testimonial-card, share-buttons, faq-section, rating, progress-bars, timeline-component, data-table, image-gallery, multiple-cards, bar-chart, advanced-line-chart, advanced-pie-chart, apex-line, cta-section, advanced-contact-form, full-multipage-site заголовок не обязателен
-      const requiresTitle = !['typography', 'list', 'gradient-text', 'typewriter-text', 'highlight-text', 'testimonial-card', 'share-buttons', 'faq-section', 'rating', 'progress-bars', 'timeline-component', 'data-table', 'image-gallery', 'multiple-cards', 'bar-chart', 'advanced-line-chart', 'advanced-pie-chart', 'apex-line', 'cta-section', 'advanced-contact-form', 'full-multipage-site'].includes(currentElement?.type?.toLowerCase());
+      // Для элементов typography, list, gradient-text, typewriter-text, highlight-text, testimonial-card, share-buttons, faq-section, rating, progress-bars, timeline-component, data-table, image-gallery, multiple-cards, bar-chart, advanced-line-chart, advanced-pie-chart, apex-line, cta-section, advanced-contact-form, age-verification, full-multipage-site заголовок не обязателен
+      const requiresTitle = !['typography', 'list', 'gradient-text', 'typewriter-text', 'highlight-text', 'testimonial-card', 'share-buttons', 'faq-section', 'rating', 'progress-bars', 'timeline-component', 'data-table', 'image-gallery', 'multiple-cards', 'bar-chart', 'advanced-line-chart', 'advanced-pie-chart', 'apex-line', 'cta-section', 'advanced-contact-form', 'age-verification', 'full-multipage-site'].includes(currentElement?.type?.toLowerCase());
       console.log(`🔍 Пустая строка - currentElement:`, currentElement, `requiresTitle:`, requiresTitle);
       if (currentElement && currentElement.type && (currentElement.title || !requiresTitle)) {
         console.log('🔚 Завершаем элемент на пустой строке:', currentElement);
@@ -2767,8 +2832,8 @@ export const parseAIElements = (content) => {
     }
     
     if (line.match(/^ТИП:\s*(.+)$/i) || line.match(/^TYPE:\s*(.+)$/i)) {
-      // Для элементов typography, list, gradient-text, typewriter-text, highlight-text, testimonial-card, share-buttons, faq-section, rating, progress-bars, timeline-component, data-table, image-gallery, multiple-cards, bar-chart, advanced-line-chart, advanced-pie-chart, advanced-area-chart, apex-line, cta-section, advanced-contact-form, full-multipage-site заголовок не обязателен
-      const requiresTitle = !['typography', 'list', 'gradient-text', 'typewriter-text', 'highlight-text', 'testimonial-card', 'share-buttons', 'faq-section', 'rating', 'progress-bars', 'timeline-component', 'data-table', 'image-gallery', 'multiple-cards', 'bar-chart', 'advanced-line-chart', 'advanced-pie-chart', 'advanced-area-chart', 'apex-line', 'cta-section', 'advanced-contact-form', 'full-multipage-site'].includes(currentElement?.type?.toLowerCase());
+      // Для элементов typography, list, gradient-text, typewriter-text, highlight-text, testimonial-card, share-buttons, faq-section, rating, progress-bars, timeline-component, data-table, image-gallery, multiple-cards, bar-chart, advanced-line-chart, advanced-pie-chart, advanced-area-chart, apex-line, cta-section, advanced-contact-form, age-verification, full-multipage-site заголовок не обязателен
+      const requiresTitle = !['typography', 'list', 'gradient-text', 'typewriter-text', 'highlight-text', 'testimonial-card', 'share-buttons', 'faq-section', 'rating', 'progress-bars', 'timeline-component', 'data-table', 'image-gallery', 'multiple-cards', 'bar-chart', 'advanced-line-chart', 'advanced-pie-chart', 'advanced-area-chart', 'apex-line', 'cta-section', 'advanced-contact-form', 'age-verification', 'full-multipage-site'].includes(currentElement?.type?.toLowerCase());
       if (currentElement && currentElement.type && (currentElement.title || !requiresTitle)) {
         console.log('🔚 Завершаем предыдущий элемент:', currentElement);
         elements.push(createElementByType(
@@ -5045,7 +5110,7 @@ export const parseFullSite = (content, headerData = {}, contactData = {}) => {
         console.log(`🔍 Определен тип раздела "${sectionName}" -> ${sectionType}`);
         
         // Увеличиваем счетчик только для обычных разделов
-        if (!['HERO', 'CONTACTS', 'MERCI', 'LEGAL'].includes(sectionType)) {
+        if (!['HERO', 'CONTACTS', 'MERCI', 'LEGAL', 'AGE_VERIFICATION'].includes(sectionType)) {
           nonSpecialSectionIndex++;
         }
         
@@ -5125,6 +5190,13 @@ export const parseFullSite = (content, headerData = {}, contactData = {}) => {
             console.log('Результат парсинга Universal Section:', sections.universal);
             if (!sections.universal) {
               console.error('parseUniversalSection вернул null для раздела', sectionName);
+            }
+            break;
+          case 'AGE_VERIFICATION':
+            sections.ageVerification = parseAgeVerification(sectionContent);
+            console.log('Результат парсинга Age Verification:', sections.ageVerification);
+            if (!sections.ageVerification) {
+              console.error('parseAgeVerification вернул null для раздела', sectionName);
             }
             break;
           default:
@@ -5264,5 +5336,445 @@ export const parseContactsFull = (content, headerData = {}) => {
   }
 }; 
 
+// Функция для парсинга проверки возраста
+export const parseAgeVerification = (content) => {
+  try {
+    console.log('🔍 parseAgeVerification: Начинаем парсинг контента проверки возраста:', content);
+    
+    // Разбиваем контент на строки и убираем пустые
+    const lines = content.split('\n').map(line => line.trim()).filter(line => line);
+    
+    const ageVerificationData = {
+      title: '',
+      content: '',
+      confirmText: 'Мне есть 18 лет',
+      rejectText: 'Мне нет 18 лет',
+      underageMessage: 'Доступ к сайту разрешен только лицам старше 18 лет.',
+      rejectionTitle: 'Доступ ограничен',
+      leaveSiteText: 'Покинуть сайт',
+      theme: 'default',
+      language: 'ru'
+    };
+    
+    // Расширенная логика для извлечения ВСЕХ элементов из промта:
+    // 1-я строка = заголовок модального окна
+    // 2-я строка = контент (может содержать звездочки для разделения)
+    // Звездочки разделяют: контент * кнопка подтверждения * кнопка отказа * сообщение отказа * заголовок отказа * кнопка выхода
+    
+    if (lines.length >= 1) {
+      ageVerificationData.title = lines[0];
+      console.log('✅ parseAgeVerification: Заголовок:', ageVerificationData.title);
+    }
+    
+    if (lines.length >= 2) {
+      const contentLine = lines[1];
+      
+      // Если есть звездочки, разбиваем по ним
+      if (contentLine.includes('*')) {
+        const parts = contentLine.split('*').map(part => part.trim()).filter(part => part);
+        console.log('🔍 parseAgeVerification: Разделенные части:', parts);
+        
+        if (parts.length >= 1) ageVerificationData.content = parts[0];
+        if (parts.length >= 2) ageVerificationData.confirmText = parts[1];
+        if (parts.length >= 3) ageVerificationData.rejectText = parts[2];
+        if (parts.length >= 4) ageVerificationData.underageMessage = parts[3];
+        // НОВОЕ: 5-й элемент = заголовок отказа
+        if (parts.length >= 5) ageVerificationData.rejectionTitle = parts[4];
+        // НОВОЕ: 6-й элемент = текст кнопки выхода
+        if (parts.length >= 6) ageVerificationData.leaveSiteText = parts[5];
+        
+        console.log('🔍 parseAgeVerification: Извлечены дополнительные элементы:', {
+          rejectionTitle: ageVerificationData.rejectionTitle,
+          leaveSiteText: ageVerificationData.leaveSiteText
+        });
+      } else {
+        // Если нет звездочек, вся строка - это контент
+        ageVerificationData.content = contentLine;
+      }
+    }
+    
+    // Если есть дополнительные строки, добавляем их к контенту
+    if (lines.length > 2) {
+      const additionalContent = lines.slice(2).join(' ');
+      if (additionalContent.includes('*')) {
+        const parts = additionalContent.split('*').map(part => part.trim()).filter(part => part);
+        if (parts.length >= 1 && !ageVerificationData.confirmText) ageVerificationData.confirmText = parts[0];
+        if (parts.length >= 2 && !ageVerificationData.rejectText) ageVerificationData.rejectText = parts[1];
+        if (parts.length >= 3 && !ageVerificationData.underageMessage) ageVerificationData.underageMessage = parts[2];
+        // НОВОЕ: дополнительные элементы из следующих строк
+        if (parts.length >= 4 && !ageVerificationData.rejectionTitle) ageVerificationData.rejectionTitle = parts[3];
+        if (parts.length >= 5 && !ageVerificationData.leaveSiteText) ageVerificationData.leaveSiteText = parts[4];
+      }
+    }
+    
+    // ПРИОРИТЕТ: Если заголовок отказа и кнопка выхода НЕ были извлечены из промта,
+    // только тогда используем автоматическое определение языка
+    if (!ageVerificationData.rejectionTitle || !ageVerificationData.leaveSiteText) {
+      console.log('🔍 parseAgeVerification: Заголовок отказа или кнопка выхода не найдены в промте, определяем язык автоматически');
+      
+      const isEnglish = ageVerificationData.confirmText && 
+                       (ageVerificationData.confirmText.toLowerCase().includes('over') || 
+                        ageVerificationData.confirmText.toLowerCase().includes('am') ||
+                        ageVerificationData.confirmText.toLowerCase().includes('yes') ||
+                        ageVerificationData.rejectText?.toLowerCase().includes('under') ||
+                        ageVerificationData.rejectText?.toLowerCase().includes('no'));
+      
+      const isChinese = ageVerificationData.confirmText && 
+                       (ageVerificationData.confirmText.includes('是') || 
+                        ageVerificationData.confirmText.includes('我') ||
+                        ageVerificationData.rejectText?.includes('不') ||
+                        ageVerificationData.rejectText?.includes('否'));
+      
+      const isSpanish = ageVerificationData.confirmText && 
+                       (ageVerificationData.confirmText.toLowerCase().includes('confirmar') || 
+                        ageVerificationData.confirmText.toLowerCase().includes('edad') ||
+                        ageVerificationData.rejectText?.toLowerCase().includes('salir') ||
+                        ageVerificationData.content?.toLowerCase().includes('años') ||
+                        ageVerificationData.content?.toLowerCase().includes('españa') ||
+                        ageVerificationData.underageMessage?.toLowerCase().includes('sentimos'));
+      
+      const isFrench = ageVerificationData.confirmText && 
+                      (ageVerificationData.confirmText.toLowerCase().includes('plus') || 
+                       ageVerificationData.confirmText.toLowerCase().includes('ans') ||
+                       ageVerificationData.rejectText?.toLowerCase().includes('moins') ||
+                       ageVerificationData.content?.toLowerCase().includes('âge') ||
+                       ageVerificationData.underageMessage?.toLowerCase().includes('accès'));
+      
+      const isGerman = ageVerificationData.confirmText && 
+                      (ageVerificationData.confirmText.toLowerCase().includes('jahre') || 
+                       ageVerificationData.confirmText.toLowerCase().includes('alt') ||
+                       ageVerificationData.content?.toLowerCase().includes('alter') ||
+                       ageVerificationData.underageMessage?.toLowerCase().includes('zugang'));
+      
+      const isKorean = ageVerificationData.confirmText && 
+                      (ageVerificationData.confirmText.includes('세') || 
+                       ageVerificationData.confirmText.includes('이상') ||
+                       ageVerificationData.content?.includes('만') ||
+                       ageVerificationData.underageMessage?.includes('죄송') ||
+                       ageVerificationData.underageMessage?.includes('접근'));
+      
+      const isArabic = ageVerificationData.confirmText && 
+                      (ageVerificationData.confirmText.includes('أؤكد') || 
+                       ageVerificationData.confirmText.includes('عاماً') ||
+                       ageVerificationData.rejectText?.includes('أرفض') ||
+                       ageVerificationData.content?.includes('الموقع') ||
+                       ageVerificationData.underageMessage?.includes('عذراً') ||
+                       ageVerificationData.underageMessage?.includes('يُسمح'));
+      
+      if (isEnglish) {
+        ageVerificationData.language = 'en';
+        if (!ageVerificationData.rejectionTitle) ageVerificationData.rejectionTitle = 'Access Denied';
+        if (!ageVerificationData.leaveSiteText) ageVerificationData.leaveSiteText = 'Leave Site';
+        console.log('🔍 parseAgeVerification: Определен английский язык');
+      } else if (isChinese) {
+        ageVerificationData.language = 'zh';
+        if (!ageVerificationData.rejectionTitle) ageVerificationData.rejectionTitle = '访问被拒绝';
+        if (!ageVerificationData.leaveSiteText) ageVerificationData.leaveSiteText = '离开网站';
+        console.log('🔍 parseAgeVerification: Определен китайский язык');
+      } else if (isSpanish) {
+        ageVerificationData.language = 'es';
+        if (!ageVerificationData.rejectionTitle) ageVerificationData.rejectionTitle = 'Acceso Denegado';
+        if (!ageVerificationData.leaveSiteText) ageVerificationData.leaveSiteText = 'Salir del Sitio';
+        console.log('🔍 parseAgeVerification: Определен испанский язык');
+      } else if (isFrench) {
+        ageVerificationData.language = 'fr';
+        if (!ageVerificationData.rejectionTitle) ageVerificationData.rejectionTitle = 'Accès Refusé';
+        if (!ageVerificationData.leaveSiteText) ageVerificationData.leaveSiteText = 'Quitter le Site';
+        console.log('🔍 parseAgeVerification: Определен французский язык');
+      } else if (isGerman) {
+        ageVerificationData.language = 'de';
+        if (!ageVerificationData.rejectionTitle) ageVerificationData.rejectionTitle = 'Zugang Verweigert';
+        if (!ageVerificationData.leaveSiteText) ageVerificationData.leaveSiteText = 'Seite Verlassen';
+        console.log('🔍 parseAgeVerification: Определен немецкий язык');
+      } else if (isKorean) {
+        ageVerificationData.language = 'ko';
+        if (!ageVerificationData.rejectionTitle) ageVerificationData.rejectionTitle = '접근 거부';
+        if (!ageVerificationData.leaveSiteText) ageVerificationData.leaveSiteText = '사이트 나가기';
+        console.log('🔍 parseAgeVerification: Определен корейский язык');
+      } else if (isArabic) {
+        ageVerificationData.language = 'ar';
+        if (!ageVerificationData.rejectionTitle) ageVerificationData.rejectionTitle = 'الوصول مرفوض';
+        if (!ageVerificationData.leaveSiteText) ageVerificationData.leaveSiteText = 'مغادرة الموقع';
+        console.log('🔍 parseAgeVerification: Определен арабский язык');
+      } else {
+        ageVerificationData.language = 'ru';
+        if (!ageVerificationData.rejectionTitle) ageVerificationData.rejectionTitle = 'Доступ ограничен';
+        if (!ageVerificationData.leaveSiteText) ageVerificationData.leaveSiteText = 'Покинуть сайт';
+        console.log('🔍 parseAgeVerification: Определен русский язык (по умолчанию)');
+      }
+    } else {
+      console.log('✅ parseAgeVerification: Заголовок отказа и кнопка выхода взяты из промта:', {
+        rejectionTitle: ageVerificationData.rejectionTitle,
+        leaveSiteText: ageVerificationData.leaveSiteText
+      });
+    }
+    
+    console.log('✅ parseAgeVerification: Результат парсинга:', ageVerificationData);
+    return ageVerificationData;
+    
+  } catch (error) {
+    console.error('❌ parseAgeVerification: Ошибка парсинга:', error);
+    return {
+      title: 'Подтверждение возраста',
+      content: 'Этот сайт содержит контент, предназначенный только для лиц старше 18 лет. Пожалуйста, подтвердите свой возраст для продолжения.',
+      confirmText: 'Мне есть 18 лет',
+      rejectText: 'Мне нет 18 лет',
+      underageMessage: 'Доступ к сайту разрешен только лицам старше 18 лет. Если вам нет 18 лет, пожалуйста, покиньте сайт.',
+      rejectionTitle: 'Доступ ограничен',
+      leaveSiteText: 'Покинуть сайт',
+      theme: 'default',
+      language: 'ru'
+    };
+  }
+};
 
+// Функция для генерации HTML кода проверки возраста
+export const generateAgeVerificationHTML = (ageVerificationData, theme = 'default') => {
+  const {
+    title = 'Подтверждение возраста',
+    content = 'Этот сайт содержит контент, предназначенный только для лиц старше 18 лет.',
+    confirmText = 'Мне есть 18 лет',
+    rejectText = 'Мне нет 18 лет',
+    underageMessage = 'Доступ к сайту разрешен только лицам старше 18 лет.'
+  } = ageVerificationData;
+
+  const themes = {
+    default: {
+      primary: '#1976d2',
+      secondary: '#dc004e',
+      background: '#ffffff',
+      text: '#333333'
+    },
+    casino: {
+      primary: '#d4af37',
+      secondary: '#8b0000',
+      background: '#1a1a1a',
+      text: '#ffffff'
+    },
+    gaming: {
+      primary: '#00ff88',
+      secondary: '#ff4444',
+      background: '#0a0a0a',
+      text: '#ffffff'
+    },
+    adult: {
+      primary: '#ff6b6b',
+      secondary: '#4ecdc4',
+      background: '#2c2c2c',
+      text: '#ffffff'
+    }
+  };
+
+  const currentTheme = themes[theme] || themes.default;
+
+  return `
+<!-- Age Verification Modal -->
+<div id="age-verification-modal" style="
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.8);
+  backdrop-filter: blur(5px);
+  z-index: 10000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+">
+  <div style="
+    background: linear-gradient(135deg, ${currentTheme.background} 0%, ${currentTheme.background}dd 100%);
+    border: 2px solid ${currentTheme.primary};
+    border-radius: 12px;
+    padding: 40px;
+    max-width: 500px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+  ">
+    <h2 style="
+      color: ${currentTheme.text};
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin: 0 0 20px 0;
+    ">${title}</h2>
+    
+    <div style="margin: 20px 0;">
+      <div style="
+        font-size: 64px;
+        color: ${currentTheme.primary};
+        margin-bottom: 20px;
+        filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+      ">⚠️</div>
+    </div>
+    
+    <p style="
+      color: ${currentTheme.text};
+      font-size: 1.1rem;
+      line-height: 1.6;
+      margin: 0 0 30px 0;
+    ">${content}</p>
+    
+    <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+      <button id="age-confirm" style="
+        background: ${currentTheme.primary};
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        font-size: 1.1rem;
+        font-weight: bold;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        min-width: 150px;
+      " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 16px ${currentTheme.primary}40'"
+         onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+        ${confirmText}
+      </button>
+      
+      <button id="age-reject" style="
+        background: transparent;
+        color: ${currentTheme.secondary};
+        border: 2px solid ${currentTheme.secondary};
+        padding: 13px 30px;
+        font-size: 1.1rem;
+        font-weight: bold;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        min-width: 150px;
+      " onmouseover="this.style.backgroundColor='${currentTheme.secondary}'; this.style.color='white'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 16px ${currentTheme.secondary}40'"
+         onmouseout="this.style.backgroundColor='transparent'; this.style.color='${currentTheme.secondary}'; this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+        ${rejectText}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Underage Message Modal -->
+<div id="age-underage-modal" style="
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.8);
+  backdrop-filter: blur(5px);
+  z-index: 10001;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+">
+  <div style="
+    background: linear-gradient(135deg, ${currentTheme.secondary} 0%, ${currentTheme.secondary}dd 100%);
+    border: 2px solid ${currentTheme.secondary};
+    border-radius: 12px;
+    padding: 40px;
+    max-width: 500px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+  ">
+    <h2 style="
+      color: white;
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin: 0 0 20px 0;
+    ">Доступ ограничен</h2>
+    
+    <div style="margin: 20px 0;">
+      <div style="
+        font-size: 64px;
+        color: white;
+        margin-bottom: 20px;
+        filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+      ">❌</div>
+    </div>
+    
+    <div style="
+      background: rgba(255,255,255,0.1);
+      color: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 0 0 30px 0;
+    ">
+      <p style="
+        color: white;
+        font-size: 1.1rem;
+        margin: 0;
+      ">${underageMessage}</p>
+    </div>
+    
+    <button id="age-underage-close" style="
+      background: white;
+      color: ${currentTheme.secondary};
+      border: none;
+      padding: 15px 30px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    " onmouseover="this.style.backgroundColor='rgba(255,255,255,0.9)'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 16px rgba(0,0,0,0.3)'"
+       onmouseout="this.style.backgroundColor='white'; this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+      Понятно
+    </button>
+  </div>
+</div>
+
+<script>
+// Age Verification Logic
+(function() {
+  // Проверяем, была ли уже пройдена верификация
+  function isAlreadyVerified() {
+    const verified = localStorage.getItem('ageVerified');
+    const verificationDate = localStorage.getItem('ageVerifiedDate');
+    
+    if (verified === 'true' && verificationDate) {
+      const date = new Date(verificationDate);
+      const now = new Date();
+      const daysDiff = (now - date) / (1000 * 60 * 60 * 24);
+      
+      // Верификация действительна 30 дней
+      return daysDiff < 30;
+    }
+    
+    return false;
+  }
+
+  // Если уже верифицирован, не показываем модал
+  if (isAlreadyVerified()) {
+    const modal = document.getElementById('age-verification-modal');
+    if (modal) {
+      modal.style.display = 'none';
+    }
+    return;
+  }
+
+  // Обработчики событий
+  document.getElementById('age-confirm').addEventListener('click', function() {
+    // Сохраняем выбор в localStorage
+    localStorage.setItem('ageVerified', 'true');
+    localStorage.setItem('ageVerifiedDate', new Date().toISOString());
+    
+    // Скрываем модал
+    document.getElementById('age-verification-modal').style.display = 'none';
+  });
+
+  document.getElementById('age-reject').addEventListener('click', function() {
+    // Показываем сообщение для несовершеннолетних
+    document.getElementById('age-verification-modal').style.display = 'none';
+    document.getElementById('age-underage-modal').style.display = 'flex';
+  });
+
+  document.getElementById('age-underage-close').addEventListener('click', function() {
+    // Скрываем модал для несовершеннолетних
+    document.getElementById('age-underage-modal').style.display = 'none';
+  });
+})();
+</script>
+`;
+};
 

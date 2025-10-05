@@ -2609,11 +2609,27 @@ const SectionsPreview = ({ sectionsData, headerData, homePageSettings }) => {
   console.log('🔍 [SectionsPreview] maxSections:', maxSections);
   console.log('🔍 [SectionsPreview] displayMode:', displayMode);
   
-  // Фильтруем разделы (исключаем выделенный раздел)
+  // Фильтруем разделы (исключаем выделенный раздел и проверку возраста)
   const filteredSections = Object.entries(sectionsData).filter(([sectionId, sectionData]) => {
+    // Исключаем выделенный раздел
     const isNotFeatured = sectionId !== homePageSettings.featuredSectionId;
     console.log(`🔍 [SectionsPreview] Section ${sectionId} is not featured:`, isNotFeatured);
-    return isNotFeatured;
+    
+    if (!isNotFeatured) {
+      return false;
+    }
+    
+    // Исключаем раздел проверки возраста
+    if (sectionId === 'age-verification' || 
+        sectionData.title?.toLowerCase().includes('подтверждение возраста') ||
+        sectionData.title?.toLowerCase().includes('проверка возраста') ||
+        sectionData.title?.toLowerCase().includes('age verification') ||
+        sectionData.ageVerificationData) {
+      console.log('🔞 [SectionsPreview] Исключаем раздел проверки возраста из превью:', sectionId, sectionData.title);
+      return false;
+    }
+    
+    return true;
   }).slice(0, maxSections);
   
   console.log('🔍 [SectionsPreview] filteredSections:', filteredSections);

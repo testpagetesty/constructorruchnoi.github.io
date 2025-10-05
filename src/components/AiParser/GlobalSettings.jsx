@@ -419,8 +419,59 @@ const GlobalSettings = ({ open, onClose, settings, onSettingsChange }) => {
             </Box>
           </Grid>
 
-
-
+          {/* Настройки проверки возраста */}
+          <Grid item xs={12}>
+            <Typography variant="h6" sx={{ mb: 2, color: '#1976d2', fontWeight: 'bold' }}>
+              🔞 Проверка возраста
+            </Typography>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={settings.enableAgeVerification || false}
+                  onChange={(e) => handleChange('enableAgeVerification', e.target.checked)}
+                  color="primary"
+                />
+              }
+              label="Включить проверку возраста на сайте"
+            />
+            {settings.enableAgeVerification && (
+              <Box sx={{ mt: 2, p: 2, backgroundColor: '#f5f5f5', borderRadius: 2 }}>
+                <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                  Настройки проверки возраста:
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <FormControl fullWidth>
+                      <InputLabel>Тема дизайна</InputLabel>
+                      <Select
+                        value={settings.ageVerificationTheme || 'default'}
+                        onChange={(e) => handleChange('ageVerificationTheme', e.target.value)}
+                        label="Тема дизайна"
+                      >
+                        <MenuItem value="default">По умолчанию</MenuItem>
+                        <MenuItem value="casino">Казино</MenuItem>
+                        <MenuItem value="gaming">Игры</MenuItem>
+                        <MenuItem value="adult">Взрослый контент</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Минимальный возраст"
+                      type="number"
+                      value={settings.minimumAge || 18}
+                      onChange={(e) => handleChange('minimumAge', parseInt(e.target.value) || 18)}
+                      inputProps={{ min: 13, max: 21 }}
+                    />
+                  </Grid>
+                </Grid>
+                <Typography variant="body2" sx={{ mt: 1, fontStyle: 'italic', color: '#666' }}>
+                  При включении этой опции на сайте будет отображаться всплывающее окно с проверкой возраста
+                </Typography>
+              </Box>
+            )}
+          </Grid>
 
         </Grid>
       </DialogContent>

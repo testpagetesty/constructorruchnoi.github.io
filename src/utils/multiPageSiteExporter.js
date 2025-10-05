@@ -67,11 +67,20 @@ export const exportMultiPageSite = async (siteData) => {
   // Создаем отдельные HTML страницы
   zip.file('index.html', await generateIndexPage(siteData));
   
-  // Генерируем страницы для каждой секции
+  // Генерируем страницы для каждой секции (исключаем проверку возраста)
   for (const [sectionId, sectionData] of Object.entries(siteData.sectionsData || {})) {
-    const fileName = getSectionFileName(sectionId, sectionData);
-    if (fileName) {
-      zip.file(`${fileName}.html`, await generateSectionPage(siteData, sectionId, sectionData));
+    // Исключаем раздел проверки возраста из генерации отдельных страниц
+    const isAgeVerification = sectionId === 'age-verification' || 
+                             sectionId === 'проверка возраста' ||
+                             sectionData.title?.toLowerCase().includes('подтверждение возраста') ||
+                             sectionData.title?.toLowerCase().includes('проверка возраста') ||
+                             sectionData.title?.toLowerCase().includes('age verification');
+    
+    if (!isAgeVerification) {
+      const fileName = getSectionFileName(sectionId, sectionData);
+      if (fileName) {
+        zip.file(`${fileName}.html`, await generateSectionPage(siteData, sectionId, sectionData));
+      }
     }
   }
   
@@ -238,9 +247,845 @@ const resolveCardImageFileName = async (card, sectionId) => {
   }
 };
 
+// Функция для поиска раздела проверки возраста
+const findAgeVerificationSection = (siteData) => {
+  console.log('🔞 [findAgeVerificationSection] Called with siteData:', siteData);
+  console.log('🔞 [findAgeVerificationSection] siteData.sectionsData:', siteData.sectionsData);
+  console.log('🔞 [findAgeVerificationSection] sectionsData type:', typeof siteData.sectionsData);
+  console.log('🔞 [findAgeVerificationSection] sectionsData isArray:', Array.isArray(siteData.sectionsData));
+  
+  if (!siteData.sectionsData) {
+    console.log('🔞 [findAgeVerificationSection] No sectionsData found');
+    return null;
+  }
+  
+  // Если sectionsData - это массив
+  if (Array.isArray(siteData.sectionsData)) {
+    console.log('🔞 [findAgeVerificationSection] Processing as array, length:', siteData.sectionsData.length);
+    
+    for (let i = 0; i < siteData.sectionsData.length; i++) {
+      const section = siteData.sectionsData[i];
+      console.log(`🔞 [findAgeVerificationSection] Checking section ${i}:`, {
+        id: section.id,
+        title: section.title,
+        description: section.description?.substring(0, 100) + '...'
+      });
+      
+      // Проверяем по ID секции
+      if (section.id === 'age-verification' || section.id === 'проверка возраста') {
+        console.log('🔞 [findAgeVerificationSection] Found by ID:', section.id);
+        return section;
+      }
+      
+      // Проверяем по заголовку секции
+      const title = section.title?.toLowerCase() || '';
+      if (title.includes('подтверждение возраста') || 
+          title.includes('проверка возраста') || 
+          title.includes('age verification')) {
+        console.log('🔞 [findAgeVerificationSection] Found by title:', section.title);
+        return section;
+      }
+      
+      // Проверяем по элементам секции
+      if (section.elements) {
+        const hasAgeElement = section.elements.some(element => 
+          element.type === 'age-verification' || 
+          element.data?.type === 'age-verification'
+        );
+        if (hasAgeElement) {
+          console.log('🔞 [findAgeVerificationSection] Found by elements');
+          return section;
+        }
+      }
+      
+      // Проверяем по полю ageVerificationData
+      if (section.ageVerificationData) {
+        console.log('🔞 [findAgeVerificationSection] Found by ageVerificationData field');
+        return section;
+      }
+    }
+    
+    console.log('🔞 [findAgeVerificationSection] Not found in array');
+    return null;
+  }
+  
+  // Если sectionsData - это объект
+  console.log('🔞 [findAgeVerificationSection] Processing as object, keys:', Object.keys(siteData.sectionsData));
+  
+  const sections = Object.values(siteData.sectionsData);
+  for (let i = 0; i < sections.length; i++) {
+    const section = sections[i];
+    console.log(`🔞 [findAgeVerificationSection] Checking object section ${i}:`, {
+      id: section.id,
+      title: section.title,
+      description: section.description?.substring(0, 100) + '...'
+    });
+    
+    // Проверяем по ID секции
+    if (section.id === 'age-verification' || section.id === 'проверка возраста') {
+      console.log('🔞 [findAgeVerificationSection] Found by ID:', section.id);
+      return section;
+    }
+    
+    // Проверяем по заголовку секции
+    const title = section.title?.toLowerCase() || '';
+    if (title.includes('подтверждение возраста') || 
+        title.includes('проверка возраста') || 
+        title.includes('age verification')) {
+      console.log('🔞 [findAgeVerificationSection] Found by title:', section.title);
+      return section;
+    }
+    
+    // Проверяем по элементам секции
+    if (section.elements) {
+      const hasAgeElement = section.elements.some(element => 
+        element.type === 'age-verification' || 
+        element.data?.type === 'age-verification'
+      );
+      if (hasAgeElement) {
+        console.log('🔞 [findAgeVerificationSection] Found by elements');
+        return section;
+      }
+    }
+    
+    // Проверяем по полю ageVerificationData
+    if (section.ageVerificationData) {
+      console.log('🔞 [findAgeVerificationSection] Found by ageVerificationData field');
+      return section;
+    }
+  }
+  
+  console.log('🔞 [findAgeVerificationSection] Not found in object');
+  return null;
+};
+
+// Функция для генерации модального окна проверки возраста
+const generateAgeVerificationModal = (ageSection) => {
+  console.log('🔞 [generateAgeVerificationModal] Called with ageSection:', ageSection);
+  
+  // Парсим данные из секции
+  let title = 'Подтверждение возраста';
+  let content = 'Этот сайт содержит контент, предназначенный только для лиц старше 18 лет.';
+  let confirmText = 'Мне есть 18 лет';
+  let rejectText = 'Мне нет 18 лет';
+  let underageMessage = 'Доступ к сайту разрешен только лицам старше 18 лет.';
+  
+  // Извлекаем данные из секции
+  if (ageSection.title) {
+    title = ageSection.title;
+    console.log('🔞 [generateAgeVerificationModal] Using title from section:', title);
+  }
+  
+  if (ageSection.description) {
+    console.log('🔞 [generateAgeVerificationModal] Parsing description:', ageSection.description);
+    // Парсим описание, разделенное символом "*"
+    const parts = ageSection.description.split('*').map(part => part.trim());
+    console.log('🔞 [generateAgeVerificationModal] Parsed parts:', parts);
+    
+    if (parts.length >= 1) content = parts[0];
+    if (parts.length >= 2) confirmText = parts[1];
+    if (parts.length >= 3) rejectText = parts[2];
+    if (parts.length >= 4) underageMessage = parts[3];
+    
+    console.log('🔞 [generateAgeVerificationModal] Final values:', {
+      title, content, confirmText, rejectText, underageMessage
+    });
+  }
+  
+  // Если есть элементы, проверяем их тоже
+  if (ageSection.elements && ageSection.elements.length > 0) {
+    const ageElement = ageSection.elements.find(el => el.type === 'age-verification');
+    if (ageElement && ageElement.data) {
+      if (ageElement.data.title) title = ageElement.data.title;
+      if (ageElement.data.content) content = ageElement.data.content;
+      if (ageElement.data.confirmText) confirmText = ageElement.data.confirmText;
+      if (ageElement.data.rejectText) rejectText = ageElement.data.rejectText;
+      if (ageElement.data.underageMessage) underageMessage = ageElement.data.underageMessage;
+    }
+  }
+  
+  // Если есть поле ageVerificationData, используем его данные (ПРИОРИТЕТ)
+  if (ageSection.ageVerificationData) {
+    console.log('🔞 [generateAgeVerificationModal] Using ageVerificationData:', ageSection.ageVerificationData);
+    const ageData = ageSection.ageVerificationData;
+    
+    // ВАЖНО: Используем данные из ageVerificationData как приоритетные
+    if (ageData.title && ageData.title.trim()) title = ageData.title.trim();
+    if (ageData.content && ageData.content.trim()) content = ageData.content.trim();
+    if (ageData.confirmText && ageData.confirmText.trim()) confirmText = ageData.confirmText.trim();
+    if (ageData.rejectText && ageData.rejectText.trim()) rejectText = ageData.rejectText.trim();
+    if (ageData.underageMessage && ageData.underageMessage.trim()) underageMessage = ageData.underageMessage.trim();
+    
+    console.log('🔞 [generateAgeVerificationModal] Final values from ageVerificationData:', {
+      title, content, confirmText, rejectText, underageMessage
+    });
+  }
+  
+  // Дополнительно: если в description есть правильно спарсенные данные, используем их
+  if (ageSection.description && ageSection.description.includes('*')) {
+    console.log('🔞 [generateAgeVerificationModal] Also parsing from description:', ageSection.description);
+    const parts = ageSection.description.split('*').map(part => part.trim()).filter(part => part);
+    console.log('🔞 [generateAgeVerificationModal] Description parts:', parts);
+    
+    // Используем только если данные из ageVerificationData не полные
+    if (parts.length >= 1 && (!content || content.includes('Этот сайт содержит контент'))) {
+      content = parts[0];
+    }
+    if (parts.length >= 2 && (!confirmText || confirmText === 'Мне есть 18 лет')) {
+      confirmText = parts[1];
+    }
+    if (parts.length >= 3 && (!rejectText || rejectText === 'Мне нет 18 лет')) {
+      rejectText = parts[2];
+    }
+    if (parts.length >= 4 && (!underageMessage || underageMessage.includes('Доступ к сайту разрешен'))) {
+      underageMessage = parts[3];
+    }
+    
+    console.log('🔞 [generateAgeVerificationModal] Updated values after description parsing:', {
+      title, content, confirmText, rejectText, underageMessage
+    });
+  }
+
+  // Извлекаем дополнительные поля для отказа
+  let rejectionTitle = 'Access Denied';
+  let leaveSiteText = 'Leave Site';
+
+  if (ageSection.ageVerificationData) {
+    if (ageSection.ageVerificationData.rejectionTitle) rejectionTitle = ageSection.ageVerificationData.rejectionTitle;
+    if (ageSection.ageVerificationData.leaveSiteText) leaveSiteText = ageSection.ageVerificationData.leaveSiteText;
+  }
+
+  return `
+    <!-- Age Verification Modal -->
+    <div id="age-verification-modal" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, rgba(0,0,0,0.9) 0%, rgba(20,20,40,0.95) 50%, rgba(0,0,0,0.9) 100%);
+      backdrop-filter: blur(20px) saturate(180%);
+      z-index: 10000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      animation: fadeIn 0.6s ease-out;
+    ">
+      <div id="age-modal-content" style="
+        background: linear-gradient(145deg, 
+          rgba(255,255,255,0.95) 0%, 
+          rgba(248,250,252,0.98) 25%, 
+          rgba(255,255,255,0.95) 50%, 
+          rgba(240,242,245,0.98) 75%, 
+          rgba(255,255,255,0.95) 100%);
+        border-radius: 32px;
+        padding: 60px 50px;
+        max-width: 600px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 
+          0 40px 120px rgba(0,0,0,0.4),
+          0 0 0 1px rgba(255,255,255,0.2),
+          inset 0 2px 0 rgba(255,255,255,0.8),
+          inset 0 -1px 0 rgba(0,0,0,0.1);
+        position: relative;
+        overflow: hidden;
+        animation: modalSlideIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+        border: 1px solid rgba(255,255,255,0.3);
+      ">
+        <!-- Modern gradient background -->
+        <div style="
+          position: absolute;
+          top: -50%;
+          left: -50%;
+          width: 200%;
+          height: 200%;
+          background: conic-gradient(from 0deg at 50% 50%, 
+            rgba(99,102,241,0.1) 0deg,
+            rgba(168,85,247,0.1) 60deg,
+            rgba(236,72,153,0.1) 120deg,
+            rgba(251,146,60,0.1) 180deg,
+            rgba(34,197,94,0.1) 240deg,
+            rgba(59,130,246,0.1) 300deg,
+            rgba(99,102,241,0.1) 360deg);
+          animation: rotate 30s linear infinite;
+          pointer-events: none;
+          opacity: 0.6;
+        "></div>
+        
+        <!-- Additional glow effect -->
+        <div style="
+          position: absolute;
+          top: -20px;
+          left: -20px;
+          right: -20px;
+          bottom: -20px;
+          background: radial-gradient(ellipse at center, 
+            rgba(99,102,241,0.15) 0%, 
+            rgba(168,85,247,0.1) 30%, 
+            transparent 70%);
+          border-radius: 40px;
+          animation: pulse 4s ease-in-out infinite;
+          pointer-events: none;
+        "></div>
+        
+        <div style="
+          position: relative;
+          z-index: 2;
+        ">
+          <div style="
+            font-size: 80px;
+            margin-bottom: 30px;
+            animation: bounce 2.5s ease-in-out infinite;
+            filter: drop-shadow(0 8px 16px rgba(0,0,0,0.2));
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+          ">
+            <svg width="80" height="80" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2L1 21h22L12 2z" fill="#ffdd00" stroke="#000000" stroke-width="1.5"/>
+              <path d="M12 7v6" stroke="#000000" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="12" cy="17" r="1" fill="#000000"/>
+            </svg>
+          </div>
+          
+          <h2 style="
+            background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #1e293b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 32px;
+            font-weight: 900;
+            margin-bottom: 30px;
+            line-height: 1.2;
+            text-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            animation: slideInFromTop 1s ease-out 0.3s both;
+            letter-spacing: -0.5px;
+          ">${title}</h2>
+          
+          <p style="
+            color: #64748b;
+            font-size: 18px;
+            line-height: 1.8;
+            margin-bottom: 40px;
+            max-width: 480px;
+            margin-left: auto;
+            margin-right: auto;
+            animation: slideInFromTop 1s ease-out 0.5s both;
+            font-weight: 500;
+          ">${content}</p>
+          
+          <div style="
+            display: flex;
+            gap: 24px;
+            justify-content: center;
+            flex-wrap: wrap;
+            animation: slideInFromBottom 1s ease-out 0.7s both;
+          ">
+            <button onclick="confirmAge()" style="
+              background: linear-gradient(135deg, #10b981 0%, #059669 25%, #047857 50%, #065f46 75%, #064e3b 100%);
+              color: white;
+              border: none;
+              padding: 18px 36px;
+              border-radius: 60px;
+              font-size: 16px;
+              font-weight: 800;
+              cursor: pointer;
+              transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+              box-shadow: 
+                0 12px 40px rgba(16, 185, 129, 0.4),
+                inset 0 2px 0 rgba(255,255,255,0.3),
+                inset 0 -1px 0 rgba(0,0,0,0.1);
+              position: relative;
+              overflow: hidden;
+              min-width: 180px;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+              border: 1px solid rgba(255,255,255,0.2);
+            " 
+            onmouseover="
+              this.style.transform='translateY(-4px) scale(1.08)'; 
+              this.style.boxShadow='0 20px 60px rgba(16, 185, 129, 0.6), inset 0 2px 0 rgba(255,255,255,0.4), inset 0 -1px 0 rgba(0,0,0,0.1)';
+              this.style.background='linear-gradient(135deg, #059669 0%, #047857 25%, #065f46 50%, #064e3b 75%, #022c22 100%)';
+            " 
+            onmouseout="
+              this.style.transform='translateY(0) scale(1)'; 
+              this.style.boxShadow='0 12px 40px rgba(16, 185, 129, 0.4), inset 0 2px 0 rgba(255,255,255,0.3), inset 0 -1px 0 rgba(0,0,0,0.1)';
+              this.style.background='linear-gradient(135deg, #10b981 0%, #059669 25%, #047857 50%, #065f46 75%, #064e3b 100%)';
+            "
+            onmousedown="this.style.transform='translateY(-2px) scale(1.02)'"
+            onmouseup="this.style.transform='translateY(-4px) scale(1.08)'"
+            >${confirmText}</button>
+            
+            <button onclick="rejectAge()" style="
+              background: linear-gradient(135deg, #ef4444 0%, #dc2626 25%, #b91c1c 50%, #991b1b 75%, #7f1d1d 100%);
+              color: white;
+              border: none;
+              padding: 18px 36px;
+              border-radius: 60px;
+              font-size: 16px;
+              font-weight: 800;
+              cursor: pointer;
+              transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+              box-shadow: 
+                0 12px 40px rgba(239, 68, 68, 0.4),
+                inset 0 2px 0 rgba(255,255,255,0.3),
+                inset 0 -1px 0 rgba(0,0,0,0.1);
+              position: relative;
+              overflow: hidden;
+              min-width: 180px;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+              border: 1px solid rgba(255,255,255,0.2);
+            " 
+            onmouseover="
+              this.style.transform='translateY(-4px) scale(1.08)'; 
+              this.style.boxShadow='0 20px 60px rgba(239, 68, 68, 0.6), inset 0 2px 0 rgba(255,255,255,0.4), inset 0 -1px 0 rgba(0,0,0,0.1)';
+              this.style.background='linear-gradient(135deg, #dc2626 0%, #b91c1c 25%, #991b1b 50%, #7f1d1d 75%, #450a0a 100%)';
+            " 
+            onmouseout="
+              this.style.transform='translateY(0) scale(1)'; 
+              this.style.boxShadow='0 12px 40px rgba(239, 68, 68, 0.4), inset 0 2px 0 rgba(255,255,255,0.3), inset 0 -1px 0 rgba(0,0,0,0.1)';
+              this.style.background='linear-gradient(135deg, #ef4444 0%, #dc2626 25%, #b91c1c 50%, #991b1b 75%, #7f1d1d 100%)';
+            "
+            onmousedown="this.style.transform='translateY(-2px) scale(1.02)'"
+            onmouseup="this.style.transform='translateY(-4px) scale(1.08)'"
+            >${rejectText}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Underage Message Modal -->
+    <div id="underage-modal" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, rgba(0,0,0,0.95) 0%, rgba(40,20,20,0.98) 50%, rgba(0,0,0,0.95) 100%);
+      backdrop-filter: blur(25px) saturate(200%);
+      z-index: 10001;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      animation: fadeIn 0.6s ease-out;
+    ">
+      <div style="
+        background: linear-gradient(145deg, 
+          rgba(255,255,255,0.95) 0%, 
+          rgba(254,242,242,0.98) 25%, 
+          rgba(255,255,255,0.95) 50%, 
+          rgba(252,231,243,0.98) 75%, 
+          rgba(255,255,255,0.95) 100%);
+        border-radius: 32px;
+        padding: 60px 50px;
+        max-width: 500px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 
+          0 50px 150px rgba(0,0,0,0.5),
+          0 0 0 1px rgba(255,255,255,0.2),
+          inset 0 2px 0 rgba(255,255,255,0.8),
+          inset 0 -1px 0 rgba(0,0,0,0.1);
+        position: relative;
+        overflow: hidden;
+        animation: modalSlideIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+        border: 1px solid rgba(255,255,255,0.3);
+      ">
+        <!-- Modern gradient background -->
+        <div style="
+          position: absolute;
+          top: -50%;
+          left: -50%;
+          width: 200%;
+          height: 200%;
+          background: conic-gradient(from 0deg at 50% 50%, 
+            rgba(239,68,68,0.1) 0deg,
+            rgba(220,38,38,0.1) 60deg,
+            rgba(185,28,28,0.1) 120deg,
+            rgba(153,27,27,0.1) 180deg,
+            rgba(127,29,29,0.1) 240deg,
+            rgba(69,10,10,0.1) 300deg,
+            rgba(239,68,68,0.1) 360deg);
+          animation: rotate 25s linear infinite;
+          pointer-events: none;
+          opacity: 0.7;
+        "></div>
+        
+        <!-- Additional glow effect -->
+        <div style="
+          position: absolute;
+          top: -20px;
+          left: -20px;
+          right: -20px;
+          bottom: -20px;
+          background: radial-gradient(ellipse at center, 
+            rgba(239,68,68,0.2) 0%, 
+            rgba(220,38,38,0.15) 30%, 
+            transparent 70%);
+          border-radius: 40px;
+          animation: pulse 3s ease-in-out infinite;
+          pointer-events: none;
+        "></div>
+        
+        <div style="
+          position: relative;
+          z-index: 2;
+        ">
+          <div style="
+            font-size: 90px;
+            margin-bottom: 30px;
+            animation: shake 1s ease-in-out;
+            filter: drop-shadow(0 8px 20px rgba(239,68,68,0.4));
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+          ">
+            <svg width="90" height="90" viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="12" cy="12" r="10" fill="#ff0000"/>
+              <rect x="4" y="10" width="16" height="4" fill="#ffffff"/>
+            </svg>
+          </div>
+          
+          <h2 style="
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 50%, #991b1b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 28px;
+            font-weight: 900;
+            margin-bottom: 30px;
+            line-height: 1.2;
+            text-shadow: 0 4px 8px rgba(220,38,38,0.3);
+            animation: slideInFromTop 1s ease-out 0.3s both;
+            letter-spacing: -0.5px;
+          ">${rejectionTitle}</h2>
+          
+          <p style="
+            color: #64748b;
+            font-size: 18px;
+            line-height: 1.8;
+            margin-bottom: 40px;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            animation: slideInFromTop 1s ease-out 0.5s both;
+            font-weight: 500;
+          ">${underageMessage}</p>
+          
+          <div style="
+            animation: slideInFromBottom 1s ease-out 0.7s both;
+          ">
+            <button onclick="window.close(); window.history.back();" style="
+              background: linear-gradient(135deg, #6b7280 0%, #4b5563 25%, #374151 50%, #1f2937 75%, #111827 100%);
+              color: white;
+              border: none;
+              padding: 18px 36px;
+              border-radius: 60px;
+              font-size: 16px;
+              font-weight: 800;
+              cursor: pointer;
+              transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+              box-shadow: 
+                0 12px 40px rgba(107, 114, 128, 0.4),
+                inset 0 2px 0 rgba(255,255,255,0.3),
+                inset 0 -1px 0 rgba(0,0,0,0.1);
+              position: relative;
+              overflow: hidden;
+              min-width: 200px;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+              border: 1px solid rgba(255,255,255,0.2);
+            " 
+            onmouseover="
+              this.style.transform='translateY(-4px) scale(1.08)'; 
+              this.style.boxShadow='0 20px 60px rgba(107, 114, 128, 0.6), inset 0 2px 0 rgba(255,255,255,0.4), inset 0 -1px 0 rgba(0,0,0,0.1)';
+              this.style.background='linear-gradient(135deg, #4b5563 0%, #374151 25%, #1f2937 50%, #111827 75%, #030712 100%)';
+            " 
+            onmouseout="
+              this.style.transform='translateY(0) scale(1)'; 
+              this.style.boxShadow='0 12px 40px rgba(107, 114, 128, 0.4), inset 0 2px 0 rgba(255,255,255,0.3), inset 0 -1px 0 rgba(0,0,0,0.1)';
+              this.style.background='linear-gradient(135deg, #6b7280 0%, #4b5563 25%, #374151 50%, #1f2937 75%, #111827 100%)';
+            "
+            onmousedown="this.style.transform='translateY(-2px) scale(1.02)'"
+            onmouseup="this.style.transform='translateY(-4px) scale(1.08)'"
+            >${leaveSiteText}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <style>
+    @keyframes fadeIn {
+      from { 
+        opacity: 0;
+        backdrop-filter: blur(0px);
+      }
+      to { 
+        opacity: 1;
+        backdrop-filter: blur(20px) saturate(180%);
+      }
+    }
+    
+    @keyframes modalSlideIn {
+      from { 
+        opacity: 0;
+        transform: translateY(-80px) scale(0.7) rotateX(15deg);
+        filter: blur(10px);
+      }
+      to { 
+        opacity: 1;
+        transform: translateY(0) scale(1) rotateX(0deg);
+        filter: blur(0px);
+      }
+    }
+    
+    @keyframes slideInFromTop {
+      from {
+        opacity: 0;
+        transform: translateY(-50px) scale(0.9);
+        filter: blur(5px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0px);
+      }
+    }
+    
+    @keyframes slideInFromBottom {
+      from {
+        opacity: 0;
+        transform: translateY(50px) scale(0.9);
+        filter: blur(5px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0px);
+      }
+    }
+    
+    @keyframes bounce {
+      0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0) scale(1);
+      }
+      40% {
+        transform: translateY(-15px) scale(1.1);
+      }
+      60% {
+        transform: translateY(-8px) scale(1.05);
+      }
+    }
+    
+    @keyframes shake {
+      0%, 100% { 
+        transform: translateX(0) rotate(0deg); 
+      }
+      10%, 30%, 50%, 70%, 90% { 
+        transform: translateX(-8px) rotate(-2deg); 
+      }
+      20%, 40%, 60%, 80% { 
+        transform: translateX(8px) rotate(2deg); 
+      }
+    }
+    
+    @keyframes rotate {
+      from { 
+        transform: rotate(0deg) scale(1); 
+      }
+      50% { 
+        transform: rotate(180deg) scale(1.1); 
+      }
+      to { 
+        transform: rotate(360deg) scale(1); 
+      }
+    }
+    
+    @keyframes pulse {
+      0% { 
+        transform: scale(1);
+        opacity: 0.6;
+      }
+      50% { 
+        transform: scale(1.1);
+        opacity: 0.8;
+      }
+      100% { 
+        transform: scale(1);
+        opacity: 0.6;
+      }
+    }
+    
+    /* Modern glassmorphism effects */
+    #age-verification-modal::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(45deg, 
+        rgba(255,255,255,0.1) 0%, 
+        transparent 50%, 
+        rgba(255,255,255,0.05) 100%);
+      pointer-events: none;
+      animation: shimmer 3s ease-in-out infinite;
+    }
+    
+    @keyframes shimmer {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 0.8; }
+    }
+    
+    /* Enhanced button effects */
+    button {
+      position: relative;
+      overflow: hidden;
+    }
+    
+    button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, 
+        transparent, 
+        rgba(255,255,255,0.3), 
+        transparent);
+      transition: left 0.6s ease;
+    }
+    
+    button:hover::before {
+      left: 100%;
+    }
+    
+    /* Responsive design */
+    @media (max-width: 768px) {
+      #age-verification-modal div[id="age-modal-content"] {
+        padding: 50px 40px !important;
+        margin: 20px !important;
+        border-radius: 28px !important;
+      }
+      
+      #age-verification-modal h2 {
+        font-size: 28px !important;
+      }
+      
+      #age-verification-modal p {
+        font-size: 17px !important;
+      }
+      
+      #age-verification-modal button {
+        padding: 16px 32px !important;
+        font-size: 15px !important;
+        min-width: 160px !important;
+      }
+      
+      #underage-modal div {
+        padding: 50px 40px !important;
+        margin: 20px !important;
+        border-radius: 28px !important;
+      }
+      
+      #underage-modal h2 {
+        font-size: 26px !important;
+      }
+      
+      #underage-modal button {
+        padding: 16px 32px !important;
+        font-size: 15px !important;
+        min-width: 180px !important;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      #age-verification-modal div[id="age-modal-content"] {
+        padding: 40px 30px !important;
+        margin: 15px !important;
+      }
+      
+      #age-verification-modal h2 {
+        font-size: 24px !important;
+      }
+      
+      #age-verification-modal p {
+        font-size: 16px !important;
+      }
+      
+      #age-verification-modal button {
+        padding: 14px 28px !important;
+        font-size: 14px !important;
+        min-width: 140px !important;
+      }
+      
+      #underage-modal div {
+        padding: 40px 30px !important;
+        margin: 15px !important;
+      }
+      
+      #underage-modal h2 {
+        font-size: 22px !important;
+      }
+      
+      #underage-modal button {
+        padding: 14px 28px !important;
+        font-size: 14px !important;
+        min-width: 160px !important;
+      }
+    }
+    </style>
+    
+    <script>
+    function confirmAge() {
+      localStorage.setItem('ageVerified', 'true');
+      localStorage.setItem('ageVerifiedDate', new Date().toISOString());
+      document.getElementById('age-verification-modal').style.display = 'none';
+      document.body.style.overflow = '';
+    }
+    
+    function rejectAge() {
+      document.getElementById('age-verification-modal').style.display = 'none';
+      document.getElementById('underage-modal').style.display = 'flex';
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+      const ageVerified = localStorage.getItem('ageVerified');
+      const verificationDate = localStorage.getItem('ageVerifiedDate');
+      
+      let isVerificationValid = false;
+      if (ageVerified === 'true' && verificationDate) {
+        const verifiedDate = new Date(verificationDate);
+        const now = new Date();
+        const daysDiff = (now - verifiedDate) / (1000 * 60 * 60 * 24);
+        isVerificationValid = daysDiff < 30;
+      }
+      
+      if (!isVerificationValid) {
+        document.getElementById('age-verification-modal').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+      }
+    });
+    </script>
+  `;
+};
+
 // Генерация главной страницы (index.html)
 const generateIndexPage = async (siteData) => {
   console.log('🎯 [MULTIPAGE EXPORT] generateIndexPage called with siteData:', siteData);
+  console.log('🔞 [AGE VERIFICATION] Checking for age verification section...');
+  console.log('🔞 [AGE VERIFICATION] siteData.sectionsData:', siteData.sectionsData);
+  
+  // Проверяем наличие раздела проверки возраста
+  const ageVerificationSection = findAgeVerificationSection(siteData);
+  console.log('🔞 [AGE VERIFICATION] Found age verification section:', ageVerificationSection);
   
   const headerData = siteData.headerData || {};
   const heroData = siteData.heroData || {};
@@ -386,15 +1231,61 @@ const generateIndexPage = async (siteData) => {
     
     ${generateCommonFooter(siteData)}
     
+    ${(() => {
+      // Проверяем наличие раздела проверки возраста
+      const ageVerificationSection = findAgeVerificationSection(siteData);
+      return ageVerificationSection ? generateAgeVerificationModal(ageVerificationSection) : '';
+    })()}
+    
+    ${generateCookieConsentHTML(headerData.language || 'en')}
+    
     <script src="assets/js/app.js"></script>
     <script>
+      // Global function to toggle FAQ accordion
+      window.toggleFAQ = function(index) {
+        console.log('🔧 [toggleFAQ] Called with index:', index);
+        
+        const answer = document.getElementById('faq-answer-' + index);
+        console.log('🔧 [toggleFAQ] Found answer element:', answer);
+        
+        const container = answer ? answer.parentElement : null;
+        const icon = container ? container.querySelector('span') : null;
+        console.log('🔧 [toggleFAQ] Found icon:', icon);
+        
+        if (answer) {
+          const isVisible = answer.style.display !== 'none';
+          console.log('🔧 [toggleFAQ] Is visible:', isVisible);
+          
+          answer.style.display = isVisible ? 'none' : 'block';
+          
+          // Обновляем иконку
+          if (icon) {
+            icon.textContent = isVisible ? '▼' : '▲';
+            console.log('🔧 [toggleFAQ] Updated icon to:', icon.textContent);
+          }
+        } else {
+          console.error('🔧 [toggleFAQ] Answer element not found for index:', index);
+        }
+      };
+      
       // Re-initialize typewriter animations after page load
       document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => {
           if (window.reinitializeTypewriters) {
             window.reinitializeTypewriters();
           }
+          // Re-initialize counter animations
+          if (window.reinitializeCounters) {
+            window.reinitializeCounters();
+          }
         }, 500);
+        
+        // Additional initialization after 1 second to catch dynamically loaded content
+        setTimeout(() => {
+          if (window.reinitializeCounters) {
+            window.reinitializeCounters();
+          }
+        }, 1000);
       });
     </script>
 </body>
@@ -542,6 +1433,14 @@ const generateSectionPage = async (siteData, sectionId, sectionData) => {
     
     ${generateCommonFooter(siteData)}
     
+    ${(() => {
+      // Проверяем наличие раздела проверки возраста
+      const ageVerificationSection = findAgeVerificationSection(siteData);
+      return ageVerificationSection ? generateAgeVerificationModal(ageVerificationSection) : '';
+    })()}
+    
+    ${generateCookieConsentHTML(headerData.language || 'en')}
+    
     <script src="assets/js/app.js"></script>
 </body>
 </html>`;
@@ -616,10 +1515,19 @@ const generateNavigationLinks = (siteData) => {
   const links = [];
   
   Object.entries(sectionsData).forEach(([sectionId, sectionData]) => {
-    const fileName = getSectionFileName(sectionId, sectionData);
-    const displayName = getSectionDisplayName(sectionId, sectionData);
-    if (fileName && displayName) {
-      links.push(`<li><a href="${fileName}.html" class="nav-link">${displayName}</a></li>`);
+    // Исключаем раздел проверки возраста из навигации
+    const isAgeVerification = sectionId === 'age-verification' || 
+                             sectionId === 'проверка возраста' ||
+                             sectionData.title?.toLowerCase().includes('подтверждение возраста') ||
+                             sectionData.title?.toLowerCase().includes('проверка возраста') ||
+                             sectionData.title?.toLowerCase().includes('age verification');
+    
+    if (!isAgeVerification) {
+      const fileName = getSectionFileName(sectionId, sectionData);
+      const displayName = getSectionDisplayName(sectionId, sectionData);
+      if (fileName && displayName) {
+        links.push(`<li><a href="${fileName}.html" class="nav-link">${displayName}</a></li>`);
+      }
     }
   });
   
@@ -2217,27 +3125,34 @@ const generateContentElementHTML = async (element, sectionId = null) => {
             ">${elementData.title}</h3>
           ` : ''}
           ${faqItems.map((item, index) => `
-            <details style="
+            <div style="
               margin-bottom: 1rem;
               border: 1px solid ${elementData.borderColor || '#e0e0e0'};
               border-radius: 8px;
               overflow: hidden;
+              background: ${elementData.questionBgColor || '#f5f5f5'};
             ">
-              <summary style="
-                padding: 1rem;
-                background: ${elementData.questionBgColor || '#f5f5f5'};
-                color: ${elementData.questionColor || '#333333'};
-                font-weight: ${elementData.questionFontWeight || 'bold'};
-                cursor: pointer;
-                outline: none;
-              ">${item.question}</summary>
               <div style="
+                padding: 1rem;
+                cursor: pointer;
+                font-weight: ${elementData.questionFontWeight || 'bold'};
+                color: ${elementData.questionColor || '#333333'};
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              " onclick="toggleFAQ(${index})">
+                ${item.question}
+                <span style="color: ${elementData.iconColor || '#333333'}; font-size: 1.2rem;">▼</span>
+              </div>
+              <div id="faq-answer-${index}" style="
                 padding: 1rem;
                 background: ${elementData.answerBgColor || '#ffffff'};
                 color: ${elementData.answerColor || '#666666'};
                 line-height: 1.6;
+                display: none;
+                border-top: 1px solid ${elementData.borderColor || '#e0e0e0'};
               ">${item.answer}</div>
-            </details>
+            </div>
           `).join('')}
         </div>
       `;
@@ -2919,49 +3834,234 @@ const generateContentElementHTML = async (element, sectionId = null) => {
       `;
 
     case 'bar-chart':
-    case 'line-chart':
-    case 'pie-chart':
-    case 'area-chart':
-      const chartData = elementData.datasets || elementData.data || [
-        { label: 'Данные 1', values: [10, 20, 30, 40, 50] },
-        { label: 'Данные 2', values: [15, 25, 35, 45, 55] }
+      // Получаем данные столбчатой диаграммы
+      const barData = (element.data && element.data.data && Array.isArray(element.data.data.data)) ? element.data.data.data :
+                     (element.data && Array.isArray(element.data.data)) ? element.data.data :
+                     Array.isArray(elementData.data) ? elementData.data :
+                     Array.isArray(element.data) ? element.data : [
+        { label: 'Январь', value: 65, color: '#1976d2' },
+        { label: 'Февраль', value: 45, color: '#2196f3' },
+        { label: 'Март', value: 80, color: '#03a9f4' },
+        { label: 'Апрель', value: 55, color: '#00bcd4' }
       ];
-      const labels = elementData.labels || ['Янв', 'Фев', 'Мар', 'Апр', 'Май'];
+
+      const maxBarValue = Math.max(...barData.map(d => d.value));
+      const minBarValue = Math.min(...barData.map(d => d.value));
       
+      // Приоритет: element.colorSettings > element.data.colorSettings > element.data.data.colorSettings > fallback
+      const deepColorSettings = (element.data && element.data.data && element.data.data.colorSettings) || {};
+      const dataColorSettings = (element.data && element.data.colorSettings) || {};
+      const elementColorSettings = element.colorSettings || {};
+      const colorSettings = { ...elementColorSettings, ...dataColorSettings, ...deepColorSettings };
+      
+      // Получаем цвета из новой системы colorSettings
+      const chartBackgroundColor = colorSettings.sectionBackground?.enabled 
+        ? (colorSettings.sectionBackground.useGradient 
+            ? `linear-gradient(${colorSettings.sectionBackground.gradientDirection}, ${colorSettings.sectionBackground.gradientColor1}, ${colorSettings.sectionBackground.gradientColor2})`
+            : colorSettings.sectionBackground.solidColor)
+        : '#ffffff';
+      const chartTitleColor = colorSettings.textFields?.title || '#1976d2';
+      const descriptionColor = colorSettings.textFields?.legendText || colorSettings.textFields?.legend || '#666666';
+      
+      const showValues = (element.data && element.data.data && element.data.data.showValues !== undefined) ? element.data.data.showValues :
+                        (element.data && element.data.showValues !== undefined) ? element.data.showValues : 
+                        (elementData.showValues !== undefined ? elementData.showValues : 
+                        (element.showValues !== undefined ? element.showValues : true));
+      const showGrid = (element.data && element.data.data && element.data.data.showGrid !== undefined) ? element.data.data.showGrid :
+                      (element.data && element.data.showGrid !== undefined) ? element.data.showGrid : 
+                      (elementData.showGrid !== undefined ? elementData.showGrid : 
+                      (element.showGrid !== undefined ? element.showGrid : true));
+
       return `
-        <div id="${elementId}" class="content-element ${element.type}" style="
-          max-width: 800px;
-          margin: 2rem auto;
-          padding: 2rem;
-          background: ${elementData.backgroundColor || '#ffffff'};
+        <style>
+          @keyframes barChartAnimation-${elementId} {
+            from { height: 0; opacity: 0; }
+            to { height: var(--bar-height); opacity: 1; }
+          }
+          .bar-chart-bar-${elementId} {
+            animation: barChartAnimation-${elementId} 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            animation-delay: calc(var(--bar-index) * 0.1s);
+          }
+          
+          /* Мобильная адаптация для столбчатой диаграммы */
+          @media (max-width: 768px) {
+            #${elementId} .bar-chart-container {
+              overflow-x: auto !important;
+              padding: 20px 10px !important;
+              gap: 8px !important;
+              justify-content: flex-start !important;
+              max-width: calc(4 * 60px + 3 * 8px + 40px) !important;
+              min-width: 100% !important;
+            }
+            
+            #${elementId} .bar-chart-container > div {
+              flex-shrink: 0 !important;
+              min-width: 50px !important;
+              max-width: 60px !important;
+            }
+            
+            #${elementId} .bar-chart-container .bar-chart-bar-${elementId} {
+              width: 50px !important;
+            }
+            
+            /* Скрываем названия столбцов в мобильной версии */
+            #${elementId} .bar-chart-container > div > div:last-child {
+              display: none !important;
+            }
+          }
+        </style>
+
+        <div id="${elementId}" class="content-element chart-component" style="
+          margin: 2rem 0;
+          padding: ${colorSettings.padding || 24}px;
+          background: ${chartBackgroundColor};
           border-radius: 8px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+          max-width: 100%;
+          width: 100%;
+          margin-left: auto;
+          margin-right: auto;
         ">
-          ${elementData.title ? `
+          ${(element.data && element.data.data && element.data.data.title) || (element.data && element.data.title) || elementData.title || element.title ? `
             <h3 style="
-              text-align: center;
-              color: ${elementData.titleColor || '#333333'};
-              font-size: ${elementData.titleFontSize || 24}px;
               margin-bottom: 2rem;
-            ">${elementData.title}</h3>
+              color: ${chartTitleColor};
+              font-size: 1.5rem;
+              font-weight: bold;
+              text-align: center;
+              font-family: 'Montserrat', sans-serif;
+            ">${(element.data && element.data.data && element.data.data.title) || (element.data && element.data.title) || elementData.title || element.title}</h3>
           ` : ''}
-          <div style="
-            height: ${elementData.height || 400}px;
-            background: #f8f9fa;
-            border-radius: 4px;
+          
+          ${(element.data && element.data.data && element.data.data.description) || (element.data && element.data.description) || elementData.description || element.description ? `
+            <p style="
+              color: ${descriptionColor || '#666666'};
+              font-size: 1rem;
+              line-height: 1.5;
+              margin-bottom: 24px;
+              text-align: center;
+              font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
+            ">${(element.data && element.data.data && element.data.data.description) || (element.data && element.data.description) || elementData.description || element.description}</p>
+          ` : ''}
+          
+          <div class="bar-chart-container" style="
+            position: relative;
+            height: 400px;
+            padding: 20px;
             display: flex;
-            align-items: center;
+            align-items: flex-end;
             justify-content: center;
-            color: #666;
-            font-style: italic;
+            gap: 20px;
+            background: ${colorSettings.sectionBackground?.enabled && colorSettings.sectionBackground.useGradient 
+              ? `linear-gradient(${colorSettings.sectionBackground.gradientDirection}, ${colorSettings.sectionBackground.gradientColor1}, ${colorSettings.sectionBackground.gradientColor2})`
+              : colorSettings.sectionBackground?.enabled 
+                ? colorSettings.sectionBackground.solidColor 
+                : 'rgba(0,0,0,0.02)'};
+            opacity: ${colorSettings.sectionBackground?.enabled ? (colorSettings.sectionBackground.opacity || 1) : 1};
+            border-radius: 8px;
+            border: 1px solid rgba(0,0,0,0.1);
+            overflow: hidden;
+            width: 100%;
+            max-width: 100%;
           ">
-            📊 График: ${element.type} <br>
-            Данные: ${chartData.length} серий, ${labels.length} точек
+            ${showGrid ? `
+              <!-- Сетка -->
+              <div style="
+                position: absolute;
+                left: 0;
+                right: 0;
+                top: 0;
+                bottom: 60px;
+                pointer-events: none;
+                z-index: 0;
+              ">
+                <!-- Горизонтальные линии сетки -->
+                <div style="position: absolute; left: 0; right: 0; bottom: 25%; height: 1px; background: ${colorSettings.textFields?.grid || 'rgba(0,0,0,0.1)'}; opacity: 0.3;"></div>
+                <div style="position: absolute; left: 0; right: 0; bottom: 50%; height: 1px; background: ${colorSettings.textFields?.grid || 'rgba(0,0,0,0.1)'}; opacity: 0.3;"></div>
+                <div style="position: absolute; left: 0; right: 0; bottom: 75%; height: 1px; background: ${colorSettings.textFields?.grid || 'rgba(0,0,0,0.1)'}; opacity: 0.3;"></div>
+              </div>
+            ` : ''}
+            
+            ${barData.map((item, index) => {
+              const maxValue = Math.max(...barData.map(d => d.value));
+              const minValue = Math.min(...barData.map(d => d.value));
+              const range = maxValue - minValue;
+              
+              let barHeight;
+              if (range === 0) {
+                barHeight = 200; // Если все одинаковые
+              } else {
+                // Для малых диапазонов делаем больше разницы
+                const relativeValue = (item.value - minValue) / range;
+                barHeight = 50 + (relativeValue * 300); // От 50px до 350px
+              }
+              
+              // Автоматическая ширина в зависимости от количества столбцов
+              const availableWidth = 700;
+              const gapSize = Math.max(8, Math.min(12, 700 / barData.length - 30));
+              const totalGap = gapSize * (barData.length - 1);
+              const widthPerColumn = (availableWidth - totalGap - 30) / barData.length;
+              const autoWidth = Math.max(20, Math.min(100, widthPerColumn));
+
+              return `
+                <div style="
+                  display: flex;
+                  flex-direction: column;
+                  align-items: center;
+                  gap: 8px;
+                  position: relative;
+                  height: 100%;
+                  justify-content: flex-end;
+                ">
+                  <!-- Столбец -->
+                  <div class="bar-chart-bar-${elementId}" style="
+                    background: linear-gradient(180deg, ${item.color || '#1976d2'} 0%, ${item.color ? item.color + 'DD' : '#1976d2DD'} 100%);
+                    border-radius: 0;
+                    width: ${autoWidth}px;
+                    height: ${barHeight}px;
+                    min-height: 40px;
+                    cursor: pointer;
+                    transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.1);
+                    border: 1px solid rgba(0,0,0,0.2);
+                    border-bottom: 2px solid rgba(0,0,0,0.3);
+                    position: relative;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    --bar-height: ${barHeight}px;
+                    --bar-index: ${index};
+                  " onmouseover="this.style.opacity='0.9'; this.style.transform='translateY(-3px)'; this.style.boxShadow='0 6px 16px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.2)'; this.style.filter='brightness(1.1)';" onmouseout="this.style.opacity='1'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.1)'; this.style.filter='brightness(1)';">
+                    <!-- Значение на столбце -->
+                    ${showValues ? `
+                      <div style="
+                        color: #ffffff;
+                        font-size: 14px;
+                        font-weight: bold;
+                        text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+                        z-index: 10;
+                      ">${item.value}</div>
+                    ` : ''}
+                  </div>
+                  
+                  <!-- Подпись -->
+                  <div style="
+                    color: ${item.color || '#1976d2'};
+                    font-size: 12px;
+                    font-weight: 500;
+                    text-align: center;
+                    word-wrap: break-word;
+                    max-width: ${autoWidth + 20}px;
+                    line-height: 1.2;
+                    height: 36px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                  ">${item.name || item.label || 'Данные'}</div>
+                </div>
+              `;
+            }).join('')}
           </div>
-          <script>
-            // Здесь должна быть инициализация графика с библиотекой Recharts
-            console.log('Chart data for ${elementId}:', ${JSON.stringify({ chartData, labels })});
-          </script>
         </div>
       `;
 
@@ -4283,6 +5383,14 @@ const generateContactPage = (siteData) => {
     
     ${generateCommonFooter(siteData)}
     
+    ${(() => {
+      // Проверяем наличие раздела проверки возраста
+      const ageVerificationSection = findAgeVerificationSection(siteData);
+      return ageVerificationSection ? generateAgeVerificationModal(ageVerificationSection) : '';
+    })()}
+    
+    ${generateCookieConsentHTML(headerData.language || 'en')}
+    
     <script src="assets/js/app.js"></script>
 </body>
 </html>`;
@@ -4604,6 +5712,14 @@ const generateLegalPage = (siteData, docType) => {
     
     ${generateCommonFooter(siteData)}
     
+    ${(() => {
+      // Проверяем наличие раздела проверки возраста
+      const ageVerificationSection = findAgeVerificationSection(siteData);
+      return ageVerificationSection ? generateAgeVerificationModal(ageVerificationSection) : '';
+    })()}
+    
+    ${generateCookieConsentHTML(headerData.language || 'en')}
+    
     <script src="assets/js/app.js"></script>
 </body>
 </html>`;
@@ -4704,6 +5820,14 @@ const generateMerciPage = (siteData) => {
     
     ${generateCommonFooter(siteData)}
     
+    ${(() => {
+      // Проверяем наличие раздела проверки возраста
+      const ageVerificationSection = findAgeVerificationSection(siteData);
+      return ageVerificationSection ? generateAgeVerificationModal(ageVerificationSection) : '';
+    })()}
+    
+    ${generateCookieConsentHTML(headerData.language || 'en')}
+    
     <script src="assets/js/app.js"></script>
 </body>
 </html>`;
@@ -4742,13 +5866,19 @@ body {
 .site-branding {
   display: flex;
   flex-direction: column;
-  margin-right: 2rem;
+  margin-right: 1rem;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .site-title {
   margin: 0;
   font-size: 1.5rem;
   font-weight: 700;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .site-title a {
@@ -4795,7 +5925,9 @@ body {
   list-style: none;
   margin: 0;
   padding: 0;
-  gap: 2rem;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 .nav-menu li {
@@ -4814,7 +5946,8 @@ body {
   text-decoration: none !important;
   font-weight: 500;
   transition: all 0.3s ease;
-  padding: 0.5rem 1rem;
+  padding: 0.3rem 0.6rem;
+  white-space: nowrap;
   border-radius: 4px;
   background: transparent !important;
   display: inline-block;
@@ -4854,7 +5987,7 @@ body {
     padding: 1rem;
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     display: none;
-    gap: 1rem;
+    gap: 0.5rem;
   }
   
   .nav-menu.active {
@@ -4866,7 +5999,26 @@ body {
   }
   
   .site-branding {
-    margin-right: 1rem;
+    margin-right: 0.5rem;
+    flex-shrink: 1;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 1024px) {
+  .nav-menu {
+    gap: 0.3rem;
+    flex-wrap: wrap;
+  }
+  
+  .nav-menu a,
+  .nav-link {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.9rem;
+  }
+  
+  .header-content {
+    flex-wrap: wrap;
   }
 }
 /* Hero Section Styles */
@@ -5999,6 +7151,16 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Initialize content elements
   initContentElements();
+  
+  // Also initialize counters specifically
+  if (window.reinitializeCounters) {
+    window.reinitializeCounters();
+  }
+  
+  // Also initialize FAQ functionality
+  console.log('🔧 [initContentElements] Initializing FAQ functionality...');
+  const faqElements = document.querySelectorAll('.faq-section');
+  console.log('🔧 [initContentElements] Found FAQ elements:', faqElements.length);
 });
 
 // Function to initialize content elements
@@ -6132,6 +7294,76 @@ window.reinitializeTypewriters = function() {
     element.setAttribute('data-initialized', 'true');
     initTypewriter(element);
   });
+};
+
+// Global function to re-initialize counter animations
+window.reinitializeCounters = function() {
+  const counters = document.querySelectorAll('.counter:not([data-counter-initialized])');
+  counters.forEach(counter => {
+    counter.setAttribute('data-counter-initialized', 'true');
+    
+    const start = parseInt(counter.dataset.start) || 0;
+    const end = parseInt(counter.dataset.end) || 100;
+    const duration = parseInt(counter.dataset.duration) || 2000;
+    
+    // Create intersection observer for this specific counter
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          // Animate counter
+          const startTime = performance.now();
+          const difference = end - start;
+          
+          function updateCounter(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            // Easing function (ease-out)
+            const easeOut = 1 - Math.pow(1 - progress, 3);
+            const current = Math.round(start + (difference * easeOut));
+            
+            counter.textContent = current;
+            
+            if (progress < 1) {
+              requestAnimationFrame(updateCounter);
+            }
+          }
+          
+          requestAnimationFrame(updateCounter);
+          observer.unobserve(counter);
+        }
+      });
+    }, { threshold: 0.3 });
+    
+    observer.observe(counter);
+  });
+};
+
+// Global function to toggle FAQ accordion
+window.toggleFAQ = function(index) {
+  console.log('🔧 [toggleFAQ] Called with index:', index);
+  
+  const answer = document.getElementById('faq-answer-' + index);
+  console.log('🔧 [toggleFAQ] Found answer element:', answer);
+  
+  const container = answer ? answer.parentElement : null;
+  const icon = container ? container.querySelector('span') : null;
+  console.log('🔧 [toggleFAQ] Found icon:', icon);
+  
+  if (answer) {
+    const isVisible = answer.style.display !== 'none';
+    console.log('🔧 [toggleFAQ] Is visible:', isVisible);
+    
+    answer.style.display = isVisible ? 'none' : 'block';
+    
+    // Обновляем иконку
+    if (icon) {
+      icon.textContent = isVisible ? '▼' : '▲';
+      console.log('🔧 [toggleFAQ] Updated icon to:', icon.textContent);
+    }
+  } else {
+    console.error('🔧 [toggleFAQ] Answer element not found for index:', index);
+  }
 };
 }
 
@@ -6631,15 +7863,24 @@ const generateMultiPageSitemap = (siteData) => {
   // Добавляем страницы секций
   const sectionsData = siteData.sectionsData || {};
   Object.entries(sectionsData).forEach(([sectionId, sectionData]) => {
-    const fileName = getSectionFileName(sectionId, sectionData);
-    if (fileName) {
-      sitemap += `
+    // Исключаем раздел проверки возраста из sitemap
+    const isAgeVerification = sectionId === 'age-verification' || 
+                             sectionId === 'проверка возраста' ||
+                             sectionData.title?.toLowerCase().includes('подтверждение возраста') ||
+                             sectionData.title?.toLowerCase().includes('проверка возраста') ||
+                             sectionData.title?.toLowerCase().includes('age verification');
+    
+    if (!isAgeVerification) {
+      const fileName = getSectionFileName(sectionId, sectionData);
+      if (fileName) {
+        sitemap += `
   <url>
     <loc>${baseUrl}/${fileName}.html</loc>
     <lastmod>${currentDate}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>`;
+      }
     }
   });
 

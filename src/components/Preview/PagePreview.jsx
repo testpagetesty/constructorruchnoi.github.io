@@ -2766,8 +2766,19 @@ const PagePreview = ({
             console.log('[PagePreview] sectionsData for render:', sectionsData);
             console.log('[PagePreview] Object.entries for render:', Object.entries(sectionsData || {}));
             
-            const sectionsEntries = Object.entries(sectionsData || {});
-            console.log('[PagePreview] sectionsEntries length:', sectionsEntries.length);
+            const sectionsEntries = Object.entries(sectionsData || {}).filter(([sectionId, sectionData]) => {
+              // Исключаем раздел проверки возраста из основного рендеринга
+              if (sectionId === 'age-verification' || 
+                  sectionData.title?.toLowerCase().includes('подтверждение возраста') ||
+                  sectionData.title?.toLowerCase().includes('проверка возраста') ||
+                  sectionData.title?.toLowerCase().includes('age verification') ||
+                  sectionData.ageVerificationData) {
+                console.log('🔞 [PagePreview] Исключаем раздел проверки возраста из основного рендеринга:', sectionId, sectionData.title);
+                return false;
+              }
+              return true;
+            });
+            console.log('[PagePreview] sectionsEntries length after filtering:', sectionsEntries.length);
             
             // Если включены настройки главной страницы, показываем только выделенный раздел в полном виде
             console.log('🔍 [PagePreview] Checking homePageSettings:', heroData.homePageSettings);
@@ -3021,9 +3032,24 @@ const SectionsPreview = ({ sectionsData, headerData, homePageSettings }) => {
   const maxSections = homePageSettings.maxSectionsToShow || 6;
   const displayMode = homePageSettings.sectionsDisplayMode || 'cards';
   
-  // Фильтруем разделы (исключаем выделенный раздел)
+  // Фильтруем разделы (исключаем выделенный раздел и проверку возраста)
   const filteredSections = Object.entries(sectionsData).filter(([sectionId, sectionData]) => {
-    return sectionId !== homePageSettings.featuredSectionId;
+    // Исключаем выделенный раздел
+    if (sectionId === homePageSettings.featuredSectionId) {
+      return false;
+    }
+    
+    // Исключаем раздел проверки возраста
+    if (sectionId === 'age-verification' || 
+        sectionData.title?.toLowerCase().includes('подтверждение возраста') ||
+        sectionData.title?.toLowerCase().includes('проверка возраста') ||
+        sectionData.title?.toLowerCase().includes('age verification') ||
+        sectionData.ageVerificationData) {
+      console.log('🔞 Исключаем раздел проверки возраста из превью:', sectionId, sectionData.title);
+      return false;
+    }
+    
+    return true;
   }).slice(0, maxSections);
   
   if (filteredSections.length === 0) {

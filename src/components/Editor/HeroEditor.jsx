@@ -65,15 +65,8 @@ const ANIMATION_LABELS = {
   [ANIMATION_TYPES.PULSE]: 'Пульсация'
 };
 
-const SECTIONS_DISPLAY_MODES = {
-  CARDS: 'cards'
-};
 
-const SECTIONS_DISPLAY_LABELS = {
-  [SECTIONS_DISPLAY_MODES.CARDS]: 'Карточки'
-};
-
-const HeroEditor = ({ heroData = {}, onHeroChange, expanded, onToggle, sectionsData = {} }) => {
+const HeroEditor = ({ heroData = {}, onHeroChange, expanded, onToggle }) => {
   const defaultHeroData = {
     title: 'Добро пожаловать',
     subtitle: 'Наш сайт предлагает лучшие решения',
@@ -90,53 +83,10 @@ const HeroEditor = ({ heroData = {}, onHeroChange, expanded, onToggle, sectionsD
     overlayOpacity: 0.1,
     enableBlur: false,
     blurAmount: 0.1,
-    // Новые поля для настройки главной страницы
-    homePageSettings: {
-      showFeaturedSection: true,
-      featuredSectionId: '', // Будет автоматически выбран первый доступный раздел
-      showSectionsPreview: true,
-      sectionsDisplayMode: 'cards',
-      maxSectionsToShow: 6,
-      sectionsOrder: [],
-      showContactPreview: true
-    }
   };
 
   const fileInputRef = useRef(null);
 
-  // Принудительное обновление при изменении sectionsData
-  const [forceUpdate, setForceUpdate] = React.useState(0);
-  React.useEffect(() => {
-    console.log('🔄 [HeroEditor] sectionsData изменился, принудительно обновляем');
-    console.log('📊 sectionsData keys:', Object.keys(sectionsData || {}));
-    console.log('📊 sectionsData length:', Object.keys(sectionsData || {}).length);
-    console.log('📊 showFeaturedSection:', heroData.homePageSettings?.showFeaturedSection);
-    
-    // Автоматически выбираем первый раздел, если ничего не выбрано и есть доступные разделы
-    if (sectionsData && Object.keys(sectionsData).length > 0) {
-      const currentFeaturedId = heroData.homePageSettings?.featuredSectionId || '';
-      const availableSections = Object.keys(sectionsData);
-      
-      // Если ничего не выбрано или выбранный раздел больше не существует
-      if (!currentFeaturedId || !availableSections.includes(currentFeaturedId)) {
-        const firstSectionId = availableSections[0];
-        console.log('🎯 Автоматически выбираем первый раздел:', firstSectionId);
-        
-        // Обновляем featuredSectionId через onHeroChange
-        const updatedHomePageSettings = {
-          ...heroData.homePageSettings,
-          featuredSectionId: firstSectionId
-        };
-        
-        onHeroChange({
-          ...heroData,
-          homePageSettings: updatedHomePageSettings
-        });
-      }
-    }
-    
-    setForceUpdate(prev => prev + 1);
-  }, [sectionsData, heroData.homePageSettings?.showFeaturedSection]);
 
   const handleChange = (field, value) => {
     console.log('HeroEditor handleChange:', field, value);
@@ -150,29 +100,11 @@ const HeroEditor = ({ heroData = {}, onHeroChange, expanded, onToggle, sectionsD
       }
     }
     
-    // Обработка вложенных полей homePageSettings
-    if (field.startsWith('homePageSettings.')) {
-      const subField = field.split('.')[1];
-      console.log('Updating homePageSettings:', subField, value);
-      const newHomePageSettings = {
-        ...defaultHeroData.homePageSettings,
-        ...heroData.homePageSettings,
-        [subField]: value
-      };
-      console.log('New homePageSettings:', newHomePageSettings);
-      
-      onHeroChange({
-        ...defaultHeroData,
-        ...heroData,
-        homePageSettings: newHomePageSettings
-      });
-    } else {
-      onHeroChange({
-        ...defaultHeroData,
-        ...heroData,
-        [field]: value
-      });
-    }
+    onHeroChange({
+      ...defaultHeroData,
+      ...heroData,
+      [field]: value
+    });
 
     // Обновление превью при изменении настроек
     const previewHero = document.querySelector('#hero');
@@ -654,102 +586,6 @@ const HeroEditor = ({ heroData = {}, onHeroChange, expanded, onToggle, sectionsD
             </FormControl>
           </Grid>
 
-          {/* Настройки главной страницы */}
-          <Grid item xs={12}>
-            <Typography variant="subtitle1" sx={{ mb: 1, mt: 2 }}>Настройки главной страницы</Typography>
-            <Divider sx={{ mb: 2 }} />
-          </Grid>
-
-          <Grid item xs={12}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={heroData.homePageSettings?.showFeaturedSection ?? defaultHeroData.homePageSettings.showFeaturedSection}
-                  onChange={(e) => handleChange('homePageSettings.showFeaturedSection', e.target.checked)}
-                />
-              }
-              label="Показывать выделенный раздел"
-            />
-          </Grid>
-
-          {(heroData.homePageSettings?.showFeaturedSection ?? defaultHeroData.homePageSettings.showFeaturedSection) && (
-            <Grid item xs={12}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Выделенный раздел</InputLabel>
-                <Select
-                  value={heroData.homePageSettings?.featuredSectionId || ''}
-                  label="Выделенный раздел"
-                  onChange={(e) => handleChange('homePageSettings.featuredSectionId', e.target.value)}
-                >
-                  {sectionsData && Object.keys(sectionsData).length > 0 ? (
-                    Object.entries(sectionsData).map(([sectionId, sectionData], index) => (
-                      <MenuItem key={sectionId} value={sectionId}>
-                        {sectionData.title || sectionId}
-                        {index === 0 && ' (выбран по умолчанию)'}
-                      </MenuItem>
-                    ))
-                  ) : (
-                    <MenuItem value="" disabled>
-                      Нет доступных разделов
-                    </MenuItem>
-                  )}
-                </Select>
-              </FormControl>
-            </Grid>
-          )}
-
-          <Grid item xs={12}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={heroData.homePageSettings?.showSectionsPreview ?? defaultHeroData.homePageSettings.showSectionsPreview}
-                  onChange={(e) => handleChange('homePageSettings.showSectionsPreview', e.target.checked)}
-                />
-              }
-              label="Показывать превью разделов"
-            />
-          </Grid>
-
-          {heroData.homePageSettings?.showSectionsPreview && (
-            <>
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Режим отображения</InputLabel>
-                  <Select
-                    value={heroData.homePageSettings?.sectionsDisplayMode || defaultHeroData.homePageSettings.sectionsDisplayMode}
-                    label="Режим отображения"
-                    onChange={(e) => handleChange('homePageSettings.sectionsDisplayMode', e.target.value)}
-                  >
-                    <MenuItem value={SECTIONS_DISPLAY_MODES.CARDS}>{SECTIONS_DISPLAY_LABELS[SECTIONS_DISPLAY_MODES.CARDS]}</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Максимум разделов"
-                  type="number"
-                  value={heroData.homePageSettings?.maxSectionsToShow || defaultHeroData.homePageSettings.maxSectionsToShow}
-                  onChange={(e) => handleChange('homePageSettings.maxSectionsToShow', parseInt(e.target.value) || 6)}
-                  inputProps={{ min: 1, max: 12 }}
-                />
-              </Grid>
-            </>
-          )}
-
-          <Grid item xs={12}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={heroData.homePageSettings?.showContactPreview ?? defaultHeroData.homePageSettings.showContactPreview}
-                  onChange={(e) => handleChange('homePageSettings.showContactPreview', e.target.checked)}
-                />
-              }
-              label="Показывать превью контактов"
-            />
-          </Grid>
         </Grid>
       </Collapse>
     </Paper>

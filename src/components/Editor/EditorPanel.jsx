@@ -4,6 +4,8 @@ import { Box, Paper, Typography, Grid, TextField, Button, Collapse, Stack, IconB
 
 import HeaderEditor from './HeaderEditor';
 
+import HomePageSettingsEditor from './HomePageSettingsEditor';
+
 import HeroEditor from './HeroEditor';
 
 import ContactEditor from './ContactEditor';
@@ -37,6 +39,8 @@ import { exportSite } from '../../utils/siteExporter';
 import { exportMultiPageSite, generateHeroSection } from '../../utils/multiPageSiteExporter';
 
 import { generateLiveChatHTML, generateLiveChatCSS, generateLiveChatJS } from '../../utils/liveChatExporter';
+
+import { generateCookieConsentHTML } from '../../utils/cookieConsentExporter';
 
 
 
@@ -2787,6 +2791,8 @@ const EditorPanel = ({
 
 
   const [expandedSections, setExpandedSections] = React.useState({
+
+    homePageSettings: false,
 
     header: false,
 
@@ -13401,6 +13407,74 @@ const EditorPanel = ({
 
             }
 
+            
+            /* Мобильная адаптация для столбчатой диаграммы */
+            @media (max-width: 768px) {
+              #${elementId} .bar-chart-container {
+                overflow-x: auto !important;
+                padding: 20px 20px 60px 20px !important;
+                gap: 8px !important;
+                justify-content: flex-start !important;
+                max-width: calc(4 * 60px + 3 * 8px + 80px) !important;
+                min-width: 100% !important;
+              }
+              
+              #${elementId} .bar-chart-container > div {
+                flex-shrink: 0 !important;
+                min-width: 50px !important;
+                max-width: 60px !important;
+              }
+              
+              #${elementId} .bar-chart-container .bar-chart-bar-${elementId} {
+                width: 50px !important;
+              }
+              
+              /* Скрываем названия столбцов в мобильной версии по умолчанию */
+              #${elementId} .bar-chart-container > div > div:last-child {
+                display: none !important;
+              }
+              
+              /* Показываем название при касании */
+              #${elementId} .bar-chart-container > div.show-label > div:last-child {
+                display: flex !important;
+                position: absolute !important;
+                bottom: -30px !important;
+                left: 50% !important;
+                transform: translateX(-50%) !important;
+                background: rgba(0, 0, 0, 0.8) !important;
+                color: white !important;
+                padding: 4px 8px !important;
+                border-radius: 4px !important;
+                font-size: 10px !important;
+                white-space: nowrap !important;
+                z-index: 1000 !important;
+                max-width: 100px !important;
+                text-align: center !important;
+                margin-left: 10px !important;
+                margin-right: 10px !important;
+              }
+              
+              /* Дополнительный селектор для надежности */
+              #${elementId} .show-label .bar-label {
+                display: flex !important;
+                position: absolute !important;
+                bottom: -30px !important;
+                left: 50% !important;
+                transform: translateX(-50%) !important;
+                background: rgba(0, 0, 0, 0.8) !important;
+                color: white !important;
+                padding: 4px 8px !important;
+                border-radius: 4px !important;
+                font-size: 10px !important;
+                white-space: nowrap !important;
+                z-index: 1000 !important;
+                max-width: 100px !important;
+                text-align: center !important;
+                margin-left: 10px !important;
+                margin-right: 10px !important;
+              }
+            }
+
           </style>
 
           <div id="${elementId}" class="content-element chart-component" style="
@@ -13471,7 +13545,7 @@ const EditorPanel = ({
 
             
 
-            <div style="
+            <div class="bar-chart-container" style="
 
               position: relative;
 
@@ -13485,7 +13559,7 @@ const EditorPanel = ({
 
               justify-content: center;
 
-              gap: 12px;
+              gap: 20px;
 
               background: ${colorSettings.sectionBackground?.enabled && colorSettings.sectionBackground.useGradient 
 
@@ -13585,7 +13659,7 @@ const EditorPanel = ({
 
                 const widthPerColumn = (availableWidth - totalGap - 30) / barData.length;
 
-                const autoWidth = Math.max(20, Math.min(70, widthPerColumn));
+                const autoWidth = Math.max(20, Math.min(100, widthPerColumn));
 
 
 
@@ -13645,7 +13719,7 @@ const EditorPanel = ({
 
                       --bar-index: ${index};
 
-                    " onmouseover="this.style.opacity='0.9'; this.style.transform='translateY(-3px)'; this.style.boxShadow='0 6px 16px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.2)'; this.style.filter='brightness(1.1)';" onmouseout="this.style.opacity='1'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.1)'; this.style.filter='brightness(1)';">
+                    " onmouseover="this.style.opacity='0.9'; this.style.boxShadow='0 6px 16px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.2)'; this.style.filter='brightness(1.1)';" onmouseout="this.style.opacity='1'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.1)'; this.style.filter='brightness(1)';">
 
                       <!-- Значение на столбце -->
 
@@ -13796,6 +13870,42 @@ const EditorPanel = ({
             ` : ''}
 
           </div>
+
+          <script>
+            // Переключение названий столбцов при касании (только мобильная версия)
+            document.addEventListener('DOMContentLoaded', function() {
+              const chartElement = document.getElementById('${elementId}');
+              if (chartElement && window.innerWidth <= 768) {
+                const barColumns = chartElement.querySelectorAll('.bar-chart-container > div');
+                
+                barColumns.forEach(column => {
+                  const bar = column.querySelector('.bar-chart-bar-${elementId}');
+                  
+                  if (bar) {
+                    // Обработка касания
+                    bar.addEventListener('touchstart', function(e) {
+                      e.preventDefault();
+                      // Убираем класс show-label со всех столбцов
+                      barColumns.forEach(col => col.classList.remove('show-label'));
+                      // Добавляем класс show-label к текущему столбцу
+                      column.classList.add('show-label');
+                      console.log('Показано название для столбца:', column);
+                    });
+                    
+                    // Также обрабатываем клик для тестирования
+                    bar.addEventListener('click', function(e) {
+                      if (window.innerWidth <= 768) {
+                        e.preventDefault();
+                        barColumns.forEach(col => col.classList.remove('show-label'));
+                        column.classList.add('show-label');
+                        console.log('Показано название для столбца (клик):', column);
+                      }
+                    });
+                  }
+                });
+              }
+            });
+          </script>
 
         `;
 
@@ -20359,7 +20469,7 @@ const EditorPanel = ({
 
         align-items: center;
 
-        flex-wrap: nowrap;
+        flex-wrap: wrap;
 
         max-width: 1200px;
 
@@ -20381,7 +20491,9 @@ const EditorPanel = ({
 
         margin-right: 0.5rem;
 
-        flex-shrink: 0;
+        flex-shrink: 1;
+
+        min-width: 0;
 
       }
 
@@ -20685,7 +20797,7 @@ const EditorPanel = ({
 
         .header-content {
 
-          flex-wrap: nowrap;
+          flex-wrap: wrap;
 
         }
 
@@ -20696,6 +20808,10 @@ const EditorPanel = ({
           margin-right: 0.25rem;
 
           margin-left: 0.5rem;
+
+          flex-shrink: 1;
+
+          min-width: 0;
 
         }
 
@@ -21127,7 +21243,15 @@ const EditorPanel = ({
 
         white-space: nowrap;
 
-        margin-right: 2rem;
+        margin-right: 1rem;
+
+        flex-shrink: 1;
+
+        min-width: 0;
+
+        overflow: hidden;
+
+        text-overflow: ellipsis;
 
       }
 
@@ -21339,15 +21463,34 @@ const EditorPanel = ({
 
         }
 
+        @media (max-width: 1024px) {
+          .site-nav ul {
+            gap: 0.3rem;
+          }
+          
+          .site-nav a {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.9rem;
+          }
+        }
+
 
 
         .logo {
 
           font-size: 1.1rem;
 
-          margin-right: 1rem;
+          margin-right: 0.5rem;
 
           white-space: nowrap;
+
+          flex-shrink: 1;
+
+          min-width: 0;
+
+          overflow: hidden;
+
+          text-overflow: ellipsis;
 
         }
 
@@ -23041,7 +23184,11 @@ const EditorPanel = ({
 
         padding: 0;
 
-        gap: 2rem;
+        gap: 0.5rem;
+
+        flex-wrap: wrap;
+
+        align-items: center;
 
       }
 
@@ -23055,11 +23202,13 @@ const EditorPanel = ({
 
         font-weight: 500;
 
-        padding: 0.5rem 1rem;
+        padding: 0.3rem 0.6rem;
 
         border-radius: 8px;
 
         transition: all 0.3s ease;
+
+        white-space: nowrap;
 
       }
 
@@ -25170,6 +25319,16 @@ const EditorPanel = ({
             initTypewriter(element);
           });
         }, 100);
+        
+        // Also initialize counters specifically
+        if (window.reinitializeCounters) {
+          window.reinitializeCounters();
+        }
+        
+        // Also initialize FAQ functionality
+        console.log('🔧 [initContentElements] Initializing FAQ functionality...');
+        const faqElements = document.querySelectorAll('.faq-section');
+        console.log('🔧 [initContentElements] Found FAQ elements:', faqElements.length);
       }
 
       
@@ -25360,6 +25519,76 @@ const EditorPanel = ({
           element.setAttribute('data-initialized', 'true');
           initTypewriter(element);
         });
+      };
+      
+      // Global function to re-initialize counter animations
+      window.reinitializeCounters = function() {
+        const counters = document.querySelectorAll('.counter:not([data-counter-initialized])');
+        counters.forEach(counter => {
+          counter.setAttribute('data-counter-initialized', 'true');
+          
+          const start = parseInt(counter.dataset.start) || 0;
+          const end = parseInt(counter.dataset.end) || 100;
+          const duration = parseInt(counter.dataset.duration) || 2000;
+          
+          // Create intersection observer for this specific counter
+          const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+              if (entry.isIntersecting) {
+                // Animate counter
+                const startTime = performance.now();
+                const difference = end - start;
+                
+                function updateCounter(currentTime) {
+                  const elapsed = currentTime - startTime;
+                  const progress = Math.min(elapsed / duration, 1);
+                  
+                  // Easing function (ease-out)
+                  const easeOut = 1 - Math.pow(1 - progress, 3);
+                  const current = Math.round(start + (difference * easeOut));
+                  
+                  counter.textContent = current;
+                  
+                  if (progress < 1) {
+                    requestAnimationFrame(updateCounter);
+                  }
+                }
+                
+                requestAnimationFrame(updateCounter);
+                observer.unobserve(counter);
+              }
+            });
+          }, { threshold: 0.3 });
+          
+          observer.observe(counter);
+        });
+      };
+      
+      // Global function to toggle FAQ accordion
+      window.toggleFAQ = function(index) {
+        console.log('🔧 [toggleFAQ] Called with index:', index);
+        
+        const answer = document.getElementById('faq-answer-' + index);
+        console.log('🔧 [toggleFAQ] Found answer element:', answer);
+        
+        const container = answer ? answer.parentElement : null;
+        const icon = container ? container.querySelector('span') : null;
+        console.log('🔧 [toggleFAQ] Found icon:', icon);
+        
+        if (answer) {
+          const isVisible = answer.style.display !== 'none';
+          console.log('🔧 [toggleFAQ] Is visible:', isVisible);
+          
+          answer.style.display = isVisible ? 'none' : 'block';
+          
+          // Обновляем иконку
+          if (icon) {
+            icon.textContent = isVisible ? '▼' : '▲';
+            console.log('🔧 [toggleFAQ] Updated icon to:', icon.textContent);
+          }
+        } else {
+          console.error('🔧 [toggleFAQ] Answer element not found for index:', index);
+        }
       };
       
 
@@ -27127,11 +27356,26 @@ const EditorPanel = ({
 
     
 
-    // Фильтруем разделы (исключаем выделенный раздел)
+    // Фильтруем разделы (исключаем выделенный раздел и проверку возраста)
 
     const filteredSections = Object.entries(sectionsObject).filter(([sectionId, sectionData]) => {
 
-      return sectionId !== homePageSettings.featuredSectionId;
+      // Исключаем выделенный раздел
+      if (sectionId === homePageSettings.featuredSectionId) {
+        return false;
+      }
+
+      // Исключаем раздел проверки возраста
+      if (sectionId === 'age-verification' || 
+          sectionData.title?.toLowerCase().includes('подтверждение возраста') ||
+          sectionData.title?.toLowerCase().includes('проверка возраста') ||
+          sectionData.title?.toLowerCase().includes('age verification') ||
+          sectionData.ageVerificationData) {
+        console.log('🔞 Исключаем раздел проверки возраста из превью:', sectionId, sectionData.title);
+        return false;
+      }
+
+      return true;
 
     }).slice(0, maxSections);
 
@@ -27818,6 +28062,748 @@ const EditorPanel = ({
 
 
 
+  // Функция для поиска раздела проверки возраста
+  const findAgeVerificationSection = (siteData) => {
+    if (!siteData.sectionsData) return null;
+    
+    // Если sectionsData - это массив
+    if (Array.isArray(siteData.sectionsData)) {
+      return siteData.sectionsData.find(section => {
+        // Проверяем по ID секции
+        if (section.id === 'age-verification' || section.id === 'проверка возраста') {
+          return true;
+        }
+        
+        // Проверяем по заголовку секции
+        const title = section.title?.toLowerCase() || '';
+        if (title.includes('подтверждение возраста') || 
+            title.includes('проверка возраста') || 
+            title.includes('age verification')) {
+          return true;
+        }
+        
+        // Проверяем по элементам секции
+        if (section.elements) {
+          return section.elements.some(element => 
+            element.type === 'age-verification' || 
+            element.data?.type === 'age-verification'
+          );
+        }
+        
+        return false;
+      });
+    }
+    
+    // Если sectionsData - это объект
+    return Object.values(siteData.sectionsData).find(section => {
+      // Проверяем по ID секции
+      if (section.id === 'age-verification' || section.id === 'проверка возраста') {
+        return true;
+      }
+      
+      // Проверяем по заголовку секции
+      const title = section.title?.toLowerCase() || '';
+      if (title.includes('подтверждение возраста') || 
+          title.includes('проверка возраста') || 
+          title.includes('age verification')) {
+        return true;
+      }
+      
+      // Проверяем по элементам секции
+      if (section.elements) {
+        return section.elements.some(element => 
+          element.type === 'age-verification' || 
+          element.data?.type === 'age-verification'
+        );
+      }
+      
+      return false;
+    });
+  };
+
+  // Функция для генерации модального окна проверки возраста
+  const generateAgeVerificationModal = (ageSection) => {
+    // Парсим данные из секции
+    let title = 'Подтверждение возраста';
+    let content = 'Этот сайт содержит контент, предназначенный только для лиц старше 18 лет.';
+    let confirmText = 'Мне есть 18 лет';
+    let rejectText = 'Мне нет 18 лет';
+    let underageMessage = 'Доступ к сайту разрешен только лицам старше 18 лет.';
+    
+    // Извлекаем данные из секции
+    if (ageSection.title) {
+      title = ageSection.title;
+    }
+    
+    if (ageSection.description) {
+      // Парсим описание, разделенное символом "*"
+      const parts = ageSection.description.split('*').map(part => part.trim());
+      if (parts.length >= 1) content = parts[0];
+      if (parts.length >= 2) confirmText = parts[1];
+      if (parts.length >= 3) rejectText = parts[2];
+      if (parts.length >= 4) underageMessage = parts[3];
+    }
+    
+    // Если есть элементы, проверяем их тоже
+    if (ageSection.elements && ageSection.elements.length > 0) {
+      const ageElement = ageSection.elements.find(el => el.type === 'age-verification');
+      if (ageElement && ageElement.data) {
+        if (ageElement.data.title) title = ageElement.data.title;
+        if (ageElement.data.content) content = ageElement.data.content;
+        if (ageElement.data.confirmText) confirmText = ageElement.data.confirmText;
+        if (ageElement.data.rejectText) rejectText = ageElement.data.rejectText;
+        if (ageElement.data.underageMessage) underageMessage = ageElement.data.underageMessage;
+      }
+    }
+    
+    // ПРИОРИТЕТ: Если есть поле ageVerificationData, используем его данные
+    if (ageSection.ageVerificationData) {
+      console.log('🔞 [EditorPanel generateAgeVerificationModal] Using ageVerificationData:', ageSection.ageVerificationData);
+      const ageData = ageSection.ageVerificationData;
+      
+      // ВАЖНО: Используем данные из ageVerificationData как приоритетные
+      if (ageData.title && ageData.title.trim()) title = ageData.title.trim();
+      if (ageData.content && ageData.content.trim()) content = ageData.content.trim();
+      if (ageData.confirmText && ageData.confirmText.trim()) confirmText = ageData.confirmText.trim();
+      if (ageData.rejectText && ageData.rejectText.trim()) rejectText = ageData.rejectText.trim();
+      if (ageData.underageMessage && ageData.underageMessage.trim()) underageMessage = ageData.underageMessage.trim();
+      
+      console.log('🔞 [EditorPanel generateAgeVerificationModal] Final values:', {
+        title, content, confirmText, rejectText, underageMessage
+      });
+    }
+
+    // Извлекаем дополнительные поля для отказа
+    let rejectionTitle = 'Access Denied';
+    let leaveSiteText = 'Leave Site';
+
+    if (ageSection.ageVerificationData) {
+      if (ageSection.ageVerificationData.rejectionTitle) rejectionTitle = ageSection.ageVerificationData.rejectionTitle;
+      if (ageSection.ageVerificationData.leaveSiteText) leaveSiteText = ageSection.ageVerificationData.leaveSiteText;
+    }
+
+    return `
+<!-- Age Verification Modal -->
+<div id="age-verification-modal" style="
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(0,0,0,0.9) 0%, rgba(20,20,40,0.95) 50%, rgba(0,0,0,0.9) 100%);
+  backdrop-filter: blur(20px) saturate(180%);
+  z-index: 10000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  animation: fadeIn 0.6s ease-out;
+">
+  <div id="age-modal-content" style="
+    background: linear-gradient(145deg, 
+      rgba(255,255,255,0.95) 0%, 
+      rgba(248,250,252,0.98) 25%, 
+      rgba(255,255,255,0.95) 50%, 
+      rgba(240,242,245,0.98) 75%, 
+      rgba(255,255,255,0.95) 100%);
+    border-radius: 32px;
+    padding: 60px 50px;
+    max-width: 600px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 
+      0 40px 120px rgba(0,0,0,0.4),
+      0 0 0 1px rgba(255,255,255,0.2),
+      inset 0 2px 0 rgba(255,255,255,0.8),
+      inset 0 -1px 0 rgba(0,0,0,0.1);
+    position: relative;
+    overflow: hidden;
+    animation: modalSlideIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    border: 1px solid rgba(255,255,255,0.3);
+  ">
+    <!-- Modern gradient background -->
+    <div style="
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: conic-gradient(from 0deg at 50% 50%, 
+        rgba(99,102,241,0.1) 0deg,
+        rgba(168,85,247,0.1) 60deg,
+        rgba(236,72,153,0.1) 120deg,
+        rgba(251,146,60,0.1) 180deg,
+        rgba(34,197,94,0.1) 240deg,
+        rgba(59,130,246,0.1) 300deg,
+        rgba(99,102,241,0.1) 360deg);
+      animation: rotate 30s linear infinite;
+      pointer-events: none;
+      opacity: 0.6;
+    "></div>
+    
+    <!-- Additional glow effect -->
+    <div style="
+      position: absolute;
+      top: -20px;
+      left: -20px;
+      right: -20px;
+      bottom: -20px;
+      background: radial-gradient(ellipse at center, 
+        rgba(99,102,241,0.15) 0%, 
+        rgba(168,85,247,0.1) 30%, 
+        transparent 70%);
+      border-radius: 40px;
+      animation: pulse 4s ease-in-out infinite;
+      pointer-events: none;
+    "></div>
+    
+    <div style="
+      position: relative;
+      z-index: 2;
+    ">
+      <div style="
+        font-size: 80px;
+        margin-bottom: 30px;
+        animation: bounce 2.5s ease-in-out infinite;
+        filter: drop-shadow(0 8px 16px rgba(0,0,0,0.2));
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      ">
+        <svg width="80" height="80" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2L1 21h22L12 2z" fill="#ffdd00" stroke="#000000" stroke-width="1.5"/>
+          <path d="M12 7v6" stroke="#000000" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="12" cy="17" r="1" fill="#000000"/>
+        </svg>
+      </div>
+      
+      <h2 style="
+        background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #1e293b 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-size: 32px;
+        font-weight: 900;
+        margin-bottom: 30px;
+        line-height: 1.2;
+        text-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        animation: slideInFromTop 1s ease-out 0.3s both;
+        letter-spacing: -0.5px;
+      ">${title}</h2>
+      
+      <p style="
+        color: #64748b;
+        font-size: 18px;
+        line-height: 1.8;
+        margin-bottom: 40px;
+        max-width: 480px;
+        margin-left: auto;
+        margin-right: auto;
+        animation: slideInFromTop 1s ease-out 0.5s both;
+        font-weight: 500;
+      ">${content}</p>
+      
+      <div style="
+        display: flex;
+        gap: 24px;
+        justify-content: center;
+        flex-wrap: wrap;
+        animation: slideInFromBottom 1s ease-out 0.7s both;
+      ">
+        <button onclick="confirmAge()" style="
+          background: linear-gradient(135deg, #10b981 0%, #059669 25%, #047857 50%, #065f46 75%, #064e3b 100%);
+          color: white;
+          border: none;
+          padding: 18px 36px;
+          border-radius: 60px;
+          font-size: 16px;
+          font-weight: 800;
+          cursor: pointer;
+          transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+          box-shadow: 
+            0 12px 40px rgba(16, 185, 129, 0.4),
+            inset 0 2px 0 rgba(255,255,255,0.3),
+            inset 0 -1px 0 rgba(0,0,0,0.1);
+          position: relative;
+          overflow: hidden;
+          min-width: 180px;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          border: 1px solid rgba(255,255,255,0.2);
+        " 
+        onmouseover="
+          this.style.transform='translateY(-4px) scale(1.08)'; 
+          this.style.boxShadow='0 20px 60px rgba(16, 185, 129, 0.6), inset 0 2px 0 rgba(255,255,255,0.4), inset 0 -1px 0 rgba(0,0,0,0.1)';
+          this.style.background='linear-gradient(135deg, #059669 0%, #047857 25%, #065f46 50%, #064e3b 75%, #022c22 100%)';
+        " 
+        onmouseout="
+          this.style.transform='translateY(0) scale(1)'; 
+          this.style.boxShadow='0 12px 40px rgba(16, 185, 129, 0.4), inset 0 2px 0 rgba(255,255,255,0.3), inset 0 -1px 0 rgba(0,0,0,0.1)';
+          this.style.background='linear-gradient(135deg, #10b981 0%, #059669 25%, #047857 50%, #065f46 75%, #064e3b 100%)';
+        "
+        onmousedown="this.style.transform='translateY(-2px) scale(1.02)'"
+        onmouseup="this.style.transform='translateY(-4px) scale(1.08)'"
+        >${confirmText}</button>
+        
+        <button onclick="rejectAge()" style="
+          background: linear-gradient(135deg, #ef4444 0%, #dc2626 25%, #b91c1c 50%, #991b1b 75%, #7f1d1d 100%);
+          color: white;
+          border: none;
+          padding: 18px 36px;
+          border-radius: 60px;
+          font-size: 16px;
+          font-weight: 800;
+          cursor: pointer;
+          transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+          box-shadow: 
+            0 12px 40px rgba(239, 68, 68, 0.4),
+            inset 0 2px 0 rgba(255,255,255,0.3),
+            inset 0 -1px 0 rgba(0,0,0,0.1);
+          position: relative;
+          overflow: hidden;
+          min-width: 180px;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          border: 1px solid rgba(255,255,255,0.2);
+        " 
+        onmouseover="
+          this.style.transform='translateY(-4px) scale(1.08)'; 
+          this.style.boxShadow='0 20px 60px rgba(239, 68, 68, 0.6), inset 0 2px 0 rgba(255,255,255,0.4), inset 0 -1px 0 rgba(0,0,0,0.1)';
+          this.style.background='linear-gradient(135deg, #dc2626 0%, #b91c1c 25%, #991b1b 50%, #7f1d1d 75%, #450a0a 100%)';
+        " 
+        onmouseout="
+          this.style.transform='translateY(0) scale(1)'; 
+          this.style.boxShadow='0 12px 40px rgba(239, 68, 68, 0.4), inset 0 2px 0 rgba(255,255,255,0.3), inset 0 -1px 0 rgba(0,0,0,0.1)';
+          this.style.background='linear-gradient(135deg, #ef4444 0%, #dc2626 25%, #b91c1c 50%, #991b1b 75%, #7f1d1d 100%)';
+        "
+        onmousedown="this.style.transform='translateY(-2px) scale(1.02)'"
+        onmouseup="this.style.transform='translateY(-4px) scale(1.08)'"
+        >${rejectText}</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Underage Message Modal -->
+<div id="underage-modal" style="
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(0,0,0,0.95) 0%, rgba(40,20,20,0.98) 50%, rgba(0,0,0,0.95) 100%);
+  backdrop-filter: blur(25px) saturate(200%);
+  z-index: 10001;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  animation: fadeIn 0.6s ease-out;
+">
+  <div style="
+    background: linear-gradient(145deg, 
+      rgba(255,255,255,0.95) 0%, 
+      rgba(254,242,242,0.98) 25%, 
+      rgba(255,255,255,0.95) 50%, 
+      rgba(252,231,243,0.98) 75%, 
+      rgba(255,255,255,0.95) 100%);
+    border-radius: 32px;
+    padding: 60px 50px;
+    max-width: 500px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 
+      0 50px 150px rgba(0,0,0,0.5),
+      0 0 0 1px rgba(255,255,255,0.2),
+      inset 0 2px 0 rgba(255,255,255,0.8),
+      inset 0 -1px 0 rgba(0,0,0,0.1);
+    position: relative;
+    overflow: hidden;
+    animation: modalSlideIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    border: 1px solid rgba(255,255,255,0.3);
+  ">
+    <!-- Modern gradient background -->
+    <div style="
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: conic-gradient(from 0deg at 50% 50%, 
+        rgba(239,68,68,0.1) 0deg,
+        rgba(220,38,38,0.1) 60deg,
+        rgba(185,28,28,0.1) 120deg,
+        rgba(153,27,27,0.1) 180deg,
+        rgba(127,29,29,0.1) 240deg,
+        rgba(69,10,10,0.1) 300deg,
+        rgba(239,68,68,0.1) 360deg);
+      animation: rotate 25s linear infinite;
+      pointer-events: none;
+      opacity: 0.7;
+    "></div>
+    
+    <!-- Additional glow effect -->
+    <div style="
+      position: absolute;
+      top: -20px;
+      left: -20px;
+      right: -20px;
+      bottom: -20px;
+      background: radial-gradient(ellipse at center, 
+        rgba(239,68,68,0.2) 0%, 
+        rgba(220,38,38,0.15) 30%, 
+        transparent 70%);
+      border-radius: 40px;
+      animation: pulse 3s ease-in-out infinite;
+      pointer-events: none;
+    "></div>
+    
+    <div style="
+      position: relative;
+      z-index: 2;
+    ">
+      <div style="
+        font-size: 90px;
+        margin-bottom: 30px;
+        animation: shake 1s ease-in-out;
+        filter: drop-shadow(0 8px 20px rgba(239,68,68,0.4));
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      ">
+        <svg width="90" height="90" viewBox="0 0 24 24" fill="currentColor">
+          <circle cx="12" cy="12" r="10" fill="#ff0000"/>
+          <rect x="4" y="10" width="16" height="4" fill="#ffffff"/>
+        </svg>
+      </div>
+      
+      <h2 style="
+        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 50%, #991b1b 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-size: 28px;
+        font-weight: 900;
+        margin-bottom: 30px;
+        line-height: 1.2;
+        text-shadow: 0 4px 8px rgba(220,38,38,0.3);
+        animation: slideInFromTop 1s ease-out 0.3s both;
+        letter-spacing: -0.5px;
+      ">${rejectionTitle}</h2>
+      
+      <p style="
+        color: #64748b;
+        font-size: 18px;
+        line-height: 1.8;
+        margin-bottom: 40px;
+        max-width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+        animation: slideInFromTop 1s ease-out 0.5s both;
+        font-weight: 500;
+      ">${underageMessage}</p>
+      
+      <div style="
+        animation: slideInFromBottom 1s ease-out 0.7s both;
+      ">
+        <button onclick="window.close(); window.history.back();" style="
+          background: linear-gradient(135deg, #6b7280 0%, #4b5563 25%, #374151 50%, #1f2937 75%, #111827 100%);
+          color: white;
+          border: none;
+          padding: 18px 36px;
+          border-radius: 60px;
+          font-size: 16px;
+          font-weight: 800;
+          cursor: pointer;
+          transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+          box-shadow: 
+            0 12px 40px rgba(107, 114, 128, 0.4),
+            inset 0 2px 0 rgba(255,255,255,0.3),
+            inset 0 -1px 0 rgba(0,0,0,0.1);
+          position: relative;
+          overflow: hidden;
+          min-width: 200px;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          border: 1px solid rgba(255,255,255,0.2);
+        " 
+        onmouseover="
+          this.style.transform='translateY(-4px) scale(1.08)'; 
+          this.style.boxShadow='0 20px 60px rgba(107, 114, 128, 0.6), inset 0 2px 0 rgba(255,255,255,0.4), inset 0 -1px 0 rgba(0,0,0,0.1)';
+          this.style.background='linear-gradient(135deg, #4b5563 0%, #374151 25%, #1f2937 50%, #111827 75%, #030712 100%)';
+        " 
+        onmouseout="
+          this.style.transform='translateY(0) scale(1)'; 
+          this.style.boxShadow='0 12px 40px rgba(107, 114, 128, 0.4), inset 0 2px 0 rgba(255,255,255,0.3), inset 0 -1px 0 rgba(0,0,0,0.1)';
+          this.style.background='linear-gradient(135deg, #6b7280 0%, #4b5563 25%, #374151 50%, #1f2937 75%, #111827 100%)';
+        "
+        onmousedown="this.style.transform='translateY(-2px) scale(1.02)'"
+        onmouseup="this.style.transform='translateY(-4px) scale(1.08)'"
+        >${leaveSiteText}</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes fadeIn {
+  from { 
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  to { 
+    opacity: 1;
+    backdrop-filter: blur(20px) saturate(180%);
+  }
+}
+
+@keyframes modalSlideIn {
+  from { 
+    opacity: 0;
+    transform: translateY(-80px) scale(0.7) rotateX(15deg);
+    filter: blur(10px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0) scale(1) rotateX(0deg);
+    filter: blur(0px);
+  }
+}
+
+@keyframes slideInFromTop {
+  from {
+    opacity: 0;
+    transform: translateY(-50px) scale(0.9);
+    filter: blur(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0px);
+  }
+}
+
+@keyframes slideInFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(50px) scale(0.9);
+    filter: blur(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0px);
+  }
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  40% {
+    transform: translateY(-15px) scale(1.1);
+  }
+  60% {
+    transform: translateY(-8px) scale(1.05);
+  }
+}
+
+@keyframes shake {
+  0%, 100% { 
+    transform: translateX(0) rotate(0deg); 
+  }
+  10%, 30%, 50%, 70%, 90% { 
+    transform: translateX(-8px) rotate(-2deg); 
+  }
+  20%, 40%, 60%, 80% { 
+    transform: translateX(8px) rotate(2deg); 
+  }
+}
+
+@keyframes rotate {
+  from { 
+    transform: rotate(0deg) scale(1); 
+  }
+  50% { 
+    transform: rotate(180deg) scale(1.1); 
+  }
+  to { 
+    transform: rotate(360deg) scale(1); 
+  }
+}
+
+@keyframes pulse {
+  0% { 
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% { 
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+  100% { 
+    transform: scale(1);
+    opacity: 0.6;
+  }
+}
+
+/* Modern glassmorphism effects */
+#age-verification-modal::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, 
+    rgba(255,255,255,0.1) 0%, 
+    transparent 50%, 
+    rgba(255,255,255,0.05) 100%);
+  pointer-events: none;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
+}
+
+/* Enhanced button effects */
+button {
+  position: relative;
+  overflow: hidden;
+}
+
+button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(255,255,255,0.3), 
+    transparent);
+  transition: left 0.6s ease;
+}
+
+button:hover::before {
+  left: 100%;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  #age-verification-modal div[id="age-modal-content"] {
+    padding: 50px 40px !important;
+    margin: 20px !important;
+    border-radius: 28px !important;
+  }
+  
+  #age-verification-modal h2 {
+    font-size: 28px !important;
+  }
+  
+  #age-verification-modal p {
+    font-size: 17px !important;
+  }
+  
+  #age-verification-modal button {
+    padding: 16px 32px !important;
+    font-size: 15px !important;
+    min-width: 160px !important;
+  }
+  
+  #underage-modal div {
+    padding: 50px 40px !important;
+    margin: 20px !important;
+    border-radius: 28px !important;
+  }
+  
+  #underage-modal h2 {
+    font-size: 26px !important;
+  }
+  
+  #underage-modal button {
+    padding: 16px 32px !important;
+    font-size: 15px !important;
+    min-width: 180px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  #age-verification-modal div[id="age-modal-content"] {
+    padding: 40px 30px !important;
+    margin: 15px !important;
+  }
+  
+  #age-verification-modal h2 {
+    font-size: 24px !important;
+  }
+  
+  #age-verification-modal p {
+    font-size: 16px !important;
+  }
+  
+  #age-verification-modal button {
+    padding: 14px 28px !important;
+    font-size: 14px !important;
+    min-width: 140px !important;
+  }
+  
+  #underage-modal div {
+    padding: 40px 30px !important;
+    margin: 15px !important;
+  }
+  
+  #underage-modal h2 {
+    font-size: 22px !important;
+  }
+  
+  #underage-modal button {
+    padding: 14px 28px !important;
+    font-size: 14px !important;
+    min-width: 160px !important;
+  }
+}
+</style>
+
+<script>
+function confirmAge() {
+  localStorage.setItem('ageVerified', 'true');
+  localStorage.setItem('ageVerifiedDate', new Date().toISOString());
+  document.getElementById('age-verification-modal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function rejectAge() {
+  document.getElementById('age-verification-modal').style.display = 'none';
+  document.getElementById('underage-modal').style.display = 'flex';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  const ageVerified = localStorage.getItem('ageVerified');
+  const verificationDate = localStorage.getItem('ageVerifiedDate');
+  
+  let isVerificationValid = false;
+  if (ageVerified === 'true' && verificationDate) {
+    const verifiedDate = new Date(verificationDate);
+    const now = new Date();
+    const daysDiff = (now - verifiedDate) / (1000 * 60 * 60 * 24);
+    isVerificationValid = daysDiff < 30;
+  }
+  
+  if (!isVerificationValid) {
+    document.getElementById('age-verification-modal').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+});
+</script>
+  `;
+  };
+
   const generateMultiPageIndex = (siteData) => {
 
     const headerData = siteData.headerData || {};
@@ -28460,7 +29446,13 @@ const EditorPanel = ({
 
     ${generateMultiPageFooter(siteData)}
 
-    
+    ${(() => {
+      // Проверяем наличие раздела проверки возраста
+      const ageVerificationSection = findAgeVerificationSection(siteData);
+      return ageVerificationSection ? generateAgeVerificationModal(ageVerificationSection) : '';
+    })()}
+
+    ${generateCookieConsentHTML(headerData.language || 'en')}
 
     <script src="assets/js/script.js"></script>
 
@@ -28470,6 +29462,10 @@ const EditorPanel = ({
         setTimeout(() => {
           if (window.reinitializeTypewriters) {
             window.reinitializeTypewriters();
+          }
+          // Re-initialize counter animations
+          if (window.reinitializeCounters) {
+            window.reinitializeCounters();
           }
         }, 500);
       });
@@ -29907,32 +30903,29 @@ const EditorPanel = ({
          // Initialize FAQ accordion functionality
 
          window.toggleFAQ = function(index) {
-
-           const answer = document.getElementById('faq-answer-' + index);
-
-           const container = answer ? answer.parentElement : null;
-
-           const icon = container ? container.querySelector('span') : null;
-
+           console.log('🔧 [toggleFAQ] Called with index:', index);
            
-
+           const answer = document.getElementById('faq-answer-' + index);
+           console.log('🔧 [toggleFAQ] Found answer element:', answer);
+           
+           const container = answer ? answer.parentElement : null;
+           const icon = container ? container.querySelector('span') : null;
+           console.log('🔧 [toggleFAQ] Found icon:', icon);
+           
            if (answer) {
-
              const isVisible = answer.style.display !== 'none';
-
+             console.log('🔧 [toggleFAQ] Is visible:', isVisible);
+             
              answer.style.display = isVisible ? 'none' : 'block';
-
              
-
              // Обновляем иконку
-
              if (icon) {
-
                icon.textContent = isVisible ? '▼' : '▲';
-
+               console.log('🔧 [toggleFAQ] Updated icon to:', icon.textContent);
              }
-
-             
+           } else {
+             console.error('🔧 [toggleFAQ] Answer element not found for index:', index);
+           }
 
              // Применяем hover эффекты к контейнеру
 
@@ -32661,6 +33654,18 @@ const EditorPanel = ({
         siteData.sectionsData.forEach((sectionData) => {
 
           console.log('📄 Processing section:', sectionData.id, sectionData);
+
+          // Исключаем раздел проверки возраста из генерации отдельных страниц
+          const isAgeVerification = sectionData.id === 'age-verification' || 
+                                   sectionData.id === 'проверка возраста' ||
+                                   sectionData.title?.toLowerCase().includes('подтверждение возраста') ||
+                                   sectionData.title?.toLowerCase().includes('проверка возраста') ||
+                                   sectionData.title?.toLowerCase().includes('age verification');
+
+          if (isAgeVerification) {
+            console.log('🔞 Excluding age verification section from page generation:', sectionData.id, sectionData.title);
+            return; // Пропускаем этот раздел
+          }
 
           const fileName = getSectionFileNameSafe(sectionData.id, sectionData);
 
@@ -37732,6 +38737,21 @@ ${mainHtml}
 
   // Создаем блоки для разных частей редактора
 
+  const homePageSettingsEditorBlock = (
+        <HomePageSettingsEditor 
+          homePageSettings={heroData.homePageSettings || {}} 
+          onHomePageSettingsChange={(newHomePageSettings) => {
+            onHeroChange({
+              ...heroData,
+              homePageSettings: newHomePageSettings
+            });
+          }}
+          expanded={expandedSections.homePageSettings}
+          onToggle={() => toggleSection('homePageSettings')}
+          sectionsData={sectionsData}
+        />
+  );
+
   const headerEditorBlock = (
 
         <HeaderEditor 
@@ -37767,8 +38787,6 @@ ${mainHtml}
           onToggle={() => toggleSection('hero')}
 
           id="hero"
-
-          sectionsData={sectionsData}
 
         />
 
@@ -39487,6 +40505,8 @@ ${mainHtml}
       <Paper sx={{ p: 3 }}>
 
         {aiParserBlock}
+
+        {homePageSettingsEditorBlock}
 
         {headerEditorBlock}
 
