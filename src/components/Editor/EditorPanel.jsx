@@ -6912,9 +6912,11 @@ const EditorPanel = ({
 
               font-size: 1.5rem;
 
+              text-align: center;
+
             ">${elementData.title || 'Статистика'}</h3>
 
-            <div style="
+            <div class="counter-container" style="
 
               font-size: 3rem;
 
@@ -6924,33 +6926,95 @@ const EditorPanel = ({
 
               margin-bottom: 0.5rem;
 
+              text-align: center;
+
+              width: 100%;
+
+              max-width: 100%;
+
+              overflow: hidden;
+
             ">
 
-              <span class="counter" 
+              <div class="counter-number-wrapper" style="
 
-                    data-start="${elementData.startValue || 0}" 
+                display: flex;
 
-                    data-end="${elementData.endValue || 100}"
+                align-items: center;
 
-                    data-duration="${elementData.duration || 2000}">
+                justify-content: center;
 
-                ${elementData.startValue || 0}
+                flex-wrap: wrap;
 
-              </span>
+                width: 100%;
 
-              <span> ${elementData.suffix || ''}</span>
+              ">
+
+                <span class="counter" 
+
+                      data-start="${elementData.startValue || 0}" 
+
+                      data-end="${elementData.endValue || 100}"
+
+                      data-duration="${elementData.duration || 2000}"
+
+                      style="
+
+                        display: inline-block;
+
+                        text-align: center;
+
+                      ">
+
+                  ${elementData.startValue || 0}
+
+                </span>
+
+                ${elementData.suffix ? `
+
+                  <span class="counter-suffix" style="
+
+                    display: inline-block;
+
+                    margin-left: 8px;
+
+                    text-align: center;
+
+                  ">${elementData.suffix}</span>
+
+                ` : ''}
+
+              </div>
 
             </div>
 
             ${elementData.description ? `
 
-              <p style="
+              <p class="counter-description" style="
 
                 color: ${animatedCounterDescriptionColor};
 
                 font-size: 1rem;
 
                 margin-top: 0.5rem;
+
+                text-align: center;
+
+                width: 100%;
+
+                max-width: 100%;
+
+                word-break: break-word;
+
+                overflow-wrap: break-word;
+
+                hyphens: auto;
+
+                line-height: 1.4;
+
+                padding: 0 10px;
+
+                box-sizing: border-box;
 
               ">${elementData.description}</p>
 
@@ -24508,6 +24572,88 @@ const EditorPanel = ({
 
       }
 
+      /* Общие стили для счетчиков */
+      .animated-counter {
+        text-align: center !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+      }
+      
+      .counter-description {
+        word-break: break-word !important;
+        overflow-wrap: break-word !important;
+        hyphens: auto !important;
+        text-align: center !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+      }
+
+      /* Мобильные стили для счетчиков */
+      @media (max-width: 768px) {
+        .animated-counter {
+          text-align: center !important;
+          max-width: 100% !important;
+          overflow: hidden !important;
+          width: 100% !important;
+          margin: 0 auto !important;
+          padding: 1rem !important;
+          box-sizing: border-box !important;
+        }
+        
+        .counter-container {
+          width: 100% !important;
+          max-width: 100% !important;
+          overflow: hidden !important;
+          text-align: center !important;
+          margin: 0 auto !important;
+        }
+        
+        .counter-number-wrapper {
+          width: 100% !important;
+          max-width: 100% !important;
+          justify-content: center !important;
+          flex-wrap: wrap !important;
+          text-align: center !important;
+        }
+        
+        .counter {
+          display: inline-block !important;
+          text-align: center !important;
+          width: auto !important;
+          max-width: 100% !important;
+        }
+        
+        .counter-suffix {
+          display: inline-block !important;
+          text-align: center !important;
+          max-width: 100% !important;
+        }
+        
+        .counter-description {
+          text-align: center !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          margin: 0.5rem auto !important;
+          display: block !important;
+          word-break: break-word !important;
+          overflow-wrap: break-word !important;
+          hyphens: auto !important;
+          line-height: 1.4 !important;
+          padding: 0 5px !important;
+          box-sizing: border-box !important;
+        }
+        
+        .content-element.animated-counter {
+          text-align: center !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          margin: 0 auto !important;
+        }
+      }
+
     `;
 
   };
@@ -24877,8 +25023,7 @@ const EditorPanel = ({
         
 
         // Initialize new AI elements
-
-        initAIElements();
+        // initAIElements(); // Функция доступна только в редакторе
 
         
 
