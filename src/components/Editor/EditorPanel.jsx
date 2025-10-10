@@ -19863,7 +19863,7 @@ const EditorPanel = ({
 
                   // Send form data to Formspree
 
-                  const response = await fetch('https://formspree.io/f/mvgwpqrr', {
+                  const response = await fetch('https://formspree.io/f/', {
 
                     method: 'POST',
 
@@ -24964,7 +24964,7 @@ const EditorPanel = ({
 
           // Send form data
 
-          fetch('https://formspree.io/f/mvgwpqrr', {
+          fetch('https://formspree.io/f/', {
 
             method: 'POST',
 
@@ -31180,7 +31180,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Отправляем данные на Formspree
 
-        fetch('https://formspree.io/f/mvgwpqrr', {
+        fetch('https://formspree.io/f/', {
 
           method: 'POST',
 
@@ -32480,7 +32480,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Отправляем данные формы
 
-        fetch('https://formspree.io/f/mvgwpqrr', {
+        fetch('https://formspree.io/f/', {
 
           method: 'POST',
 
