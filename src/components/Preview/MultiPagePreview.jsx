@@ -1906,7 +1906,19 @@ const MultiPagePreview = ({
     if (currentPage === 'index') return null;
     
     return (
-      <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
+      <Breadcrumbs 
+        aria-label="breadcrumb" 
+        sx={{ 
+          mb: 2,
+          position: 'relative',
+          zIndex: 10,
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          padding: '8px 12px',
+          borderRadius: '8px',
+          backdropFilter: 'blur(10px)',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+        }}
+      >
         <Link 
           color="inherit" 
           href="#" 
@@ -1931,7 +1943,8 @@ const MultiPagePreview = ({
     const shouldShowFeatured = homePageSettings.showFeaturedSection && homePageSettings.featuredSectionId;
     const shouldShowSectionsPreview = homePageSettings.showSectionsPreview;
     const shouldShowContactPreview = homePageSettings.showContactPreview && contactData;
-    const shouldShowRegularSections = !shouldShowSectionsPreview;
+    // Показываем обычные разделы только если НЕ включен выделенный раздел И НЕ включено превью разделов
+    const shouldShowRegularSections = !shouldShowFeatured && !shouldShowSectionsPreview;
     
     console.log('🔍 [MultiPagePreview] renderIndexPage - Settings:', {
       shouldShowFeatured,

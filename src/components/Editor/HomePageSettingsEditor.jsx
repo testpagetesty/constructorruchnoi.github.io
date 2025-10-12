@@ -48,11 +48,11 @@ const HomePageSettingsEditor = ({
   const defaultHomePageSettings = {
     showFeaturedSection: true,
     featuredSectionId: '', // Будет автоматически выбран первый доступный раздел
-    showSectionsPreview: true,
+    showSectionsPreview: false,
     sectionsDisplayMode: 'cards',
     maxSectionsToShow: 6,
     sectionsOrder: [],
-    showContactPreview: true
+    showContactPreview: false
   };
 
   // Принудительное обновление при изменении sectionsData
@@ -104,7 +104,9 @@ const HomePageSettingsEditor = ({
     <Paper sx={{ 
       p: 2, 
       mb: 2,
-      backgroundColor: '#f0f8ff'
+      backgroundColor: '#ff6b35',
+      border: '2px solid #ff4500',
+      boxShadow: '0 4px 8px rgba(255, 107, 53, 0.3)'
     }}>
       <Box 
         sx={{ 
@@ -114,8 +116,8 @@ const HomePageSettingsEditor = ({
         }}
         onClick={onToggle}
       >
-        <Typography variant="h6" sx={{ flexGrow: 1 }}>
-          Настройки главной страницы
+        <Typography variant="h6" sx={{ flexGrow: 1, color: 'white', fontWeight: 'bold' }}>
+          Настройка index
         </Typography>
         <ExpandMore
           expand={expanded}

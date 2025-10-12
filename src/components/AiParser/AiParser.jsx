@@ -9350,6 +9350,32 @@ ID: [название секции на ${languageName}, желательно о
               // Обновляем все секции за один вызов
               onSectionsChange(updatedSections);
 
+              // Обновляем homePageSettings для автоматического выбора первого раздела как выделенного
+              const availableSections = Object.keys(updatedSections);
+              if (availableSections.length > 0) {
+                const firstSectionId = availableSections[0];
+                console.log('🎯 Автоматически выбираем первый раздел как выделенный:', firstSectionId);
+                
+                const updatedHomePageSettings = {
+                  showFeaturedSection: true,
+                  featuredSectionId: firstSectionId,
+                  showSectionsPreview: false,
+                  sectionsDisplayMode: 'cards',
+                  maxSectionsToShow: 6,
+                  sectionsOrder: [],
+                  showContactPreview: false
+                };
+                
+                // Обновляем heroData с новыми настройками главной страницы
+                const updatedHeroData = {
+                  ...heroData,
+                  homePageSettings: updatedHomePageSettings
+                };
+                
+                onHeroChange(updatedHeroData);
+                console.log('✅ Обновлены настройки главной страницы:', updatedHomePageSettings);
+              }
+
               // Обновляем меню с правильным порядком секций
               const finalHeaderData = {
                 ...headerData,

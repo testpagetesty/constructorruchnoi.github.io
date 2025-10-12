@@ -5453,8 +5453,17 @@ const generateBreadcrumbs = (siteData, currentSection, sectionData = null) => {
     displayName = currentSection;
   }
   
-  return `<nav class="breadcrumbs"><div class="container">
-    <a href="index.html">Главная</a> > <span>${displayName}</span>
+  return `<nav class="breadcrumbs" style="
+    position: relative;
+    z-index: 10;
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 8px 12px;
+    border-radius: 8px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin: 20px 0;
+  "><div class="container">
+    <a href="index.html" style="color: #1976d2; text-decoration: none;">Главная</a> > <span>${displayName}</span>
   </div></nav>`;
 };
 
