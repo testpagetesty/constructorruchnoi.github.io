@@ -6241,7 +6241,7 @@ const EditorPanel = ({
                   localStorage.removeItem('contactFormData');
                   
                   // Send form data to Formspree
-                  const response = await fetch('https://formspree.io/f/mvgwpqrr', {
+                  const response = await fetch('https://formspree.io/f/', {
                     method: 'POST',
                     body: formData,
                     headers: {
@@ -8440,7 +8440,7 @@ const EditorPanel = ({
           const formData = new FormData(form);
           
           // Send form data
-          fetch('https://formspree.io/f/mvgwpqrr', {
+          fetch('https://formspree.io/f/', {
             method: 'POST',
             body: formData,
             headers: {
@@ -9925,7 +9925,7 @@ const EditorPanel = ({
         const formData = new FormData(form);
         
         // Отправляем данные формы
-        fetch('https://formspree.io/f/mvgwpqrr', {
+        fetch('https://formspree.io/f/', {
           method: 'POST',
           body: formData,
           headers: {
