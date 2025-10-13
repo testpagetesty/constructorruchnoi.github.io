@@ -9175,33 +9175,15 @@ ID: [название секции на ${languageName}, желательно о
               // Создаем новый объект для всех секций
               const updatedSections = { ...sectionsData };
               
-              // Обновляем Hero секцию и заголовок сайта
-              if (parsedData.hero) {
-                console.log('Обрабатываем Hero секцию:', parsedData.hero);
-                
-                // Обновляем данные hero-секции
-                const updatedHeroData = { ...heroData };
-                
-                if (parsedData.hero.title) {
-                  updatedHeroData.title = parsedData.hero.title;
-                }
-                
-                if (parsedData.hero.description) {
-                  updatedHeroData.subtitle = parsedData.hero.description;
-                }
-                
-                // Применяем обновления hero
-                onHeroChange(updatedHeroData);
-                
-                // Обновляем название сайта в headerData
-                if (parsedData.hero.siteName) {
-                  // Создаем копию headerData для обновления
-                  const updatedHeaderData = { 
-                    ...headerData,
-                    siteName: parsedData.hero.siteName
-                  };
-                  onHeaderChange(updatedHeaderData);
-                }
+              // Обновляем название сайта в headerData (hero данные обновим позже вместе с homePageSettings)
+              if (parsedData.hero && parsedData.hero.siteName) {
+                console.log('Обновляем название сайта:', parsedData.hero.siteName);
+                // Создаем копию headerData для обновления
+                const updatedHeaderData = { 
+                  ...headerData,
+                  siteName: parsedData.hero.siteName
+                };
+                onHeaderChange(updatedHeaderData);
               }
               
               // Определяем порядок секций для меню: О нас, Услуги, Преимущества, Новости, FAQ, Отзывы, Универсальная
@@ -9366,14 +9348,25 @@ ID: [название секции на ${languageName}, желательно о
                   showContactPreview: false
                 };
                 
-                // Обновляем heroData с новыми настройками главной страницы
+                // Получаем уже обновленные hero данные (с title и subtitle из парсинга)
+                let currentHeroData = heroData;
+                if (parsedData.hero) {
+                  currentHeroData = {
+                    ...heroData,
+                    title: parsedData.hero.title || heroData.title,
+                    subtitle: parsedData.hero.description || heroData.subtitle
+                  };
+                }
+                
+                // Обновляем heroData с новыми настройками главной страницы, сохраняя обновленные title и subtitle
                 const updatedHeroData = {
-                  ...heroData,
+                  ...currentHeroData,
                   homePageSettings: updatedHomePageSettings
                 };
                 
                 onHeroChange(updatedHeroData);
                 console.log('✅ Обновлены настройки главной страницы:', updatedHomePageSettings);
+                console.log('✅ Сохранены hero данные:', { title: updatedHeroData.title, subtitle: updatedHeroData.subtitle });
               }
 
               // Обновляем меню с правильным порядком секций
