@@ -3606,45 +3606,36 @@ const AiParser = ({
   const [generatedDesignSystem, setGeneratedDesignSystem] = useState(null);
   const [showDesignSystemDialog, setShowDesignSystemDialog] = useState(false);
   const [gpt5JsonInput, setGpt5JsonInput] = useState('');
-  const [jsonPromptDescription, setJsonPromptDescription] = useState(`КИБЕРПАНК-НЕОН СТИЛЬ - Требования к цветовому стилю:
+  const [jsonPromptDescription, setJsonPromptDescription] = useState(`Ты эксперт веб-дизайна. Выведи JSON со стилями для сайта.
 
-1. КИБЕРПАНК-НЕОН ЦВЕТОВАЯ СХЕМА:
-   - Фон: тёмно-синий → угольный серый (#0a0a0a, #1a1a2e, #16213e)
-   - Заливки: графитовый (#121212, #1e1e1e)
-   - Текстовые поля: кислотно-жёлтый (#FFD600, #FFEB3B)
-   - Текст: светло-зелёный (#CCFF90, #8BC34A)
-   - Акценты: розово-фиолетовый (#D500F9, #E91E63)
+ЦВЕТОВАЯ СХЕМА:
+- Фон секций: градиент от серого (#808080) к серо-голубому (#778899)
+- Заливки элементов: похожие оттенки серого (#696969, #708090)
+- Заголовки (title): фиолетовый (#9370DB, #8A2BE2)
+- Основной текст (text): красный (#DC143C, #B22222)
+- Описания (description): другой уникальный цвет
+- Фон карточек: обязательно градиенты
 
-2. КРИТИЧЕСКИ ВАЖНО - ИЗБЕГАЙТЕ СЛИВАНИЯ ЦВЕТОВ:
-   - НИКОГДА не используйте одинаковые цвета для текста и фона
-   - НИКОГДА не используйте похожие оттенки для текста и заливки
-   - Обеспечьте МАКСИМАЛЬНЫЙ контраст между всеми элементами
-   - Проверяйте каждый элемент на читаемость
+КРИТИЧЕСКИ ВАЖНО - КОНТРАСТ:
+- Текст и фон ВСЕГДА должны отличаться
+- Текст и заливка НИКОГДА не сливаются
+- Проверяй читаемость каждого элемента
+- При наведении фон меняется, но текст остается читаемым
 
-3. НАСТРОЙКИ ДЛЯ КАЖДОГО ЭЛЕМЕНТА (только из доступных в JSON):
-   - title: светло-зелёный (#CCFF90) на тёмном фоне
-   - text: светло-зелёный (#CCFF90) на тёмном фоне  
-   - description: кислотно-жёлтый (#FFD600) на тёмном фоне
-   - cardTitle: светло-зелёный (#CCFF90) на графитовом фоне
-   - cardText: светло-зелёный (#CCFF90) на графитовом фоне
-   - cardContent: кислотно-жёлтый (#FFD600) на графитовом фоне
+ГРАДИЕНТНЫЙ ТЕКСТ (gradient-text) - МАКСИМАЛЬНОЕ ВНИМАНИЕ:
+- Градиент текста ОБЯЗАТЕЛЬНО с маленьким переходом между близкими оттенками
+- Цвета градиента: от темного к чуть светлее (#2C3E50 → #34495E)
+- Или светлые оттенки: от яркого к насыщенному (#E74C3C → #C0392B)
+- НЕ используй контрастные цвета в градиенте текста (красный→синий ❌)
+- Текст с градиентом должен ВСЕГДА контрастировать с фоном
+- Если фон темный - градиент текста светлый (#F39C12 → #F1C40F)
+- Если фон светлый - градиент текста темный (#2C3E50 → #34495E)
 
-4. ФОНОВЫЕ НАСТРОЙКИ:
-   - sectionBackground: тёмно-синий градиент (#0a0a0a → #1a1a2e)
-   - cardBackground: графитовый (#121212) с розово-фиолетовой границей
-   - Направление градиента: "to right" или "to bottom right"
-
-5. ДОПОЛНИТЕЛЬНЫЕ ЭФФЕКТЫ:
-   - borderColor: розово-фиолетовый (#D500F9) для всех границ
-   - boxShadow: true для неонового эффекта
-   - borderRadius: 4-8px для современных углов
-   - borderWidth: 1-2px для четкости
-
-6. ПРИМЕНЕНИЕ К JSON - ОБЯЗАТЕЛЬНО:
-   - Каждое поле colorSettings должно иметь РАЗНЫЕ цвета для текста и фона
-   - Проверяйте контраст: светлый текст на тёмном фоне
-   - Используйте только доступные настройки из JSON структуры
-   - НЕ создавайте новые поля, используйте только существующие`);
+ДОПОЛНИТЕЛЬНО:
+- Границы (borderColor): уникальный цвет
+- Тени (boxShadow): true для объема
+- Скругления (borderRadius): 8-12px
+- Все цвета используй в HEX формате (#RRGGBB)`);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   
   // Используем состояние из EditorPanel через пропсы
@@ -6182,72 +6173,88 @@ ID: [название секции на ${languageName}, желательно о
         'Специальные элементы': []
       };
       
+      // Собираем все экземпляры элементов по типам
+      const elementsByType = {};
+      
       // Сканируем все секции
       Object.entries(sectionsData).forEach(([sectionKey, sectionData]) => {
         console.log(`🔍 [DEBUG] Сканируем секцию: ${sectionKey}`, sectionData);
         if (sectionData?.elements && Array.isArray(sectionData.elements)) {
           sectionData.elements.forEach((element, elementIndex) => {
-            const elementData = {
-              id: `${sectionKey}_${elementIndex}`,
+            const elementType = element.type;
+            
+            // Если это первый экземпляр этого типа, создаем запись
+            if (!elementsByType[elementType]) {
+              elementsByType[elementType] = {
+                type: elementType,
+                title: element.title || element.text || element.content || `${elementType}`,
+                instances: [],
+                currentStyles: element.colorSettings || {}
+              };
+            }
+            
+            // Добавляем информацию об экземпляре
+            elementsByType[elementType].instances.push({
               sectionKey,
               elementIndex,
-              type: element.type,
-              title: element.title || element.text || element.content || `${element.type} #${elementIndex + 1}`,
               sectionTitle: sectionData.title || sectionKey,
-              currentStyles: element.colorSettings || {},
               element: element
-            };
-            
-            console.log(`🔍 [DEBUG] Найден элемент: ${elementData.id} (${elementData.type}) - ${elementData.title}`);
-            allElements.push(elementData);
-            
-            // Группируем по типам
-            switch (element.type) {
-              case 'typography':
-              case 'rich-text':
-              case 'gradient-text':
-              case 'typewriter-text':
-              case 'highlight-text':
-                groups['Текстовые элементы'].push(elementData);
-                break;
-              case 'list':
-              case 'blockquote':
-                groups['Списки и цитаты'].push(elementData);
-                break;
-              case 'callout':
-              case 'basic-card':
-              case 'multiple-cards':
-              case 'testimonial-card':
-                groups['Блоки и карточки'].push(elementData);
-                break;
-              case 'animated-counter':
-                groups['Специальные элементы'].push(elementData);
-                break;
-              default:
-                groups['Специальные элементы'].push(elementData);
-            }
+            });
           });
         }
       });
       
-      // Сортируем элементы по порядку: сначала по секциям, потом по индексу
-      const sortedElements = allElements.sort((a, b) => {
-        // Сначала сортируем по названию секции
-        if (a.sectionKey !== b.sectionKey) {
-          return a.sectionKey.localeCompare(b.sectionKey);
+      // Создаем уникальные элементы для отображения (по одному на тип)
+      Object.entries(elementsByType).forEach(([elementType, elementData]) => {
+        const elementDataForDisplay = {
+          id: elementType, // Используем тип как ID вместо уникального ID
+          type: elementType,
+          title: elementData.title,
+          instances: elementData.instances, // Сохраняем все экземпляры
+          currentStyles: elementData.currentStyles,
+          count: elementData.instances.length // Количество экземпляров
+        };
+        
+        console.log(`🔍 [DEBUG] Найден тип элемента: ${elementType} (${elementData.instances.length} экземпляров)`);
+        allElements.push(elementDataForDisplay);
+        
+        // Группируем по типам
+        switch (elementType) {
+          case 'typography':
+          case 'rich-text':
+          case 'gradient-text':
+          case 'typewriter-text':
+          case 'highlight-text':
+            groups['Текстовые элементы'].push(elementDataForDisplay);
+            break;
+          case 'list':
+          case 'blockquote':
+            groups['Списки и цитаты'].push(elementDataForDisplay);
+            break;
+          case 'callout':
+          case 'basic-card':
+          case 'multiple-cards':
+          case 'testimonial-card':
+            groups['Блоки и карточки'].push(elementDataForDisplay);
+            break;
+          case 'animated-counter':
+            groups['Специальные элементы'].push(elementDataForDisplay);
+            break;
+          default:
+            groups['Специальные элементы'].push(elementDataForDisplay);
         }
-        // Потом по индексу элемента в секции
-        return a.elementIndex - b.elementIndex;
+      });
+      
+      // Сортируем элементы по типу
+      const sortedElements = allElements.sort((a, b) => {
+        return a.type.localeCompare(b.type);
       });
       
       // Пересортируем группы с учетом порядка
       const sortedGroups = {};
       Object.keys(groups).forEach(groupName => {
         sortedGroups[groupName] = groups[groupName].sort((a, b) => {
-          if (a.sectionKey !== b.sectionKey) {
-            return a.sectionKey.localeCompare(b.sectionKey);
-          }
-          return a.elementIndex - b.elementIndex;
+          return a.type.localeCompare(b.type);
         });
       });
       
@@ -6256,8 +6263,8 @@ ID: [название секции на ${languageName}, желательно о
       setShowElementSelector(true);
       setSelectedElements(new Set()); // Очищаем выбор
       
-      console.log(`🔍 Найдено ${sortedElements.length} элементов, сгруппированы в ${Object.keys(sortedGroups).length} категории`);
-      console.log(`🔍 Элементы отсортированы по порядку:`, sortedElements.map(el => `${el.sectionKey}_${el.elementIndex} (${el.type})`));
+      console.log(`🔍 Найдено ${sortedElements.length} типов элементов, сгруппированы в ${Object.keys(sortedGroups).length} категории`);
+      console.log(`🔍 Элементы отсортированы по порядку:`, sortedElements.map(el => `${el.type} (${el.count} экземпляров)`));
       
     } catch (error) {
       console.error('❌ [AI Дизайн Система] Ошибка при сканировании элементов:', error);
@@ -7438,26 +7445,22 @@ ID: [название секции на ${languageName}, желательно о
         metadata: {
           generatedAt: new Date().toISOString(),
           version: '1.0.0',
-          description: `Дизайн-система для ${selectedElements.size} выбранных элементов`
+          description: `Дизайн-система для ${selectedElements.size} выбранных типов элементов`
         },
         sections: {}
       };
 
-      // Группируем выбранные элементы по секциям
+      // Группируем выбранные элементы по типам (не по секциям)
+      const elementsByType = {};
+      
       selectedElementsData.forEach(elementData => {
-        const { sectionKey, elementIndex, element } = elementData;
+        const { type, instances } = elementData;
         
-        if (!designSystem.sections[sectionKey]) {
-          designSystem.sections[sectionKey] = {
-            elements: []
-          };
-        }
-
         // Создаем упрощенную структуру элемента только со стилями
         const elementForJSON = {
-          type: element.type,
+          type: type,
           colorSettings: jsonMode === 'template' ? 
-            (element.type === 'multiple-cards' ? getColorSettingsTemplate(element.type) : {
+            (type === 'multiple-cards' ? getColorSettingsTemplate(type) : {
               sectionBackground: {
                 enabled: true,
                 useGradient: false,
@@ -7468,11 +7471,21 @@ ID: [название секции на ${languageName}, желательно о
                 opacity: 1
               },
               padding: 24,
-              textFields: getColorSettingsTemplate(element.type)
-            }) : (element.type === 'bar-chart' || element.type === 'advanced-line-chart' || element.type === 'advanced-pie-chart' ? getRealColorsForElementWithColumns(element.type, element) : getRealColorsForElement(element.type))
+              textFields: getColorSettingsTemplate(type)
+            }) : (type === 'bar-chart' || type === 'advanced-line-chart' || type === 'advanced-pie-chart' ? getRealColorsForElementWithColumns(type, instances[0]?.element) : getRealColorsForElement(type))
         };
 
-        designSystem.sections[sectionKey].elements.push(elementForJSON);
+        // Сохраняем элемент по типу (не дублируем)
+        elementsByType[type] = elementForJSON;
+      });
+
+      // Создаем секции с элементами по типам
+      Object.entries(elementsByType).forEach(([type, elementForJSON]) => {
+        // Создаем специальную секцию для каждого типа элемента
+        const sectionKey = `element_type_${type}`;
+        designSystem.sections[sectionKey] = {
+          elements: [elementForJSON]
+        };
       });
 
       const jsonString = JSON.stringify(designSystem, null, 2);
@@ -8506,7 +8519,13 @@ ID: [название секции на ${languageName}, желательно о
         
         const updatedSections = { ...sectionsData };
         
+        // Сначала обрабатываем обычные секции (если есть)
         Object.keys(designSystemJson.sections).forEach(sectionKey => {
+          // Пропускаем специальные секции типов элементов
+          if (sectionKey.startsWith('element_type_')) {
+            return;
+          }
+          
           console.log(`🎨 [AI Дизайн Система] Проверяем секцию ${sectionKey}:`, {
             existsInJson: !!designSystemJson.sections[sectionKey],
             existsInSectionsData: !!updatedSections[sectionKey],
@@ -9097,6 +9116,289 @@ ID: [название секции на ${languageName}, желательно о
           }
         });
         
+        // Теперь обрабатываем специальные секции типов элементов
+        Object.keys(designSystemJson.sections).forEach(sectionKey => {
+          if (sectionKey.startsWith('element_type_')) {
+            const elementType = sectionKey.replace('element_type_', '');
+            const sectionData = designSystemJson.sections[sectionKey];
+            
+            console.log(`🎨 [AI Дизайн Система] Обрабатываем тип элемента ${elementType}:`, sectionData);
+            
+            if (sectionData.elements && sectionData.elements.length > 0) {
+              const jsonElement = sectionData.elements[0]; // Берем первый (и единственный) элемент
+              
+              // Применяем стили ко всем элементам этого типа во всех секциях
+              Object.keys(updatedSections).forEach(sectionKey => {
+                if (updatedSections[sectionKey].elements) {
+                  const matchingElements = updatedSections[sectionKey].elements.filter(el => el.type === elementType);
+                  
+                  if (matchingElements.length > 0) {
+                    console.log(`🎯 [AI Дизайн Система] Найдено ${matchingElements.length} элементов типа ${elementType} в секции ${sectionKey}`);
+                    
+                    matchingElements.forEach((currentElement, elementIndex) => {
+                      const originalIndex = updatedSections[sectionKey].elements.indexOf(currentElement);
+                      console.log(`🎯 [AI Дизайн Система] Применяем стили к элементу ${elementType} #${elementIndex} в секции ${sectionKey}, общий индекс #${originalIndex}`);
+                      
+                      // Создаем colorSettings если их нет
+                      if (!currentElement.colorSettings) {
+                        currentElement.colorSettings = {};
+                      }
+                      
+                      // ПРИНУДИТЕЛЬНОЕ ПРИМЕНЕНИЕ СТИЛЕЙ ИЗ JSON К ЭЛЕМЕНТУ
+                      let updatedElement = {
+                        ...currentElement, // Сохраняем ВСЕ существующие данные
+                        
+                        // ПРАВИЛЬНОЕ СЛИЯНИЕ COLOR SETTINGS ИЗ JSON
+                        colorSettings: {
+                          // Сохраняем существующие настройки
+                          ...currentElement.colorSettings,
+                          
+                          // Перезаписываем настройками из JSON (приоритет)
+                          ...jsonElement.colorSettings,
+                          
+                          // Глубокое слияние textFields
+                          textFields: {
+                            ...currentElement.colorSettings?.textFields,
+                            ...jsonElement.colorSettings?.textFields
+                          },
+                          
+                          // Глубокое слияние sectionBackground (только для элемента, не для глобального фона)
+                          sectionBackground: {
+                            ...currentElement.colorSettings?.sectionBackground,
+                            ...jsonElement.colorSettings?.sectionBackground,
+                            // Убеждаемся, что sectionBackground применяется только к элементу
+                            isElementBackground: true
+                          },
+                          
+                          // Глубокое слияние cardBackground
+                          cardBackground: {
+                            ...currentElement.colorSettings?.cardBackground,
+                            ...jsonElement.colorSettings?.cardBackground
+                          }
+                        }
+                      };
+                      
+                      // Применяем специальную обработку для разных типов элементов
+                      if (elementType === 'faq-section' && jsonElement.colorSettings) {
+                        // Специальная обработка для FAQ
+                        const items = updatedElement.items || updatedElement.data?.items || [];
+                        if (items && Array.isArray(items)) {
+                          const updatedItems = items.map(item => ({
+                            ...item,
+                            questionColor: jsonElement.colorSettings.textFields?.question || jsonElement.colorSettings.textFields?.questionText || '#ffff00',
+                            answerColor: jsonElement.colorSettings.textFields?.answer || jsonElement.colorSettings.textFields?.answerText || '#00ffff'
+                          }));
+                          
+                          if (updatedElement.items) {
+                            updatedElement.items = updatedItems;
+                          } else if (updatedElement.data) {
+                            updatedElement.data.items = updatedItems;
+                          } else {
+                            updatedElement.data = updatedElement.data || {};
+                            updatedElement.data.items = updatedItems;
+                          }
+                        }
+                      }
+                      
+                      if (elementType === 'multiple-cards' && jsonElement.colorSettings) {
+                        // Специальная обработка для карточек
+                        const cards = updatedElement.cards || updatedElement.data?.cards || [];
+                        if (cards && Array.isArray(cards)) {
+                          const updatedCards = cards.map(card => ({
+                            ...card,
+                            colorSettings: {
+                              textFields: {
+                                title: jsonElement.colorSettings.textFields?.cardTitle || jsonElement.colorSettings.textFields?.title || '#8e24aa',
+                                text: jsonElement.colorSettings.textFields?.cardText || jsonElement.colorSettings.textFields?.text || '#8e24aa',
+                                content: jsonElement.colorSettings.textFields?.cardContent || jsonElement.colorSettings.textFields?.content || '#8e24aa',
+                                border: jsonElement.colorSettings.textFields?.border || '#e0e0e0'
+                              },
+                              sectionBackground: {
+                                enabled: true,
+                                useGradient: jsonElement.colorSettings.cardBackground?.useGradient || false,
+                                solidColor: jsonElement.colorSettings.cardBackground?.solidColor || '#ffffff',
+                                gradientColor1: jsonElement.colorSettings.cardBackground?.gradientColor1 || '#000000',
+                                gradientColor2: jsonElement.colorSettings.cardBackground?.gradientColor2 || '#8b0000',
+                                gradientDirection: jsonElement.colorSettings.cardBackground?.gradientDirection || 'to right',
+                                opacity: jsonElement.colorSettings.cardBackground?.opacity || 1
+                              },
+                              borderWidth: 1,
+                              borderRadius: 8,
+                              padding: 24,
+                              boxShadow: false
+                            }
+                          }));
+                          
+                          if (updatedElement.cards) {
+                            updatedElement.cards = updatedCards;
+                          } else if (updatedElement.data) {
+                            updatedElement.data.cards = updatedCards;
+                          } else {
+                            updatedElement.data = updatedElement.data || {};
+                            updatedElement.data.cards = updatedCards;
+                          }
+                        }
+                      }
+                      
+                      console.log(`✅ [AI Дизайн Система] Обновленный элемент ${elementType} #${elementIndex}:`, updatedElement);
+                      console.log(`🎯 [AI Дизайн Система] Применены стили из JSON:`, jsonElement.colorSettings);
+                      
+                      // Обновляем элемент в секции
+                      updatedSections[sectionKey].elements[originalIndex] = updatedElement;
+                    });
+                  }
+                }
+              });
+            }
+          }
+        });
+        
+        // УНИВЕРСАЛЬНАЯ ОБРАБОТКА: Применяем стили ко всем элементам из JSON независимо от структуры секций
+        console.log('🔍 [AI Дизайн Система] УНИВЕРСАЛЬНАЯ ОБРАБОТКА: Ищем все элементы из JSON по всему сайту...');
+        
+        // Собираем все элементы из JSON (включая обычные секции и element_type_)
+        const allJsonElements = [];
+        Object.keys(designSystemJson.sections).forEach(sectionKey => {
+          const sectionData = designSystemJson.sections[sectionKey];
+          if (sectionData.elements && Array.isArray(sectionData.elements)) {
+            sectionData.elements.forEach(jsonElement => {
+              allJsonElements.push({
+                type: jsonElement.type,
+                colorSettings: jsonElement.colorSettings,
+                sourceSection: sectionKey
+              });
+            });
+          }
+        });
+        
+        console.log('🔍 [AI Дизайн Система] Найдено элементов в JSON:', allJsonElements.length);
+        console.log('🔍 [AI Дизайн Система] Типы элементов в JSON:', allJsonElements.map(el => el.type));
+        
+        // Применяем стили для каждого типа элемента из JSON ко всем элементам этого типа на сайте
+        const processedTypes = new Set();
+        let totalProcessedElements = 0;
+        
+        allJsonElements.forEach(jsonElementData => {
+          const { type: elementType, colorSettings } = jsonElementData;
+          
+          // Пропускаем уже обработанные типы
+          if (processedTypes.has(elementType)) {
+            return;
+          }
+          processedTypes.add(elementType);
+          
+          console.log(`🎯 [AI Дизайн Система] УНИВЕРСАЛЬНАЯ ОБРАБОТКА: Применяем стили к типу ${elementType}`);
+          
+          // Ищем ВСЕ элементы этого типа во ВСЕХ секциях
+          Object.keys(updatedSections).forEach(sectionKey => {
+            if (updatedSections[sectionKey].elements) {
+              const matchingElements = updatedSections[sectionKey].elements.filter(el => el.type === elementType);
+              
+              if (matchingElements.length > 0) {
+                console.log(`🎯 [AI Дизайн Система] УНИВЕРСАЛЬНАЯ: Найдено ${matchingElements.length} элементов типа ${elementType} в секции ${sectionKey}`);
+                
+                matchingElements.forEach((currentElement, elementIndex) => {
+                  const originalIndex = updatedSections[sectionKey].elements.indexOf(currentElement);
+                  
+                  // Создаем colorSettings если их нет
+                  if (!currentElement.colorSettings) {
+                    currentElement.colorSettings = {};
+                  }
+                  
+                  // ПРИНУДИТЕЛЬНОЕ ПРИМЕНЕНИЕ СТИЛЕЙ ИЗ JSON К ЭЛЕМЕНТУ
+                  const updatedElement = {
+                    ...currentElement,
+                    colorSettings: {
+                      ...currentElement.colorSettings,
+                      ...colorSettings,
+                      textFields: {
+                        ...currentElement.colorSettings?.textFields,
+                        ...colorSettings?.textFields
+                      },
+                      sectionBackground: {
+                        ...currentElement.colorSettings?.sectionBackground,
+                        ...colorSettings?.sectionBackground,
+                        isElementBackground: true
+                      },
+                      cardBackground: {
+                        ...currentElement.colorSettings?.cardBackground,
+                        ...colorSettings?.cardBackground
+                      }
+                    }
+                  };
+                  
+                  // Специальная обработка для разных типов элементов
+                  if (elementType === 'faq-section' && colorSettings) {
+                    const items = updatedElement.items || updatedElement.data?.items || [];
+                    if (items && Array.isArray(items)) {
+                      const updatedItems = items.map(item => ({
+                        ...item,
+                        questionColor: colorSettings.textFields?.question || colorSettings.textFields?.questionText || item.questionColor,
+                        answerColor: colorSettings.textFields?.answer || colorSettings.textFields?.answerText || item.answerColor
+                      }));
+                      
+                      if (updatedElement.items) {
+                        updatedElement.items = updatedItems;
+                      } else if (updatedElement.data) {
+                        updatedElement.data.items = updatedItems;
+                      } else {
+                        updatedElement.data = { items: updatedItems };
+                      }
+                    }
+                  }
+                  
+                  if (elementType === 'multiple-cards' && colorSettings) {
+                    const cards = updatedElement.cards || updatedElement.data?.cards || [];
+                    if (cards && Array.isArray(cards)) {
+                      const updatedCards = cards.map(card => ({
+                        ...card,
+                        colorSettings: {
+                          textFields: {
+                            title: colorSettings.textFields?.cardTitle || colorSettings.textFields?.title || card.colorSettings?.textFields?.title,
+                            text: colorSettings.textFields?.cardText || colorSettings.textFields?.text || card.colorSettings?.textFields?.text,
+                            content: colorSettings.textFields?.cardContent || colorSettings.textFields?.content || card.colorSettings?.textFields?.content,
+                            border: colorSettings.textFields?.border || card.colorSettings?.textFields?.border
+                          },
+                          sectionBackground: {
+                            enabled: true,
+                            useGradient: colorSettings.cardBackground?.useGradient || card.colorSettings?.sectionBackground?.useGradient || false,
+                            solidColor: colorSettings.cardBackground?.solidColor || card.colorSettings?.sectionBackground?.solidColor || '#ffffff',
+                            gradientColor1: colorSettings.cardBackground?.gradientColor1 || card.colorSettings?.sectionBackground?.gradientColor1 || '#ffffff',
+                            gradientColor2: colorSettings.cardBackground?.gradientColor2 || card.colorSettings?.sectionBackground?.gradientColor2 || '#f0f0f0',
+                            gradientDirection: colorSettings.cardBackground?.gradientDirection || card.colorSettings?.sectionBackground?.gradientDirection || 'to right',
+                            opacity: colorSettings.cardBackground?.opacity || card.colorSettings?.sectionBackground?.opacity || 1
+                          },
+                          borderWidth: colorSettings.borderWidth || card.colorSettings?.borderWidth || 1,
+                          borderRadius: colorSettings.borderRadius || card.colorSettings?.borderRadius || 8,
+                          padding: colorSettings.padding || card.colorSettings?.padding || 24,
+                          boxShadow: colorSettings.boxShadow || card.colorSettings?.boxShadow || false
+                        }
+                      }));
+                      
+                      if (updatedElement.cards) {
+                        updatedElement.cards = updatedCards;
+                      } else if (updatedElement.data) {
+                        updatedElement.data.cards = updatedCards;
+                      } else {
+                        updatedElement.data = { cards: updatedCards };
+                      }
+                    }
+                  }
+                  
+                  // Обновляем элемент в секции
+                  updatedSections[sectionKey].elements[originalIndex] = updatedElement;
+                  totalProcessedElements++;
+                  
+                  console.log(`✅ [AI Дизайн Система] УНИВЕРСАЛЬНАЯ: Применены стили к элементу ${elementType} в секции ${sectionKey}`);
+                });
+              }
+            }
+          });
+        });
+        
+        console.log(`📊 [AI Дизайн Система] УНИВЕРСАЛЬНАЯ ОБРАБОТКА: Обработано ${totalProcessedElements} элементов, типов: ${processedTypes.size}`);
+        console.log(`📊 [AI Дизайн Система] Обработанные типы:`, Array.from(processedTypes));
+        
         console.log('🎨 [AI Дизайн Система] Обновленные секции:', updatedSections);
         console.log('🎨 [AI Дизайн Система] Вызываем onSectionsChange с обновленными данными');
         onSectionsChange(updatedSections);
@@ -9333,19 +9635,23 @@ ID: [название секции на ${languageName}, желательно о
               onSectionsChange(updatedSections);
 
               // Обновляем homePageSettings для автоматического выбора первого раздела как выделенного
+              // НО ТОЛЬКО если пользователь не отключил эту настройку
               const availableSections = Object.keys(updatedSections);
               if (availableSections.length > 0) {
                 const firstSectionId = availableSections[0];
                 console.log('🎯 Автоматически выбираем первый раздел как выделенный:', firstSectionId);
                 
+                // Сохраняем текущие настройки пользователя
+                const currentHomePageSettings = heroData.homePageSettings || {};
                 const updatedHomePageSettings = {
-                  showFeaturedSection: true,
+                  ...currentHomePageSettings,
                   featuredSectionId: firstSectionId,
-                  showSectionsPreview: false,
-                  sectionsDisplayMode: 'cards',
-                  maxSectionsToShow: 6,
-                  sectionsOrder: [],
-                  showContactPreview: false
+                  // НЕ принудительно включаем showFeaturedSection - оставляем как есть
+                  showSectionsPreview: currentHomePageSettings.showSectionsPreview || false,
+                  sectionsDisplayMode: currentHomePageSettings.sectionsDisplayMode || 'cards',
+                  maxSectionsToShow: currentHomePageSettings.maxSectionsToShow || 6,
+                  sectionsOrder: currentHomePageSettings.sectionsOrder || [],
+                  showContactPreview: currentHomePageSettings.showContactPreview || false
                 };
                 
                 // Получаем уже обновленные hero данные (с title и subtitle из парсинга)
@@ -10569,46 +10875,36 @@ ID: [название секции на ${languageName}, желательно о
                   <Button
                     variant="outlined"
                     size="small"
-                    onClick={() => setJsonPromptDescription(`Требования к цветовому стилю:
-- Используйте современные градиенты и контрастные цвета
-- Обеспечьте ОТЛИЧНУЮ читаемость текста - это ПРИОРИТЕТ
-- Используйте светлые фоны с темным текстом для лучшей читаемости
-- Применяйте темные фоны только с очень светлым текстом
-- Используйте цветовую схему: основные цвета #00d4ff, #ff6b6b, #facc15
-- Добавляйте тени и скругления для современного вида
+                    onClick={() => setJsonPromptDescription(`Ты эксперт веб-дизайна. Выведи JSON со стилями для сайта.
 
-ДЕТАЛЬНЫЕ ТРЕБОВАНИЯ ДЛЯ GPT-5:
-1. ЧИТАЕМОСТЬ ПРЕВЫШЕ ВСЕГО: Обеспечьте максимальный контраст между текстом и фоном:
-   - СВЕТЛЫЕ ФОНЫ (#ffffff, #f8f9fa, #e3f2fd) с ТЕМНЫМ текстом (#333333, #000000)
-   - Темные фоны (#1a1a2e, #16213e) ТОЛЬКО с БЕЛЫМ текстом (#ffffff)
-   - НИКОГДА не используйте темный текст на темном фоне
-   - НИКОГДА не используйте светлый текст на светлом фоне
+ЦВЕТОВАЯ СХЕМА:
+- Фон секций: градиент от серого (#808080) к серо-голубому (#778899)
+- Заливки элементов: похожие оттенки серого (#696969, #708090)
+- Заголовки (title): фиолетовый (#9370DB, #8A2BE2)
+- Основной текст (text): красный (#DC143C, #B22222)
+- Описания (description): другой уникальный цвет
+- Фон карточек: обязательно градиенты
 
-2. ЦВЕТОВАЯ ПАЛИТРА ДЛЯ ТЕКСТА:
-   - title: #333333 (темно-серый) - для заголовков на светлом фоне
-   - text: #333333 (темно-серый) - для основного текста на светлом фоне
-   - description: #666666 (серый) - для описаний на светлом фоне
-   - cardTitle: #000000 (черный) - для заголовков карточек на светлом фоне
-   - cardText: #333333 (темно-серый) - для текста в карточках на светлом фоне
-   - cardContent: #444444 (темно-серый) - для контента карточек на светлом фоне
+КРИТИЧЕСКИ ВАЖНО - КОНТРАСТ:
+- Текст и фон ВСЕГДА должны отличаться
+- Текст и заливка НИКОГДА не сливаются
+- Проверяй читаемость каждого элемента
+- При наведении фон меняется, но текст остается читаемым
 
-3. ФОНОВЫЕ ЦВЕТА (ПРИОРИТЕТ - СВЕТЛЫЕ):
-   - sectionBackground: СВЕТЛЫЙ градиент от #ffffff к #f8f9fa
-   - cardBackground: СВЕТЛЫЙ градиент от #ffffff к #e3f2fd
-   - Используйте направление "to right" или "to bottom right"
-   - Если нужен темный фон - используйте ТОЛЬКО с белым текстом
+ГРАДИЕНТНЫЙ ТЕКСТ (gradient-text) - МАКСИМАЛЬНОЕ ВНИМАНИЕ:
+- Градиент текста ОБЯЗАТЕЛЬНО с маленьким переходом между близкими оттенками
+- Цвета градиента: от темного к чуть светлее (#2C3E50 → #34495E)
+- Или светлые оттенки: от яркого к насыщенному (#E74C3C → #C0392B)
+- НЕ используй контрастные цвета в градиенте текста (красный→синий ❌)
+- Текст с градиентом должен ВСЕГДА контрастировать с фоном
+- Если фон темный - градиент текста светлый (#F39C12 → #F1C40F)
+- Если фон светлый - градиент текста темный (#2C3E50 → #34495E)
 
-4. ДОПОЛНИТЕЛЬНЫЕ ЭФФЕКТЫ:
-   - borderColor: #00d4ff для границ карточек
-   - boxShadow: true для объемности
-   - borderRadius: 8px для скругления углов
-   - borderWidth: 1-2px для четкости границ
-
-5. ПРИМЕНЕНИЕ К JSON: В сгенерированном JSON каждое поле colorSettings должно содержать:
-   - СВЕТЛЫЕ фоны с темным текстом для максимальной читаемости
-   - Темные фоны ТОЛЬКО с белым текстом
-   - Проверку контраста: темный текст на светлом фоне, светлый текст на темном фоне
-   - Обеспечение читаемости на всех фонах`)}
+ДОПОЛНИТЕЛЬНО:
+- Границы (borderColor): уникальный цвет
+- Тени (boxShadow): true для объема
+- Скругления (borderRadius): 8-12px
+- Все цвета используй в HEX формате (#RRGGBB)`)}
                     sx={{ color: '#2196f3', borderColor: '#2196f3' }}
                   >
                     🔄 Сбросить к умолчанию
@@ -11254,9 +11550,9 @@ ID: [название секции на ${languageName}, желательно о
                             <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                               <span>{statusColor.icon}</span>
                               <Chip 
-                                label={`${element.elementIndex + 1}`} 
+                                label={element.count} 
                                 size="small" 
-                                color="default" 
+                                color="primary" 
                                 variant="outlined"
                                 sx={{ minWidth: 24, height: 20, fontSize: '0.7rem' }}
                               />
@@ -11268,7 +11564,7 @@ ID: [название секции на ${languageName}, желательно о
                           }
                           secondary={
                             <Typography variant="caption" color="textSecondary">
-                              Секция: {element.sectionTitle} • Позиция: {element.elementIndex + 1}
+                              Найдено {element.count} экземпляров в {element.instances.length} секциях
                             </Typography>
                           }
                         />

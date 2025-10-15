@@ -20505,223 +20505,50 @@ const EditorPanel = ({
 
 
 
-      /* Header styles for multi-page export */
+      /* 🧹 СТИЛИ ШАПКИ УДАЛЕНЫ - теперь работают только из header.js */
 
-      .site-header { 
 
-        background: var(--header-bg-color, #fff); 
 
-        padding: 0.25rem 0.5rem; 
 
-        border-bottom: 1px solid #eee; 
 
-        position: sticky;
 
-        top: 0;
 
-        z-index: 1000;
 
-      }
 
 
 
-      .header-content {
 
-        display: flex;
 
-        justify-content: space-between;
 
-        align-items: center;
 
-        flex-wrap: wrap;
 
-        max-width: 1200px;
 
-        margin: 0 auto;
 
-        gap: 0.5rem;
 
-      }
 
 
 
-      .site-branding {
 
-        display: flex;
 
-        flex-direction: row;
 
-        align-items: center;
 
-        margin-right: 0.5rem;
 
-        flex-shrink: 1;
 
-        min-width: 0;
 
-      }
 
 
 
-      .site-title {
 
-        margin: 0;
 
-        font-size: 1.5rem;
 
-        font-weight: 700;
 
-      }
 
 
 
-      .site-nav {
 
-        display: flex;
 
-        align-items: center;
 
-        flex-shrink: 0;
 
-      }
-
-
-
-      .site-title a {
-
-        color: var(--header-title-color, #333);
-
-        text-decoration: none;
-
-        transition: color 0.3s ease;
-
-      }
-
-
-
-      .site-title a:hover {
-
-        color: var(--header-title-color, #333);
-
-        opacity: 0.8;
-
-      }
-
-
-
-      .site-domain {
-
-        font-size: 0.9rem;
-
-        color: var(--header-title-color, #666);
-
-        opacity: 0.8;
-
-        margin-top: 4px;
-
-      }
-
-
-
-      .site-nav {
-
-        position: relative;
-
-      }
-
-
-
-      .menu-toggle {
-
-        display: none;
-
-        flex-direction: column;
-
-        background: none;
-
-        border: none;
-
-        cursor: pointer;
-
-        padding: 0.5rem;
-
-        color: #1976d2;
-
-      }
-
-
-
-      .menu-toggle span {
-
-        width: 25px;
-
-        height: 3px;
-
-        background: var(--header-link-color, #1976d2) !important;
-
-        margin: 3px 0;
-
-        transition: 0.3s;
-
-      }
-
-
-
-      .nav-menu {
-
-        display: flex;
-
-        list-style: none;
-
-        margin: 0;
-
-        padding: 0;
-
-        gap: 0.5rem;
-
-        align-items: center;
-
-      }
-
-
-
-      .nav-menu li {
-
-        margin: 0;
-
-        list-style: none;
-
-      }
-
-
-
-      .nav-menu li a {
-
-        all: unset;
-
-        cursor: pointer;
-
-      }
-
-
-
-      .nav-menu a,
-
-      .nav-link {
-
-        color: var(--header-link-color, #333) !important;
-
-        text-decoration: none !important;
-
-        font-weight: 500;
-
-        transition: all 0.3s ease;
-
-        padding: 0.125rem 0.25rem;
-
-        border-radius: 4px;
-
-        background: transparent !important;
 
         display: inline-block;
 
@@ -20739,35 +20566,7 @@ const EditorPanel = ({
 
 
 
-      .nav-menu a:hover,
-
-      .nav-link:hover {
-
-        color: var(--header-link-color, #1976d2) !important;
-
-        background: rgba(0, 0, 0, 0.05) !important;
-
-        opacity: 1;
-
-        transform: none !important;
-
-      }
-
-
-
-      /* ПРОСТЫЕ СТИЛИ ДЛЯ АКТИВНОЙ ССЫЛКИ */
-
-      .nav-link.active {
-
-        background: #1976d2 !important;
-
-        color: #ffffff !important;
-
-        font-weight: bold !important;
-
-        border-radius: 20px !important;
-
-        padding: 0.5rem 1rem !important;
+      /* 🗑️ СТИЛИ НАВИГАЦИИ УДАЛЕНЫ - создаются вручную */
 
         box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3) !important;
 
@@ -20779,107 +20578,7 @@ const EditorPanel = ({
 
       /* Mobile responsiveness */
 
-      @media (max-width: 768px) {
-
-        .site-header {
-
-          padding: 0.25rem;
-
-        }
-
-        
-
-        .menu-toggle {
-
-          display: flex !important;
-
-          color: var(--header-link-color, #1976d2) !important;
-
-          background: transparent !important;
-
-          border: none !important;
-
-          cursor: pointer !important;
-
-          padding: 0.5rem !important;
-
-        }
-
-        
-
-        .menu-toggle span {
-
-          background: var(--header-link-color, #1976d2) !important;
-
-          color: var(--header-link-color, #1976d2) !important;
-
-          width: 25px !important;
-
-          height: 3px !important;
-
-          margin: 3px 0 !important;
-
-          display: block !important;
-
-        }
-
-        
-
-        .nav-menu {
-
-          position: absolute;
-
-          top: 100%;
-
-          left: 0;
-
-          right: 0;
-
-          background: var(--header-bg-color, #fff);
-
-          flex-direction: column;
-
-          padding: 0.25rem;
-
-          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-
-          display: none;
-
-          gap: 0.25rem;
-
-        }
-
-        
-
-        .nav-menu.active {
-
-          display: flex;
-
-        }
-
-        
-
-        .header-content {
-
-          flex-wrap: wrap;
-
-        }
-
-        
-
-        .site-branding {
-
-          margin-right: 0.25rem;
-
-          margin-left: 0.5rem;
-
-          flex-shrink: 1;
-
-          min-width: 0;
-
-        }
-
-      }
+      /* 🗑️ МОБИЛЬНЫЕ СТИЛИ НАВИГАЦИИ УДАЛЕНЫ - создаются вручную */
 
 
 
@@ -21251,342 +20950,7 @@ const EditorPanel = ({
 
 
 
-      /* Other styles */
-
-      header {
-
-        position: fixed;
-
-        top: 0;
-
-        left: 0;
-
-        right: 0;
-
-        z-index: 1000;
-
-      }
-
-
-
-      nav {
-
-        padding: 1rem;
-
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-
-      }
-
-
-
-      .nav-container {
-
-        max-width: 1200px;
-
-        margin: 0 auto;
-
-        display: flex;
-
-        justify-content: space-between;
-
-        align-items: center;
-
-        padding: 0 1rem;
-
-      }
-
-
-
-      .logo {
-
-        font-size: 1.5rem;
-
-        font-weight: 700;
-
-        text-decoration: none;
-
-        white-space: nowrap;
-
-        margin-right: 1rem;
-
-        flex-shrink: 1;
-
-        min-width: 0;
-
-        overflow: hidden;
-
-        text-overflow: ellipsis;
-
-      }
-
-
-
-      .domain {
-
-        display: block;
-
-        margin-top: 0.25rem;
-
-        font-size: 0.9rem;
-
-        font-weight: normal;
-
-        opacity: 0.8;
-
-        white-space: nowrap;
-
-      }
-
-
-
-      .nav-menu {
-
-        display: flex;
-
-        list-style: none;
-
-        margin: 0;
-
-        padding: 0;
-
-        flex-wrap: nowrap;
-
-      }
-
-
-
-      .nav-menu li {
-
-        margin-left: 2rem;
-
-        white-space: nowrap;
-
-      }
-
-
-
-      .nav-menu a {
-
-        text-decoration: none;
-
-        position: relative;
-
-        white-space: nowrap;
-
-      }
-
-
-
-      .nav-menu a::after {
-
-        content: '';
-
-        position: absolute;
-
-        bottom: -5px;
-
-        left: 0;
-
-        width: 0;
-
-        height: 2px;
-
-        background-color: currentColor;
-
-        transition: width 0.3s ease;
-
-      }
-
-
-
-      .nav-menu a:hover::after {
-
-        width: 100%;
-
-      }
-
-
-
-
-
-      .menu-toggle span {
-
-        display: block;
-
-        width: 25px;
-
-        height: 3px;
-
-        background: var(--header-link-color, #333);
-
-        margin: 5px 0;
-
-        transition: all 0.3s ease;
-
-      }
-
-
-
-      @media (max-width: 768px) {
-
-
-
-        .nav-menu {
-
-          display: none !important;
-
-          position: absolute;
-
-          top: 100%;
-
-          left: 0;
-
-          right: 0;
-
-          background: var(--menu-bg-color, #fff);
-
-          padding: 1rem 0;
-
-          flex-direction: column;
-
-          box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-
-          z-index: 1001;
-
-          border-bottom-left-radius: 12px;
-
-          border-bottom-right-radius: 12px;
-
-        }
-
-
-
-        .nav-menu.active {
-
-          display: flex !important;
-
-        }
-
-
-
-        .nav-menu li {
-
-          margin: 0.5rem 0;
-
-          width: 100%;
-
-          text-align: center;
-
-        }
-
-
-
-        .nav-menu a {
-
-          display: block;
-
-          padding: 0.75rem 1rem;
-
-          font-size: 1.1rem;
-
-          font-weight: 500;
-
-          color: var(--menu-link-color, #1976d2) !important;
-
-          background: transparent;
-
-          transition: color 0.3s;
-
-        }
-
-
-
-        .nav-menu a::after {
-
-          display: none;
-
-        }
-
-        
-
-        .nav-link.active {
-
-          background: #1976d2 !important;
-
-          color: #ffffff !important;
-
-          font-weight: bold !important;
-
-          border-radius: 20px !important;
-
-          padding: 0.5rem 1rem !important;
-
-          box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3) !important;
-
-          transition: all 0.3s ease !important;
-
-        }
-
-        @media (max-width: 1024px) {
-          .site-nav ul {
-            gap: 0.3rem;
-          }
-          
-          .site-nav a {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.9rem;
-          }
-        }
-
-
-
-        .logo {
-
-          font-size: 1.1rem;
-
-          margin-right: 0.5rem;
-
-          white-space: nowrap;
-
-          flex-shrink: 1;
-
-          min-width: 0;
-
-          overflow: hidden;
-
-          text-overflow: ellipsis;
-
-        }
-
-      }
-
-
-
-      @media (max-width: 480px) {
-
-        .nav-container {
-
-          padding: 0 0.5rem;
-
-        }
-
-
-
-        .logo {
-
-          font-size: 1rem;
-
-        }
-
-
-
-        .nav-menu a {
-
-          font-size: 0.9rem;
-
-        }
-
-      }
+      /* Old header styles removed - now using header.js */
 
 
 
@@ -22900,31 +22264,6 @@ const EditorPanel = ({
 
 
 
-      @media (max-width: 768px) {
-
-        .nav-container {
-
-          padding: 0 0.5rem;
-
-        }
-
-
-
-        .logo {
-
-          font-size: 1rem;
-
-        }
-
-
-
-        .nav-menu a {
-
-          font-size: 0.9rem;
-
-        }
-
-      }
 
 
 
@@ -23166,355 +22505,19 @@ const EditorPanel = ({
 
 
 
-      /* Multi-page specific styles */
+      /* Old multi-page header styles removed - now using header.js */
 
-      
 
-      /* Site Header for multi-page */
 
-      .site-header {
 
-        background: ${activeHeaderData.backgroundColor};
 
-        color: ${activeHeaderData.titleColor};
 
-        padding: 1rem 0;
 
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 
-        position: sticky;
 
-        top: 0;
 
-        z-index: 1000;
 
-      }
 
-
-
-      .site-header .container {
-
-        max-width: 1200px;
-
-        margin: 0 auto;
-
-        padding: 0 1rem;
-
-      }
-
-
-
-      .site-header .header-content {
-
-        display: flex;
-
-        justify-content: space-between;
-
-        align-items: center;
-
-      }
-
-
-
-      .site-header .site-title {
-
-        margin: 0;
-
-        font-size: 1.8rem;
-
-        font-weight: 700;
-
-      }
-
-
-
-      .site-header .site-title a {
-
-        color: inherit;
-
-        text-decoration: none;
-
-      }
-
-
-
-      .site-nav ul {
-
-        display: flex;
-
-        list-style: none;
-
-        margin: 0;
-
-        padding: 0;
-
-        gap: 0.5rem;
-
-        flex-wrap: wrap;
-
-        align-items: center;
-
-      }
-
-
-
-      .site-nav a {
-
-        color: ${activeHeaderData.linksColor};
-
-        text-decoration: none;
-
-        font-weight: 500;
-
-        padding: 0.3rem 0.6rem;
-
-        border-radius: 8px;
-
-        transition: all 0.3s ease;
-
-        white-space: nowrap;
-
-      }
-
-
-
-      .site-nav a:hover,
-
-      .site-nav a.active {
-
-        background: rgba(255,255,255,0.1);
-
-        transform: translateY(-2px);
-
-      }
-
-
-
-
-
-      .menu-toggle span {
-
-        width: 100%;
-
-        height: 3px;
-
-        background: var(--header-link-color, #333);
-
-        border-radius: 2px;
-
-        transition: all 0.3s ease;
-
-        transform-origin: center;
-
-      }
-
-
-
-      .menu-toggle.active span:nth-child(1) {
-
-        transform: translateY(9px) rotate(45deg);
-
-      }
-
-
-
-      .menu-toggle.active span:nth-child(2) {
-
-        opacity: 0;
-
-      }
-
-
-
-      .menu-toggle.active span:nth-child(3) {
-
-        transform: translateY(-9px) rotate(-45deg);
-
-      }
-
-
-
-      /* Site Footer for multi-page */
-
-      .site-footer {
-
-        background: #2c3e50;
-
-        color: white;
-
-        margin-top: 4rem;
-
-        padding: 3rem 0 1rem;
-
-      }
-
-
-
-      .footer-container {
-
-        max-width: 1200px;
-
-        margin: 0 auto;
-
-        padding: 0 1rem;
-
-      }
-
-
-
-      .footer-content {
-
-        display: grid;
-
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-
-        gap: 2rem;
-
-        margin-bottom: 2rem;
-
-      }
-
-
-
-      .footer-info h3 {
-
-        color: #ecf0f1;
-
-        margin-bottom: 1rem;
-
-        font-size: 1.5rem;
-
-        font-weight: 600;
-
-      }
-
-
-
-      .footer-info p {
-
-        color: #bdc3c7;
-
-        line-height: 1.6;
-
-        margin-bottom: 0.5rem;
-
-      }
-
-
-
-      .footer-links h4,
-
-      .footer-contact h4 {
-
-        color: #ecf0f1;
-
-        margin-bottom: 1rem;
-
-        font-size: 1.2rem;
-
-        font-weight: 600;
-
-      }
-
-
-
-      .footer-links ul {
-
-        list-style: none;
-
-        padding: 0;
-
-      }
-
-
-
-      .footer-links li {
-
-        margin-bottom: 0.5rem;
-
-      }
-
-
-
-      .footer-links a {
-
-        color: #bdc3c7;
-
-        text-decoration: none;
-
-        transition: color 0.3s ease;
-
-      }
-
-
-
-      .footer-links a:hover {
-
-        color: #3498db;
-
-      }
-
-
-
-      .footer-contact p {
-
-        color: #bdc3c7;
-
-        margin-bottom: 0.5rem;
-
-        line-height: 1.6;
-
-      }
-
-
-
-      .footer-bottom {
-
-        border-top: 1px solid #34495e;
-
-        padding-top: 1rem;
-
-        text-align: center;
-
-      }
-
-
-
-      .footer-bottom p {
-
-        color: #95a5a6;
-
-        margin: 0;
-
-        font-size: 0.9rem;
-
-      }
-
-
-
-      @media (max-width: 768px) {
-
-        .footer-content {
-
-          grid-template-columns: 1fr;
-
-          gap: 1.5rem;
-
-        }
-
-        
-
-        .footer-info,
-
-        .footer-links,
-
-        .footer-contact {
-
-          text-align: center;
-
-        }
-
-      }
 
 
 
@@ -24234,11 +23237,6 @@ const EditorPanel = ({
 
 
 
-        .nav-menu.active {
-
-          transform: translateX(0);
-
-        }
 
 
 
@@ -26956,7 +25954,624 @@ const EditorPanel = ({
 
   };
 
+  // 🆕 Генерация отдельного файла шапки для EditorPanel
+  const generateHeaderJS = (siteData) => {
+    const headerData = siteData.headerData || {};
+    const siteName = headerData.siteName || 'My Site';
+    const sectionsArray = Object.entries(siteData.sectionsData || {});
+    
+    // Генерируем стили хедера из headerData
+    const headerStyles = [];
+    
+    if (headerData.backgroundColor) {
+      headerStyles.push(`--header-bg-color: ${headerData.backgroundColor}`);
+    }
+    if (headerData.titleColor) {
+      headerStyles.push(`--header-title-color: ${headerData.titleColor}`);
+    }
+    if (headerData.linksColor) {
+      headerStyles.push(`--header-link-color: ${headerData.linksColor}`);
+    }
+    
+    const indexFile = getIndexFileName();
+    
+    // Генерируем навигационные ссылки из headerData.menuItems (если есть) или из секций
+    let navigationLinks = '';
+    
+    if (headerData.menuItems && headerData.menuItems.length > 0) {
+      // Используем menuItems из headerData, но генерируем правильные файловые ссылки
+      navigationLinks += headerData.menuItems.map(item => {
+        // Находим соответствующую секцию по ID для генерации правильной ссылки
+        const sectionData = sectionsArray.find(([sectionId, data]) => data?.id === item.id)?.[1];
+        let url = '#';
+        
+        if (sectionData) {
+          const fileName = getSectionFileNameSafe(item.id, sectionData);
+          url = fileName ? `${fileName}.html` : '#';
+        } else if (item.url && item.url !== '#') {
+          // Если это внешняя ссылка или специальная ссылка
+          url = item.url;
+        }
+        
+        const text = item.text || item.title || '';
+        return `<li><a href="${url}">${text.toLowerCase()}</a></li>`;
+      }).join('');
+    } else {
+      // Fallback: используем секции
+      navigationLinks += sectionsArray.map(([sectionId, sectionData]) => {
+        // Исключаем раздел проверки возраста из навигации
+        const isAgeVerification = sectionId === 'age-verification' || 
+                                 sectionId === 'проверка возраста' ||
+                                 sectionData.title?.toLowerCase().includes('подтверждение возраста') ||
+                                 sectionData.title?.toLowerCase().includes('проверка возраста') ||
+                                 sectionData.title?.toLowerCase().includes('age verification');
+        
+        if (isAgeVerification) {
+          return '';
+        }
+        
+        const fileName = getSectionFileNameSafe(sectionId, sectionData);
+        const displayName = getSectionDisplayNameSafe(sectionId, sectionData);
+        
+        return fileName ? `<li><a href="${fileName}.html">${displayName.toLowerCase()}</a></li>` : '';
+      }).join('');
+    }
+    
+    // Добавляем контакты в навигацию
+    if (siteData.contactData) {
+      const contactFileName = getContactFileNameSafe(siteData.contactData);
+      const contactTitle = siteData.contactData?.title || 'Контакты';
+      navigationLinks += `<li><a href="${contactFileName}.html">${contactTitle.toLowerCase()}</a></li>`;
+    }
 
+    return `// 🆕 Полнофункциональная шапка с встроенными стилями
+// Этот файл содержит HTML, CSS стили и логику шапки для многостраничного сайта
+
+(function() {
+  'use strict';
+  
+  // Функция для добавления CSS стилей шапки
+  function injectHeaderStyles() {
+    // Проверяем, не добавлены ли уже стили
+    if (document.getElementById('header-styles')) {
+      return;
+    }
+
+    const style = document.createElement('style');
+    style.id = 'header-styles';
+    style.textContent = \`
+      /* Базовые стили шапки */
+      .site-header {
+        background: ${headerData.backgroundColor || '#ffffff'};
+        padding: 1rem 2rem;
+        border-bottom: 1px solid #eee;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+
+      .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .site-branding {
+        display: flex;
+        flex-direction: column;
+        margin-right: 1rem;
+        flex-shrink: 1;
+        min-width: 0;
+      }
+
+      .site-title {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 700;
+        flex-shrink: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .site-title a {
+        color: ${headerData.titleColor || '#333'};
+        text-decoration: none;
+        transition: color 0.3s ease;
+      }
+
+      .site-title a:hover {
+        opacity: 0.8;
+      }
+
+      .site-domain {
+        font-size: 0.9rem;
+        color: ${headerData.titleColor || '#666'};
+        opacity: 0.8;
+        margin-top: 4px;
+      }
+
+      .site-nav {
+        position: relative;
+      }
+
+      .menu-toggle {
+        display: none;
+        flex-direction: column;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0.5rem;
+      }
+
+      .menu-toggle span {
+        width: 25px;
+        height: 3px;
+        background: ${headerData.linksColor || '#333'};
+        margin: 3px 0;
+        transition: 0.3s;
+        border-radius: 2px;
+      }
+
+      .nav-menu {
+        display: flex;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .nav-menu li {
+        margin: 0;
+        list-style: none;
+      }
+
+      .nav-menu a,
+      .nav-link {
+        color: ${headerData.linksColor || '#333'} !important;
+        text-decoration: none !important;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        padding: 0.3rem 0.6rem;
+        white-space: nowrap;
+        border-radius: 4px;
+        background: transparent !important;
+        display: inline-block;
+        border: none !important;
+        box-shadow: none !important;
+        font-size: 1rem;
+        line-height: 1.5;
+      }
+
+      .nav-menu a:hover,
+      .nav-menu a.active,
+      .nav-link:hover,
+      .nav-link.active {
+        background: rgba(0, 0, 0, 0.05) !important;
+        opacity: 1;
+        transform: none !important;
+      }
+
+      /* Мобильная адаптивность */
+      @media (max-width: 768px) {
+        .site-header {
+          padding: 1rem;
+        }
+        
+        .menu-toggle {
+          display: flex;
+        }
+        
+        .nav-menu {
+          position: absolute;
+          top: 100%;
+          left: 0;
+          right: 0;
+          background: ${headerData.backgroundColor || '#fff'};
+          flex-direction: column;
+          padding: 1rem;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+          display: none;
+          gap: 0.5rem;
+          border-radius: 0 0 8px 8px;
+        }
+        
+        .nav-menu.active {
+          display: flex;
+        }
+        
+        .header-content {
+          flex-wrap: nowrap;
+        }
+        
+        .site-branding {
+          margin-right: 0.5rem;
+          flex-shrink: 1;
+          min-width: 0;
+        }
+
+        .site-title {
+          font-size: 1.2rem;
+        }
+      }
+
+      @media (max-width: 1024px) {
+        .nav-menu {
+          gap: 0.3rem;
+          flex-wrap: wrap;
+        }
+        
+        .nav-menu a,
+        .nav-link {
+          padding: 0.25rem 0.5rem;
+          font-size: 0.9rem;
+        }
+        
+        .header-content {
+          flex-wrap: wrap;
+        }
+      }
+    \`;
+    
+    document.head.appendChild(style);
+  }
+  
+  // Создание HTML шапки
+  function createHeader() {
+    return \`<header class="site-header">
+      <div class="header-content">
+        <div class="site-branding">
+          <h1 class="site-title">
+            <a href="${indexFile}">${siteName}</a>
+          </h1>
+          <div class="site-domain" style="display: none;">${headerData.domain || ''}</div>
+        </div>
+        <nav class="site-nav">
+          <button class="menu-toggle" aria-label="Открыть меню">
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
+          <ul class="nav-menu">
+            <li><a href="${indexFile}" class="nav-link">Главная</a></li>
+          ${navigationLinks}
+        </ul>
+      </nav>
+      </div>
+    </header>\`;
+  }
+  
+  // Функция для инициализации мобильного меню
+  function initMobileMenu() {
+    const menuToggle = document.querySelector('.menu-toggle');
+    const navMenu = document.querySelector('.nav-menu');
+    
+    if (menuToggle && navMenu) {
+      menuToggle.addEventListener('click', function() {
+        navMenu.classList.toggle('active');
+        menuToggle.classList.toggle('active');
+      });
+      
+      // Закрываем меню при клике на ссылку
+      const navLinks = document.querySelectorAll('.nav-link');
+      navLinks.forEach(link => {
+        link.addEventListener('click', function() {
+          navMenu.classList.remove('active');
+          menuToggle.classList.remove('active');
+        });
+      });
+      
+      // Закрываем меню при клике вне его
+      document.addEventListener('click', function(event) {
+        if (!event.target.closest('.site-nav')) {
+          navMenu.classList.remove('active');
+          menuToggle.classList.remove('active');
+        }
+      });
+    }
+  }
+  
+  // Инициализация шапки
+  function init() {
+    // Добавляем стили
+    injectHeaderStyles();
+    
+    // Создаем или находим контейнер
+    let container = document.getElementById('site-header-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'site-header-container';
+      document.body.insertBefore(container, document.body.firstChild);
+    }
+    
+    // Вставляем HTML
+    container.innerHTML = createHeader();
+    
+    // Инициализируем мобильное меню
+    initMobileMenu();
+  }
+  
+  // Автозапуск
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+  
+  // Экспорт для совместимости
+  window.initSiteHeader = init;
+  window.initMobileMenu = initMobileMenu;
+})();
+`;
+  };
+
+  // 🆕 Генерация отдельного файла футера для многостраничного сайта
+  const generateFooterJS = (siteData) => {
+    const footerData = siteData.footerData || {};
+    const headerData = siteData.headerData || {};
+    const currentYear = new Date().getFullYear();
+    const siteName = headerData.siteName || 'My Site';
+    const sectionsArray = Object.entries(siteData.sectionsData || {});
+    
+    // Определяем стили футера на основе предустановленных стилей
+    let backgroundColor = '#2c3e50';
+    let textColor = '#ffffff';
+    
+    if (headerData.siteBackgroundType === 'gradient') {
+      const gradientColor1 = headerData.siteGradientColor1 || '#ffffff';
+      const gradientColor2 = headerData.siteGradientColor2 || '#f5f5f5';
+      backgroundColor = `linear-gradient(135deg, ${darkenColor(gradientColor1, 30)}, ${darkenColor(gradientColor2, 30)})`;
+      textColor = getContrastColor(gradientColor1);
+    } else if (headerData.siteBackgroundType === 'solid') {
+      const bgColor = headerData.siteBackgroundColor || '#ffffff';
+      backgroundColor = darkenColor(bgColor, 30);
+      textColor = getContrastColor(bgColor);
+    }
+    
+    // Генерируем навигационные ссылки для футера
+    let navigationLinks = '';
+    
+    if (headerData.menuItems && headerData.menuItems.length > 0) {
+      navigationLinks += headerData.menuItems.map(item => {
+        const sectionData = sectionsArray.find(([sectionId, data]) => data?.id === item.id)?.[1];
+        let url = '#';
+        
+        if (sectionData) {
+          const fileName = getSectionFileNameSafe(item.id, sectionData);
+          url = fileName ? `${fileName}.html` : '#';
+        } else if (item.url && item.url !== '#') {
+          url = item.url;
+        }
+        
+        const text = item.text || item.title || '';
+        return `<li><a href="${url}" class="footer-link">${text.toLowerCase()}</a></li>`;
+      }).join('');
+    } else {
+      navigationLinks += sectionsArray.map(([sectionId, sectionData]) => {
+        // Исключаем раздел проверки возраста из навигации
+        const isAgeVerification = sectionId === 'age-verification' || 
+                                 sectionId === 'проверка возраста' ||
+                                 sectionData.title?.toLowerCase().includes('подтверждение возраста') ||
+                                 sectionData.title?.toLowerCase().includes('проверка возраста') ||
+                                 sectionData.title?.toLowerCase().includes('age verification');
+        
+        if (isAgeVerification) {
+          return '';
+        }
+        
+        const fileName = getSectionFileNameSafe(sectionId, sectionData);
+        const displayName = getSectionDisplayNameSafe(sectionId, sectionData);
+        
+        return fileName ? `<li><a href="${fileName}.html" class="footer-link">${displayName.toLowerCase()}</a></li>` : '';
+      }).join('');
+    }
+    
+    // Добавляем контакты в навигацию
+    if (siteData.contactData) {
+      const contactFileName = getContactFileNameSafe(siteData.contactData);
+      const contactTitle = siteData.contactData?.title || 'Контакты';
+      navigationLinks += `<li><a href="${contactFileName}.html" class="footer-link">${contactTitle.toLowerCase()}</a></li>`;
+    }
+
+    return `// 🆕 Полнофункциональный футер с встроенными стилями
+// Этот файл содержит HTML, CSS стили и логику футера для многостраничного сайта
+
+(function() {
+  'use strict';
+  
+  // Функция для добавления CSS стилей футера
+  function injectFooterStyles() {
+    // Проверяем, не добавлены ли уже стили
+    if (document.getElementById('footer-styles')) {
+      return;
+    }
+
+    const style = document.createElement('style');
+    style.id = 'footer-styles';
+    style.textContent = \`
+      /* Базовые стили футера */
+      .site-footer {
+        background: ${backgroundColor};
+        color: ${textColor};
+        padding: 3rem 2rem 1rem;
+        margin-top: auto;
+      }
+
+      .footer-container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .footer-content {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 2rem;
+        margin-bottom: 2rem;
+      }
+
+      .footer-info h3,
+      .footer-links h4,
+      .footer-contact h4 {
+        color: ${textColor};
+        margin-bottom: 1rem;
+        font-size: 1.2rem;
+        font-weight: 600;
+      }
+
+      .footer-info p {
+        color: ${textColor};
+        margin-bottom: 0.5rem;
+        line-height: 1.6;
+      }
+
+      .footer-links ul,
+      .footer-contact ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .footer-links li,
+      .footer-contact li {
+        margin-bottom: 0.5rem;
+      }
+
+      .footer-links a,
+      .footer-contact a,
+      .footer-link {
+        color: ${textColor} !important;
+        text-decoration: none !important;
+        transition: opacity 0.3s ease;
+        display: inline-block;
+        padding: 0.2rem 0;
+      }
+
+      .footer-links a:hover,
+      .footer-contact a:hover,
+      .footer-link:hover {
+        opacity: 0.8;
+        text-decoration: none !important;
+      }
+
+      .footer-bottom {
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+        padding-top: 1rem;
+        text-align: center;
+      }
+
+      .footer-bottom p {
+        color: ${textColor};
+        font-size: 0.9rem;
+        margin: 0;
+        opacity: 0.8;
+      }
+
+      /* Мобильная адаптивность */
+      @media (max-width: 768px) {
+        .site-footer {
+          padding: 2rem 1rem 1rem;
+        }
+        
+        .footer-content {
+          grid-template-columns: 1fr;
+          gap: 1.5rem;
+        }
+        
+        .footer-info h3,
+        .footer-links h4,
+        .footer-contact h4 {
+          font-size: 1.1rem;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .site-footer {
+          padding: 1.5rem 1rem 1rem;
+        }
+        
+        .footer-content {
+          gap: 1rem;
+        }
+      }
+    \`;
+    
+    document.head.appendChild(style);
+  }
+  
+  // Создание HTML футера
+  function createFooter() {
+    return \`<footer class="site-footer">
+      <div class="footer-container">
+        <div class="footer-content">
+          <div class="footer-info">
+            <h3>${siteName}</h3>
+            ${siteData.contactData?.address ? `<p>📍 ${siteData.contactData.address}</p>` : ''}
+            ${siteData.contactData?.phone ? `<p>📞 ${siteData.contactData.phone}</p>` : ''}
+            ${siteData.contactData?.email ? `<p>✉️ ${siteData.contactData.email}</p>` : ''}
+          </div>
+          
+          ${footerData.showLinks !== false ? `
+            <div class="footer-links">
+              <h4>Menu</h4>
+              <ul>
+                <li><a href="index.html" class="footer-link">${siteName.toLowerCase()}</a></li>
+                ${navigationLinks}
+              </ul>
+            </div>
+          ` : ''}
+          
+          <div class="footer-contact">
+            <h4>Legal Information</h4>
+            <ul>
+              <li><a href="privacy-policy.html" class="footer-link">Privacy Policy</a></li>
+              <li><a href="terms-of-service.html" class="footer-link">Terms of Service</a></li>
+              <li><a href="cookie-policy.html" class="footer-link">Cookie Policy</a></li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="footer-bottom">
+          <p>&copy; ${currentYear} ${siteName}. All rights reserved.</p>
+        </div>
+      </div>
+    </footer>\`;
+  }
+  
+  // Инициализация футера
+  function init() {
+    // Добавляем стили
+    injectFooterStyles();
+    
+    // Создаем или находим контейнер
+    let container = document.getElementById('site-footer-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'site-footer-container';
+      document.body.appendChild(container);
+    }
+    
+    // Вставляем HTML
+    container.innerHTML = createFooter();
+  }
+  
+  // Автозапуск
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+  
+  // Экспорт для совместимости
+  window.initSiteFooter = init;
+})();
+`;
+  };
 
   const generateMultiPageFooter = (siteData) => {
 
@@ -29565,7 +29180,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     
 
-    ${generateMultiPageHeader(siteData, 'index')}
+    <!-- 🧹 Шапка создается автоматически через header.js -->
 
     
 
@@ -29589,7 +29204,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     
 
-    ${generateMultiPageFooter(siteData)}
+    <!-- 🧹 Футер создается автоматически через footer.js -->
+    <div id="site-footer-container"></div>
 
     ${(() => {
       // Проверяем наличие раздела проверки возраста
@@ -29600,6 +29216,10 @@ document.addEventListener('DOMContentLoaded', function() {
     ${generateCookieConsentHTML(headerData.language || 'en')}
 
     <script src="assets/js/script.js"></script>
+    <!-- 🆕 Подключаем отдельный файл шапки -->
+    <script src="assets/js/header.js"></script>
+    <!-- 🆕 Подключаем отдельный файл футера -->
+    <script src="assets/js/footer.js"></script>
 
     <script>
       // Re-initialize typewriter animations after page load
@@ -30670,7 +30290,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     
 
-    ${generateMultiPageHeader(siteData, fileName)}
+    <!-- 🧹 Шапка создается автоматически через header.js -->
 
     
 
@@ -30770,11 +30390,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     
 
-    ${generateMultiPageFooter(siteData)}
+    <!-- 🧹 Футер создается автоматически через footer.js -->
+    <div id="site-footer-container"></div>
 
     
 
     <script src="assets/js/script.js"></script>
+    <!-- 🆕 Подключаем отдельный файл шапки -->
+    <script src="assets/js/header.js"></script>
+    <!-- 🆕 Подключаем отдельный файл футера -->
+    <script src="assets/js/footer.js"></script>
 
     <script>
 
@@ -32068,7 +31693,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     
 
-    ${generateMultiPageHeader(siteData, 'contact')}
+    <!-- 🧹 Шапка создается автоматически через header.js -->
 
     
 
@@ -32458,11 +32083,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     
 
-    ${generateMultiPageFooter(siteData)}
+    <!-- 🧹 Футер создается автоматически через footer.js -->
+    <div id="site-footer-container"></div>
 
     
 
     <script src="assets/js/script.js"></script>
+    <!-- 🆕 Подключаем отдельный файл шапки -->
+    <script src="assets/js/header.js"></script>
+    <!-- 🆕 Подключаем отдельный файл футера -->
+    <script src="assets/js/footer.js"></script>
 
     <script>
 
@@ -32780,7 +32410,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     
 
-    ${generateMultiPageHeader(siteData, docType)}
+    <!-- 🧹 Шапка создается автоматически через header.js -->
 
     
 
@@ -32808,11 +32438,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     
 
-    ${generateMultiPageFooter(siteData)}
+    <!-- 📄 Правовые документы не используют footer.js -->
 
     
 
     <script src="assets/js/script.js"></script>
+    <!-- 🆕 Подключаем отдельный файл шапки -->
+    <script src="assets/js/header.js"></script>
+    <!-- ❌ footer.js НЕ подключается к правовым документам -->
 
 </body>
 
@@ -33897,6 +33530,14 @@ document.addEventListener('DOMContentLoaded', function() {
       const jsContent = generateJS();
 
       jsFolder.file('script.js', jsContent);
+
+      // 🆕 Add header.js file for multi-page mode
+      const headerJSContent = generateHeaderJS(siteData);
+      jsFolder.file('header.js', headerJSContent);
+
+      // 🆕 Add footer.js file for multi-page mode
+      const footerJSContent = generateFooterJS(siteData);
+      jsFolder.file('footer.js', footerJSContent);
 
 
 

@@ -46,7 +46,7 @@ const HomePageSettingsEditor = ({
   sectionsData = {} 
 }) => {
   const defaultHomePageSettings = {
-    showFeaturedSection: true,
+    showFeaturedSection: false,
     featuredSectionId: '', // Будет автоматически выбран первый доступный раздел
     showSectionsPreview: false,
     sectionsDisplayMode: 'cards',
@@ -64,7 +64,8 @@ const HomePageSettingsEditor = ({
     console.log('📊 showFeaturedSection:', homePageSettings?.showFeaturedSection);
     
     // Автоматически выбираем первый раздел, если ничего не выбрано и есть доступные разделы
-    if (sectionsData && Object.keys(sectionsData).length > 0) {
+    // НО ТОЛЬКО если включен showFeaturedSection
+    if (sectionsData && Object.keys(sectionsData).length > 0 && homePageSettings?.showFeaturedSection) {
       const currentFeaturedId = homePageSettings?.featuredSectionId || '';
       const availableSections = Object.keys(sectionsData);
       
