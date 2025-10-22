@@ -137,21 +137,6 @@ const HeaderEditor = ({
   const handleChange = (field, value) => {
     onHeaderChange({ ...headerData, [field]: value });
 
-    // Обновление превью при изменении настроек
-    const previewArea = document.querySelector('.preview-area');
-    if (previewArea) {
-      const backgroundImage = previewArea.querySelector('.background-image');
-      if (backgroundImage) {
-        if (field === 'siteBackgroundBlur') {
-          backgroundImage.style.filter = `blur(${value}px)`;
-        } else if (field === 'siteBackgroundDarkness') {
-          const overlay = previewArea.querySelector('.site-overlay');
-          if (overlay) {
-            overlay.style.backgroundColor = `rgba(0, 0, 0, ${value / 100})`;
-          }
-        }
-      }
-    }
   };
 
   const handleFileSelect = async (event) => {
@@ -378,6 +363,69 @@ const HeaderEditor = ({
             {/* Группа настроек оформления шапки */}
             <Paper sx={{ p: 2, bgcolor: '#e3f2fd', borderRadius: 1, mb: 2, boxShadow: 2 }}>
               <Typography variant="h6" sx={{ mb: 2, color: '#1565c0', borderBottom: '2px solid #1565c0', pb: 1 }}>Оформление шапки</Typography>
+              
+              {/* Выбор формата шапки */}
+              <Grid container spacing={2} sx={{ mb: 2 }}>
+                <Grid item xs={12}>
+                  <FormControl fullWidth>
+                    <InputLabel>Формат шапки</InputLabel>
+                    <Select
+                      value={headerData.format || 'minimal'}
+                      onChange={(e) => onHeaderChange({ ...headerData, format: e.target.value })}
+                      label="Формат шапки"
+                    >
+                      <MenuItem value="classic">
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                          <Box sx={{ 
+                            width: 40, 
+                            height: 30, 
+                            border: '2px solid #1976d2',
+                            borderRadius: 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                            color: '#1976d2'
+                          }}>
+                            LOGO
+                          </Box>
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>Классическая</Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Полная шапка с логотипом, меню и мобильной версией
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </MenuItem>
+                      <MenuItem value="minimal">
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                          <Box sx={{ 
+                            width: 40, 
+                            height: 20, 
+                            border: '1px solid #666',
+                            borderRadius: 0.5,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '10px',
+                            color: '#666'
+                          }}>
+                            MIN
+                          </Box>
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>Боковое меню</Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Простая шапка с названием и базовым меню
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </Grid>
+              
               
               <Grid container spacing={2}>
                 <Grid item xs={12}>

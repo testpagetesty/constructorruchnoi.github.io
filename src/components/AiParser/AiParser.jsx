@@ -9483,7 +9483,8 @@ ID: [название секции на ${languageName}, желательно о
                 // Создаем копию headerData для обновления
                 const updatedHeaderData = { 
                   ...headerData,
-                  siteName: parsedData.hero.siteName
+                  siteName: parsedData.hero.siteName,
+                  format: headerData.format || 'minimal'
                 };
                 onHeaderChange(updatedHeaderData);
               }
@@ -9678,7 +9679,8 @@ ID: [название секции на ${languageName}, желательно о
               // Обновляем меню с правильным порядком секций
               const finalHeaderData = {
                 ...headerData,
-                menuItems: menuItems
+                menuItems: menuItems,
+                format: headerData.format || 'minimal'
               };
 
               // Проверим, был ли обновлен заголовок сайта через hero
@@ -10198,7 +10200,8 @@ ID: [название секции на ${languageName}, желательно о
             if (parsedData.siteName) {
               onHeaderChange({
                 ...headerData,
-                siteName: parsedData.siteName
+                siteName: parsedData.siteName,
+                format: headerData.format || 'minimal'
               });
             }
             // Обновляем hero секцию

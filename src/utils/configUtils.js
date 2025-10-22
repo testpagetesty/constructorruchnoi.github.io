@@ -30,7 +30,8 @@ export const defaultConfig = {
     titleColor: '#000000',
     linksColor: '#000000',
     domain: '',
-    menuItems: []
+    menuItems: [],
+    format: 'minimal'
   },
   hero: {
     title: 'Добро пожаловать',

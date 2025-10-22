@@ -101,6 +101,7 @@ const initialHeaderData = {
   backgroundColor: '#ffffff',
   linksColor: '#333333',
   menuItems: [],
+  format: 'minimal',
   contactLink: {
     show: true,
     text: 'Контакты',

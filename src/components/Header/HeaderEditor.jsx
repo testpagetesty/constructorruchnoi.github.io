@@ -46,7 +46,8 @@ const initialHeaderData = {
     { id: 1, title: 'Главная' },
     { id: 2, title: 'О нас' },
     { id: 3, title: 'Услуги' }
-  ]
+  ],
+  format: 'minimal'
 };
 
 const HeaderEditor = ({ headerData, onHeaderChange, expanded, setExpanded }) => {

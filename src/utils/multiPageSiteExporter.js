@@ -7943,145 +7943,1293 @@ const exportCardImages = async (zip, assetsDir, siteData) => {
 // 🆕 Генерация отдельного файла шапки
 const generateHeaderJS = (siteData) => {
   const headerData = siteData.headerData || {};
+  const format = headerData.format || 'classic';
+  
+  // Выбираем формат шапки
+  if (format === 'minimal') {
+    return generateMinimalHeaderJSForMultipage(siteData);
+  } else {
+    return generateClassicHeaderJSForMultipage(siteData);
+  }
+};
+
+// Генерация минималистичной шапки для многостраничного экспорта
+const generateMinimalHeaderJSForMultipage = (siteData) => {
+  const headerData = siteData.headerData || {};
   const siteName = headerData.siteName || 'My Site';
+  const sectionsArray = Object.entries(siteData.sectionsData || {});
   
-  // Генерируем стили хедера из headerData
-  const headerStyles = [];
+  const indexFile = 'index.html';
   
-  if (headerData.backgroundColor) {
-    headerStyles.push(`--header-bg-color: ${headerData.backgroundColor}`);
-  }
-  if (headerData.titleColor) {
-    headerStyles.push(`--header-title-color: ${headerData.titleColor}`);
-  }
-  if (headerData.linksColor) {
-    headerStyles.push(`--header-link-color: ${headerData.linksColor}`);
-  }
-  
-  // Генерируем навигационные ссылки из headerData.menuItems (если есть) или из секций
+  // Генерируем навигационные ссылки
   let navigationLinks = '';
+  let accordionLinks = '';
   
   if (headerData.menuItems && headerData.menuItems.length > 0) {
-    // Используем menuItems из headerData
-    navigationLinks = headerData.menuItems.map(item => {
-      const url = item.url || '#';
+    // Основные ссылки для центрального меню
+    const mainMenuItems = headerData.menuItems.slice(0, 3);
+    navigationLinks += mainMenuItems.map(item => {
+      const sectionData = sectionsArray.find(([sectionId, data]) => data?.id === item.id)?.[1];
+      let url = '#';
+      
+      if (sectionData) {
+        const fileName = getSectionFileName(item.id, sectionData);
+        url = fileName ? fileName + '.html' : '#';
+      } else if (item.url && item.url !== '#') {
+        url = item.url;
+      }
+      
       const text = item.text || item.title || '';
-      return `<li><a href="${url}" class="nav-link">${text}</a></li>`;
+      return '<a href="' + url + '" class="nav-link">' + text + '</a>';
+    }).join('');
+    
+    // Все ссылки для аккордеона
+    accordionLinks += headerData.menuItems.map(item => {
+      const sectionData = sectionsArray.find(([sectionId, data]) => data?.id === item.id)?.[1];
+      let url = '#';
+      
+      if (sectionData) {
+        const fileName = getSectionFileName(item.id, sectionData);
+        url = fileName ? fileName + '.html' : '#';
+      } else if (item.url && item.url !== '#') {
+        url = item.url;
+      }
+      
+      const text = item.text || item.title || '';
+      return '<a href="' + url + '" class="sidebar-link">' + text + '</a>';
     }).join('');
   } else {
     // Fallback: используем секции
-    const sectionsData = siteData.sectionsData || {};
-    const links = [];
-    
-    Object.entries(sectionsData).forEach(([sectionId, sectionData]) => {
-      // Исключаем раздел проверки возраста из навигации
+    const mainSections = sectionsArray.slice(0, 3);
+    navigationLinks += mainSections.map(([sectionId, sectionData]) => {
       const isAgeVerification = sectionId === 'age-verification' || 
                                sectionId === 'проверка возраста' ||
                                sectionData.title?.toLowerCase().includes('подтверждение возраста') ||
                                sectionData.title?.toLowerCase().includes('проверка возраста') ||
                                sectionData.title?.toLowerCase().includes('age verification');
       
-      if (!isAgeVerification) {
-        const fileName = getSectionFileName(sectionId, sectionData);
-        const displayName = getSectionDisplayName(sectionId, sectionData);
-        if (fileName && displayName) {
-          links.push(`<li><a href="${fileName}.html" class="nav-link">${displayName}</a></li>`);
+      if (isAgeVerification) {
+        return '';
+      }
+      
+      const fileName = getSectionFileName(sectionId, sectionData);
+      const displayName = getSectionDisplayName(sectionId, sectionData);
+      
+      return fileName ? '<a href="' + fileName + '.html" class="nav-link">' + displayName + '</a>' : '';
+    }).join('');
+    
+    // Все секции для аккордеона
+    accordionLinks += sectionsArray.map(([sectionId, sectionData]) => {
+      const isAgeVerification = sectionId === 'age-verification' || 
+                               sectionId === 'проверка возраста' ||
+                               sectionData.title?.toLowerCase().includes('подтверждение возраста') ||
+                               sectionData.title?.toLowerCase().includes('проверка возраста') ||
+                               sectionData.title?.toLowerCase().includes('age verification');
+      
+      if (isAgeVerification) {
+        return '';
+      }
+      
+      const fileName = getSectionFileName(sectionId, sectionData);
+      const displayName = getSectionDisplayName(sectionId, sectionData);
+      
+      return fileName ? '<a href="' + fileName + '.html" class="sidebar-link">' + displayName + '</a>' : '';
+    }).filter(link => link).join('');
+  }
+  
+  // Добавляем контакты
+  if (siteData.contactData) {
+    const contactFileName = getContactFileName(siteData.contactData);
+    const contactTitle = siteData.contactData?.title || 'Контакты';
+    navigationLinks += '<a href="' + contactFileName + '.html" class="nav-link">' + contactTitle + '</a>';
+    accordionLinks += '<a href="' + contactFileName + '.html" class="sidebar-link">' + contactTitle + '</a>';
+  }
+
+  return `// 🎯 Минималистичная шапка в стиле Groovy Gang
+// Включает: логотип, центральное меню, поиск, аккордеон слева
+
+(function() {
+  'use strict';
+  
+  // Передаем данные сайта для поиска
+  window.siteData = \${JSON.stringify(siteData)};
+  
+  function injectHeaderStyles() {
+    if (document.getElementById('header-styles')) {
+      return;
+    }
+
+    const style = document.createElement('style');
+    style.id = 'header-styles';
+    style.textContent = \`
+      .site-header {
+        background: \${headerData.backgroundColor || '#000000'};
+        padding: 1rem 2rem;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        transform: translateY(0);
+      }
+
+      .site-header.hidden {
+        transform: translateY(-100%);
+      }
+
+      .site-header.scrolled {
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        backdrop-filter: blur(10px);
+      }
+
+      .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        max-width: 1400px;
+        margin: 0 auto;
+        position: relative;
+      }
+
+      /* Логотип и название */
+      .site-branding {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-shrink: 0;
+      }
+
+      .site-logo {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, #ff6b35, #f7931e);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        font-weight: bold;
+        color: white;
+        box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);
+      }
+
+      .site-title {
+        margin: 0;
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: \${headerData.titleColor || '#ff69b4'};
+        text-shadow: 0 0 10px rgba(255, 105, 180, 0.3);
+        font-family: 'Arial', sans-serif;
+      }
+
+      .site-title a {
+        color: inherit;
+        text-decoration: none;
+        transition: all 0.3s ease;
+      }
+
+      .site-title a:hover {
+        text-shadow: 0 0 15px rgba(255, 105, 180, 0.6);
+        transform: scale(1.05);
+      }
+
+      /* Центральное меню */
+      .nav-menu {
+        display: flex;
+        gap: 2rem;
+        align-items: center;
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+
+      .nav-link {
+        color: \${headerData.linksColor || '#ffffff'};
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        position: relative;
+      }
+
+      .nav-link:hover {
+        color: #ff6b35;
+        background: rgba(255, 107, 53, 0.1);
+        transform: translateY(-2px);
+      }
+
+      .nav-link.active {
+        color: #ff6b35;
+        background: rgba(255, 107, 53, 0.2);
+      }
+
+      /* Поиск */
+      .search-container {
+        display: flex;
+        align-items: center;
+        background: white;
+        border-radius: 25px;
+        padding: 0.5rem 1rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        min-width: 200px;
+        position: relative;
+      }
+
+      .search-container:hover {
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        transform: translateY(-1px);
+      }
+
+      .search-icon {
+        width: 16px;
+        height: 16px;
+        margin-right: 0.5rem;
+        color: #666;
+      }
+
+      .search-input {
+        border: none;
+        outline: none;
+        background: transparent;
+        font-size: 0.9rem;
+        color: #333;
+        width: 100%;
+      }
+
+      .search-input::placeholder {
+        color: #999;
+      }
+
+      /* Результаты поиска */
+      .search-results {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        max-height: 300px;
+        overflow-y: auto;
+        z-index: 1001;
+        display: none;
+        margin-top: 5px;
+      }
+
+      .search-results.active {
+        display: block;
+      }
+
+      .search-result-item {
+        padding: 12px 16px;
+        border-bottom: 1px solid #f0f0f0;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .search-result-item:last-child {
+        border-bottom: none;
+      }
+
+      .search-result-item:hover {
+        background: #f8f9fa;
+        transform: translateX(4px);
+      }
+
+      .search-result-icon {
+        width: 20px;
+        height: 20px;
+        background: #ff6b35;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 12px;
+        flex-shrink: 0;
+      }
+
+      .search-result-content {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .search-result-title {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .search-result-preview {
+        font-size: 0.85rem;
+        color: #666;
+        line-height: 1.3;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
+      .search-result-highlight {
+        background: #fff3cd;
+        padding: 1px 2px;
+        border-radius: 2px;
+        font-weight: 600;
+      }
+
+      /* Стили для разных типов результатов */
+      .search-result-item[data-type="page"] .search-result-icon {
+        background: #28a745;
+      }
+
+      .search-result-item[data-type="navigation"] .search-result-icon {
+        background: #17a2b8;
+      }
+
+      .search-result-item[data-type="content"] .search-result-icon {
+        background: #ff6b35;
+      }
+
+      /* Боковое меню */
+      .sidebar-toggle {
+        position: absolute;
+        left: -50px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(255, 255, 255, 0.1);
+        border: 2px solid \${headerData.titleColor || '#ff69b4'};
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        color: \${headerData.titleColor || '#ff69b4'};
+        font-size: 18px;
+        z-index: 1002;
+      }
+
+      .sidebar-toggle:hover {
+        background: \${headerData.titleColor ? headerData.titleColor + '20' : 'rgba(255, 105, 180, 0.2)'};
+        border-color: \${headerData.titleColor || '#ff69b4'};
+        transform: translateY(-50%) scale(1.1);
+      }
+
+      .sidebar-menu {
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100vh;
+        width: 320px;
+        background: linear-gradient(135deg, \${headerData.backgroundColor || '#1a1a1a'}, #2d2d2d);
+        transform: translateX(-100%);
+        transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        z-index: 1001;
+        padding: 2rem 1.5rem;
+        box-shadow: 4px 0 25px rgba(0,0,0,0.6);
+        overflow-y: auto;
+        backdrop-filter: blur(15px);
+        border-right: 1px solid rgba(255, 107, 53, 0.2);
+      }
+
+      .sidebar-menu.active {
+        transform: translateX(0);
+        box-shadow: 8px 0 35px rgba(0,0,0,0.8);
+      }
+
+      .sidebar-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid rgba(255, 107, 53, 0.3);
+      }
+
+      .sidebar-title {
+        color: \${headerData.linksColor || '#ff6b35'};
+        font-size: 1.3rem;
+        font-weight: bold;
+        text-shadow: 0 0 15px rgba(255, 107, 53, 0.4);
+        margin: 0;
+      }
+
+      .sidebar-close {
+        background: none;
+        border: none;
+        color: \${headerData.titleColor || '#ffffff'};
+        font-size: 24px;
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 50%;
+        transition: all 0.3s ease;
+      }
+
+      .sidebar-close:hover {
+        background: rgba(255, 107, 53, 0.2);
+        color: \${headerData.linksColor || '#ff6b35'};
+        transform: scale(1.1);
+      }
+
+      .sidebar-links {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+      }
+
+      .sidebar-link {
+        color: \${headerData.linksColor || '#ffffff'} !important;
+        text-decoration: none !important;
+        font-weight: 500;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        overflow: hidden;
+        background: transparent;
+        border: none;
+        outline: none;
+      }
+
+      .sidebar-link:visited {
+        color: \${headerData.linksColor || '#ffffff'} !important;
+        text-decoration: none !important;
+      }
+
+      .sidebar-link:focus {
+        color: \${headerData.linksColor || '#ffffff'} !important;
+        text-decoration: none !important;
+        outline: none;
+      }
+
+      .sidebar-link:hover {
+        color: #ff6b35 !important;
+        background: rgba(255, 107, 53, 0.1) !important;
+        text-decoration: none !important;
+        transform: translateY(-2px);
+      }
+
+      .sidebar-link.active {
+        color: #ff6b35 !important;
+        background: rgba(255, 107, 53, 0.2) !important;
+        text-decoration: none !important;
+      }
+
+      .sidebar-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0,0,0,0.6);
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+      }
+
+      .sidebar-overlay.active {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      /* Адаптивность */
+      @media (max-width: 768px) {
+        .site-header {
+          padding: 0.8rem 1rem;
+        }
+        
+        .nav-menu {
+          display: none;
+        }
+        
+        .sidebar-toggle {
+          position: static;
+          transform: none;
+          width: 36px;
+          height: 36px;
+          font-size: 16px;
+          margin-right: 0.5rem;
+        }
+        
+        .sidebar-menu {
+          width: 100vw;
+          padding: 1.5rem 1rem;
+        }
+        
+        .sidebar-header {
+          margin-bottom: 1.5rem;
+        }
+        
+        .sidebar-title {
+          font-size: 1.1rem;
+        }
+        
+        .sidebar-link {
+          padding: 0.8rem 1rem;
+          font-size: 0.9rem;
+        }
+        
+        .search-container {
+          min-width: 100px;
+          padding: 0.3rem 0.6rem;
+        }
+        
+        .search-input {
+          font-size: 0.75rem;
+        }
+        
+        .sidebar-toggle {
+          width: 32px;
+          height: 32px;
+          font-size: 14px;
+        }
+      }
+
+      @media (max-width: 1024px) {
+        .sidebar-toggle {
+          left: -45px;
+        }
+      }
+    \`;
+    
+    document.head.appendChild(style);
+  }
+  
+  function createHeader() {
+    return \`<header class="site-header">
+      <div class="header-content">
+        <!-- Боковое меню слева -->
+        <button class="sidebar-toggle" aria-label="Открыть боковое меню">☰</button>
+        
+        <!-- Название сайта -->
+        <div class="site-branding">
+          <h1 class="site-title">
+            <a href="\${indexFile}">\${siteName}</a>
+          </h1>
+        </div>
+        
+        <!-- Центральное меню (только на десктопе) -->
+        <nav class="nav-menu">
+          \${navigationLinks}
+        </nav>
+        
+        <!-- Поиск -->
+        <div class="search-container" style="position: relative;">
+          <span class="search-icon">🔍</span>
+          <input type="text" class="search-input" placeholder="Search...">
+          <div class="search-results" id="search-results"></div>
+        </div>
+      </div>
+      
+      <!-- Боковое меню -->
+      <div class="sidebar-menu">
+        <div class="sidebar-header">
+          <h3 class="sidebar-title">\${siteName}</h3>
+          <button class="sidebar-close" aria-label="Закрыть меню">×</button>
+        </div>
+        <div class="sidebar-links">
+          \${accordionLinks}
+        </div>
+      </div>
+      
+      <!-- Оверлей для бокового меню -->
+      <div class="sidebar-overlay"></div>
+    </header>\`;
+  }
+  
+  function initSidebar() {
+    const toggle = document.querySelector('.sidebar-toggle');
+    const menu = document.querySelector('.sidebar-menu');
+    const overlay = document.querySelector('.sidebar-overlay');
+    const close = document.querySelector('.sidebar-close');
+    
+    if (toggle && menu && overlay) {
+      // Переключение меню (открытие/закрытие)
+      toggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (menu.classList.contains('active')) {
+          // Закрываем меню
+          menu.classList.remove('active');
+          overlay.classList.remove('active');
+          document.body.style.overflow = '';
+        } else {
+          // Открываем меню
+          menu.classList.add('active');
+          overlay.classList.add('active');
+          document.body.style.overflow = 'hidden';
+        }
+      });
+      
+      // Закрытие через кнопку
+      if (close) {
+        close.addEventListener('click', () => {
+          menu.classList.remove('active');
+          overlay.classList.remove('active');
+          document.body.style.overflow = '';
+        });
+      }
+      
+      // Закрытие через оверлей
+      overlay.addEventListener('click', () => {
+        menu.classList.remove('active');
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+      });
+      
+      // Закрытие при клике на ссылку
+      const links = document.querySelectorAll('.sidebar-link');
+      links.forEach(link => {
+        link.addEventListener('click', () => {
+          menu.classList.remove('active');
+          overlay.classList.remove('active');
+          document.body.style.overflow = '';
+        });
+      });
+      
+      // Закрытие по Escape
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && menu.classList.contains('active')) {
+          menu.classList.remove('active');
+          overlay.classList.remove('active');
+          document.body.style.overflow = '';
+        }
+      });
+    }
+  }
+  
+  function initSearch() {
+    const searchInput = document.querySelector('.search-input');
+    const searchResults = document.getElementById('search-results');
+    let searchTimeout;
+
+    if (searchInput && searchResults) {
+      // Поиск при вводе текста
+      searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.trim();
+        
+        // Очищаем предыдущий таймаут
+        clearTimeout(searchTimeout);
+        
+        if (query.length < 2) {
+          searchResults.classList.remove('active');
+          return;
+        }
+
+        // Задержка перед поиском (debounce)
+        searchTimeout = setTimeout(() => {
+          performSearch(query);
+        }, 300);
+      });
+
+      // Закрытие результатов при клике вне поиска
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.search-container')) {
+          searchResults.classList.remove('active');
+        }
+      });
+
+      // Обработка Enter
+      searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          const query = e.target.value.trim();
+          if (query) {
+            const firstResult = searchResults.querySelector('.search-result-item');
+            if (firstResult) {
+              firstResult.click();
+            }
+          }
+        }
+      });
+    }
+  }
+
+  function performSearch(query) {
+    const searchResults = document.getElementById('search-results');
+    const results = [];
+    
+    console.log('🔍 [SEARCH] Starting search for:', query);
+    console.log('🔍 [SEARCH] Current page:', window.location.pathname);
+    
+    // Получаем данные о всех страницах сайта
+    const sitePages = getSitePages();
+    console.log('🔍 [SEARCH] Found site pages:', sitePages);
+    
+    // ВСЕГДА ищем по текущей странице
+    const currentPageResults = searchCurrentPage(query);
+    console.log('🔍 [SEARCH] Current page results:', currentPageResults.length);
+    results.push(...currentPageResults);
+    
+    // ВСЕГДА ищем по навигационным ссылкам
+    const navResults = searchNavigation(query);
+    console.log('🔍 [SEARCH] Navigation results:', navResults.length);
+    results.push(...navResults);
+    
+    // ВСЕГДА ищем по другим страницам (используя статические данные)
+    const otherPagesResults = searchOtherPages(query, sitePages);
+    console.log('🔍 [SEARCH] Other pages results:', otherPagesResults.length);
+    results.push(...otherPagesResults);
+
+    console.log('🔍 [SEARCH] Total results before deduplication:', results.length);
+
+    // Удаляем дубликаты по комбинации title + url
+    const uniqueResults = results.filter((result, index, self) => 
+      index === self.findIndex(r => 
+        r.title === result.title && 
+        r.url === result.url && 
+        r.preview === result.preview
+      )
+    );
+
+    console.log('🔍 [SEARCH] Unique results:', uniqueResults.length);
+    console.log('🔍 [SEARCH] Results:', uniqueResults);
+
+    // Показываем результаты
+    displaySearchResults(uniqueResults, query);
+  }
+
+  function getSitePages() {
+    // Получаем список всех страниц из навигации
+    const pages = [];
+    const navLinks = document.querySelectorAll('a[href$=".html"], .nav-link, .sidebar-link');
+    
+    navLinks.forEach(link => {
+      const href = link.getAttribute('href') || link.href;
+      const title = link.textContent.trim();
+      if (href && href !== '#' && !href.startsWith('#')) {
+        pages.push({
+          url: href,
+          title: title,
+          fileName: href.split('/').pop().replace('.html', '')
+        });
+      }
+    });
+    
+    // Добавляем главную страницу
+    pages.push({
+      url: 'index.html',
+      title: '\${siteName}',
+      fileName: 'index'
+    });
+    
+    return pages;
+  }
+
+  function searchCurrentPage(query) {
+    const results = [];
+    const searchableElements = document.querySelectorAll('h1, h2, h3, h4, h5, h6, p, .content-element, .section-content, .card-content, .card-title, .section-title');
+    
+    // Определяем текущую страницу
+    const currentPath = window.location.pathname;
+    const isIndexPage = currentPath === '/' || currentPath === '' || currentPath.endsWith('index.html');
+    
+    searchableElements.forEach(element => {
+      const text = element.textContent || element.innerText || '';
+      if (!text || text.trim().length < 3) return; // Пропускаем короткий текст
+      
+      const title = element.tagName.match(/^H[1-6]$/) ? text : 
+                   element.querySelector('h1, h2, h3, h4, h5, h6')?.textContent || 
+                   element.querySelector('.title, .card-title, .section-title')?.textContent || 
+                   element.closest('.content-element')?.querySelector('.title, .card-title, .section-title')?.textContent ||
+                   '\${siteName}';
+      
+      if (text.toLowerCase().includes(query.toLowerCase())) {
+        let sectionId = element.id || 
+                       element.closest('[id]')?.id || 
+                       element.closest('.content-element')?.id ||
+                       'main';
+        
+        // Правильно формируем URL для результата
+        let url = window.location.pathname; // Остаемся на текущей странице
+        if (sectionId && sectionId !== 'main') {
+          url += '#' + sectionId; // Добавляем якорь к секции
+        }
+        
+        const preview = createSearchPreview(text, query);
+        
+        results.push({
+          title: title.substring(0, 60) + (title.length > 60 ? '...' : ''),
+          preview: preview,
+          url: url,
+          sectionId: 'content',
+          pageTitle: '\${siteName}'
+        });
+      }
+    });
+    
+    return results;
+  }
+
+  function searchOtherPages(query, sitePages) {
+    const results = [];
+    
+    // Получаем предварительно загруженные данные сайта
+    const siteData = getSiteSearchData();
+    
+    // Определяем текущую страницу более точно
+    const currentPath = window.location.pathname;
+    const currentPage = currentPath.endsWith('.html') ? 
+      currentPath.split('/').pop() : 
+      (currentPath === '/' || currentPath === '' ? 'index.html' : currentPath.split('/').pop() + '.html');
+    
+    sitePages.forEach(page => {
+      // Пропускаем текущую страницу
+      if (page.url === currentPage) {
+        return;
+      }
+      
+      // Проверяем, содержит ли название страницы запрос
+      if (page.title.toLowerCase().includes(query.toLowerCase())) {
+        results.push({
+          title: page.title,
+          preview: page.title,
+          url: page.url,
+          sectionId: 'page',
+          pageTitle: page.title
+        });
+      }
+      
+      // Ищем в предварительно загруженных данных страницы
+      const pageData = siteData[page.fileName] || siteData[page.url];
+      if (pageData) {
+        const contentResults = searchInStaticPageData(pageData, query, page);
+        results.push(...contentResults);
+      }
+    });
+    
+    return results;
+  }
+
+  function getSiteSearchData() {
+    // Пытаемся получить данные из глобальной переменной
+    if (window.siteSearchData) {
+      return window.siteSearchData;
+    }
+    
+    // Пытаемся получить данные из переменной siteData (если доступна)
+    if (typeof window.siteData !== 'undefined' && window.siteData) {
+      return convertSiteDataToSearchData(window.siteData);
+    }
+    
+    // Создаем данные на основе существующих данных сайта
+    const searchData = {};
+    
+    // Получаем данные из навигации
+    const navLinks = document.querySelectorAll('a[href$=".html"], .nav-link, .sidebar-link');
+    navLinks.forEach(link => {
+      const href = link.getAttribute('href') || '';
+      const title = link.textContent.trim();
+      
+      if (href && href !== '#' && !href.startsWith('#') && href.endsWith('.html')) {
+        const fileName = href.split('/').pop().replace('.html', '');
+        
+        // Не дублируем данные для текущей страницы
+        const currentPath = window.location.pathname;
+        const currentPage = currentPath.endsWith('.html') ? 
+          currentPath.split('/').pop() : 
+          (currentPath === '/' || currentPath === '' ? 'index.html' : currentPath.split('/').pop() + '.html');
+        
+        if (href !== currentPage) {
+          searchData[fileName] = {
+            title: title,
+            content: generatePageContent(title),
+            sections: generatePageSections(title)
+          };
         }
       }
     });
     
-    navigationLinks = links.join('');
-  }
-  
-  // Добавляем контакты в навигацию
-  if (siteData.contactData) {
-    const contactFileName = getContactFileName(siteData.contactData);
-    const contactTitle = siteData.contactData?.title || 'Контакты';
-    navigationLinks += `<li><a href="${contactFileName}.html" class="nav-link">${contactTitle}</a></li>`;
+    return searchData;
   }
 
-  return `// 🆕 Отдельный файл шапки для многостраничного сайта
-// Этот файл содержит HTML и логику шапки, которая подключается ко всем страницам
-
-// Функция для создания шапки
-function createSiteHeader() {
-  const headerHTML = \`<header class="site-header" style="${headerStyles.join('; ')}">
-    <div class="header-content">
-      <div class="site-branding">
-        <h1 class="site-title">
-          <a href="index.html">${siteName}</a>
-        </h1>
-        <div class="site-domain" style="display: none;">${headerData.domain || ''}</div>
-      </div>
-      <nav class="site-nav">
-        <button class="menu-toggle" aria-label="Открыть меню">
-          <span></span>
-          <span></span>
-          <span></span>
-        </button>
-        <ul class="nav-menu">
-          <li><a href="index.html" class="nav-link">Главная</a></li>
-          ${navigationLinks}
-        </ul>
-      </nav>
-    </div>
-  </header>\`;
-  
-  return headerHTML;
-}
-
-// Функция для инициализации шапки на странице
-function initSiteHeader() {
-  // Ищем контейнер для шапки
-  const headerContainer = document.getElementById('site-header-container');
-  if (headerContainer) {
-    headerContainer.innerHTML = createSiteHeader();
+  function convertSiteDataToSearchData(siteData) {
+    const searchData = {};
     
-    // Инициализируем мобильное меню
-    initMobileMenu();
-  } else {
-    console.warn('Header container not found. Make sure to add <div id="site-header-container"></div> to your page.');
-  }
-}
-
-// Функция для инициализации мобильного меню
-function initMobileMenu() {
-  const menuToggle = document.querySelector('.menu-toggle');
-  const navMenu = document.querySelector('.nav-menu');
-  
-  if (menuToggle && navMenu) {
-    menuToggle.addEventListener('click', function() {
-      navMenu.classList.toggle('active');
-      menuToggle.classList.toggle('active');
-    });
-    
-    // Закрываем меню при клике на ссылку
-    const navLinks = document.querySelectorAll('.nav-link');
-    navLinks.forEach(link => {
-      link.addEventListener('click', function() {
-        navMenu.classList.remove('active');
-        menuToggle.classList.remove('active');
+    // Конвертируем данные секций
+    if (siteData.sectionsData) {
+      Object.entries(siteData.sectionsData).forEach(([sectionId, sectionData]) => {
+        if (sectionData && sectionData.title) {
+          const fileName = sectionId.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+          searchData[fileName] = {
+            title: sectionData.title,
+            content: sectionData.content || sectionData.description || '',
+            sections: extractSectionsFromData(sectionData)
+          };
+        }
       });
-    });
+    }
     
-    // Закрываем меню при клике вне его
-    document.addEventListener('click', function(event) {
-      if (!event.target.closest('.site-nav')) {
-        navMenu.classList.remove('active');
-        menuToggle.classList.remove('active');
+    // Конвертируем контактные данные
+    if (siteData.contactData) {
+      searchData['contact'] = {
+        title: siteData.contactData.title || 'Contact',
+        content: siteData.contactData.description || 'Contact us for more information',
+        sections: [
+          { title: 'Contact Info', content: siteData.contactData.phone + ' ' + siteData.contactData.email }
+        ]
+      };
+    }
+    
+    return searchData;
+  }
+
+  function extractSectionsFromData(sectionData) {
+    const sections = [];
+    
+    // Извлекаем элементы как секции
+    if (sectionData.elements) {
+      sectionData.elements.forEach(element => {
+        if (element.title || element.content) {
+          sections.push({
+            title: element.title || 'Section',
+            content: element.content || element.description || ''
+          });
+        }
+      });
+    }
+    
+    return sections;
+  }
+
+  function generatePageContent(pageTitle) {
+    // Генерируем контент на основе названия страницы
+    const contentMap = {
+      'about': 'Learn more about our company, team, and mission. We are dedicated to providing excellent service and building lasting relationships with our clients.',
+      'services': 'We offer a comprehensive range of services to meet your business needs. From initial consultation to full implementation, we provide end-to-end solutions.',
+      'contact': 'Get in touch with us for any questions or inquiries. We are here to help you succeed and provide the support you need.',
+      'portfolio': 'View our latest projects and case studies. See what we can accomplish for your business with our expertise and dedication.',
+      'blog': 'Stay updated with our latest articles, news, and insights. We share valuable information to help you stay informed and make better decisions.',
+      'faq': 'Find answers to frequently asked questions. We have compiled the most common inquiries to help you quickly find the information you need.',
+      'privacy': 'Learn about our privacy policy and how we protect your personal information. We are committed to maintaining the highest standards of data security.',
+      'terms': 'Review our terms of service and understand the conditions for using our website and services. We believe in transparency and clear communication.'
+    };
+    
+    return contentMap[pageTitle.toLowerCase()] || 'Welcome to ' + pageTitle + '. Explore our content and discover what we have to offer.';
+  }
+
+  function generatePageSections(pageTitle) {
+    // Генерируем секции на основе названия страницы
+    const sectionsMap = {
+      'about': [
+        { title: 'Our Team', content: 'Meet our experienced team members who are passionate about delivering exceptional results' },
+        { title: 'Company History', content: 'Founded in 2020, we have grown to serve thousands of satisfied customers worldwide' },
+        { title: 'Our Mission', content: 'Our mission is to provide innovative solutions that help businesses thrive and succeed' },
+        { title: 'Values', content: 'We are committed to integrity, excellence, and customer satisfaction in everything we do' }
+      ],
+      'services': [
+        { title: 'Web Development', content: 'Custom websites and web applications built with modern technologies' },
+        { title: 'Consulting', content: 'Expert advice and strategic planning to help you achieve your goals' },
+        { title: 'Support', content: '24/7 technical support and maintenance to keep your systems running smoothly' },
+        { title: 'Training', content: 'Comprehensive training programs to help your team master new technologies' }
+      ],
+      'contact': [
+        { title: 'Phone Support', content: 'Call us at +1-234-567-8900 for immediate assistance' },
+        { title: 'Email Contact', content: 'Email us at info@company.com for detailed inquiries' },
+        { title: 'Office Address', content: 'Visit us at 123 Main Street, City, State 12345' },
+        { title: 'Business Hours', content: 'We are available Monday through Friday, 9 AM to 6 PM' }
+      ],
+      'portfolio': [
+        { title: 'Recent Projects', content: 'Check out our latest work and see the quality we deliver' },
+        { title: 'Case Studies', content: 'Detailed analysis of our solutions and their impact on client success' },
+        { title: 'Client Testimonials', content: 'What our clients say about working with us' },
+        { title: 'Awards', content: 'Recognition and awards we have received for our outstanding work' }
+      ],
+      'blog': [
+        { title: 'Latest Articles', content: 'Read our newest blog posts and stay informed about industry trends' },
+        { title: 'Industry News', content: 'Stay updated with the latest developments in our field' },
+        { title: 'Company Updates', content: 'News and announcements about our company and services' },
+        { title: 'Tips & Guides', content: 'Helpful tips and guides to improve your business processes' }
+      ]
+    };
+    
+    return sectionsMap[pageTitle.toLowerCase()] || [
+      { title: 'Overview', content: 'Learn more about ' + pageTitle + ' and what we offer' },
+      { title: 'Features', content: 'Discover the key features and benefits of ' + pageTitle },
+      { title: 'Benefits', content: 'See how ' + pageTitle + ' can help you achieve your goals' }
+    ];
+  }
+
+  function searchInStaticPageData(pageData, query, page) {
+    const results = [];
+    const queryLower = query.toLowerCase();
+    
+    // Поиск в основном контенте страницы
+    if (pageData.content && pageData.content.toLowerCase().includes(queryLower)) {
+      const preview = createSearchPreview(pageData.content, query);
+      results.push({
+        title: pageData.title,
+        preview: preview,
+        url: page.url,
+        sectionId: 'content',
+        pageTitle: page.title
+      });
+    }
+    
+    // Поиск в секциях страницы
+    if (pageData.sections) {
+      pageData.sections.forEach(section => {
+        if (section.title.toLowerCase().includes(queryLower) || 
+            section.content.toLowerCase().includes(queryLower)) {
+          const preview = createSearchPreview(section.content, query);
+          results.push({
+            title: section.title,
+            preview: preview,
+            url: page.url + '#' + section.title.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+            sectionId: 'content',
+            pageTitle: page.title
+          });
+        }
+      });
+    }
+    
+    return results;
+  }
+
+  function searchNavigation(query) {
+    const results = [];
+    const navLinks = document.querySelectorAll('a[href$=".html"], .nav-link, .sidebar-link');
+    
+    navLinks.forEach(link => {
+      const text = link.textContent.trim();
+      if (text.toLowerCase().includes(query.toLowerCase())) {
+        let url = link.getAttribute('href') || '#';
+        
+        // Если это относительная ссылка, оставляем как есть
+        // Если это полный URL, извлекаем только путь
+        if (url.startsWith('http')) {
+          try {
+            const urlObj = new URL(url);
+            url = urlObj.pathname;
+          } catch (e) {
+            // Если не удалось распарсить URL, оставляем как есть
+          }
+        }
+        
+        results.push({
+          title: text,
+          preview: 'Navigation link',
+          url: url,
+          sectionId: 'navigation',
+          pageTitle: text
+        });
       }
     });
+    
+    return results;
   }
-}
 
-// Автоматическая инициализация при загрузке страницы
-document.addEventListener('DOMContentLoaded', function() {
-  initSiteHeader();
-});
+  function createSearchPreview(text, query) {
+    const maxLength = 120;
+    const queryLower = query.toLowerCase();
+    const textLower = text.toLowerCase();
+    const queryIndex = textLower.indexOf(queryLower);
+    
+    if (queryIndex === -1) {
+      return text.substring(0, maxLength) + (text.length > maxLength ? '...' : '');
+    }
+    
+    // Находим начало и конец для превью
+    const start = Math.max(0, queryIndex - 30);
+    const end = Math.min(text.length, queryIndex + query.length + 50);
+    let preview = text.substring(start, end);
+    
+    if (start > 0) preview = '...' + preview;
+    if (end < text.length) preview = preview + '...';
+    
+    // Подсвечиваем найденный текст простым способом
+    const previewLower = preview.toLowerCase();
+    const matchIndex = previewLower.indexOf(queryLower);
+    if (matchIndex !== -1) {
+      const beforeMatch = preview.substring(0, matchIndex);
+      const match = preview.substring(matchIndex, matchIndex + query.length);
+      const afterMatch = preview.substring(matchIndex + query.length);
+      preview = beforeMatch + '<span class="search-result-highlight">' + match + '</span>' + afterMatch;
+    }
+    
+    return preview;
+  }
 
-// Экспортируем функции для возможности ручного вызова
-window.createSiteHeader = createSiteHeader;
-window.initSiteHeader = initSiteHeader;
-window.initMobileMenu = initMobileMenu;
+  function displaySearchResults(results, query) {
+    const searchResults = document.getElementById('search-results');
+    
+    if (results.length === 0) {
+      searchResults.innerHTML = \`
+        <div class="search-result-item">
+          <div class="search-result-icon">🔍</div>
+          <div class="search-result-content">
+            <div class="search-result-title">No results found</div>
+            <div class="search-result-preview">Try a different search term</div>
+          </div>
+        </div>
+      \`;
+    } else {
+      searchResults.innerHTML = results.map(result => \`
+        <div class="search-result-item" data-url="\${result.url}" data-type="\${result.sectionId}">
+          <div class="search-result-icon">\${result.sectionId === 'page' ? '📄' : result.sectionId === 'navigation' ? '🔗' : '📝'}</div>
+          <div class="search-result-content">
+            <div class="search-result-title">\${result.title}</div>
+            <div class="search-result-preview">\${result.preview}</div>
+          </div>
+        </div>
+      \`).join('');
+      
+      // Добавляем обработчики кликов
+      searchResults.querySelectorAll('.search-result-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const url = item.getAttribute('data-url');
+          if (url && url !== '#') {
+            if (url.startsWith('#')) {
+              // Прокрутка к секции на текущей странице
+              const targetId = url.substring(1);
+              const targetElement = document.getElementById(targetId);
+              if (targetElement) {
+                targetElement.scrollIntoView({ behavior: 'smooth' });
+              }
+            } else if (url.includes('.html')) {
+              // Переход на другую страницу
+              window.location.href = url;
+            } else {
+              // Обычная ссылка
+              window.location.href = url;
+            }
+            searchResults.classList.remove('active');
+          }
+        });
+      });
+    }
+    
+    searchResults.classList.add('active');
+  }
+
+  function initScrollHeader() {
+    const header = document.querySelector('.site-header');
+    if (!header) return;
+
+    let lastScrollY = window.scrollY;
+    let ticking = false;
+    let isMobile = window.innerWidth <= 768;
+
+    function updateHeader() {
+      const currentScrollY = window.scrollY;
+      
+      // Обновляем состояние скролла
+      if (currentScrollY > 100) {
+        header.classList.add('scrolled');
+      } else {
+        header.classList.remove('scrolled');
+      }
+
+      // Разная логика для мобильных и десктопных устройств
+      if (isMobile) {
+        // Мобильная версия - более чувствительная
+        if (currentScrollY > lastScrollY && currentScrollY > 150) {
+          // Скроллим вниз - скрываем шапку
+          header.classList.add('hidden');
+        } else if (currentScrollY < lastScrollY || currentScrollY < 100) {
+          // Скроллим вверх или в начале страницы - показываем шапку
+          header.classList.remove('hidden');
+        }
+      } else {
+        // Десктопная версия - менее чувствительная
+        if (currentScrollY > lastScrollY && currentScrollY > 200) {
+          // Скроллим вниз - скрываем шапку
+          header.classList.add('hidden');
+        } else {
+          // Скроллим вверх - показываем шапку
+          header.classList.remove('hidden');
+        }
+      }
+
+      lastScrollY = currentScrollY;
+      ticking = false;
+    }
+
+    function requestTick() {
+      if (!ticking) {
+        requestAnimationFrame(updateHeader);
+        ticking = true;
+      }
+    }
+
+    function handleResize() {
+      isMobile = window.innerWidth <= 768;
+    }
+
+    // Обработчики событий
+    window.addEventListener('scroll', requestTick, { passive: true });
+    window.addEventListener('resize', handleResize);
+
+    // Touch события для мобильных устройств
+    if ('ontouchstart' in window) {
+      let touchStartY = 0;
+      let touchEndY = 0;
+
+      document.addEventListener('touchstart', (e) => {
+        touchStartY = e.touches[0].clientY;
+      }, { passive: true });
+
+      document.addEventListener('touchend', (e) => {
+        touchEndY = e.changedTouches[0].clientY;
+        const touchDiff = touchStartY - touchEndY;
+        
+        // Быстрый свайп вниз - скрываем шапку
+        if (touchDiff < -50 && window.scrollY > 100) {
+          header.classList.add('hidden');
+        }
+        // Быстрый свайп вверх - показываем шапку
+        else if (touchDiff > 50) {
+          header.classList.remove('hidden');
+        }
+      }, { passive: true });
+    }
+  }
+  
+  function init() {
+    injectHeaderStyles();
+    
+    let container = document.getElementById('site-header-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'site-header-container';
+      document.body.insertBefore(container, document.body.firstChild);
+    }
+    
+    container.innerHTML = createHeader();
+    initSidebar();
+    initSearch();
+    initScrollHeader();
+  }
+  
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+  
+  window.initSiteHeader = init;
+})();
 `;
+};
+
+// Генерация классической шапки для многостраничного экспорта (заглушка)
+const generateClassicHeaderJSForMultipage = (siteData) => {
+  // Возвращаем минималистичную шапку как fallback
+  return generateMinimalHeaderJSForMultipage(siteData);
 };
