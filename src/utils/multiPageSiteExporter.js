@@ -1455,68 +1455,7 @@ const generateSectionPage = async (siteData, sectionId, sectionData) => {
 </html>`;
 };
 
-// Генерация общего хедера для всех страниц
-const generateCommonHeader = (siteData) => {
-  const headerData = siteData.headerData || {};
-  const siteName = headerData.siteName || 'My Site';
-  
-  // Генерируем стили хедера из headerData (как в EditorPanel.jsx)
-  const headerStyles = [];
-  
-  if (headerData.backgroundColor) {
-    headerStyles.push(`--header-bg-color: ${headerData.backgroundColor}`);
-  }
-  if (headerData.titleColor) {
-    headerStyles.push(`--header-title-color: ${headerData.titleColor}`);
-  }
-  if (headerData.linksColor) {
-    headerStyles.push(`--header-link-color: ${headerData.linksColor}`);
-  }
-  
-  // Генерируем навигационные ссылки из headerData.menuItems (если есть) или из секций
-  let navigationLinks = '';
-  
-  if (headerData.menuItems && headerData.menuItems.length > 0) {
-    // Используем menuItems из headerData
-    navigationLinks = headerData.menuItems.map(item => {
-      const url = item.url || '#';
-      const text = item.text || item.title || '';
-      return `<li><a href="${url}" class="nav-link">${text}</a></li>`;
-    }).join('');
-  } else {
-    // Fallback: используем секции
-    navigationLinks = generateNavigationLinks(siteData);
-  }
-  
-  // Добавляем контакты в навигацию
-  if (siteData.contactData) {
-    const contactFileName = getContactFileName(siteData.contactData);
-    const contactTitle = siteData.contactData?.title || 'Контакты';
-    navigationLinks += `<li><a href="${contactFileName}.html" class="nav-link">${contactTitle}</a></li>`;
-  }
-  
-  return `<header class="site-header" style="${headerStyles.join('; ')}">
-    <div class="header-content">
-      <div class="site-branding">
-        <h1 class="site-title">
-          <a href="index.html">${siteName}</a>
-        </h1>
-        <div class="site-domain" style="display: none;">${headerData.domain || ''}</div>
-      </div>
-      <nav class="site-nav">
-        <button class="menu-toggle" aria-label="Открыть меню">
-          <span></span>
-          <span></span>
-          <span></span>
-        </button>
-        <ul class="nav-menu">
-          <li><a href="index.html" class="nav-link">Главная</a></li>
-          ${navigationLinks}
-        </ul>
-      </nav>
-    </div>
-  </header>`;
-};
+// Генерация общего хедера для всех страниц - УДАЛЕНО (теперь используется header.js)
 
 // Генерация навигационных ссылок
 const generateNavigationLinks = (siteData) => {
@@ -7594,108 +7533,12 @@ document.addEventListener('DOMContentLoaded', function() {
     initChartTooltips();
   }, 100);
   
-  // Инициализация мобильного меню
-  initMobileMenu();
-  
-  // Автоматическое отображение домена
-  autoDisplayDomain();
+  // Инициализация мобильного меню - УДАЛЕНО (теперь в header.js)
 }
 
-// Функция для инициализации мобильного меню
-function initMobileMenu() {
-  const menuToggle = document.querySelector('.menu-toggle');
-  const navMenu = document.querySelector('.nav-menu');
-  
-  if (menuToggle && navMenu) {
-    menuToggle.addEventListener('click', function() {
-      navMenu.classList.toggle('active');
-      
-      // Анимация гамбургер-меню
-      const spans = menuToggle.querySelectorAll('span');
-      if (navMenu.classList.contains('active')) {
-        spans[0].style.transform = 'rotate(45deg) translate(5px, 5px)';
-        spans[1].style.opacity = '0';
-        spans[2].style.transform = 'rotate(-45deg) translate(7px, -6px)';
-      } else {
-        spans[0].style.transform = 'none';
-        spans[1].style.opacity = '1';
-        spans[2].style.transform = 'none';
-      }
-    });
-    
-    // Закрытие меню при клике на ссылку
-    const navLinks = navMenu.querySelectorAll('a');
-    navLinks.forEach(link => {
-      link.addEventListener('click', () => {
-        navMenu.classList.remove('active');
-        const spans = menuToggle.querySelectorAll('span');
-        spans[0].style.transform = 'none';
-        spans[1].style.opacity = '1';
-        spans[2].style.transform = 'none';
-      });
-    });
-    
-    // Закрытие меню при клике вне его
-    document.addEventListener('click', (e) => {
-      if (!menuToggle.contains(e.target) && !navMenu.contains(e.target)) {
-        navMenu.classList.remove('active');
-        const spans = menuToggle.querySelectorAll('span');
-        spans[0].style.transform = 'none';
-        spans[1].style.opacity = '1';
-        spans[2].style.transform = 'none';
-      }
-    });
-  }
-}
+// Функция для инициализации мобильного меню - УДАЛЕНО (теперь в header.js)
 
-// Функция для автоматического отображения домена (как в одностраничном экспорте)
-function autoDisplayDomain() {
-  // Получаем текущий домен из браузера
-  const currentDomain = window.location.hostname;
-  
-  // Пропускаем localhost или IP-адреса
-  if (currentDomain === 'localhost' || 
-      currentDomain === '127.0.0.1' || 
-      currentDomain.includes('192.168.') ||
-      currentDomain.includes('10.0.') ||
-      /^\\d+\\.\\d+\\.\\d+\\.\\d+$/.test(currentDomain)) {
-    console.log('Пропускаем отображение домена для localhost/IP');
-    return;
-  }
-  
-  console.log('Автоматическое отображение домена:', currentDomain);
-  
-  // Находим элемент отображения домена в хедере
-  const domainElement = document.querySelector('.site-domain');
-  
-  if (domainElement) {
-    // Обновляем существующий элемент домена
-    domainElement.textContent = currentDomain;
-    domainElement.style.display = 'block';
-    console.log('Обновлен элемент домена в хедере');
-  }
-  
-  // Обновляем любые другие ссылки на домен на странице
-  const domainPlaceholders = document.querySelectorAll('[data-auto-domain]');
-  domainPlaceholders.forEach(element => {
-    element.textContent = currentDomain;
-  });
-  
-  // Обновляем контактные email, если они содержат placeholder домен
-  const emailElements = document.querySelectorAll('a[href*="@"], [data-email]');
-  emailElements.forEach(element => {
-    const href = element.getAttribute('href') || '';
-    const text = element.textContent || '';
-    
-    if (href.includes('@example.com') || text.includes('@example.com')) {
-      const newHref = href.replace('@example.com', \`@\${currentDomain}\`);
-      const newText = text.replace('@example.com', \`@\${currentDomain}\`);
-      
-      if (href !== newHref) element.setAttribute('href', newHref);
-      if (text !== newText) element.textContent = newText;
-    }
-  });
-}`;
+`;
 
 const generateMultiPageSitemap = (siteData) => {
   const domain = siteData.headerData?.domain || 'example.com';
