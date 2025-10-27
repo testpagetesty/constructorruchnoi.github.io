@@ -224,9 +224,94 @@ export const uploadAndSaveImage = async (file, sectionName, index = 0) => {
 export const getAllCachedImages = async () => {
   try {
     const images = [];
-    const keys = Object.keys(localStorage);
     
-    console.log(`🔥EXPORT🔥 Scanning localStorage keys: ${keys.length} total`);
+    // Сначала проверяем hero изображение напрямую из IndexedDB
+    console.log('🔥EXPORT🔥 Checking hero image in IndexedDB...');
+    let heroFound = false;
+    try {
+      const heroMetadata = await imageCacheService.getMetadata('heroImageMetadata');
+      console.log('🔥EXPORT🔥 Hero metadata from IndexedDB:', heroMetadata);
+      
+      if (heroMetadata && heroMetadata.filename) {
+        console.log('🔥EXPORT🔥 Trying to get blob for filename:', heroMetadata.filename);
+        const heroBlob = await imageCacheService.getImage(heroMetadata.filename);
+        if (heroBlob) {
+          images.push({
+            fileName: heroMetadata.filename,
+            url: URL.createObjectURL(heroBlob),
+            metadata: heroMetadata
+          });
+          console.log(`🔥EXPORT🔥 Found hero image in IndexedDB: ${heroMetadata.filename}`);
+          heroFound = true;
+        } else {
+          console.warn('🔥EXPORT🔥 Hero blob not found in IndexedDB for filename:', heroMetadata.filename);
+        }
+      } else {
+        console.warn('🔥EXPORT🔥 Hero metadata found but no filename:', heroMetadata);
+      }
+    } catch (error) {
+      console.warn('🔥EXPORT🔥 Error getting hero image from IndexedDB:', error);
+    }
+    
+    // Если не нашли hero в IndexedDB, пробуем через localStorage
+    if (!heroFound) {
+      try {
+        console.log('🔥EXPORT🔥 Trying to get hero image from localStorage...');
+        const storageHero = localStorage.getItem('heroImageMetadata');
+        if (storageHero) {
+          const heroMetadata = JSON.parse(storageHero);
+          if (heroMetadata && heroMetadata.filename) {
+            const heroBlob = await imageCacheService.getImage(heroMetadata.filename);
+            if (heroBlob) {
+              images.push({
+                fileName: heroMetadata.filename,
+                url: URL.createObjectURL(heroBlob),
+                metadata: heroMetadata
+              });
+              console.log(`🔥EXPORT🔥 Found hero image from localStorage: ${heroMetadata.filename}`);
+              heroFound = true;
+            }
+          }
+        }
+        
+        // Если blob не найден в кэше, попробуем получить через blob URL из localStorage
+        if (!heroFound) {
+          console.log('🔥EXPORT🔥 Trying to get hero blob URL from localStorage...');
+          const blobUrl = localStorage.getItem('heroImageBlobUrl');
+          if (blobUrl && blobUrl.startsWith('blob:')) {
+            try {
+              const response = await fetch(blobUrl);
+              const blob = await response.blob();
+              const heroMetadata = storageHero ? JSON.parse(storageHero) : { filename: 'hero.jpg' };
+              
+              images.push({
+                fileName: heroMetadata.filename || 'hero.jpg',
+                url: URL.createObjectURL(blob),
+                metadata: heroMetadata
+              });
+              console.log(`🔥EXPORT🔥 Found hero image from blob URL: ${heroMetadata.filename}`);
+              heroFound = true;
+            } catch (error) {
+              console.warn('🔥EXPORT🔥 Error fetching blob URL:', error);
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('🔥EXPORT🔥 Error getting hero image from localStorage:', error);
+      }
+    }
+    
+    console.log('🔥EXPORT🔥 Hero image lookup result:', heroFound ? 'FOUND' : 'NOT FOUND');
+    
+    // Затем сканируем localStorage для других изображений
+    let keys = [];
+    try {
+      keys = Object.keys(localStorage);
+      console.log(`🔥EXPORT🔥 Scanning localStorage keys: ${keys.length} total`);
+    } catch (error) {
+      console.warn('🔥EXPORT🔥 localStorage not available, skipping localStorage scan');
+      return images;
+    }
     
     let cardImageKeys = 0;
     let siteImageKeys = 0;
@@ -235,32 +320,38 @@ export const getAllCachedImages = async () => {
       // Ищем как обычные метаданные изображений, так и метаданные карточек
       if (key.startsWith('site-images-metadata-')) {
         siteImageKeys++;
-        const metadata = imageCacheService.getMetadata(key);
+        const metadata = await imageCacheService.getMetadata(key);
         if (metadata) {
-          const blob = await imageCacheService.getImage(metadata.fileName);
-          if (blob) {
-            images.push({
-              fileName: metadata.fileName,
-              url: URL.createObjectURL(blob),
-              metadata: metadata
-            });
-            console.log(`🔥EXPORT🔥 Found site image: ${metadata.fileName}`);
+          const fileName = metadata.filename || metadata.fileName;
+          if (fileName) {
+            const blob = await imageCacheService.getImage(fileName);
+            if (blob) {
+              images.push({
+                fileName: fileName,
+                url: URL.createObjectURL(blob),
+                metadata: metadata
+              });
+              console.log(`🔥EXPORT🔥 Found site image: ${fileName}`);
+            }
           }
         }
       } else if (key.startsWith('card-image-metadata-')) {
         cardImageKeys++;
-        const metadata = imageCacheService.getMetadata(key);
+        const metadata = await imageCacheService.getMetadata(key);
         if (metadata) {
-          const blob = await imageCacheService.getImage(metadata.fileName);
-          if (blob) {
-            images.push({
-              fileName: metadata.fileName,
-              url: URL.createObjectURL(blob),
-              metadata: metadata
-            });
-            console.log(`🔥EXPORT🔥 Found card image: ${metadata.fileName}`);
-          } else {
-            console.warn(`🔥EXPORT🔥 No blob for card image: ${metadata.fileName}`);
+          const fileName = metadata.filename || metadata.fileName;
+          if (fileName) {
+            const blob = await imageCacheService.getImage(fileName);
+            if (blob) {
+              images.push({
+                fileName: fileName,
+                url: URL.createObjectURL(blob),
+                metadata: metadata
+              });
+              console.log(`🔥EXPORT🔥 Found card image: ${fileName}`);
+            } else {
+              console.warn(`🔥EXPORT🔥 No blob for card image: ${fileName}`);
+            }
           }
         }
       }

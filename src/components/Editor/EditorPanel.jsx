@@ -38988,7 +38988,7 @@ ${mainHtml}
 
           buttonText: heroData.buttonText || '',
 
-          backgroundImage: heroData.backgroundImage ? 'assets/images/hero/' + heroData.backgroundImage.split('/').pop() : '',
+          backgroundImage: heroData.backgroundImage ? 'assets/images/' + heroData.backgroundImage.split('/').pop() : '',
 
           homePageSettings: heroData.homePageSettings || {
 

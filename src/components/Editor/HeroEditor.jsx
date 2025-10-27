@@ -173,8 +173,18 @@ const HeroEditor = ({ heroData = {}, onHeroChange, expanded, onToggle }) => {
         lastModified: new Date().toISOString()
       };
 
-      // Сохранение метаданных в кэш
+      // Сохранение метаданных в кэш и localStorage для совместимости с инкогнито
       await imageCacheService.saveMetadata('heroImageMetadata', imageMetadata);
+      
+      // Дополнительно сохраняем в localStorage для работы в режиме инкогнито
+      try {
+        localStorage.setItem('heroImageMetadata', JSON.stringify(imageMetadata));
+        localStorage.setItem('heroImageBlobUrl', url);
+        console.log('✓ Hero изображение сохранено в localStorage (processImage)');
+      } catch (error) {
+        console.warn('Не удалось сохранить hero в localStorage (processImage):', error);
+      }
+      
       console.log('✓ Метаданные hero изображения сохранены в кэш:', imageMetadata);
 
       return { url, filename, blob };
@@ -207,8 +217,18 @@ const HeroEditor = ({ heroData = {}, onHeroChange, expanded, onToggle }) => {
         lastModified: new Date().toISOString()
       };
 
-      // Сохранение метаданных в кэш вместо localStorage
+      // Сохранение метаданных в кэш и localStorage для совместимости с инкогнито
       await imageCacheService.saveMetadata('heroImageMetadata', imageMetadata);
+      
+      // Дополнительно сохраняем в localStorage для работы в режиме инкогнито
+      try {
+        localStorage.setItem('heroImageMetadata', JSON.stringify(imageMetadata));
+        localStorage.setItem('heroImageBlobUrl', url);
+        console.log('✓ Hero изображение сохранено в localStorage для инкогнито режима');
+      } catch (error) {
+        console.warn('Не удалось сохранить hero в localStorage:', error);
+      }
+      
       console.log('✓ Метаданные hero изображения сохранены в кэш:', imageMetadata);
 
       // Показ уведомления
