@@ -26669,9 +26669,64 @@ const EditorPanel = ({
 
 
 
+      /* Адаптивность для мобильных устройств */
+      @media (max-width: 768px) {
+        .site-header {
+          padding: 0.8rem 1rem;
+        }
+
+        .header-content {
+          padding: 0 50px 0 10px;
+        }
+
+        .site-title {
+          font-size: 1.2rem;
+        }
+
+        .nav-menu {
+          display: none;
+        }
+
+        .sidebar-toggle {
+          position: static;
+          transform: none;
+          left: auto;
+          width: 36px;
+          height: 36px;
+          font-size: 16px;
+          margin-right: 0.5rem;
+          flex-shrink: 0;
+        }
+
+        .sidebar-menu {
+          width: 100vw;
+          padding: 1.5rem 1rem;
+        }
+
+        .sidebar-header {
+          margin-bottom: 1.5rem;
+        }
+
+        .sidebar-title {
+          font-size: 1.1rem;
+        }
+
+        .sidebar-link {
+          padding: 0.8rem 1rem;
+          font-size: 0.9rem;
+        }
+      }
+
       @media (max-width: 1024px) {
         .sidebar-toggle {
           left: -25px;
+        }
+      }
+
+      @media (min-width: 769px) {
+        .sidebar-toggle {
+          position: absolute;
+          left: -30px;
         }
       }
     \`;
@@ -26690,22 +26745,12 @@ const EditorPanel = ({
           <h1 class="site-title">
             <a href="${indexFile}">${siteName}</a>
           </h1>
-          <a href="${indexFile}" class="home-button" aria-label="На главную">
-            <span class="home-icon">🏠</span>
-          </a>
         </div>
         
         <!-- Центральное меню (только на десктопе) -->
         <nav class="nav-menu">
           ${navigationLinks}
         </nav>
-        
-        <!-- Поиск -->
-        <div class="search-container" style="position: relative;">
-          <span class="search-icon">🔍</span>
-          <input type="text" class="search-input" placeholder="Search...">
-          <div class="search-results" id="search-results"></div>
-        </div>
       </div>
       
       <!-- Боковое меню -->
@@ -27288,7 +27333,6 @@ const EditorPanel = ({
     
     container.innerHTML = createHeader();
     initSidebar();
-    initSearch();
     initScrollHeader();
   }
   
@@ -27444,9 +27488,19 @@ const EditorPanel = ({
         margin: 0;
       }
 
+      .footer-links ul {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+      }
+
       .footer-links li,
       .footer-contact li {
         margin-bottom: 0.5rem;
+      }
+
+      .footer-links li {
+        margin-bottom: 0;
       }
 
       .footer-links a,
@@ -27488,6 +27542,10 @@ const EditorPanel = ({
         .footer-content {
           grid-template-columns: 1fr;
           gap: 1.5rem;
+        }
+        
+        .footer-links ul {
+          grid-template-columns: 1fr;
         }
         
         .footer-info h3,
