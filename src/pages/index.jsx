@@ -645,6 +645,8 @@ export default function Home() {
           onElementSelect={handleElementSelect}
           onElementUpdate={handleElementUpdate}
           onAddElement={handleAddElement}
+          onContactChange={handleContactChange}
+          onSectionsChange={handleSectionsChange}
         />
       </Box>
       </Box>

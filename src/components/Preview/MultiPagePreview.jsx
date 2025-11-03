@@ -16,8 +16,21 @@ import {
   Fade,
   Drawer,
   Button,
-  Fab
+  Fab,
+  Popover,
+  TextField,
+  Tooltip,
+  FormControl,
+  Select,
+  MenuItem,
+  ToggleButton,
+  ToggleButtonGroup
 } from '@mui/material';
+import PaletteIcon from '@mui/icons-material/Palette';
+import TextIncreaseIcon from '@mui/icons-material/TextIncrease';
+import FormatAlignLeftIcon from '@mui/icons-material/FormatAlignLeft';
+import FormatAlignCenterIcon from '@mui/icons-material/FormatAlignCenter';
+import FormatAlignRightIcon from '@mui/icons-material/FormatAlignRight';
 import { styled } from '@mui/material/styles';
 import HomeIcon from '@mui/icons-material/Home';
 import ContactsIcon from '@mui/icons-material/Contacts';
@@ -135,6 +148,338 @@ const NavigationBar = styled(Paper)(({ theme }) => ({
   boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
 }));
 
+// Компонент для выбора цвета контактов в превью
+const ContactColorPicker = ({ label, color, onChange }) => {
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [tempColor, setTempColor] = useState(color);
+
+  useEffect(() => {
+    setTempColor(color);
+  }, [color]);
+
+  const handleClick = (event) => {
+    setAnchorEl(event.currentTarget);
+    setTempColor(color);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleColorChange = (event) => {
+    const newColor = event.target.value;
+    setTempColor(newColor);
+    onChange(newColor);
+  };
+
+  const open = Boolean(anchorEl);
+  const id = open ? `color-picker-${label}` : undefined;
+
+  return (
+    <>
+      <Tooltip title={label}>
+        <IconButton
+          onClick={handleClick}
+          sx={{
+            backgroundColor: color,
+            color: '#fff',
+            width: 40,
+            height: 40,
+            '&:hover': {
+              backgroundColor: color,
+              opacity: 0.8
+            },
+            boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+          }}
+        >
+          <PaletteIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+      <Popover
+        id={id}
+        open={open}
+        anchorEl={anchorEl}
+        onClose={handleClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'left',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'left',
+        }}
+      >
+        <Box sx={{ p: 2, minWidth: 200 }}>
+          <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
+            {label}
+          </Typography>
+          <TextField
+            type="color"
+            value={tempColor}
+            onChange={handleColorChange}
+            fullWidth
+            size="small"
+            sx={{
+              '& input[type="color"]': {
+                width: '100%',
+                height: 40,
+                cursor: 'pointer',
+                border: 'none',
+                borderRadius: 1
+              }
+            }}
+          />
+          <TextField
+            value={tempColor}
+            onChange={(e) => {
+              const newColor = e.target.value;
+              setTempColor(newColor);
+              onChange(newColor);
+            }}
+            placeholder="#000000"
+            size="small"
+            fullWidth
+            sx={{ mt: 1 }}
+            inputProps={{
+              pattern: '^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$',
+              maxLength: 7
+            }}
+          />
+        </Box>
+      </Popover>
+    </>
+  );
+};
+
+// Расширенный компонент для настройки текста (заголовок/описание) для всех секций
+const SectionTextSettings = ({ 
+  label, 
+  color, 
+  textAlign = 'center',
+  fontSize,
+  fontStyle = 'default',
+  fontFamily,
+  fontWeight,
+  onChangeColor,
+  onChangeAlign,
+  onChangeFontSize,
+  onChangeFontStyle,
+  onChangeFontFamily,
+  onChangeFontWeight
+}) => {
+  const [anchorEl, setAnchorEl] = useState(null);
+
+  const handleClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const open = Boolean(anchorEl);
+  const id = open ? `text-settings-${label}` : undefined;
+
+  // Разные размеры для заголовка и описания
+  const fontSizeOptions = label.includes('заголовка') ? [
+    { value: '1.5rem', label: 'Маленький' },
+    { value: '2rem', label: 'Средний' },
+    { value: '2.5rem', label: 'Большой' },
+    { value: '3rem', label: 'Очень большой' },
+    { value: '3.5rem', label: 'Огромный' }
+  ] : [
+    { value: '0.875rem', label: 'Маленький' },
+    { value: '1rem', label: 'Средний' },
+    { value: '1.25rem', label: 'Большой' },
+    { value: '1.5rem', label: 'Очень большой' },
+    { value: '1.75rem', label: 'Огромный' }
+  ];
+
+  return (
+    <>
+      <Tooltip title={`Настройки ${label}`}>
+        <IconButton
+          onClick={handleClick}
+          sx={{
+            backgroundColor: '#1976d2',
+            color: '#fff',
+            width: 40,
+            height: 40,
+            '&:hover': {
+              backgroundColor: '#1565c0',
+            },
+            boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+          }}
+        >
+          <TextIncreaseIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+      <Popover
+        id={id}
+        open={open}
+        anchorEl={anchorEl}
+        onClose={handleClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'left',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'left',
+        }}
+      >
+        <Box sx={{ p: 2, minWidth: 280, maxHeight: '80vh', overflowY: 'auto' }}>
+          <Typography variant="body2" sx={{ mb: 2, fontWeight: 500 }}>
+            Настройки {label}
+          </Typography>
+          
+          {/* Выбор цвета */}
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="caption" sx={{ mb: 0.5, display: 'block' }}>
+              Цвет
+            </Typography>
+            <TextField
+              type="color"
+              value={color}
+              onChange={(e) => onChangeColor(e.target.value)}
+              fullWidth
+              size="small"
+              sx={{
+                '& input[type="color"]': {
+                  width: '100%',
+                  height: 40,
+                  cursor: 'pointer',
+                  border: 'none',
+                  borderRadius: 1
+                }
+              }}
+            />
+          </Box>
+
+          {/* Выравнивание */}
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="caption" sx={{ mb: 0.5, display: 'block' }}>
+              Выравнивание
+            </Typography>
+            <ToggleButtonGroup
+              value={textAlign}
+              exclusive
+              onChange={(e, newAlign) => {
+                if (newAlign !== null) {
+                  onChangeAlign(newAlign);
+                }
+              }}
+              aria-label="text alignment"
+              size="small"
+              fullWidth
+            >
+              <ToggleButton value="left" aria-label="left aligned">
+                <FormatAlignLeftIcon />
+              </ToggleButton>
+              <ToggleButton value="center" aria-label="centered">
+                <FormatAlignCenterIcon />
+              </ToggleButton>
+              <ToggleButton value="right" aria-label="right aligned">
+                <FormatAlignRightIcon />
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+
+          {/* Размер шрифта */}
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="caption" sx={{ mb: 0.5, display: 'block' }}>
+              Размер шрифта
+            </Typography>
+            <FormControl fullWidth size="small">
+              <Select
+                value={fontSize || (label.includes('заголовка') ? '2.5rem' : '1.25rem')}
+                onChange={(e) => onChangeFontSize(e.target.value)}
+              >
+                {fontSizeOptions.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label} ({option.value})
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+
+          {/* Шрифт */}
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="caption" sx={{ mb: 0.5, display: 'block' }}>
+              Шрифт
+            </Typography>
+            <FormControl fullWidth size="small">
+              <Select
+                value={fontFamily || 'Arial'}
+                onChange={(e) => onChangeFontFamily(e.target.value)}
+              >
+                <MenuItem value="Arial">Arial</MenuItem>
+                <MenuItem value="Times New Roman">Times New Roman</MenuItem>
+                <MenuItem value="Georgia">Georgia</MenuItem>
+                <MenuItem value="Verdana">Verdana</MenuItem>
+                <MenuItem value="Helvetica">Helvetica</MenuItem>
+                <MenuItem value="Courier New">Courier New</MenuItem>
+                <MenuItem value="Trebuchet MS">Trebuchet MS</MenuItem>
+                <MenuItem value="Comic Sans MS">Comic Sans MS</MenuItem>
+                <MenuItem value="Impact">Impact</MenuItem>
+                <MenuItem value="Tahoma">Tahoma</MenuItem>
+                <MenuItem value="Roboto">Roboto</MenuItem>
+                <MenuItem value="Montserrat">Montserrat</MenuItem>
+                <MenuItem value="Open Sans">Open Sans</MenuItem>
+                <MenuItem value="Lato">Lato</MenuItem>
+                <MenuItem value="Playfair Display">Playfair Display</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+
+          {/* Толщина шрифта */}
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="caption" sx={{ mb: 0.5, display: 'block' }}>
+              Толщина шрифта
+            </Typography>
+            <FormControl fullWidth size="small">
+              <Select
+                value={fontWeight || '400'}
+                onChange={(e) => onChangeFontWeight(e.target.value)}
+              >
+                <MenuItem value="100">Тонкий (100)</MenuItem>
+                <MenuItem value="200">Сверх-легкий (200)</MenuItem>
+                <MenuItem value="300">Легкий (300)</MenuItem>
+                <MenuItem value="400">Обычный (400)</MenuItem>
+                <MenuItem value="500">Средний (500)</MenuItem>
+                <MenuItem value="600">Полужирный (600)</MenuItem>
+                <MenuItem value="700">Жирный (700)</MenuItem>
+                <MenuItem value="800">Сверх-жирный (800)</MenuItem>
+                <MenuItem value="900">Черный (900)</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+
+          {/* Стиль шрифта */}
+          <Box>
+            <Typography variant="caption" sx={{ mb: 0.5, display: 'block' }}>
+              Стиль шрифта
+            </Typography>
+            <FormControl fullWidth size="small">
+              <Select
+                value={fontStyle || 'default'}
+                onChange={(e) => onChangeFontStyle(e.target.value)}
+              >
+                <MenuItem value="default">Обычный</MenuItem>
+                <MenuItem value="bold">Жирный</MenuItem>
+                <MenuItem value="light">Тонкий</MenuItem>
+                <MenuItem value="italic">Курсив</MenuItem>
+                <MenuItem value="cursive">Рукописный</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+        </Box>
+      </Popover>
+    </>
+  );
+};
+
 const MultiPagePreview = ({ 
   headerData, 
   heroData, 
@@ -145,7 +490,9 @@ const MultiPagePreview = ({
   liveChatData,
   onElementUpdate = () => {},
   selectedElement = null,
-  onElementSelect = () => {}
+  onElementSelect = () => {},
+  onSectionsChange = () => {},
+  onContactChange = () => {}
 }) => {
   // 🔍 ОТЛАДКА: Отслеживаем обновления sectionsData
   console.log('🔍 [MultiPagePreview] РЕНДЕР КОМПОНЕНТА с sectionsData:', sectionsData);
@@ -2144,7 +2491,7 @@ const MultiPagePreview = ({
   };
 
   // Функция для отображения страницы секции
-  const renderSectionPage = (sectionData) => (
+  const renderSectionPage = (sectionData, sectionId) => (
     <PageContainer>
       <Header 
         headerData={headerData} 
@@ -2152,33 +2499,135 @@ const MultiPagePreview = ({
         contactData={contactData}
       />
       <PageContent>
-        <Container maxWidth={false} sx={{ maxWidth: '100%', px: 2 }}>
+        <Container maxWidth={false} sx={{ maxWidth: '100%', px: 2, position: 'relative' }}>
           {renderBreadcrumbs()}
-          <Typography 
-            variant="h2" 
-            component="h1" 
-            sx={{ 
-              mb: 3, 
-              textAlign: 'center',
-              color: sectionData?.titleColor || '#1976d2'
-            }}
-          >
-            {sectionData?.title}
-          </Typography>
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: (contactData?.titleTextAlign || sectionData?.titleTextAlign || 'center') === 'left' ? 'flex-start' :
+                          (contactData?.titleTextAlign || sectionData?.titleTextAlign || 'center') === 'right' ? 'flex-end' : 'center',
+            gap: 1,
+            mb: 2,
+            width: '100%'
+          }}>
+            <Box sx={{
+              maxWidth: (contactData?.titleTextAlign || sectionData?.titleTextAlign || 'center') === 'center' ? '800px' : '100%',
+              width: '100%'
+            }}>
+              <Typography 
+                variant="h2" 
+                component="h1" 
+                sx={{ 
+                  mb: 0, 
+                  textAlign: contactData?.titleTextAlign || sectionData?.titleTextAlign || 'center',
+                  color: contactData?.titleColor || sectionData?.titleColor || '#1976d2',
+                  fontSize: contactData?.titleFontSize || sectionData?.titleFontSize || 'inherit',
+                  fontFamily: contactData?.titleFontFamily || sectionData?.titleFontFamily || 'inherit',
+                  fontWeight: contactData?.titleFontWeight || sectionData?.titleFontWeight || 'inherit',
+                  fontStyle: contactData?.titleFont === 'italic' ? 'italic' : 'normal',
+                  width: '100%'
+                }}
+              >
+                {sectionData?.title}
+              </Typography>
+            </Box>
+            {sectionId && (
+              <SectionTextSettings
+                label="заголовка"
+                color={contactData?.titleColor || sectionData?.titleColor || '#1976d2'}
+                textAlign={contactData?.titleTextAlign || sectionData?.titleTextAlign || 'center'}
+                fontSize={contactData?.titleFontSize || sectionData?.titleFontSize}
+                fontFamily={contactData?.titleFontFamily || sectionData?.titleFontFamily}
+                fontWeight={contactData?.titleFontWeight || sectionData?.titleFontWeight}
+                fontStyle={contactData?.titleFont || sectionData?.titleFont || 'default'}
+                onChangeColor={(color) => {
+                  const updatedSections = { ...sectionsData };
+                  updatedSections[sectionId] = { ...sectionData, titleColor: color };
+                  onSectionsChange(updatedSections);
+                  onContactChange({ ...contactData, titleColor: color });
+                }}
+                onChangeAlign={(align) => {
+                  onContactChange({ ...contactData, titleTextAlign: align });
+                }}
+                onChangeFontSize={(size) => {
+                  onContactChange({ ...contactData, titleFontSize: size });
+                }}
+                onChangeFontFamily={(family) => {
+                  onContactChange({ ...contactData, titleFontFamily: family });
+                }}
+                onChangeFontWeight={(weight) => {
+                  onContactChange({ ...contactData, titleFontWeight: weight });
+                }}
+                onChangeFontStyle={(style) => {
+                  onContactChange({ ...contactData, titleFont: style });
+                }}
+              />
+            )}
+          </Box>
           {sectionData?.description && (
-            <Typography 
-              variant="h6" 
-              component="p" 
-              sx={{ 
-                mb: 4, 
-                textAlign: 'center',
-                color: sectionData?.descriptionColor || '#666',
-                maxWidth: '1200px',
-                margin: '0 auto 2rem auto'
-              }}
-            >
-              {sectionData.description}
-            </Typography>
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: (contactData?.descriptionTextAlign || sectionData?.descriptionTextAlign || 'center') === 'left' ? 'flex-start' :
+                            (contactData?.descriptionTextAlign || sectionData?.descriptionTextAlign || 'center') === 'right' ? 'flex-end' : 'center',
+              gap: 1,
+              mb: 2,
+              width: '100%'
+            }}>
+              <Box sx={{
+                maxWidth: (contactData?.descriptionTextAlign || sectionData?.descriptionTextAlign || 'center') === 'center' ? '800px' : '100%',
+                width: '100%'
+              }}>
+                <Typography 
+                  variant="h6" 
+                  component="p" 
+                  sx={{ 
+                    mb: 0, 
+                    textAlign: contactData?.descriptionTextAlign || sectionData?.descriptionTextAlign || 'center',
+                    color: contactData?.descriptionColor || sectionData?.descriptionColor || '#666',
+                    fontSize: contactData?.descriptionFontSize || sectionData?.descriptionFontSize || 'inherit',
+                    fontFamily: contactData?.descriptionFontFamily || sectionData?.descriptionFontFamily || 'inherit',
+                    fontWeight: contactData?.descriptionFontWeight || sectionData?.descriptionFontWeight || 'inherit',
+                    fontStyle: contactData?.textFont === 'italic' ? 'italic' : 'normal',
+                    width: '100%'
+                  }}
+                >
+                  {sectionData.description}
+                </Typography>
+              </Box>
+              {sectionId && (
+                <SectionTextSettings
+                  label="описания"
+                  color={contactData?.descriptionColor || sectionData?.descriptionColor || '#666666'}
+                  textAlign={contactData?.descriptionTextAlign || sectionData?.descriptionTextAlign || 'center'}
+                  fontSize={contactData?.descriptionFontSize || sectionData?.descriptionFontSize}
+                  fontFamily={contactData?.descriptionFontFamily || sectionData?.descriptionFontFamily}
+                  fontWeight={contactData?.descriptionFontWeight || sectionData?.descriptionFontWeight}
+                  fontStyle={contactData?.textFont || sectionData?.textFont || 'default'}
+                  onChangeColor={(color) => {
+                    const updatedSections = { ...sectionsData };
+                    updatedSections[sectionId] = { ...sectionData, descriptionColor: color };
+                    onSectionsChange(updatedSections);
+                    onContactChange({ ...contactData, descriptionColor: color });
+                  }}
+                  onChangeAlign={(align) => {
+                    onContactChange({ ...contactData, descriptionTextAlign: align });
+                  }}
+                  onChangeFontSize={(size) => {
+                    onContactChange({ ...contactData, descriptionFontSize: size });
+                  }}
+                  onChangeFontFamily={(family) => {
+                    onContactChange({ ...contactData, descriptionFontFamily: family });
+                  }}
+                  onChangeFontWeight={(weight) => {
+                    onContactChange({ ...contactData, descriptionFontWeight: weight });
+                  }}
+                  onChangeFontStyle={(style) => {
+                    onContactChange({ ...contactData, textFont: style });
+                  }}
+                />
+              )}
+            </Box>
           )}
           
           {/* Отображение карточек секции */}
@@ -2285,11 +2734,25 @@ const MultiPagePreview = ({
         contactData={contactData}
       />
       <PageContent>
-        <Container maxWidth={false} sx={{ maxWidth: '100%', px: 2 }}>
+        <Container maxWidth={false} sx={{ maxWidth: '100%', px: 2, position: 'relative' }}>
           {renderBreadcrumbs()}
           <ContactSection 
             contactData={contactData}
             showBorders={false}
+            titleColorPicker={
+              <ContactColorPicker
+                label="Цвет заголовка"
+                color={contactData?.titleColor || '#1976d2'}
+                onChange={(color) => onContactChange({ ...contactData, titleColor: color })}
+              />
+            }
+            descriptionColorPicker={
+              <ContactColorPicker
+                label="Цвет описания"
+                color={contactData?.descriptionColor || '#666666'}
+                onChange={(color) => onContactChange({ ...contactData, descriptionColor: color })}
+              />
+            }
           />
         </Container>
       </PageContent>
@@ -2365,8 +2828,9 @@ const MultiPagePreview = ({
       case 'cookies':
         return renderLegalPage('cookies');
       default:
-        const sectionData = sections.find(s => s.id === currentPage)?.data;
-        return sectionData ? renderSectionPage(sectionData) : renderIndexPage();
+        const section = sections.find(s => s.id === currentPage);
+        const sectionData = section?.data;
+        return sectionData ? renderSectionPage(sectionData, section.id) : renderIndexPage();
     }
   };
 

@@ -72,7 +72,9 @@ const ContactSection = React.forwardRef(({
   formBorderWidth,
   infoBorderWidth,
   contactData = {},
-  showBorders = false
+  showBorders = false,
+  titleColorPicker = null,
+  descriptionColorPicker = null
 }, ref) => {
   // Используем значения из contactData, если они есть, иначе используем значения по умолчанию
   const {
@@ -107,28 +109,24 @@ const ContactSection = React.forwardRef(({
     backgroundColor = '#ffffff',
     gradientColor1 = '#ffffff',
     gradientColor2 = '#f5f5f5',
-    gradientDirection = 'to right'
+    gradientDirection = 'to right',
+    // Настройки выравнивания и шрифта
+    titleTextAlign: dataTitleTextAlign = 'center',
+    titleFontSize: dataTitleFontSize,
+    titleFontFamily: dataTitleFontFamily,
+    titleFontWeight: dataTitleFontWeight,
+    descriptionTextAlign: dataDescriptionTextAlign = 'center',
+    descriptionFontSize: dataDescriptionFontSize,
+    descriptionFontFamily: dataDescriptionFontFamily,
+    descriptionFontWeight: dataDescriptionFontWeight
   } = contactData;
 
   const theme = useTheme();
 
   // 🎨 СОЗДАЕМ СТИЛИ ДЛЯ ФОНА СЕКЦИИ
+  // Фон отключен - используется фон сайта
   const getSectionBackgroundStyle = () => {
-    if (!showBackground) {
-      return { backgroundColor: 'transparent' };
-    }
-
-    if (backgroundType === 'gradient') {
-      const gradientValue = `linear-gradient(${gradientDirection}, ${gradientColor1}, ${gradientColor2})`;
-      return {
-        background: gradientValue,
-        backgroundColor: gradientColor1 // fallback
-      };
-    } else {
-      return {
-        backgroundColor: backgroundColor
-      };
-    }
+    return { backgroundColor: 'transparent' };
   };
 
   const getFontStyle = (type) => {
@@ -159,28 +157,68 @@ const ContactSection = React.forwardRef(({
       }}
     >
       <Container maxWidth={false} sx={{ maxWidth: '100%', px: 2 }}>
-        <Box sx={{ textAlign: 'center', mb: 6 }}>
-          <Typography
-            variant="h2"
-            component="h2"
-            sx={{
-              color: dataTitleColor,
-              mb: 2,
-              ...getFontStyle(dataTitleFont)
-            }}
-          >
-            {dataTitle}
-          </Typography>
-          <Typography
-            variant="h6"
-            sx={{
-              color: dataDescriptionColor,
-              mb: 4,
-              ...getFontStyle(dataTextFont)
-            }}
-          >
-            {dataDescription}
-          </Typography>
+        <Box sx={{ mb: 6, width: '100%' }}>
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: (dataTitleTextAlign === 'left' ? 'flex-start' : dataTitleTextAlign === 'right' ? 'flex-end' : 'center'),
+            gap: 1,
+            mb: 2,
+            width: '100%'
+          }}>
+            <Box sx={{
+              maxWidth: dataTitleTextAlign === 'center' ? '800px' : '100%',
+              width: '100%'
+            }}>
+              <Typography
+                variant={dataTitleFontSize ? undefined : "h2"}
+                component="h2"
+                sx={{
+                  color: dataTitleColor,
+                  mb: 0,
+                  textAlign: dataTitleTextAlign,
+                  fontSize: dataTitleFontSize,
+                  fontFamily: dataTitleFontFamily,
+                  fontWeight: dataTitleFontWeight,
+                  ...getFontStyle(dataTitleFont),
+                  width: '100%'
+                }}
+              >
+                {dataTitle}
+              </Typography>
+            </Box>
+            {titleColorPicker}
+          </Box>
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: (dataDescriptionTextAlign === 'left' ? 'flex-start' : dataDescriptionTextAlign === 'right' ? 'flex-end' : 'center'),
+            gap: 1,
+            mb: 4,
+            width: '100%'
+          }}>
+            <Box sx={{
+              maxWidth: dataDescriptionTextAlign === 'center' ? '800px' : '100%',
+              width: '100%'
+            }}>
+              <Typography
+                variant={dataDescriptionFontSize ? undefined : "h6"}
+                sx={{
+                  color: dataDescriptionColor,
+                  mb: 0,
+                  textAlign: dataDescriptionTextAlign,
+                  fontSize: dataDescriptionFontSize,
+                  fontFamily: dataDescriptionFontFamily,
+                  fontWeight: dataDescriptionFontWeight,
+                  ...getFontStyle(dataTextFont),
+                  width: '100%'
+                }}
+              >
+                {dataDescription}
+              </Typography>
+            </Box>
+            {descriptionColorPicker}
+          </Box>
         </Box>
 
         <Grid container spacing={4}>

@@ -115,6 +115,9 @@ const ContactEditor = ({ contactData = {}, onContactChange, expanded, onToggle, 
 
   // Функция для применения пресета
   const handlePresetChange = (presetKey) => {
+    if (!presetKey || Object.keys(contactPresets).length === 0) {
+      return;
+    }
     const preset = contactPresets[presetKey];
     if (preset) {
       console.log('🎭 APPLYING CONTACT PRESET:', presetKey);

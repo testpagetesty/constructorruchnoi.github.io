@@ -14,8 +14,13 @@ import {
   Fade,
   Grow,
   Switch,
-  Chip
+  Chip,
+  IconButton,
+  Popover,
+  TextField,
+  Tooltip
 } from '@mui/material';
+import PaletteIcon from '@mui/icons-material/Palette';
 import { styled } from '@mui/material/styles';
 import HeroSection from '../Hero/HeroSection';
 import ContactSection from '../Contact/ContactSection';
@@ -271,6 +276,338 @@ const CARD_COMPONENTS = {
   [CARD_TYPES.GRADIENT]: GradientCard
 };
 
+// Компонент для выбора цвета контактов в превью
+const ContactColorPicker = ({ label, color, onChange }) => {
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [tempColor, setTempColor] = useState(color);
+
+  useEffect(() => {
+    setTempColor(color);
+  }, [color]);
+
+  const handleClick = (event) => {
+    setAnchorEl(event.currentTarget);
+    setTempColor(color);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleColorChange = (event) => {
+    const newColor = event.target.value;
+    setTempColor(newColor);
+    onChange(newColor);
+  };
+
+  const open = Boolean(anchorEl);
+  const id = open ? `color-picker-${label}` : undefined;
+
+  return (
+    <>
+      <Tooltip title={label}>
+        <IconButton
+          onClick={handleClick}
+          sx={{
+            backgroundColor: color,
+            color: '#fff',
+            width: 40,
+            height: 40,
+            '&:hover': {
+              backgroundColor: color,
+              opacity: 0.8
+            },
+            boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+          }}
+        >
+          <PaletteIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+      <Popover
+        id={id}
+        open={open}
+        anchorEl={anchorEl}
+        onClose={handleClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'left',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'left',
+        }}
+      >
+        <Box sx={{ p: 2, minWidth: 200 }}>
+          <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
+            {label}
+          </Typography>
+          <TextField
+            type="color"
+            value={tempColor}
+            onChange={handleColorChange}
+            fullWidth
+            size="small"
+            sx={{
+              '& input[type="color"]': {
+                width: '100%',
+                height: 40,
+                cursor: 'pointer',
+                border: 'none',
+                borderRadius: 1
+              }
+            }}
+          />
+          <TextField
+            value={tempColor}
+            onChange={(e) => {
+              const newColor = e.target.value;
+              setTempColor(newColor);
+              onChange(newColor);
+            }}
+            placeholder="#000000"
+            size="small"
+            fullWidth
+            sx={{ mt: 1 }}
+            inputProps={{
+              pattern: '^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$',
+              maxLength: 7
+            }}
+          />
+        </Box>
+      </Popover>
+    </>
+  );
+};
+
+// Расширенный компонент для настройки текста (заголовок/описание) для всех секций
+const SectionTextSettings = ({ 
+  label, 
+  color, 
+  textAlign = 'center',
+  fontSize,
+  fontStyle = 'default',
+  fontFamily,
+  fontWeight,
+  onChangeColor,
+  onChangeAlign,
+  onChangeFontSize,
+  onChangeFontStyle,
+  onChangeFontFamily,
+  onChangeFontWeight
+}) => {
+  const [anchorEl, setAnchorEl] = useState(null);
+
+  const handleClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const open = Boolean(anchorEl);
+  const id = open ? `text-settings-${label}` : undefined;
+
+  // Разные размеры для заголовка и описания
+  const fontSizeOptions = label.includes('заголовка') ? [
+    { value: '1.5rem', label: 'Маленький' },
+    { value: '2rem', label: 'Средний' },
+    { value: '2.5rem', label: 'Большой' },
+    { value: '3rem', label: 'Очень большой' },
+    { value: '3.5rem', label: 'Огромный' }
+  ] : [
+    { value: '0.875rem', label: 'Маленький' },
+    { value: '1rem', label: 'Средний' },
+    { value: '1.25rem', label: 'Большой' },
+    { value: '1.5rem', label: 'Очень большой' },
+    { value: '1.75rem', label: 'Огромный' }
+  ];
+
+  return (
+    <>
+      <Tooltip title={`Настройки ${label}`}>
+        <IconButton
+          onClick={handleClick}
+          sx={{
+            backgroundColor: '#1976d2',
+            color: '#fff',
+            width: 40,
+            height: 40,
+            '&:hover': {
+              backgroundColor: '#1565c0',
+            },
+            boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+          }}
+        >
+          <TextIncreaseIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+      <Popover
+        id={id}
+        open={open}
+        anchorEl={anchorEl}
+        onClose={handleClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'left',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'left',
+        }}
+      >
+        <Box sx={{ p: 2, minWidth: 280, maxHeight: '80vh', overflowY: 'auto' }}>
+          <Typography variant="body2" sx={{ mb: 2, fontWeight: 500 }}>
+            Настройки {label}
+          </Typography>
+          
+          {/* Выбор цвета */}
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="caption" sx={{ mb: 0.5, display: 'block' }}>
+              Цвет
+            </Typography>
+            <TextField
+              type="color"
+              value={color}
+              onChange={(e) => onChangeColor(e.target.value)}
+              fullWidth
+              size="small"
+              sx={{
+                '& input[type="color"]': {
+                  width: '100%',
+                  height: 40,
+                  cursor: 'pointer',
+                  border: 'none',
+                  borderRadius: 1
+                }
+              }}
+            />
+          </Box>
+
+          {/* Выравнивание */}
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="caption" sx={{ mb: 0.5, display: 'block' }}>
+              Выравнивание
+            </Typography>
+            <ToggleButtonGroup
+              value={textAlign}
+              exclusive
+              onChange={(e, newAlign) => {
+                if (newAlign !== null) {
+                  onChangeAlign(newAlign);
+                }
+              }}
+              aria-label="text alignment"
+              size="small"
+              fullWidth
+            >
+              <ToggleButton value="left" aria-label="left aligned">
+                <FormatAlignLeftIcon />
+              </ToggleButton>
+              <ToggleButton value="center" aria-label="centered">
+                <FormatAlignCenterIcon />
+              </ToggleButton>
+              <ToggleButton value="right" aria-label="right aligned">
+                <FormatAlignRightIcon />
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+
+          {/* Размер шрифта */}
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="caption" sx={{ mb: 0.5, display: 'block' }}>
+              Размер шрифта
+            </Typography>
+            <FormControl fullWidth size="small">
+              <Select
+                value={fontSize || (label.includes('заголовка') ? '2.5rem' : '1.25rem')}
+                onChange={(e) => onChangeFontSize(e.target.value)}
+              >
+                {fontSizeOptions.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label} ({option.value})
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+
+          {/* Шрифт */}
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="caption" sx={{ mb: 0.5, display: 'block' }}>
+              Шрифт
+            </Typography>
+            <FormControl fullWidth size="small">
+              <Select
+                value={fontFamily || 'Arial'}
+                onChange={(e) => onChangeFontFamily(e.target.value)}
+              >
+                <MenuItem value="Arial">Arial</MenuItem>
+                <MenuItem value="Times New Roman">Times New Roman</MenuItem>
+                <MenuItem value="Georgia">Georgia</MenuItem>
+                <MenuItem value="Verdana">Verdana</MenuItem>
+                <MenuItem value="Helvetica">Helvetica</MenuItem>
+                <MenuItem value="Courier New">Courier New</MenuItem>
+                <MenuItem value="Trebuchet MS">Trebuchet MS</MenuItem>
+                <MenuItem value="Comic Sans MS">Comic Sans MS</MenuItem>
+                <MenuItem value="Impact">Impact</MenuItem>
+                <MenuItem value="Tahoma">Tahoma</MenuItem>
+                <MenuItem value="Roboto">Roboto</MenuItem>
+                <MenuItem value="Montserrat">Montserrat</MenuItem>
+                <MenuItem value="Open Sans">Open Sans</MenuItem>
+                <MenuItem value="Lato">Lato</MenuItem>
+                <MenuItem value="Playfair Display">Playfair Display</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+
+          {/* Толщина шрифта */}
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="caption" sx={{ mb: 0.5, display: 'block' }}>
+              Толщина шрифта
+            </Typography>
+            <FormControl fullWidth size="small">
+              <Select
+                value={fontWeight || '400'}
+                onChange={(e) => onChangeFontWeight(e.target.value)}
+              >
+                <MenuItem value="100">Тонкий (100)</MenuItem>
+                <MenuItem value="200">Сверх-легкий (200)</MenuItem>
+                <MenuItem value="300">Легкий (300)</MenuItem>
+                <MenuItem value="400">Обычный (400)</MenuItem>
+                <MenuItem value="500">Средний (500)</MenuItem>
+                <MenuItem value="600">Полужирный (600)</MenuItem>
+                <MenuItem value="700">Жирный (700)</MenuItem>
+                <MenuItem value="800">Сверх-жирный (800)</MenuItem>
+                <MenuItem value="900">Черный (900)</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+
+          {/* Стиль шрифта */}
+          <Box>
+            <Typography variant="caption" sx={{ mb: 0.5, display: 'block' }}>
+              Стиль шрифта
+            </Typography>
+            <FormControl fullWidth size="small">
+              <Select
+                value={fontStyle || 'default'}
+                onChange={(e) => onChangeFontStyle(e.target.value)}
+              >
+                <MenuItem value="default">Обычный</MenuItem>
+                <MenuItem value="bold">Жирный</MenuItem>
+                <MenuItem value="light">Тонкий</MenuItem>
+                <MenuItem value="italic">Курсив</MenuItem>
+                <MenuItem value="cursive">Рукописный</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+        </Box>
+      </Popover>
+    </>
+  );
+};
+
 const PagePreview = ({
   headerData,
   heroData,
@@ -283,7 +620,9 @@ const PagePreview = ({
   selectedElement = null,
   onElementSelect = () => {},
   onElementUpdate = () => {},
-  onAddElement = () => {}
+  onAddElement = () => {},
+  onContactChange = () => {},
+  onSectionsChange = () => {}
 }) => {
   const sectionRefs = useRef({});
   const cardRefs = useRef({});
@@ -474,7 +813,7 @@ const PagePreview = ({
               component="h2" 
               gutterBottom
               sx={{ 
-                color: card.titleColor || section.titleColor || '#ffd700',
+                color: card.titleColor || contactData?.titleColor || section.titleColor || '#ffd700',
                 fontWeight: 600
               }}
             >
@@ -1458,7 +1797,7 @@ const PagePreview = ({
     );
   };
 
-  const renderSection = (section) => {
+  const renderSection = (section, sectionId) => {
     if (!section) return null;
     
     console.log(`[PagePreview] Rendering section ${section.id}:`, section);
@@ -1548,21 +1887,71 @@ const PagePreview = ({
             position: 'relative',
             zIndex: 1
           }}>
-            <Typography
-              variant="h2"
-              sx={{
-                fontSize: { xs: '1.5rem', md: '2rem' },
-                fontWeight: 600,
-                textAlign: 'left',
-                marginBottom: '1rem',
-                color: section.titleColor || '#ffd700',
-                fontFamily: '"Montserrat", sans-serif',
-                borderBottom: `2px solid ${theme.palette.primary.main}`,
-                paddingBottom: '0.5rem'
-              }}
-            >
-              {section.title}
-            </Typography>
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 1, 
+              mb: 1,
+              justifyContent: (contactData?.titleTextAlign || section.titleTextAlign || 'left') === 'left' ? 'flex-start' :
+                            (contactData?.titleTextAlign || section.titleTextAlign || 'left') === 'right' ? 'flex-end' : 'center',
+              width: '100%'
+            }}>
+              <Box sx={{
+                maxWidth: (contactData?.titleTextAlign || section.titleTextAlign || 'left') === 'center' ? '800px' : '100%',
+                width: '100%'
+              }}>
+                <Typography
+                  variant="h2"
+                  sx={{
+                    fontSize: contactData?.titleFontSize || section.titleFontSize || { xs: '1.5rem', md: '2rem' },
+                    fontWeight: contactData?.titleFontWeight || section.titleFontWeight || 600,
+                    textAlign: contactData?.titleTextAlign || section.titleTextAlign || 'left',
+                    marginBottom: 0,
+                    color: contactData?.titleColor || section.titleColor || '#ffd700',
+                    fontFamily: contactData?.titleFontFamily || section.titleFontFamily || '"Montserrat", sans-serif',
+                    fontStyle: contactData?.titleFont === 'italic' ? 'italic' : 'normal',
+                    borderBottom: `2px solid ${theme.palette.primary.main}`,
+                    paddingBottom: '0.5rem',
+                    width: '100%'
+                  }}
+                >
+                  {section.title}
+                </Typography>
+              </Box>
+              {(sectionId || section.id) && (
+                <SectionTextSettings
+                  label="заголовка"
+                  color={contactData?.titleColor || section.titleColor || '#ffd700'}
+                  textAlign={contactData?.titleTextAlign || section.titleTextAlign || 'left'}
+                  fontSize={contactData?.titleFontSize || section.titleFontSize}
+                  fontFamily={contactData?.titleFontFamily || section.titleFontFamily}
+                  fontWeight={contactData?.titleFontWeight || section.titleFontWeight}
+                  fontStyle={contactData?.titleFont || section.titleFont || 'default'}
+                  onChangeColor={(color) => {
+                    const updatedSections = { ...sectionsData };
+                    const id = sectionId || section.id;
+                    updatedSections[id] = { ...section, titleColor: color };
+                    onSectionsChange(updatedSections);
+                    onContactChange({ ...contactData, titleColor: color });
+                  }}
+                  onChangeAlign={(align) => {
+                    onContactChange({ ...contactData, titleTextAlign: align });
+                  }}
+                  onChangeFontSize={(size) => {
+                    onContactChange({ ...contactData, titleFontSize: size });
+                  }}
+                  onChangeFontFamily={(family) => {
+                    onContactChange({ ...contactData, titleFontFamily: family });
+                  }}
+                  onChangeFontWeight={(weight) => {
+                    onContactChange({ ...contactData, titleFontWeight: weight });
+                  }}
+                  onChangeFontStyle={(style) => {
+                    onContactChange({ ...contactData, titleFont: style });
+                  }}
+                />
+              )}
+            </Box>
 
             <Box sx={{
               display: 'flex',
@@ -1576,20 +1965,70 @@ const PagePreview = ({
                 minWidth: 0 // Для корректного переноса текста
               }}>
                 {section.description && (
-                  <Typography
-                    variant="body1"
-                    sx={{
-                      fontSize: { xs: '0.9rem', md: '1rem' },
-                      textAlign: 'left',
-                      color: section.descriptionColor || '#fff',
-                      fontFamily: '"Roboto", sans-serif',
-                      lineHeight: 1.6,
-                      maxWidth: '100%',
-                      padding: '0 0.5rem'
-                    }}
-                  >
-                    {section.description}
-                  </Typography>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'flex-start', 
+                    gap: 1,
+                    justifyContent: (contactData?.descriptionTextAlign || section.descriptionTextAlign || 'left') === 'left' ? 'flex-start' :
+                                  (contactData?.descriptionTextAlign || section.descriptionTextAlign || 'left') === 'right' ? 'flex-end' : 'center',
+                    width: '100%'
+                  }}>
+                    <Box sx={{
+                      maxWidth: (contactData?.descriptionTextAlign || section.descriptionTextAlign || 'left') === 'center' ? '800px' : '100%',
+                      width: '100%'
+                    }}>
+                      <Typography
+                        variant="body1"
+                        sx={{
+                          fontSize: contactData?.descriptionFontSize || section.descriptionFontSize || { xs: '0.9rem', md: '1rem' },
+                          textAlign: contactData?.descriptionTextAlign || section.descriptionTextAlign || 'left',
+                          color: contactData?.descriptionColor || section.descriptionColor || '#fff',
+                          fontFamily: contactData?.descriptionFontFamily || section.descriptionFontFamily || '"Roboto", sans-serif',
+                          fontWeight: contactData?.descriptionFontWeight || section.descriptionFontWeight || 400,
+                          fontStyle: contactData?.textFont === 'italic' ? 'italic' : 'normal',
+                          lineHeight: 1.6,
+                          maxWidth: '100%',
+                          padding: '0 0.5rem',
+                          width: '100%'
+                        }}
+                      >
+                        {section.description}
+                      </Typography>
+                    </Box>
+                    {(sectionId || section.id) && (
+                      <SectionTextSettings
+                        label="описания"
+                        color={contactData?.descriptionColor || section.descriptionColor || '#fff'}
+                        textAlign={contactData?.descriptionTextAlign || section.descriptionTextAlign || 'left'}
+                        fontSize={contactData?.descriptionFontSize || section.descriptionFontSize}
+                        fontFamily={contactData?.descriptionFontFamily || section.descriptionFontFamily}
+                        fontWeight={contactData?.descriptionFontWeight || section.descriptionFontWeight}
+                        fontStyle={contactData?.textFont || section.textFont || 'default'}
+                        onChangeColor={(color) => {
+                          const updatedSections = { ...sectionsData };
+                          const id = sectionId || section.id;
+                          updatedSections[id] = { ...section, descriptionColor: color };
+                          onSectionsChange(updatedSections);
+                          onContactChange({ ...contactData, descriptionColor: color });
+                        }}
+                        onChangeAlign={(align) => {
+                          onContactChange({ ...contactData, descriptionTextAlign: align });
+                        }}
+                        onChangeFontSize={(size) => {
+                          onContactChange({ ...contactData, descriptionFontSize: size });
+                        }}
+                        onChangeFontFamily={(family) => {
+                          onContactChange({ ...contactData, descriptionFontFamily: family });
+                        }}
+                        onChangeFontWeight={(weight) => {
+                          onContactChange({ ...contactData, descriptionFontWeight: weight });
+                        }}
+                        onChangeFontStyle={(style) => {
+                          onContactChange({ ...contactData, textFont: style });
+                        }}
+                      />
+                    )}
+                  </Box>
                 )}
               </Box>
 
@@ -1675,7 +2114,7 @@ const PagePreview = ({
                         fontSize: { xs: '1.1rem', md: '1.3rem' },
                         fontWeight: 600,
                         marginBottom: '0.5rem',
-                        color: card.titleColor || section.titleColor || theme.palette.text.primary,
+                        color: card.titleColor || contactData?.titleColor || section.titleColor || theme.palette.text.primary,
                         fontFamily: '"Montserrat", sans-serif'
                       }}
                     >
@@ -1797,48 +2236,148 @@ const PagePreview = ({
             textAlign: 'center'
           }}>
             <Fade in timeout={1000}>
-              <Typography 
-                variant="h3" 
-                component="h2" 
-                gutterBottom
-                sx={{ 
-                  textAlign: 'center',
-                  mb: 4,
-                  color: section.titleColor || 'inherit',
-                  fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-                  fontWeight: 700,
-                  fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
-                  lineHeight: 1.2,
-                  letterSpacing: '-0.01562em',
-                  textTransform: 'none',
-                  marginBottom: '1.5rem',
-                  wordWrap: 'break-word'
-                }}
-              >
-                {section.title}
-              </Typography>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: (contactData?.titleTextAlign || section.titleTextAlign || 'center') === 'left' ? 'flex-start' :
+                              (contactData?.titleTextAlign || section.titleTextAlign || 'center') === 'right' ? 'flex-end' : 'center',
+                gap: 1,
+                mb: 2,
+                width: '100%'
+              }}>
+                <Box sx={{
+                  maxWidth: (contactData?.titleTextAlign || section.titleTextAlign || 'center') === 'center' ? '800px' : '100%',
+                  width: '100%'
+                }}>
+                  <Typography 
+                    variant="h3" 
+                    component="h2" 
+                    gutterBottom={false}
+                    sx={{ 
+                      textAlign: contactData?.titleTextAlign || section.titleTextAlign || 'center',
+                      mb: 0,
+                      color: contactData?.titleColor || section.titleColor || 'inherit',
+                      fontFamily: contactData?.titleFontFamily || section.titleFontFamily || '"Roboto", "Helvetica", "Arial", sans-serif',
+                      fontWeight: contactData?.titleFontWeight || section.titleFontWeight || 700,
+                      fontSize: contactData?.titleFontSize || section.titleFontSize || { xs: '2rem', sm: '2.5rem', md: '3rem' },
+                      fontStyle: contactData?.titleFont === 'italic' ? 'italic' : 'normal',
+                      lineHeight: 1.2,
+                      letterSpacing: '-0.01562em',
+                      textTransform: 'none',
+                      marginBottom: '1.5rem',
+                      wordWrap: 'break-word',
+                      width: '100%'
+                    }}
+                  >
+                    {section.title}
+                  </Typography>
+                </Box>
+                {(sectionId || section.id) && (
+                  <SectionTextSettings
+                    label="заголовка"
+                    color={contactData?.titleColor || section.titleColor || '#1976d2'}
+                    textAlign={contactData?.titleTextAlign || section.titleTextAlign || 'center'}
+                    fontSize={contactData?.titleFontSize || section.titleFontSize}
+                    fontFamily={contactData?.titleFontFamily || section.titleFontFamily}
+                    fontWeight={contactData?.titleFontWeight || section.titleFontWeight}
+                    fontStyle={contactData?.titleFont || section.titleFont || 'default'}
+                    onChangeColor={(color) => {
+                      const updatedSections = { ...sectionsData };
+                      const id = sectionId || section.id;
+                      updatedSections[id] = { ...section, titleColor: color };
+                      onSectionsChange(updatedSections);
+                      onContactChange({ ...contactData, titleColor: color });
+                    }}
+                    onChangeAlign={(align) => {
+                      onContactChange({ ...contactData, titleTextAlign: align });
+                    }}
+                    onChangeFontSize={(size) => {
+                      onContactChange({ ...contactData, titleFontSize: size });
+                    }}
+                    onChangeFontFamily={(family) => {
+                      onContactChange({ ...contactData, titleFontFamily: family });
+                    }}
+                    onChangeFontWeight={(weight) => {
+                      onContactChange({ ...contactData, titleFontWeight: weight });
+                    }}
+                    onChangeFontStyle={(style) => {
+                      onContactChange({ ...contactData, titleFont: style });
+                    }}
+                  />
+                )}
+              </Box>
             </Fade>
             
             {section.description && (
               <Fade in timeout={1500}>
-                <Typography 
-                  variant="h6" 
-                  component="p" 
-                  sx={{ 
-                    textAlign: 'center',
-                    mb: 4,
-                    color: section.descriptionColor || 'inherit',
-                    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-                    fontWeight: 400,
-                    fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' },
-                    lineHeight: 1.5,
-                    letterSpacing: '0.00938em',
-                    maxWidth: '100%',
-                    wordWrap: 'break-word'
-                  }}
-                >
-                  {section.description}
-                </Typography>
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: (contactData?.descriptionTextAlign || section.descriptionTextAlign || 'center') === 'left' ? 'flex-start' :
+                                (contactData?.descriptionTextAlign || section.descriptionTextAlign || 'center') === 'right' ? 'flex-end' : 'center',
+                  gap: 1,
+                  mb: 2,
+                  width: '100%'
+                }}>
+                  <Box sx={{
+                    maxWidth: (contactData?.descriptionTextAlign || section.descriptionTextAlign || 'center') === 'center' ? '800px' : '100%',
+                    width: '100%'
+                  }}>
+                    <Typography 
+                      variant="h6" 
+                      component="p" 
+                      sx={{ 
+                        textAlign: contactData?.descriptionTextAlign || section.descriptionTextAlign || 'center',
+                        mb: 0,
+                        color: contactData?.descriptionColor || section.descriptionColor || 'inherit',
+                        fontFamily: contactData?.descriptionFontFamily || section.descriptionFontFamily || '"Roboto", "Helvetica", "Arial", sans-serif',
+                        fontWeight: contactData?.descriptionFontWeight || section.descriptionFontWeight || 400,
+                        fontSize: contactData?.descriptionFontSize || section.descriptionFontSize || { xs: '1rem', sm: '1.25rem', md: '1.5rem' },
+                        fontStyle: contactData?.textFont === 'italic' ? 'italic' : 'normal',
+                        lineHeight: 1.5,
+                        letterSpacing: '0.00938em',
+                        maxWidth: '100%',
+                        wordWrap: 'break-word',
+                        width: '100%'
+                      }}
+                    >
+                      {section.description}
+                    </Typography>
+                  </Box>
+                  {(sectionId || section.id) && (
+                    <SectionTextSettings
+                      label="описания"
+                      color={contactData?.descriptionColor || section.descriptionColor || '#666666'}
+                      textAlign={contactData?.descriptionTextAlign || section.descriptionTextAlign || 'center'}
+                      fontSize={contactData?.descriptionFontSize || section.descriptionFontSize}
+                      fontFamily={contactData?.descriptionFontFamily || section.descriptionFontFamily}
+                      fontWeight={contactData?.descriptionFontWeight || section.descriptionFontWeight}
+                      fontStyle={contactData?.textFont || section.textFont || 'default'}
+                      onChangeColor={(color) => {
+                        const updatedSections = { ...sectionsData };
+                        const id = sectionId || section.id;
+                        updatedSections[id] = { ...section, descriptionColor: color };
+                        onSectionsChange(updatedSections);
+                        onContactChange({ ...contactData, descriptionColor: color });
+                      }}
+                      onChangeAlign={(align) => {
+                        onContactChange({ ...contactData, descriptionTextAlign: align });
+                      }}
+                      onChangeFontSize={(size) => {
+                        onContactChange({ ...contactData, descriptionFontSize: size });
+                      }}
+                      onChangeFontFamily={(family) => {
+                        onContactChange({ ...contactData, descriptionFontFamily: family });
+                      }}
+                      onChangeFontWeight={(weight) => {
+                        onContactChange({ ...contactData, descriptionFontWeight: weight });
+                      }}
+                      onChangeFontStyle={(style) => {
+                        onContactChange({ ...contactData, textFont: style });
+                      }}
+                    />
+                  )}
+                </Box>
               </Fade>
             )}
 
@@ -1969,36 +2508,52 @@ const PagePreview = ({
               {/* Специальный контейнер для лучшего обтекания текстом в секциях без карточек */}
               <Box sx={{ 
                 position: 'relative',
-                textAlign: 'left',
                 overflow: 'hidden',
                 backgroundColor: section.showBackground !== false ? 'transparent' : 'transparent',
                 display: 'flow-root', // Решает проблемы с обтеканием floated элементов
+                width: '100%'
               }}>
-                <Typography 
-                  variant="h3" 
-                  component="h2"
-                  sx={{ 
-                    fontSize: { xs: '1.75rem', sm: '2rem', md: '2.5rem' },
-                    fontWeight: 700,
-                    mb: 2,
-                    textAlign: section.imagePath ? 'left' : 'center',
-                    color: section.titleColor || '#000000',
-                    position: 'relative',
-                    '&::after': section.showBackground !== false ? {
-                      content: '""',
-                      position: 'absolute',
-                      bottom: '-8px',
-                      left: section.imagePath ? 0 : '50%',
-                      transform: section.imagePath ? 'none' : 'translateX(-50%)',
-                      width: '60px',
-                      height: '4px',
-                      background: 'linear-gradient(to right, #1976d2, #42a5f5)',
-                      borderRadius: '2px'
-                    } : {}
-                  }}
-                >
-                  {section.title}
-                </Typography>
+                <Box sx={{
+                  display: 'flex',
+                  justifyContent: (contactData?.titleTextAlign || section.titleTextAlign || (section.imagePath ? 'left' : 'center')) === 'left' ? 'flex-start' :
+                                (contactData?.titleTextAlign || section.titleTextAlign || (section.imagePath ? 'left' : 'center')) === 'right' ? 'flex-end' : 'center',
+                  width: '100%',
+                  mb: 2
+                }}>
+                  <Box sx={{
+                    maxWidth: (contactData?.titleTextAlign || section.titleTextAlign || (section.imagePath ? 'left' : 'center')) === 'center' ? '800px' : '100%',
+                    width: '100%'
+                  }}>
+                    <Typography 
+                      variant="h3" 
+                      component="h2"
+                      sx={{ 
+                        fontSize: contactData?.titleFontSize || section.titleFontSize || { xs: '1.75rem', sm: '2rem', md: '2.5rem' },
+                        fontWeight: contactData?.titleFontWeight || section.titleFontWeight || 700,
+                        mb: 0,
+                        textAlign: contactData?.titleTextAlign || section.titleTextAlign || (section.imagePath ? 'left' : 'center'),
+                        color: contactData?.titleColor || section.titleColor || '#000000',
+                        fontFamily: contactData?.titleFontFamily || section.titleFontFamily || 'inherit',
+                        fontStyle: contactData?.titleFont === 'italic' ? 'italic' : 'normal',
+                        position: 'relative',
+                        width: '100%',
+                        '&::after': section.showBackground !== false ? {
+                          content: '""',
+                          position: 'absolute',
+                          bottom: '-8px',
+                          left: section.imagePath ? 0 : '50%',
+                          transform: section.imagePath ? 'none' : 'translateX(-50%)',
+                          width: '60px',
+                          height: '4px',
+                          background: 'linear-gradient(to right, #1976d2, #42a5f5)',
+                          borderRadius: '2px'
+                        } : {}
+                      }}
+                    >
+                      {section.title}
+                    </Typography>
+                  </Box>
+                </Box>
                 {console.log('[PagePreview] Тип карточек:', section.cardType, 'CARD_TYPES.NONE:', CARD_TYPES.NONE, 'Равен:', section.cardType === CARD_TYPES.NONE)}
                 {/* Отображаем изображения ТОЛЬКО для секций без карточек */}
                 {section.cardType === CARD_TYPES.NONE && (section.imagePath || sectionImages[section.id]?.length > 0) && (
@@ -2072,20 +2627,37 @@ const PagePreview = ({
                 <Box sx={{ overflow: 'hidden', display: 'flow-root' }}> {/* Добавлен display: 'flow-root' для правильного обтекания */}
                   <Box sx={{ pl: section.imagePath ? 2 : 0 }}>
                     {section.description && (
-                      <Typography 
-                        variant="body1" 
-                        sx={{ 
-                          fontSize: { xs: '1rem', sm: '1.1rem' },
-                          lineHeight: 1.6,
-                          textAlign: section.imagePath ? 'left' : 'center',
-                          color: section.descriptionColor || '#666666',
-                          mb: 2,
-                          display: 'block',
-                          overflow: 'hidden'
-                        }}
-                      >
-                        {section.description}
-                      </Typography>
+                      <Box sx={{
+                        display: 'flex',
+                        justifyContent: (contactData?.descriptionTextAlign || section.descriptionTextAlign || (section.imagePath ? 'left' : 'center')) === 'left' ? 'flex-start' :
+                                      (contactData?.descriptionTextAlign || section.descriptionTextAlign || (section.imagePath ? 'left' : 'center')) === 'right' ? 'flex-end' : 'center',
+                        width: '100%',
+                        mb: 2
+                      }}>
+                        <Box sx={{
+                          maxWidth: (contactData?.descriptionTextAlign || section.descriptionTextAlign || (section.imagePath ? 'left' : 'center')) === 'center' ? '800px' : '100%',
+                          width: '100%'
+                        }}>
+                          <Typography 
+                            variant="body1" 
+                            sx={{ 
+                              fontSize: contactData?.descriptionFontSize || section.descriptionFontSize || { xs: '1rem', sm: '1.1rem' },
+                              lineHeight: 1.6,
+                              textAlign: contactData?.descriptionTextAlign || section.descriptionTextAlign || (section.imagePath ? 'left' : 'center'),
+                              color: contactData?.descriptionColor || section.descriptionColor || '#666666',
+                              fontFamily: contactData?.descriptionFontFamily || section.descriptionFontFamily || 'inherit',
+                              fontWeight: contactData?.descriptionFontWeight || section.descriptionFontWeight || 400,
+                              fontStyle: contactData?.textFont === 'italic' ? 'italic' : 'normal',
+                              mb: 0,
+                              display: 'block',
+                              overflow: 'hidden',
+                              width: '100%'
+                            }}
+                          >
+                            {section.description}
+                          </Typography>
+                        </Box>
+                      </Box>
                     )}
                     {section.cards?.map((card, index) => (
                       <Box key={card.id} sx={{ mb: 2 }}>
@@ -2093,7 +2665,7 @@ const PagePreview = ({
                           <Typography 
                             variant="h6" 
                             sx={{ 
-                              color: card.titleColor || section.titleColor || '#1976d2',
+                              color: card.titleColor || contactData?.titleColor || section.titleColor || '#1976d2',
                               mb: 1,
                               fontWeight: 600
                             }}
@@ -2670,6 +3242,8 @@ const PagePreview = ({
         onElementUpdate={onElementUpdate}
         selectedElement={selectedElement}
         onElementSelect={onElementSelect}
+        onSectionsChange={onSectionsChange}
+        onContactChange={onContactChange}
       />
     );
   }
@@ -2817,7 +3391,7 @@ const PagePreview = ({
                   >
                     {(() => {
                       console.log(`[PagePreview] About to render section ${sectionId}`);
-                      return renderSection(sectionContent);
+                      return renderSection(sectionContent, sectionId);
                     })()}
                   </Box>
                 );
@@ -2852,7 +3426,7 @@ const PagePreview = ({
             >
                   {(() => {
                     console.log(`[PagePreview] About to render section ${sectionId}`);
-                    return renderSection(sectionContent);
+                    return renderSection(sectionContent, sectionId);
                   })()}
             </Box>
               );
@@ -2861,11 +3435,25 @@ const PagePreview = ({
           <Box
             ref={contactSectionRef}
             id="contact"
-            sx={{ py: 8 }}
+            sx={{ py: 8, position: 'relative' }}
           >
             <ContactSection 
               contactData={contactData}
               showBorders={showBorders}
+              titleColorPicker={
+                <ContactColorPicker
+                  label="Цвет заголовка"
+                  color={contactData?.titleColor || '#1976d2'}
+                  onChange={(color) => onContactChange({ ...contactData, titleColor: color })}
+                />
+              }
+              descriptionColorPicker={
+                <ContactColorPicker
+                  label="Цвет описания"
+                  color={contactData?.descriptionColor || '#666666'}
+                  onChange={(color) => onContactChange({ ...contactData, descriptionColor: color })}
+                />
+              }
             />
           </Box>
         </Box>

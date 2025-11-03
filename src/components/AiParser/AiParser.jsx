@@ -10699,19 +10699,50 @@ ID: [название секции на ${languageName}, желательно о
       const contactStylePreset = STYLE_PRESETS[contactStyleName];
       
       if (onContactChange && contactData) {
-        // Выбираем случайный стиль из contactPresets
+        // Выбираем случайный стиль из contactPresets (если есть доступные стили)
         const contactPresetKeys = Object.keys(contactPresets);
-        const randomContactPreset = contactPresets[contactPresetKeys[Math.floor(Math.random() * contactPresetKeys.length)]];
+        let randomContactPreset = null;
         
-        console.log('🎨 APPLYING RANDOM CONTACT PRESET:', randomContactPreset.name);
-        console.log('🎨 BACKGROUND SETTINGS:', {
-          showBackground: randomContactPreset.showBackground,
-          backgroundType: randomContactPreset.backgroundType,
-          backgroundColor: randomContactPreset.backgroundColor,
-          gradientColor1: randomContactPreset.gradientColor1,
-          gradientColor2: randomContactPreset.gradientColor2,
-          gradientDirection: randomContactPreset.gradientDirection
-        });
+        if (contactPresetKeys.length > 0) {
+          randomContactPreset = contactPresets[contactPresetKeys[Math.floor(Math.random() * contactPresetKeys.length)]];
+          console.log('🎨 APPLYING RANDOM CONTACT PRESET:', randomContactPreset.name);
+          console.log('🎨 BACKGROUND SETTINGS:', {
+            showBackground: randomContactPreset.showBackground,
+            backgroundType: randomContactPreset.backgroundType,
+            backgroundColor: randomContactPreset.backgroundColor,
+            gradientColor1: randomContactPreset.gradientColor1,
+            gradientColor2: randomContactPreset.gradientColor2,
+            gradientDirection: randomContactPreset.gradientDirection
+          });
+        } else {
+          // Если стили удалены, создаем базовый стиль на основе основного стиля
+          randomContactPreset = {
+            showBackground: true,
+            backgroundType: 'solid',
+            backgroundColor: contactStylePreset.backgroundColor || '#f8f9fa',
+            gradientColor1: contactStylePreset.backgroundColor || '#ffffff',
+            gradientColor2: contactStylePreset.cardBackgroundColor || '#f5f5f5',
+            gradientDirection: 'to bottom',
+            titleColor: contactStylePreset.titleColor,
+            descriptionColor: contactStylePreset.descriptionColor,
+            companyInfoColor: contactStylePreset.titleColor,
+            formVariant: 'outlined',
+            infoVariant: 'elevation',
+            formBackgroundColor: contactStylePreset.backgroundColor || '#ffffff',
+            infoBackgroundColor: contactStylePreset.cardBackgroundColor || '#f5f5f5',
+            formBorderColor: contactStylePreset.borderColor,
+            infoBorderColor: contactStylePreset.borderColor,
+            labelColor: contactStylePreset.titleColor,
+            inputBackgroundColor: contactStylePreset.cardBackgroundColor || '#ffffff',
+            inputTextColor: contactStylePreset.cardContentColor || '#333333',
+            buttonColor: contactStylePreset.titleColor,
+            buttonTextColor: '#ffffff',
+            iconColor: contactStylePreset.titleColor,
+            infoTitleColor: contactStylePreset.titleColor,
+            infoTextColor: contactStylePreset.descriptionColor
+          };
+          console.log('🎨 APPLYING FALLBACK CONTACT STYLE (contactPresets пуст)');
+        }
         
         onContactChange({
           ...contactData,

@@ -73,10 +73,14 @@ const RandomStyleSelector = ({
     const selectedStyle = styleKeys[randomIndex];
     const preset = STYLE_PRESETS[selectedStyle];
     
-    // Выбираем случайный стиль для контактов
-    const randomContactIndex = Math.floor(Math.random() * contactStyleKeys.length);
-    const selectedContactStyle = contactStyleKeys[randomContactIndex];
-    const contactPreset = contactPresets[selectedContactStyle];
+    // Выбираем случайный стиль для контактов (если есть доступные стили)
+    let contactPreset = null;
+    let selectedContactStyle = null;
+    if (contactStyleKeys.length > 0) {
+      const randomContactIndex = Math.floor(Math.random() * contactStyleKeys.length);
+      selectedContactStyle = contactStyleKeys[randomContactIndex];
+      contactPreset = contactPresets[selectedContactStyle];
+    }
 
     // Выбираем случайный стиль для шапки
     const randomHeaderIndex = Math.floor(Math.random() * headerStyleKeys.length);
@@ -84,7 +88,7 @@ const RandomStyleSelector = ({
     const headerPreset = headerPresets[selectedHeaderStyle];
     
     console.log('Применяем случайный стиль:', selectedStyle, useSameStyle ? 'один для всех' : 'разные для разных');
-    console.log('Применяем случайный стиль для контактов:', selectedContactStyle);
+    console.log('Применяем случайный стиль для контактов:', selectedContactStyle || 'не применен (стили удалены)');
     console.log('Применяем случайный стиль для шапки:', selectedHeaderStyle);
     
     // Обновляем выбранный стиль шапки в родительском компоненте
