@@ -39,6 +39,7 @@ import MenuBookIcon from '@mui/icons-material/MenuBook';
 import AddIcon from '@mui/icons-material/Add';
 import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
 import CloseIcon from '@mui/icons-material/Close';
+import DeleteIcon from '@mui/icons-material/Delete';
 import Header from '../Header/Header';
 import HeroSection from '../Hero/HeroSection';
 import ContactSection from '../Contact/ContactSection';
@@ -794,6 +795,57 @@ const MultiPagePreview = ({
   const handleOpenLibrary = (sectionId) => {
     setCurrentSectionId(sectionId);
     setDrawerOpen(true);
+  };
+
+  // Функция для удаления элемента из секции
+  const handleElementDelete = (sectionId, elementId) => {
+    if (!sectionsData || !sectionsData[sectionId]) {
+      console.warn('[MultiPagePreview] Section not found:', sectionId);
+      return;
+    }
+
+    const section = sectionsData[sectionId];
+    let updatedSection;
+
+    // Проверяем, используются ли contentElements или data.elements
+    if (section.contentElements && Array.isArray(section.contentElements)) {
+      // Фильтруем contentElements
+      const updatedElements = section.contentElements.filter(el => el.id !== elementId);
+      updatedSection = {
+        ...section,
+        contentElements: updatedElements
+      };
+    } else if (section.data && section.data.elements && Array.isArray(section.data.elements)) {
+      // Фильтруем элементы из data.elements
+      const updatedElements = section.data.elements.filter(el => el.id !== elementId);
+      updatedSection = {
+        ...section,
+        data: {
+          ...section.data,
+          elements: updatedElements
+        }
+      };
+    } else {
+      console.warn('[MultiPagePreview] Section has no elements or contentElements:', sectionId);
+      return;
+    }
+
+    // Обновляем sectionsData через onSectionsChange
+    const updatedSectionsData = {
+      ...sectionsData,
+      [sectionId]: updatedSection
+    };
+
+    if (onSectionsChange) {
+      onSectionsChange(updatedSectionsData);
+    }
+
+    // Снимаем выделение, если удаляем выбранный элемент
+    if (selectedElement && selectedElement.id === elementId && selectedElement.sectionId === sectionId) {
+      if (onElementSelect) {
+        onElementSelect(null, null);
+      }
+    }
   };
 
   // Функция для рендеринга элементов контента
@@ -2372,7 +2424,44 @@ const MultiPagePreview = ({
                           </Button>
                         </Box>
                         {featuredSection.data.elements.map((element) => (
-                          <Box key={element.id} sx={{ mb: 3 }}>
+                          <Box 
+                            key={element.id} 
+                            sx={{ 
+                              mb: 3,
+                              position: 'relative',
+                              '&:hover .delete-element-btn': {
+                                opacity: 1
+                              }
+                            }}
+                          >
+                            {/* Кнопка удаления элемента */}
+                            <IconButton
+                              className="delete-element-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleElementDelete(featuredSection.id, element.id);
+                              }}
+                              sx={{
+                                position: 'absolute',
+                                top: 8,
+                                right: 8,
+                                zIndex: 1000,
+                                backgroundColor: 'rgba(211, 47, 47, 0.9)',
+                                color: 'white',
+                                opacity: 0,
+                                transition: 'opacity 0.2s ease',
+                                '&:hover': {
+                                  backgroundColor: 'rgba(211, 47, 47, 1)',
+                                  opacity: 1
+                                },
+                                width: 28,
+                                height: 28,
+                                padding: 0
+                              }}
+                              size="small"
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
                             {renderContentElement(element, featuredSection.id, featuredSection)}
                           </Box>
                         ))}
@@ -2455,7 +2544,44 @@ const MultiPagePreview = ({
                     </Button>
                   </Box>
                   {section.data.elements.map((element) => (
-                    <Box key={`${section.id}-${element.id}`} sx={{ mb: 3 }}>
+                    <Box 
+                      key={`${section.id}-${element.id}`} 
+                      sx={{ 
+                        mb: 3,
+                        position: 'relative',
+                        '&:hover .delete-element-btn': {
+                          opacity: 1
+                        }
+                      }}
+                    >
+                      {/* Кнопка удаления элемента */}
+                      <IconButton
+                        className="delete-element-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleElementDelete(section.id, element.id);
+                        }}
+                        sx={{
+                          position: 'absolute',
+                          top: 8,
+                          right: 8,
+                          zIndex: 1000,
+                          backgroundColor: 'rgba(211, 47, 47, 0.9)',
+                          color: 'white',
+                          opacity: 0,
+                          transition: 'opacity 0.2s ease',
+                          '&:hover': {
+                            backgroundColor: 'rgba(211, 47, 47, 1)',
+                            opacity: 1
+                          },
+                          width: 28,
+                          height: 28,
+                          padding: 0
+                        }}
+                        size="small"
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
                       {renderContentElement(element, section.id, section)}
                     </Box>
                   ))}
@@ -2690,7 +2816,44 @@ const MultiPagePreview = ({
               </Box>
               {console.log(`[MultiPagePreview] Section ${sectionData.id} has ${sectionData.contentElements.length} content elements:`, sectionData.contentElements)}
               {sectionData.contentElements.map((element) => (
-                <Box key={`${sectionData.id}-${element.id}`} sx={{ mb: 3 }}>
+                <Box 
+                  key={`${sectionData.id}-${element.id}`} 
+                  sx={{ 
+                    mb: 3,
+                    position: 'relative',
+                    '&:hover .delete-element-btn': {
+                      opacity: 1
+                    }
+                  }}
+                >
+                  {/* Кнопка удаления элемента */}
+                  <IconButton
+                    className="delete-element-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleElementDelete(sectionData.id, element.id);
+                    }}
+                    sx={{
+                      position: 'absolute',
+                      top: 8,
+                      right: 8,
+                      zIndex: 1000,
+                      backgroundColor: 'rgba(211, 47, 47, 0.9)',
+                      color: 'white',
+                      opacity: 0,
+                      transition: 'opacity 0.2s ease',
+                      '&:hover': {
+                        backgroundColor: 'rgba(211, 47, 47, 1)',
+                        opacity: 1
+                      },
+                      width: 28,
+                      height: 28,
+                      padding: 0
+                    }}
+                    size="small"
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
                   {renderContentElement(element, sectionData.id, sectionData)}
                 </Box>
               ))}
