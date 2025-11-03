@@ -2434,34 +2434,34 @@ const MultiPagePreview = ({
                               }
                             }}
                           >
-                            {/* Кнопка удаления элемента */}
-                            <IconButton
-                              className="delete-element-btn"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleElementDelete(featuredSection.id, element.id);
-                              }}
-                              sx={{
-                                position: 'absolute',
-                                top: 8,
-                                right: 8,
-                                zIndex: 1000,
-                                backgroundColor: 'rgba(211, 47, 47, 0.9)',
-                                color: 'white',
-                                opacity: 0,
-                                transition: 'opacity 0.2s ease',
-                                '&:hover': {
-                                  backgroundColor: 'rgba(211, 47, 47, 1)',
-                                  opacity: 1
-                                },
-                                width: 28,
-                                height: 28,
-                                padding: 0
-                              }}
-                              size="small"
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
+                      {/* Кнопка удаления элемента */}
+                      <IconButton
+                        className="delete-element-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleElementDelete(featuredSection.id, element.id);
+                        }}
+                        sx={{
+                          position: 'absolute',
+                          top: 44,
+                          right: 8,
+                          zIndex: 1000,
+                          backgroundColor: 'rgba(211, 47, 47, 0.9)',
+                          color: 'white',
+                          opacity: 0,
+                          transition: 'opacity 0.2s ease',
+                          '&:hover': {
+                            backgroundColor: 'rgba(211, 47, 47, 1)',
+                            opacity: 1
+                          },
+                          width: 28,
+                          height: 28,
+                          padding: 0
+                        }}
+                        size="small"
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
                             {renderContentElement(element, featuredSection.id, featuredSection)}
                           </Box>
                         ))}
@@ -2563,7 +2563,7 @@ const MultiPagePreview = ({
                         }}
                         sx={{
                           position: 'absolute',
-                          top: 8,
+                          top: 44,
                           right: 8,
                           zIndex: 1000,
                           backgroundColor: 'rgba(211, 47, 47, 0.9)',
@@ -2835,7 +2835,7 @@ const MultiPagePreview = ({
                     }}
                     sx={{
                       position: 'absolute',
-                      top: 8,
+                      top: 44,
                       right: 8,
                       zIndex: 1000,
                       backgroundColor: 'rgba(211, 47, 47, 0.9)',
