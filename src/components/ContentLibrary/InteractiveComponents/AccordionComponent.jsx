@@ -557,6 +557,8 @@ const AccordionComponent = ({
                   border: '#c41e3a',
                   hover: '#4ecdc4'
                 }}
+                hideCardBackground={true}
+                hideAreaColors={true}
               />
             </Box>
 

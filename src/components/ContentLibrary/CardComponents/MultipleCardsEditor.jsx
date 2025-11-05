@@ -139,50 +139,25 @@ const MultipleCardsEditor = ({
     }
   });
 
-  // 🔥 ИСПРАВЛЕНИЕ: Обновляем editingData при изменении пропсов
+  // 🔥 ИСПРАВЛЕНИЕ: Обновляем editingData при изменении пропсов, но не перезаписываем colorSettings дефолтами
   useEffect(() => {
     console.log('🔄 [MultipleCardsEditor] useEffect - обновляем editingData при изменении пропсов');
     console.log('🔄 [MultipleCardsEditor] Новые colorSettings:', colorSettings);
     
-    setEditingData(prev => ({
-      ...prev,
-      title,
-      description,
-      colorSettings: colorSettings || prev.colorSettings,
-      sectionColorSettings: {
-        textFields: {
-          title: colorSettings?.textFields?.title || sectionStyles?.titleColor || '#1976d2',
-          text: colorSettings?.textFields?.text || colorSettings?.textFields?.description || sectionStyles?.descriptionColor || '#666666',
-          description: colorSettings?.textFields?.description || sectionStyles?.descriptionColor || '#666666',
-          cardTitle: colorSettings?.textFields?.cardTitle || '#800080',
-          cardText: colorSettings?.textFields?.cardText || '#ff4500',
-          cardContent: colorSettings?.textFields?.cardContent || '#ff4500'
-        },
-        sectionBackground: {
-          enabled: colorSettings?.sectionBackground?.enabled || (sectionStyles?.backgroundType !== 'transparent'),
-          useGradient: colorSettings?.sectionBackground?.useGradient || (sectionStyles?.backgroundType === 'gradient'),
-          solidColor: colorSettings?.sectionBackground?.solidColor || sectionStyles?.backgroundColor || '#ffffff',
-          gradientColor1: colorSettings?.sectionBackground?.gradientColor1 || sectionStyles?.gradientStartColor || '#1976d2',
-          gradientColor2: colorSettings?.sectionBackground?.gradientColor2 || sectionStyles?.gradientEndColor || '#42a5f5',
-          gradientDirection: colorSettings?.sectionBackground?.gradientDirection || sectionStyles?.gradientDirection || 'to right',
-          opacity: colorSettings?.sectionBackground?.opacity || 1
-        },
-        cardBackground: {
-          enabled: colorSettings?.cardBackground?.enabled || false,
-          useGradient: colorSettings?.cardBackground?.useGradient || false,
-          solidColor: colorSettings?.cardBackground?.solidColor || '#ffffff',
-          gradientColor1: colorSettings?.cardBackground?.gradientColor1 || '#000000',
-          gradientColor2: colorSettings?.cardBackground?.gradientColor2 || '#8b0000',
-          gradientDirection: colorSettings?.cardBackground?.gradientDirection || 'to right',
-          opacity: colorSettings?.cardBackground?.opacity || 1
-        },
-        borderColor: colorSettings?.borderColor || '#e0e0e0',
-        borderWidth: colorSettings?.borderWidth || 1,
-        borderRadius: colorSettings?.borderRadius || 8,
-        padding: colorSettings?.padding || 20,
-        boxShadow: colorSettings?.boxShadow || false
-      }
-    }));
+    setEditingData(prev => {
+      // 🔥 ИСПРАВЛЕНИЕ: Если colorSettings переданы и не пустые, используем их, иначе оставляем текущие
+      const newColorSettings = (colorSettings && Object.keys(colorSettings).length > 0) 
+        ? colorSettings 
+        : prev.colorSettings;
+      
+      return {
+        ...prev,
+        title,
+        description,
+        colorSettings: newColorSettings,
+        sectionColorSettings: newColorSettings // Для обратной совместимости
+      };
+    });
   }, [title, description, colorSettings, sectionStyles]);
   
   // Состояние для анимаций секции
@@ -207,30 +182,17 @@ const MultipleCardsEditor = ({
 
   const handleSave = () => {
     console.log('🎴🎴🎴 [MultipleCardsEditor] handleSave вызван!');
-    console.log('🎴🎴🎴 [MultipleCardsEditor] colorSettings:', editingData.colorSettings);
-    console.log('🎴🎴🎴 [MultipleCardsEditor] description в colorSettings:', editingData.colorSettings?.textFields?.description);
+    console.log('🎴🎴🎴 [MultipleCardsEditor] editingData.colorSettings:', editingData.colorSettings);
     
-    // 🔥 ИСПРАВЛЕНИЕ: Используем colorSettings вместо sectionColorSettings
+    // 🔥 ИСПРАВЛЕНИЕ: Сохраняем colorSettings как есть, без перезаписи дефолтами
     const dataToSave = {
       ...editingData,
       // Добавляем настройки анимаций
       sectionAnimationSettings,
       cardsAnimationSettings,
-      // 🔥 ГЛАВНОЕ: Передаем colorSettings для совместимости
-      colorSettings: {
-        ...editingData.colorSettings,
-        // Убеждаемся, что cardBackground передается
-        cardBackground: editingData.colorSettings?.cardBackground || {
-          enabled: true,
-          useGradient: false,
-          solidColor: '#ffffff',
-          gradientColor1: '#ffffff',
-          gradientColor2: '#f0f0f0',
-          gradientDirection: 'to right',
-          opacity: 1
-        }
-      },
-      sectionColorSettings: editingData.colorSettings, // Для обратной совместимости
+      // 🔥 ГЛАВНОЕ: Сохраняем colorSettings напрямую, как они есть
+      colorSettings: editingData.colorSettings || {},
+      sectionColorSettings: editingData.colorSettings || {}, // Для обратной совместимости
       cards: editingData.cards.map(card => {
         const processedCard = {
           ...card,
@@ -530,43 +492,15 @@ const MultipleCardsEditor = ({
               <Grid item xs={12}>
                 <ColorSettings
                   title="Настройки фона раздела"
-                  settings={editingData.colorSettings || {}}
+                  colorSettings={editingData.colorSettings || {}}
                   onUpdate={(newColorSettings) => {
-                    // 🔥 АНАЛОГИЧНО НАСТРОЙКАМ КАРТОЧЕК: Обрабатываем настройки
-                    const updatedColorSettings = {
-                      textFields: {
-                        title: newColorSettings.textFields?.title || '#1976d2',
-                        text: newColorSettings.textFields?.text || '#666666',
-                        cardTitle: newColorSettings.textFields?.cardTitle || '#333333',
-                        cardText: newColorSettings.textFields?.cardText || '#666666',
-                        border: newColorSettings.textFields?.border || '#e0e0e0'
-                      },
-                      sectionBackground: {
-                        enabled: newColorSettings.sectionBackground?.enabled || true,
-                        useGradient: newColorSettings.sectionBackground?.useGradient || false,
-                        solidColor: newColorSettings.sectionBackground?.solidColor || '#f5f5f5',
-                        gradientColor1: newColorSettings.sectionBackground?.gradientColor1 || '#f5f5f5',
-                        gradientColor2: newColorSettings.sectionBackground?.gradientColor2 || '#e0e0e0',
-                        gradientDirection: newColorSettings.sectionBackground?.gradientDirection || 'to right',
-                        opacity: newColorSettings.sectionBackground?.opacity || 1
-                      },
-                      cardBackground: {
-                        enabled: newColorSettings.cardBackground?.enabled || true,
-                        useGradient: newColorSettings.cardBackground?.useGradient || false,
-                        solidColor: newColorSettings.cardBackground?.solidColor || '#ffffff',
-                        gradientColor1: newColorSettings.cardBackground?.gradientColor1 || '#ffffff',
-                        gradientColor2: newColorSettings.cardBackground?.gradientColor2 || '#f0f0f0',
-                        gradientDirection: newColorSettings.cardBackground?.gradientDirection || 'to right',
-                        opacity: newColorSettings.cardBackground?.opacity || 1
-                      }
-                    };
-                    
-                    // Применяем к элементу
+                    console.log('🎴🎴🎴 [MultipleCardsEditor] ColorSettings onUpdate вызван с:', newColorSettings);
+                    // 🔥 ИСПРАВЛЕНИЕ: Сохраняем настройки напрямую, без перезаписи дефолтами
                     setEditingData(prev => ({
                       ...prev,
                       colorSettings: {
                         ...prev.colorSettings,
-                        ...updatedColorSettings
+                        ...newColorSettings
                       }
                     }));
                   }}
@@ -628,6 +562,7 @@ const MultipleCardsEditor = ({
                       opacity: 1
                     }
                   }}
+                  hideAreaColors={true}
                 />
               </Grid>
             </Grid>

@@ -92,20 +92,22 @@ const BasicCard = ({
     };
   });
   
-  // 🔥 ИСПРАВЛЕНИЕ: Приоритет переданных пропсов над currentColorSettings
-  const titleColorFromSettings = currentColorSettings?.textFields?.cardTitle || currentColorSettings?.textFields?.title || customStyles?.titleColor || '#ffd700';
-  const textColorFromSettings = currentColorSettings?.textFields?.cardText || currentColorSettings?.textFields?.text || customStyles?.textColor || '#ffffff';
+  // 🔥 ИСПРАВЛЕНИЕ: Используем colorSettings напрямую, если они есть, иначе currentColorSettings
+  const activeColorSettings = (colorSettings && Object.keys(colorSettings).length > 0) ? colorSettings : currentColorSettings;
+  
+  const titleColorFromSettings = activeColorSettings?.textFields?.cardTitle || activeColorSettings?.textFields?.title || customStyles?.titleColor || '#ffd700';
+  const textColorFromSettings = activeColorSettings?.textFields?.cardText || activeColorSettings?.textFields?.text || customStyles?.textColor || '#ffffff';
   const backgroundColorFromSettings = 
-    (currentColorSettings?.cardBackground?.enabled
-      ? (currentColorSettings.cardBackground.useGradient
-          ? `linear-gradient(${currentColorSettings.cardBackground.gradientDirection || 'to right'}, ${currentColorSettings.cardBackground.gradientColor1 || '#ffffff'}, ${currentColorSettings.cardBackground.gradientColor2 || '#f5f5f5'})`
-          : currentColorSettings.cardBackground.solidColor || 'rgba(0,0,0,0.85)')
-      : currentColorSettings?.sectionBackground?.enabled
-      ? (currentColorSettings.sectionBackground.useGradient
-          ? `linear-gradient(${currentColorSettings.sectionBackground.gradientDirection || 'to right'}, ${currentColorSettings.sectionBackground.gradientColor1 || '#ffffff'}, ${currentColorSettings.sectionBackground.gradientColor2 || '#f5f5f5'})`
-          : currentColorSettings.sectionBackground.solidColor || 'rgba(0,0,0,0.85)')
+    (activeColorSettings?.cardBackground?.enabled
+      ? (activeColorSettings.cardBackground.useGradient
+          ? `linear-gradient(${activeColorSettings.cardBackground.gradientDirection || 'to right'}, ${activeColorSettings.cardBackground.gradientColor1 || '#ffffff'}, ${activeColorSettings.cardBackground.gradientColor2 || '#f5f5f5'})`
+          : activeColorSettings.cardBackground.solidColor || 'rgba(0,0,0,0.85)')
+      : activeColorSettings?.sectionBackground?.enabled
+      ? (activeColorSettings.sectionBackground.useGradient
+          ? `linear-gradient(${activeColorSettings.sectionBackground.gradientDirection || 'to right'}, ${activeColorSettings.sectionBackground.gradientColor1 || '#ffffff'}, ${activeColorSettings.sectionBackground.gradientColor2 || '#f5f5f5'})`
+          : activeColorSettings.sectionBackground.solidColor || 'rgba(0,0,0,0.85)')
       : customStyles?.backgroundColor || 'rgba(0,0,0,0.85)');
-  const borderColorFromSettings = currentColorSettings?.textFields?.border || customStyles?.borderColor || '#c41e3a';
+  const borderColorFromSettings = activeColorSettings?.textFields?.border || customStyles?.borderColor || '#c41e3a';
   const [localEditing, setLocalEditing] = useState(false);
   const [currentAnimationSettings, setCurrentAnimationSettings] = useState(animationSettings || {
     animationType: 'fadeIn',
@@ -190,10 +192,11 @@ const BasicCard = ({
   const getCardStyles = () => {
     const sizeConfig = sizes.find(s => s.value === currentSize) || sizes[1];
     
-
+    // 🔥 ИСПРАВЛЕНИЕ: Используем colorSettings напрямую, если они есть
+    const activeColorSettings = (colorSettings && Object.keys(colorSettings).length > 0) ? colorSettings : currentColorSettings;
     
     const baseStyles = {
-      padding: currentColorSettings.padding ? `${currentColorSettings.padding}px` : sizeConfig.padding,
+      padding: activeColorSettings.padding ? `${activeColorSettings.padding}px` : sizeConfig.padding,
       textAlign: currentAlignment,
       transition: 'all 0.3s ease',
       cursor: editable ? 'pointer' : 'default'
@@ -203,8 +206,23 @@ const BasicCard = ({
     let backgroundStyle = {};
     
     // 🔥 ИСПРАВЛЕНИЕ: Приоритет colorSettings над customStyles для фона
-    if (currentColorSettings.sectionBackground?.enabled) {
-      const { sectionBackground } = currentColorSettings;
+    // Сначала проверяем cardBackground, потом sectionBackground
+    if (activeColorSettings.cardBackground?.enabled) {
+      const { cardBackground } = activeColorSettings;
+      if (cardBackground.useGradient) {
+        backgroundStyle = {
+          background: `linear-gradient(${cardBackground.gradientDirection || 'to right'}, ${cardBackground.gradientColor1 || '#ffffff'}, ${cardBackground.gradientColor2 || '#f5f5f5'})`
+        };
+      } else {
+        backgroundStyle = {
+          backgroundColor: cardBackground.solidColor || 'rgba(0,0,0,0.85)'
+        };
+      }
+      if (cardBackground.opacity !== undefined) {
+        backgroundStyle.opacity = cardBackground.opacity;
+      }
+    } else if (activeColorSettings.sectionBackground?.enabled) {
+      const { sectionBackground } = activeColorSettings;
       if (sectionBackground.useGradient) {
         backgroundStyle = {
           background: `linear-gradient(${sectionBackground.gradientDirection || 'to right'}, ${sectionBackground.gradientColor1 || '#ffffff'}, ${sectionBackground.gradientColor2 || '#f5f5f5'})`
@@ -222,17 +240,25 @@ const BasicCard = ({
         background: `linear-gradient(${customStyles.gradientDirection || 'to right'}, ${customStyles.gradientColor1 || '#ffffff'}, ${customStyles.gradientColor2 || '#f5f5f5'})`
       };
     } else {
-      backgroundStyle = {
-        backgroundColor: backgroundColorFromSettings
-      };
+      // backgroundColorFromSettings может быть строкой градиента или цветом
+      const bgValue = backgroundColorFromSettings;
+      if (typeof bgValue === 'string' && bgValue.startsWith('linear-gradient')) {
+        backgroundStyle = {
+          background: bgValue
+        };
+      } else {
+        backgroundStyle = {
+          backgroundColor: bgValue || 'rgba(0,0,0,0.85)'
+        };
+      }
     }
 
     // 🔥 ИСПРАВЛЕНИЕ: Приоритет colorSettings над customStyles для границ
     let borderStyle = {};
-    if (currentColorSettings?.textFields?.border) {
+    if (activeColorSettings?.textFields?.border) {
       borderStyle = {
-        border: `${currentColorSettings.borderWidth || 1}px solid ${currentColorSettings.textFields.border}`,
-        borderRadius: `${currentColorSettings.borderRadius || 8}px`
+        border: `${activeColorSettings.borderWidth || 1}px solid ${activeColorSettings.textFields.border}`,
+        borderRadius: `${activeColorSettings.borderRadius || 8}px`
       };
     } else if (customStyles?.borderColor) {
       borderStyle = {
@@ -242,13 +268,13 @@ const BasicCard = ({
     } else if (currentVariant === 'outlined') {
       borderStyle = {
         border: `1px solid ${borderColorFromSettings}`,
-        borderRadius: `${currentColorSettings?.borderRadius || customStyles?.borderRadius || 8}px`
+        borderRadius: `${activeColorSettings?.borderRadius || customStyles?.borderRadius || 8}px`
       };
     }
 
     // Применяем настройки теней из colorSettings
     let additionalStyles = {};
-    if (currentColorSettings.boxShadow) {
+    if (activeColorSettings.boxShadow) {
       additionalStyles.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
     }
 
@@ -267,7 +293,7 @@ const BasicCard = ({
           ...backgroundStyle,
           ...additionalStyles,
           border: 'none',
-          borderRadius: `${customStyles?.borderRadius || currentColorSettings.borderRadius || 8}px`,
+          borderRadius: `${customStyles?.borderRadius || activeColorSettings?.borderRadius || 8}px`,
           boxShadow: 'none'
         };
       default: // elevated
@@ -276,7 +302,7 @@ const BasicCard = ({
           ...backgroundStyle,
           ...additionalStyles,
           border: 'none',
-          borderRadius: `${customStyles?.borderRadius || currentColorSettings.borderRadius || 8}px`,
+          borderRadius: `${customStyles?.borderRadius || activeColorSettings?.borderRadius || 8}px`,
           boxShadow: currentElevation
         };
     }
@@ -532,9 +558,13 @@ const BasicCard = ({
 
   // 🔄 РЕАКТИВНОСТЬ: Обновляем локальные настройки при изменении colorSettings
   useEffect(() => {
-    if (JSON.stringify(colorSettings) !== JSON.stringify(currentColorSettings)) {
-      console.log('🔄 [BasicCard] Обновление colorSettings:', colorSettings);
-      setCurrentColorSettings(colorSettings || {});
+    if (colorSettings && Object.keys(colorSettings).length > 0) {
+      // Проверяем, изменились ли colorSettings
+      const colorSettingsChanged = JSON.stringify(colorSettings) !== JSON.stringify(currentColorSettings);
+      if (colorSettingsChanged) {
+        console.log('🔄 [BasicCard] Обновление colorSettings:', colorSettings);
+        setCurrentColorSettings(colorSettings);
+      }
     }
   }, [colorSettings]);
 
@@ -725,6 +755,7 @@ const BasicCard = ({
                 background: 'rgba(0,0,0,0.85)',
                 border: '#c41e3a'
               }}
+              hideAreaColors={true}
             />
           </Box>
 

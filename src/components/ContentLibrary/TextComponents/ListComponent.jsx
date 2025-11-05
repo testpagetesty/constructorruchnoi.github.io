@@ -353,7 +353,8 @@ const ListComponent = ({
               primary={
                 <Typography
                   sx={{
-                    color: currentColorSettings?.textFields?.listItem || 
+                    color: currentColorSettings?.textFields?.item || 
+                           currentColorSettings?.textFields?.listItem || 
                            currentColorSettings?.textFields?.text || 
                            currentColorSettings?.textFields?.content || 
                            '#333333',
@@ -575,6 +576,8 @@ const ListComponent = ({
               item: '#333333',
               marker: '#1976d2'
             }}
+            hideCardBackground={true}
+            hideAreaColors={true}
           />
 
           {/* Кнопки */}

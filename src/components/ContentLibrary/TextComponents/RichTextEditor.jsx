@@ -585,6 +585,8 @@ const RichTextEditor = ({
                     title: currentTitleColor || titleColor || '#1976d2',
                     content: currentTextColor || textColor || '#333333'
                   }}
+                  hideCardBackground={true}
+                  hideAreaColors={true}
                 />
               </AccordionDetails>
             </Accordion>

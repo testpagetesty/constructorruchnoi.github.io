@@ -327,6 +327,8 @@ const BlockquoteNew = ({
           author: '#888888',
           border: '#dee2e6'
         }}
+        hideCardBackground={true}
+        hideAreaColors={true}
       />
 
       {/* Настройки анимации */}

@@ -1370,6 +1370,7 @@ const ImageCard = ({
                 background: '#ffffff',
                 border: '#e0e0e0'
               }}
+              hideAreaColors={true}
             />
           </Box>
 

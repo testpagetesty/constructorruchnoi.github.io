@@ -932,7 +932,11 @@ const PagePreview = ({
     // Специальная обработка для advanced-line-chart - добавляем colorSettings
     if (element.type === 'advanced-line-chart') {
       elementProps.colorSettings = element.colorSettings || element.data?.colorSettings || {};
-      elementProps.lineColors = element.lineColors || element.data?.lineColors || ['#8884d8', '#82ca9d'];
+      // 🔥 ИСПРАВЛЕНИЕ: Приоритет textFields.line1/line2 для цветов линий
+      elementProps.lineColors = [
+        element.colorSettings?.textFields?.line1 || element.colorSettings?.lineColors?.line1 || element.lineColors?.[0] || element.data?.lineColors?.[0] || '#8884d8',
+        element.colorSettings?.textFields?.line2 || element.colorSettings?.lineColors?.line2 || element.lineColors?.[1] || element.data?.lineColors?.[1] || '#82ca9d'
+      ];
       elementProps.titleColor = element.titleColor || element.data?.titleColor || '#1976d2';
       elementProps.backgroundColor = element.backgroundColor || element.data?.backgroundColor || '#ffffff';
       elementProps.gridColor = element.gridColor || element.data?.gridColor || '#e0e0e0';

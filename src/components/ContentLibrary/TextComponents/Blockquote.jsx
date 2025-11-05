@@ -622,6 +622,8 @@ const Blockquote = ({
               author: '#888888',
               border: '#1976d2'
             }}
+            hideCardBackground={true}
+            hideAreaColors={true}
           />
 
           {/* Предварительный просмотр */}

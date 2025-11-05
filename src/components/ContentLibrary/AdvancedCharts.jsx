@@ -126,28 +126,70 @@ export const AdvancedLineChart = ({
     animationSettings
   });
 
-  // Синхронизируем colorSettings.lineColors с editData.lineColors
+  // 🔥 ИСПРАВЛЕНИЕ: Синхронизируем colorSettings с editData.lineColors
+  // Приоритет: textFields.line1/line2 > lineColors.line1/line2
   useEffect(() => {
-    if (colorSettings?.lineColors) {
-      const newLineColors = [];
-      const colorKeys = ['primary', 'secondary', 'tertiary', 'quaternary', 'quinary', 'senary', 'septenary', 'octonary'];
-      
-      for (let i = 0; i < colorKeys.length; i++) {
-        const colorKey = colorKeys[i];
-        if (colorSettings.lineColors[colorKey]) {
-          newLineColors[i] = colorSettings.lineColors[colorKey];
-        }
-      }
-      
-      if (newLineColors.length > 0) {
-        setEditData(prev => ({
-          ...prev,
-          lineColors: newLineColors
-        }));
-        console.log('🔥 [AdvancedLineChart] Обновили lineColors из colorSettings:', newLineColors);
+    const defaultColors = ['#8884d8', '#82ca9d'];
+    const newLineColors = [...(editData.lineColors || defaultColors)];
+    let colorsChanged = false;
+    
+    // 🔥 НОВЫЕ ПОЛЯ: Проверяем textFields.line1 и line2 (приоритет)
+    const line1FromTextFields = colorSettings?.textFields?.line1 || editData.colorSettings?.textFields?.line1;
+    const line2FromTextFields = colorSettings?.textFields?.line2 || editData.colorSettings?.textFields?.line2;
+    
+    if (line1FromTextFields && line1FromTextFields !== newLineColors[0]) {
+      newLineColors[0] = line1FromTextFields;
+      colorsChanged = true;
+      console.log('🔥 [AdvancedLineChart] Найден line1 из textFields:', line1FromTextFields);
+    }
+    
+    if (line2FromTextFields && line2FromTextFields !== newLineColors[1]) {
+      newLineColors[1] = line2FromTextFields;
+      colorsChanged = true;
+      console.log('🔥 [AdvancedLineChart] Найден line2 из textFields:', line2FromTextFields);
+    }
+    
+    // Проверяем lineColors.line1 и line2 (fallback)
+    if (!line1FromTextFields && colorSettings?.lineColors?.line1) {
+      if (colorSettings.lineColors.line1 !== newLineColors[0]) {
+        newLineColors[0] = colorSettings.lineColors.line1;
+        colorsChanged = true;
+        console.log('🔥 [AdvancedLineChart] Найден line1 из lineColors:', colorSettings.lineColors.line1);
       }
     }
-  }, [colorSettings?.lineColors]);
+    
+    if (!line2FromTextFields && colorSettings?.lineColors?.line2) {
+      if (colorSettings.lineColors.line2 !== newLineColors[1]) {
+        newLineColors[1] = colorSettings.lineColors.line2;
+        colorsChanged = true;
+        console.log('🔥 [AdvancedLineChart] Найден line2 из lineColors:', colorSettings.lineColors.line2);
+      }
+    }
+    
+    // Если цвета изменились, обновляем editData
+    if (colorsChanged) {
+      const finalLineColors = newLineColors.length > 0 ? newLineColors : defaultColors;
+      console.log('🔥 [AdvancedLineChart] Обновляем editData.lineColors на:', finalLineColors);
+      
+      setEditData(prev => ({
+        ...prev,
+        lineColors: finalLineColors,
+        // 🔥 Синхронизируем colorSettings в editData
+        colorSettings: {
+          ...prev.colorSettings,
+          textFields: {
+            ...prev.colorSettings?.textFields,
+            line1: finalLineColors[0] || '#8884d8',
+            line2: finalLineColors[1] || '#82ca9d'
+          },
+          lineColors: {
+            line1: finalLineColors[0] || '#8884d8',
+            line2: finalLineColors[1] || '#82ca9d'
+          }
+        }
+      }));
+    }
+  }, [colorSettings?.textFields?.line1, colorSettings?.textFields?.line2, colorSettings?.lineColors?.line1, colorSettings?.lineColors?.line2, editData.colorSettings?.textFields?.line1, editData.colorSettings?.textFields?.line2]);
 
   // Синхронизируем colorSettings.textFields с editData цветами
   useEffect(() => {
@@ -323,16 +365,38 @@ export const AdvancedLineChart = ({
   };
 
   const handleColorUpdate = (newColorSettings) => {
+    console.log('🔥 [AdvancedLineChart] handleColorUpdate вызван с:', newColorSettings);
+    
     // Обновляем colorSettings и синхронизируем lineColors
     const updatedEditData = { ...editData, colorSettings: newColorSettings };
     
-    // Синхронизируем цвета линий из ColorSettings
-    if (newColorSettings.lineColors) {
-      updatedEditData.lineColors = [
-        newColorSettings.lineColors.line1 || '#8884d8',
-        newColorSettings.lineColors.line2 || '#82ca9d'
-      ];
+    const defaultColors = ['#8884d8', '#82ca9d'];
+    const existingLineColors = [...(editData.lineColors || defaultColors)];
+    const newLineColors = [...existingLineColors];
+    
+    // 🔥 НОВЫЕ ПОЛЯ: Приоритет textFields.line1/line2
+    if (newColorSettings.textFields?.line1) {
+      newLineColors[0] = newColorSettings.textFields.line1;
+      console.log('🔥 [AdvancedLineChart] Обновлен line1 из textFields:', newColorSettings.textFields.line1);
     }
+    if (newColorSettings.textFields?.line2) {
+      newLineColors[1] = newColorSettings.textFields.line2;
+      console.log('🔥 [AdvancedLineChart] Обновлен line2 из textFields:', newColorSettings.textFields.line2);
+    }
+    
+    // Fallback на lineColors.line1/line2
+    if (!newColorSettings.textFields?.line1 && newColorSettings.lineColors?.line1) {
+      newLineColors[0] = newColorSettings.lineColors.line1;
+      console.log('🔥 [AdvancedLineChart] Обновлен line1 из lineColors:', newColorSettings.lineColors.line1);
+    }
+    if (!newColorSettings.textFields?.line2 && newColorSettings.lineColors?.line2) {
+      newLineColors[1] = newColorSettings.lineColors.line2;
+      console.log('🔥 [AdvancedLineChart] Обновлен line2 из lineColors:', newColorSettings.lineColors.line2);
+    }
+    
+    updatedEditData.lineColors = newLineColors;
+    console.log('🔥 [AdvancedLineChart] handleColorUpdate - обновлены lineColors на:', newLineColors);
+    console.log('🔥 [AdvancedLineChart] handleColorUpdate - финальный updatedEditData:', updatedEditData);
     
     setEditData(updatedEditData);
   };
@@ -557,13 +621,23 @@ export const AdvancedLineChart = ({
                 <AccordionDetails>
                   <ColorSettings
                     title="Настройки цветов линейного графика"
-                    colorSettings={{
-                      ...editData.colorSettings,
-                      lineColors: {
-                        line1: editData.lineColors[0] || '#8884d8',
-                        line2: editData.lineColors[1] || '#82ca9d'
-                      }
-                    }}
+                    colorSettings={(() => {
+                      // Исключаем areaColors из colorSettings чтобы скрыть секцию
+                      const { areaColors, ...restColorSettings } = editData.colorSettings || {};
+                      return {
+                        ...restColorSettings,
+                        textFields: {
+                          ...restColorSettings.textFields,
+                          // 🔥 НОВЫЕ ПОЛЯ: Цвета линий в textFields
+                          line1: restColorSettings.textFields?.line1 || editData.lineColors?.[0] || '#8884d8',
+                          line2: restColorSettings.textFields?.line2 || editData.lineColors?.[1] || '#82ca9d'
+                        },
+                        lineColors: {
+                          line1: editData.lineColors[0] || '#8884d8',
+                          line2: editData.lineColors[1] || '#82ca9d'
+                        }
+                      };
+                    })()}
                     onUpdate={handleColorUpdate}
                     availableFields={[
                       {
@@ -589,14 +663,32 @@ export const AdvancedLineChart = ({
                         label: 'Цвет осей',
                         description: 'Цвет осей координат',
                         defaultColor: getColor('axis', editData.axisColor || '#666666')
+                      },
+                      // 🔥 НОВЫЕ ПОЛЯ: Цвета линий
+                      {
+                        name: 'line1',
+                        label: 'Цвет первой линии',
+                        description: 'Цвет первой линии графика',
+                        defaultColor: editData.colorSettings?.textFields?.line1 || editData.lineColors?.[0] || '#8884d8'
+                      },
+                      {
+                        name: 'line2',
+                        label: 'Цвет второй линии',
+                        description: 'Цвет второй линии графика',
+                        defaultColor: editData.colorSettings?.textFields?.line2 || editData.lineColors?.[1] || '#82ca9d'
                       }
                     ]}
                     defaultColors={{
                       title: getColor('title', editData.titleColor || '#1976d2'),
                       grid: getColor('grid', editData.gridColor || '#e0e0e0'),
                       legend: getColor('legend', editData.legendColor || '#333333'),
-                      axis: getColor('axis', editData.axisColor || '#666666')
+                      axis: getColor('axis', editData.axisColor || '#666666'),
+                      // 🔥 НОВЫЕ ПОЛЯ: Цвета линий
+                      line1: editData.colorSettings?.textFields?.line1 || editData.lineColors?.[0] || '#8884d8',
+                      line2: editData.colorSettings?.textFields?.line2 || editData.lineColors?.[1] || '#82ca9d'
                     }}
+                    hideCardBackground={true}
+                    hideAreaColors={true}
                   />
                   
 
@@ -828,17 +920,17 @@ export const AdvancedLineChart = ({
                 <Line 
                   type="monotone" 
                   dataKey="value" 
-                  stroke={editData.lineColors[0]} 
+                  stroke={(colorSettings?.textFields?.line1) || (editData.colorSettings?.textFields?.line1) || (editData.lineColors && editData.lineColors[0]) || (colorSettings?.lineColors?.line1) || '#8884d8'} 
                   strokeWidth={editData.strokeWidth}
-                  dot={{ fill: editData.lineColors[0] }}
+                  dot={{ fill: (colorSettings?.textFields?.line1) || (editData.colorSettings?.textFields?.line1) || (editData.lineColors && editData.lineColors[0]) || (colorSettings?.lineColors?.line1) || '#8884d8' }}
                   name={editData.lineNames ? editData.lineNames[0] : "Линия 1"}
                 />
                 <Line 
                   type="monotone" 
                   dataKey="value2" 
-                  stroke={editData.lineColors[1]} 
+                  stroke={(colorSettings?.textFields?.line2) || (editData.colorSettings?.textFields?.line2) || (editData.lineColors && editData.lineColors[1]) || (colorSettings?.lineColors?.line2) || '#82ca9d'} 
                   strokeWidth={editData.strokeWidth}
-                  dot={{ fill: editData.lineColors[1] }}
+                  dot={{ fill: (colorSettings?.textFields?.line2) || (editData.colorSettings?.textFields?.line2) || (editData.lineColors && editData.lineColors[1]) || (colorSettings?.lineColors?.line2) || '#82ca9d' }}
                   name={editData.lineNames ? editData.lineNames[1] : "Линия 2"}
                 />
               </LineChart>
@@ -2334,6 +2426,25 @@ export const AdvancedAreaChart = ({
       console.log('🔍 [AdvancedAreaChart] Updated areaColors:', updatedEditData.areaColors);
     }
     
+    // Синхронизируем цвета линий из textFields в areaColors
+    if (newColorSettings.textFields) {
+      const newAreaColors = [...(editData.areaColors || [])];
+      const maxAreas = Math.max(editData.data.length, newAreaColors.length);
+      
+      for (let i = 0; i < maxAreas; i++) {
+        const lineKey = `line${i + 1}`;
+        const lineColor = newColorSettings.textFields[lineKey];
+        if (lineColor) {
+          newAreaColors[i] = lineColor;
+        }
+      }
+      
+      if (newAreaColors.length > 0) {
+        updatedEditData.areaColors = newAreaColors;
+        console.log('🔍 [AdvancedAreaChart] Updated areaColors from line colors:', updatedEditData.areaColors);
+      }
+    }
+    
     console.log('🔍 [AdvancedAreaChart] Final updatedEditData:', updatedEditData);
     setEditData(updatedEditData);
   };
@@ -2596,16 +2707,28 @@ export const AdvancedAreaChart = ({
                       label: 'Цвет осей',
                       description: 'Цвет осей координат',
                       defaultColor: editData.axisColor || '#666666'
-                    }
+                    },
+                    // Добавляем цвета линий (всего две линии)
+                    ...([0, 1].map((index) => ({
+                      name: `line${index + 1}`,
+                      label: `Цвет линии ${index + 1}${editData.areaNames && editData.areaNames[index] ? ` (${editData.areaNames[index]})` : ''}`,
+                      description: `Цвет линии для ${editData.areaNames && editData.areaNames[index] ? editData.areaNames[index] : `области ${index + 1}`}`,
+                      defaultColor: editData.areaColors && editData.areaColors[index] ? editData.areaColors[index] : ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#0088fe', '#00c49f', '#ffbb28', '#ff8042'][index % 8]
+                    })))
                   ]}
                   defaultColors={{
                     title: editData.titleColor || '#1976d2',
                     grid: editData.gridColor || '#e0e0e0',
                     legend: editData.legendColor || '#333333',
-                    axis: editData.axisColor || '#666666'
+                    axis: editData.axisColor || '#666666',
+                    // Добавляем цвета линий в defaultColors (всего две линии)
+                    ...([0, 1].reduce((acc, index) => {
+                      acc[`line${index + 1}`] = editData.areaColors && editData.areaColors[index] ? editData.areaColors[index] : ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#0088fe', '#00c49f', '#ffbb28', '#ff8042'][index % 8];
+                      return acc;
+                    }, {}))
                   }}
                   hideCardBackground={true}
-                  hideAreaColors={false}
+                  hideAreaColors={true}
                   hideSegmentColors={true}
                 />
               </AccordionDetails>

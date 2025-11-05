@@ -561,6 +561,8 @@ const Typography = ({
             defaultColors={{
               text: styles.color
             }}
+            hideCardBackground={true}
+            hideAreaColors={true}
           />
 
           {/* Кнопки */}

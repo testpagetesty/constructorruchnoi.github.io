@@ -15166,7 +15166,17 @@ const EditorPanel = ({
 
 
 
-        const headingTag = element.headingType || 'h2';
+        // Получаем настройки из element.data.customStyles (сохраненные из редактора)
+        const elementDataStyles = element.data?.customStyles || {};
+        
+        // Определяем тег заголовка из variant
+        const variantToTag = {
+          'h1': 'h1', 'h2': 'h2', 'h3': 'h3', 'h4': 'h4', 'h5': 'h5', 'h6': 'h6',
+          'subtitle1': 'h3', 'subtitle2': 'h4',
+          'body1': 'p', 'body2': 'p',
+          'caption': 'p', 'overline': 'p'
+        };
+        const headingTag = element.headingType || variantToTag[elementDataStyles.variant] || elementDataStyles.variant || 'h2';
 
 
 
@@ -15178,7 +15188,19 @@ const EditorPanel = ({
 
 
 
+        // Цвет текста из colorSettings (приоритет)
         const typographyTextColor = typographyColorSettings.textFields?.text || element.textColor || '#333333';
+
+        // Получаем настройки текста из element.data.customStyles
+        const textAlign = elementDataStyles.textAlign || element.textAlign || 'left';
+        const fontFamily = elementDataStyles.fontFamily || element.fontFamily || 'inherit';
+        const fontWeight = elementDataStyles.fontWeight || element.fontWeight || 'normal';
+        const fontStyle = elementDataStyles.fontStyle || element.fontStyle || 'normal';
+        const textDecoration = elementDataStyles.textDecoration || element.textDecoration || 'none';
+        const fontSize = elementDataStyles.fontSize || element.fontSize;
+        const lineHeight = elementDataStyles.lineHeight || element.lineHeight || 1.5;
+        const letterSpacing = elementDataStyles.letterSpacing || element.letterSpacing || 0;
+        const textTransform = elementDataStyles.textTransform || element.textTransform || 'none';
 
 
 
@@ -15190,7 +15212,7 @@ const EditorPanel = ({
 
 
 
-        let typographyContainerStyles = `margin: 1rem 0; text-align: ${element.textAlign || 'left'};`;
+        let typographyContainerStyles = `margin: 1rem 0;`;
 
 
 
@@ -15266,23 +15288,19 @@ const EditorPanel = ({
 
 
 
-            <${headingTag} style="
-
-
-
-              color: ${typographyTextColor};
-
-
-
-              margin: 0;
-
-
-
-              font-size: ${headingTag === 'h1' ? '2.5rem' : headingTag === 'h2' ? '2rem' : headingTag === 'h3' ? '1.5rem' : '1.2rem'};
-
-
-
-            ">${element.text || 'Заголовок или текст'}</${headingTag}>
+            <${headingTag} style="${[
+              `color: ${typographyTextColor}`,
+              `text-align: ${textAlign}`,
+              `font-family: ${fontFamily}`,
+              `font-weight: ${fontWeight}`,
+              `font-style: ${fontStyle}`,
+              `text-decoration: ${textDecoration}`,
+              fontSize && fontSize !== 'inherit' ? `font-size: ${fontSize}` : '',
+              `line-height: ${lineHeight}`,
+              `letter-spacing: ${letterSpacing}px`,
+              `text-transform: ${textTransform}`,
+              'margin: 0'
+            ].filter(Boolean).join('; ')}">${element.text || element.data?.text || 'Заголовок или текст'}</${headingTag}>
 
 
 

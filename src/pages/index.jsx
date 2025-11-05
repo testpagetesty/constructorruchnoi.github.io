@@ -448,6 +448,10 @@ export default function Home() {
                 console.log('🎯 [index.jsx] Updating customStyles for contentElement:', elementId);
                 return { ...element, customStyles: value };
               }
+              else if (fieldOrElement === 'colorSettings' && typeof value === 'object' && value !== null) {
+                console.log('🎨 [index.jsx] ПРИНУДИТЕЛЬНО обновляем colorSettings для contentElement:', elementId, 'новые настройки:', value);
+                return { ...element, colorSettings: value };
+              }
               else if (fieldOrElement === 'data' && typeof value === 'object' && value !== null) {
                 console.log('🔧 [index.jsx] Updating contentElement data:', elementId, 'type:', element.type);
                 
@@ -455,6 +459,12 @@ export default function Home() {
                   console.log('🔧 [index.jsx] Advanced contentElement - updating all fields');
                   const updated = { ...element, ...value };
                   console.log('🔧 [index.jsx] Updated advanced contentElement:', updated);
+                  return updated;
+                } else if (element.type === 'bar-chart' || element.type === 'chart') {
+                  // 🔥 ИСПРАВЛЕНИЕ: Для bar-chart сохраняем данные полностью в element.data
+                  console.log('🔧 [index.jsx] BarChart contentElement - saving full data object');
+                  const updated = { ...element, data: value };
+                  console.log('🔧 [index.jsx] Updated bar-chart contentElement:', updated);
                   return updated;
                 } else {
                   const updated = { ...element, data: { ...element.data, ...value } };
@@ -496,6 +506,10 @@ export default function Home() {
                 console.log('🎯 [index.jsx] Updating customStyles for AI element:', elementId);
                 return { ...element, customStyles: value };
               }
+              else if (fieldOrElement === 'colorSettings' && typeof value === 'object' && value !== null) {
+                console.log('🎨 [index.jsx] ПРИНУДИТЕЛЬНО обновляем colorSettings для AI element:', elementId, 'новые настройки:', value);
+                return { ...element, colorSettings: value };
+              }
               else if (fieldOrElement === 'data' && typeof value === 'object' && value !== null) {
                 console.log('🔧 [index.jsx] Updating AI element data:', elementId, 'type:', element.type);
                 
@@ -503,6 +517,12 @@ export default function Home() {
                   console.log('🔧 [index.jsx] Advanced AI element - updating all fields');
                   const updated = { ...element, ...value };
                   console.log('🔧 [index.jsx] Updated advanced AI element:', updated);
+                  return updated;
+                } else if (element.type === 'bar-chart' || element.type === 'chart') {
+                  // 🔥 ИСПРАВЛЕНИЕ: Для bar-chart сохраняем данные полностью в element.data
+                  console.log('🔧 [index.jsx] BarChart AI element - saving full data object');
+                  const updated = { ...element, data: value };
+                  console.log('🔧 [index.jsx] Updated bar-chart AI element:', updated);
                   return updated;
                 } else {
                   const updated = { ...element, data: { ...element.data, ...value } };

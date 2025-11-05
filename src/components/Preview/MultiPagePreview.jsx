@@ -40,6 +40,7 @@ import AddIcon from '@mui/icons-material/Add';
 import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
 import CloseIcon from '@mui/icons-material/Close';
 import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
 import Header from '../Header/Header';
 import HeroSection from '../Hero/HeroSection';
 import ContactSection from '../Contact/ContactSection';
@@ -914,7 +915,270 @@ const MultiPagePreview = ({
     };
 
     const handleElementSave = (newContent) => {
-      handleElementUpdate(newContent);
+      console.log('🎴🎴🎴 [MultiPagePreview] handleElementSave вызван для:', element.type, 'с данными:', newContent);
+      
+      // Для Typography преобразуем styles в customStyles и сохраняем colorSettings отдельно
+      if (element.type === 'typography') {
+        const { colorSettings, styles, ...restContent } = newContent;
+        
+        // Сохраняем colorSettings отдельно если они есть
+        if (colorSettings && Object.keys(colorSettings).length > 0) {
+          if (onElementUpdate) {
+            onElementUpdate(sectionId, element.id, 'colorSettings', colorSettings);
+            console.log('🎨 [MultiPagePreview] Сохранены colorSettings для typography:', colorSettings);
+          }
+        }
+        
+        // Преобразуем styles в customStyles если есть
+        if (styles) {
+          const dataToSave = {
+            ...restContent,
+            customStyles: {
+              ...styles,
+              // Убеждаемся, что variant включен
+              variant: styles.variant || elementProps.variant || 'body1'
+            }
+          };
+          handleElementUpdate(dataToSave);
+        } else if (Object.keys(restContent).length > 0) {
+          // Сохраняем остальные данные если нет styles
+          handleElementUpdate(restContent);
+        }
+      } else if (element.type === 'multiple-cards') {
+        // 🔥 ИСПРАВЛЕНИЕ: Для multiple-cards сохраняем colorSettings отдельно
+        const { colorSettings, ...dataToSave } = newContent;
+        
+        console.log('🎴🎴🎴 [MultiPagePreview] multiple-cards colorSettings:', colorSettings);
+        console.log('🎴🎴🎴 [MultiPagePreview] multiple-cards dataToSave:', dataToSave);
+        
+        // Сохраняем colorSettings отдельно
+        if (colorSettings && Object.keys(colorSettings).length > 0) {
+          if (onElementUpdate) {
+            onElementUpdate(sectionId, element.id, 'colorSettings', colorSettings);
+            console.log('🎴🎴🎴 [MultiPagePreview] Сохранены colorSettings:', colorSettings);
+          }
+        }
+        
+        // Сохраняем остальные данные
+        if (Object.keys(dataToSave).length > 0) {
+          handleElementUpdate(dataToSave);
+        }
+      } else if (element.type === 'list') {
+        // Для списка сохраняем colorSettings отдельно и преобразуем items в initialItems
+        const { colorSettings, items, ...restData } = newContent;
+        
+        // Сохраняем colorSettings отдельно если они есть
+        if (colorSettings && Object.keys(colorSettings).length > 0) {
+          if (onElementUpdate) {
+            onElementUpdate(sectionId, element.id, 'colorSettings', colorSettings);
+            console.log('🎨 [MultiPagePreview] Сохранены colorSettings для list:', colorSettings);
+          }
+        }
+        
+        // Преобразуем items в initialItems для совместимости
+        const dataToSave = {
+          ...restData,
+          ...(items ? { initialItems: items } : {})
+        };
+        
+        // Сохраняем остальные данные
+        if (Object.keys(dataToSave).length > 0) {
+          handleElementUpdate(dataToSave);
+        }
+      } else if (element.type === 'blockquote') {
+        // 🔥 ИСПРАВЛЕНИЕ: Для blockquote сохраняем colorSettings отдельно
+        const { colorSettings, ...restData } = newContent;
+        
+        console.log('🎨 [MultiPagePreview] blockquote colorSettings:', colorSettings);
+        console.log('🎨 [MultiPagePreview] blockquote restData:', restData);
+        
+        // Сохраняем colorSettings отдельно если они есть
+        if (colorSettings && Object.keys(colorSettings).length > 0) {
+          if (onElementUpdate) {
+            onElementUpdate(sectionId, element.id, 'colorSettings', colorSettings);
+            console.log('🎨 [MultiPagePreview] Сохранены colorSettings для blockquote:', colorSettings);
+          }
+        }
+        
+        // Сохраняем остальные данные
+        if (Object.keys(restData).length > 0) {
+          handleElementUpdate(restData);
+        }
+      } else if (element.type === 'callout') {
+        // 🔥 ИСПРАВЛЕНИЕ: Для callout сохраняем colorSettings отдельно
+        const { colorSettings, ...restData } = newContent;
+        
+        console.log('🎨 [MultiPagePreview] callout colorSettings:', colorSettings);
+        console.log('🎨 [MultiPagePreview] callout restData:', restData);
+        
+        // Сохраняем colorSettings отдельно если они есть
+        if (colorSettings && Object.keys(colorSettings).length > 0) {
+          if (onElementUpdate) {
+            onElementUpdate(sectionId, element.id, 'colorSettings', colorSettings);
+            console.log('🎨 [MultiPagePreview] Сохранены colorSettings для callout:', colorSettings);
+          }
+        }
+        
+        // Сохраняем остальные данные
+        if (Object.keys(restData).length > 0) {
+          handleElementUpdate(restData);
+        }
+      } else if (element.type === 'gradient-text') {
+        // 🔥 ИСПРАВЛЕНИЕ: Для gradient-text сохраняем colorSettings отдельно
+        const { colorSettings, ...restData } = newContent;
+        
+        console.log('🎨 [MultiPagePreview] gradient-text colorSettings:', colorSettings);
+        console.log('🎨 [MultiPagePreview] gradient-text restData:', restData);
+        
+        // Сохраняем colorSettings отдельно если они есть
+        if (colorSettings && Object.keys(colorSettings).length > 0) {
+          if (onElementUpdate) {
+            onElementUpdate(sectionId, element.id, 'colorSettings', colorSettings);
+            console.log('🎨 [MultiPagePreview] Сохранены colorSettings для gradient-text:', colorSettings);
+          }
+        }
+        
+        // Сохраняем остальные данные
+        if (Object.keys(restData).length > 0) {
+          handleElementUpdate(restData);
+        }
+      } else if (['animated-counter', 'typewriter-text', 'highlight-text'].includes(element.type)) {
+        // 🔥 ИСПРАВЛЕНИЕ: Для animated-counter, typewriter-text, highlight-text сохраняем colorSettings отдельно
+        const { colorSettings, ...restData } = newContent;
+        
+        console.log(`🎨 [MultiPagePreview] ${element.type} colorSettings:`, colorSettings);
+        console.log(`🎨 [MultiPagePreview] ${element.type} restData:`, restData);
+        
+        // Сохраняем colorSettings отдельно если они есть
+        if (colorSettings && Object.keys(colorSettings).length > 0) {
+          if (onElementUpdate) {
+            onElementUpdate(sectionId, element.id, 'colorSettings', colorSettings);
+            console.log(`🎨 [MultiPagePreview] Сохранены colorSettings для ${element.type}:`, colorSettings);
+          }
+        }
+        
+        // Сохраняем остальные данные
+        if (Object.keys(restData).length > 0) {
+          handleElementUpdate(restData);
+        }
+      } else if (['timeline-component', 'data-table'].includes(element.type)) {
+        // 🔥 ИСПРАВЛЕНИЕ: Для timeline-component, data-table сохраняем colorSettings отдельно
+        const { colorSettings, ...restData } = newContent;
+        
+        console.log(`🎨 [MultiPagePreview] ${element.type} colorSettings:`, colorSettings);
+        console.log(`🎨 [MultiPagePreview] ${element.type} restData:`, restData);
+        
+        // Сохраняем colorSettings отдельно если они есть
+        if (colorSettings && Object.keys(colorSettings).length > 0) {
+          if (onElementUpdate) {
+            onElementUpdate(sectionId, element.id, 'colorSettings', colorSettings);
+            console.log(`🎨 [MultiPagePreview] Сохранены colorSettings для ${element.type}:`, colorSettings);
+          }
+        }
+        
+        // Сохраняем остальные данные
+        if (Object.keys(restData).length > 0) {
+          handleElementUpdate(restData);
+        }
+      } else if (['faq-section', 'accordion', 'rating', 'progress-bars'].includes(element.type)) {
+        // 🔥 ИСПРАВЛЕНИЕ: Для faq-section, accordion, rating, progress-bars сохраняем colorSettings отдельно
+        const { colorSettings, ...restData } = newContent;
+        
+        console.log(`🎨 [MultiPagePreview] ${element.type} colorSettings:`, colorSettings);
+        console.log(`🎨 [MultiPagePreview] ${element.type} restData:`, restData);
+        
+        // Сохраняем colorSettings отдельно если они есть
+        if (colorSettings && Object.keys(colorSettings).length > 0) {
+          if (onElementUpdate) {
+            onElementUpdate(sectionId, element.id, 'colorSettings', colorSettings);
+            console.log(`🎨 [MultiPagePreview] Сохранены colorSettings для ${element.type}:`, colorSettings);
+          }
+        }
+        
+        // Сохраняем остальные данные
+        if (Object.keys(restData).length > 0) {
+          handleElementUpdate(restData);
+        }
+      } else if (['testimonial-card', 'testimonial'].includes(element.type)) {
+        // 🔥 ИСПРАВЛЕНИЕ: Для testimonial-card, testimonial сохраняем colorSettings отдельно
+        const { colorSettings, ...restData } = newContent;
+        
+        console.log(`🎨 [MultiPagePreview] ${element.type} colorSettings:`, colorSettings);
+        console.log(`🎨 [MultiPagePreview] ${element.type} restData:`, restData);
+        
+        // Сохраняем colorSettings отдельно если они есть
+        if (colorSettings && Object.keys(colorSettings).length > 0) {
+          if (onElementUpdate) {
+            onElementUpdate(sectionId, element.id, 'colorSettings', colorSettings);
+            console.log(`🎨 [MultiPagePreview] Сохранены colorSettings для ${element.type}:`, colorSettings);
+          }
+        }
+        
+        // Сохраняем остальные данные
+        if (Object.keys(restData).length > 0) {
+          handleElementUpdate(restData);
+        }
+      } else if (['basic-card', 'image-card'].includes(element.type)) {
+        // 🔥 ИСПРАВЛЕНИЕ: Для basic-card, image-card сохраняем colorSettings отдельно
+        const { colorSettings, ...restData } = newContent;
+        
+        console.log(`🎨 [MultiPagePreview] ${element.type} colorSettings:`, colorSettings);
+        console.log(`🎨 [MultiPagePreview] ${element.type} restData:`, restData);
+        
+        // Сохраняем colorSettings отдельно если они есть
+        if (colorSettings && Object.keys(colorSettings).length > 0) {
+          if (onElementUpdate) {
+            onElementUpdate(sectionId, element.id, 'colorSettings', colorSettings);
+            console.log(`🎨 [MultiPagePreview] Сохранены colorSettings для ${element.type}:`, colorSettings);
+          }
+        }
+        
+        // Сохраняем остальные данные
+        if (Object.keys(restData).length > 0) {
+          handleElementUpdate(restData);
+        }
+      } else if (['bar-chart', 'chart'].includes(element.type)) {
+        // 🔥 ИСПРАВЛЕНИЕ: Для bar-chart сохраняем colorSettings отдельно и данные через 'data'
+        const { colorSettings, ...restData } = newContent;
+        
+        console.log(`🎨 [MultiPagePreview] ${element.type} colorSettings:`, colorSettings);
+        console.log(`🎨 [MultiPagePreview] ${element.type} restData:`, restData);
+        
+        // Сохраняем colorSettings отдельно если они есть
+        if (colorSettings && Object.keys(colorSettings).length > 0) {
+          if (onElementUpdate) {
+            onElementUpdate(sectionId, element.id, 'colorSettings', colorSettings);
+            console.log(`🎨 [MultiPagePreview] Сохранены colorSettings для ${element.type}:`, colorSettings);
+          }
+        }
+        
+        // 🔥 ИСПРАВЛЕНИЕ: Для bar-chart сохраняем данные через onElementUpdate с полем 'data'
+        if (Object.keys(restData).length > 0 && onElementUpdate) {
+          onElementUpdate(sectionId, element.id, 'data', restData);
+          console.log(`🎨 [MultiPagePreview] Сохранены данные для ${element.type}:`, restData);
+        }
+      } else if (['advanced-line-chart', 'advanced-pie-chart', 'advanced-area-chart', 'advanced-bar-chart'].includes(element.type)) {
+        // 🔥 ИСПРАВЛЕНИЕ: Для расширенных графиков сохраняем colorSettings отдельно
+        const { colorSettings, ...restData } = newContent;
+        
+        console.log(`🎨 [MultiPagePreview] ${element.type} colorSettings:`, colorSettings);
+        console.log(`🎨 [MultiPagePreview] ${element.type} restData:`, restData);
+        
+        // Сохраняем colorSettings отдельно если они есть
+        if (colorSettings && Object.keys(colorSettings).length > 0) {
+          if (onElementUpdate) {
+            onElementUpdate(sectionId, element.id, 'colorSettings', colorSettings);
+            console.log(`🎨 [MultiPagePreview] Сохранены colorSettings для ${element.type}:`, colorSettings);
+          }
+        }
+        
+        // Сохраняем остальные данные
+        if (Object.keys(restData).length > 0) {
+          handleElementUpdate(restData);
+        }
+      } else {
+        handleElementUpdate(newContent);
+      }
       setEditingElement(null);
     };
 
@@ -923,10 +1187,37 @@ const MultiPagePreview = ({
     };
 
     const elementKey = element.id;
+    
+    // 🔥 ИСПРАВЛЕНИЕ: Обертка для onUpdate чтобы извлекать colorSettings отдельно
+    const handleElementUpdateWithColorSettings = (updateData) => {
+      console.log('🎨 [MultiPagePreview] handleElementUpdateWithColorSettings вызван для:', element.type, 'с данными:', updateData);
+      
+      // Для rich-text, blockquote, list, callout, gradient-text, animated-counter, typewriter-text, highlight-text, timeline-component, data-table, faq-section, accordion, rating, progress-bars, testimonial-card, testimonial, basic-card, image-card, multiple-cards, bar-chart, chart, advanced-line-chart, advanced-pie-chart, advanced-area-chart, advanced-bar-chart извлекаем colorSettings отдельно
+      if (['rich-text', 'blockquote', 'list', 'callout', 'gradient-text', 'animated-counter', 'typewriter-text', 'highlight-text', 'timeline-component', 'data-table', 'faq-section', 'accordion', 'rating', 'progress-bars', 'testimonial-card', 'testimonial', 'basic-card', 'image-card', 'multiple-cards', 'bar-chart', 'chart', 'advanced-line-chart', 'advanced-pie-chart', 'advanced-area-chart', 'advanced-bar-chart'].includes(element.type) && updateData && typeof updateData === 'object') {
+        const { colorSettings, ...restData } = updateData;
+        
+        // Сохраняем colorSettings отдельно если они есть
+        if (colorSettings && Object.keys(colorSettings).length > 0) {
+          if (onElementUpdate) {
+            onElementUpdate(sectionId, element.id, 'colorSettings', colorSettings);
+            console.log(`🎨 [MultiPagePreview] Сохранены colorSettings для ${element.type} через onUpdate:`, colorSettings);
+          }
+        }
+        
+        // Сохраняем остальные данные
+        if (Object.keys(restData).length > 0) {
+          handleElementUpdate(restData);
+        }
+      } else {
+        // Для остальных элементов вызываем как обычно
+        handleElementUpdate(updateData);
+      }
+    };
+    
     const elementProps = {
       isPreview: true,
       constructorMode: true, // В MultiPagePreview всегда true, так как это режим превью с редактированием
-      onUpdate: handleElementUpdate,
+      onUpdate: handleElementUpdateWithColorSettings,
       onSave: handleElementUpdate,
       onCancel: () => {},
       editable: true
@@ -992,8 +1283,13 @@ const MultiPagePreview = ({
     // Специальная обработка для typography - добавляем недостающие поля
     if (element.type === 'typography') {
       elementProps.text = element.text || element.data?.text || element.content || 'Пример текста';
-      elementProps.variant = element.variant || element.data?.variant || 'body1';
-      elementProps.customStyles = element.customStyles || element.data?.customStyles || {
+      
+      // Загружаем customStyles из данных элемента
+      const savedCustomStyles = element.data?.customStyles || element.customStyles;
+      const defaultVariant = element.variant || element.data?.variant || 'body1';
+      
+      elementProps.customStyles = savedCustomStyles || {
+        variant: defaultVariant,
         fontFamily: 'inherit',
         fontSize: 'inherit',
         fontWeight: 'normal',
@@ -1005,6 +1301,17 @@ const MultiPagePreview = ({
         letterSpacing: 0,
         textTransform: 'none'
       };
+      
+      // Убеждаемся, что variant присутствует в customStyles
+      if (!elementProps.customStyles.variant) {
+        elementProps.customStyles.variant = defaultVariant;
+      }
+      
+      elementProps.variant = elementProps.customStyles.variant;
+      
+      // Также добавляем colorSettings если они есть
+      elementProps.colorSettings = element.colorSettings || element.data?.colorSettings || {};
+      
       // Добавляем функцию onUpdate для сохранения изменений
       elementProps.onUpdate = createOnUpdateFunction('Typography');
     }
@@ -1104,16 +1411,19 @@ const MultiPagePreview = ({
     
     // Специальная обработка для bar-chart - копируем данные диаграммы
     if (element.type === 'bar-chart') {
-      elementProps.title = element.title || 'Диаграмма';
-      elementProps.description = element.description || element.data?.description || ''; // Добавляем поле description
-      elementProps.data = element.data || [];
-      elementProps.showValues = element.showValues !== undefined ? element.showValues : true;
-      elementProps.showGrid = element.showGrid !== undefined ? element.showGrid : true;
-      elementProps.showLegend = element.showLegend !== undefined ? element.showLegend : false;
-      elementProps.showStatistics = element.showStatistics !== undefined ? element.showStatistics : false;
-      elementProps.animate = element.animate !== undefined ? element.animate : true;
-      elementProps.orientation = element.orientation || 'vertical';
-      elementProps.height = element.height || 300;
+      // 🔥 ИСПРАВЛЕНИЕ: Правильно извлекаем данные - они могут быть в element.data.data или element.data
+      const chartData = element.data?.data || (Array.isArray(element.data) ? element.data : []);
+      
+      elementProps.title = element.data?.title || element.title || 'Диаграмма';
+      elementProps.description = element.data?.description || element.description || ''; // Добавляем поле description
+      elementProps.data = chartData; // Используем правильно извлеченные данные
+      elementProps.showValues = element.data?.showValues !== undefined ? element.data.showValues : (element.showValues !== undefined ? element.showValues : true);
+      elementProps.showGrid = element.data?.showGrid !== undefined ? element.data.showGrid : (element.showGrid !== undefined ? element.showGrid : true);
+      elementProps.showLegend = element.data?.showLegend !== undefined ? element.data.showLegend : (element.showLegend !== undefined ? element.showLegend : false);
+      elementProps.showStatistics = element.data?.showStatistics !== undefined ? element.data.showStatistics : (element.showStatistics !== undefined ? element.showStatistics : false);
+      elementProps.animate = element.data?.animate !== undefined ? element.data.animate : (element.animate !== undefined ? element.animate : true);
+      elementProps.orientation = element.data?.orientation || element.orientation || 'vertical';
+      elementProps.height = element.data?.height || element.height || 300;
       
       // Используем новую систему colorSettings
       elementProps.colorSettings = element.colorSettings || element.data?.colorSettings || element.data?.data?.colorSettings || {};
@@ -1180,9 +1490,10 @@ const MultiPagePreview = ({
       elementProps.gradientStart = element.data?.gradientStart || element.gradientStart || '#f5f5f5';
       elementProps.gradientEnd = element.data?.gradientEnd || element.gradientEnd || '#e0e0e0';
       elementProps.gradientDirection = element.data?.gradientDirection || element.gradientDirection || 'to bottom';
+      // 🔥 ИСПРАВЛЕНИЕ: Приоритет textFields.line1/line2 для цветов линий
       elementProps.lineColors = [
-        element.colorSettings?.lineColors?.line1 || element.data?.lineColors?.[0] || element.lineColors?.[0] || '#8884d8',
-        element.colorSettings?.lineColors?.line2 || element.data?.lineColors?.[1] || element.lineColors?.[1] || '#82ca9d'
+        element.colorSettings?.textFields?.line1 || element.colorSettings?.lineColors?.line1 || element.data?.lineColors?.[0] || element.lineColors?.[0] || '#8884d8',
+        element.colorSettings?.textFields?.line2 || element.colorSettings?.lineColors?.line2 || element.data?.lineColors?.[1] || element.lineColors?.[1] || '#82ca9d'
       ];
       elementProps.lineNames = element.data?.lineNames || element.lineNames || ['Линия 1', 'Линия 2'];
       elementProps.gridColor = element.data?.gridColor || element.gridColor || '#e0e0e0';
@@ -1473,7 +1784,60 @@ const MultiPagePreview = ({
       // Базовые текстовые компоненты
       case 'typography':
         try {
-          return <TypographyElement {...elementProps} />;
+          // Если элемент редактируется, показываем его в режиме редактирования
+          if (isCurrentlyEditing) {
+            return (
+              <TypographyElement 
+                {...elementProps}
+                isEditing={true}
+                onSave={handleElementSave}
+                onCancel={handleElementCancel}
+              />
+            );
+          }
+          
+          // В режиме просмотра показываем с карандашом
+          return (
+            <Box 
+              sx={{ 
+                position: 'relative',
+                '&:hover .edit-typography-btn': {
+                  opacity: 1
+                }
+              }}
+            >
+              <TypographyElement {...elementProps} />
+              {/* Иконка карандаша для редактирования */}
+              <Tooltip title="Редактировать">
+                <IconButton
+                  className="edit-typography-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Запускаем редактирование для Typography
+                    setEditingElement({ id: element.id, sectionId, element });
+                  }}
+                  sx={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    color: '#1976d2',
+                    opacity: 0,
+                    transition: 'opacity 0.2s ease',
+                    zIndex: 10,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 1)',
+                      boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                    }
+                  }}
+                  size="small"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          );
         } catch (error) {
           console.error('[MultiPagePreview] Error rendering TypographyElement:', error);
           return <Box sx={{ p: 2, border: '1px dashed #ff0000', borderRadius: 1, mb: 2 }}>
@@ -1500,7 +1864,60 @@ const MultiPagePreview = ({
         }
       case 'blockquote':
         try {
-          return <BlockquoteNew {...elementProps} isConstructorMode={true} />;
+          // Если элемент редактируется, показываем его в режиме редактирования
+          if (isCurrentlyEditing) {
+            return (
+              <BlockquoteNew 
+                {...elementProps}
+                isConstructorMode={true}
+                onSave={handleElementSave}
+                onCancel={handleElementCancel}
+              />
+            );
+          }
+          
+          // В режиме просмотра показываем с карандашом
+          return (
+            <Box 
+              sx={{ 
+                position: 'relative',
+                '&:hover .edit-blockquote-btn': {
+                  opacity: 1
+                }
+              }}
+            >
+              <BlockquoteNew {...elementProps} isConstructorMode={true} />
+              {/* Иконка карандаша для редактирования */}
+              <Tooltip title="Редактировать">
+                <IconButton
+                  className="edit-blockquote-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Запускаем редактирование для Blockquote
+                    setEditingElement({ id: element.id, sectionId, element });
+                  }}
+                  sx={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    color: '#1976d2',
+                    opacity: 0,
+                    transition: 'opacity 0.2s ease',
+                    zIndex: 10,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 1)',
+                      boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                    }
+                  }}
+                  size="small"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          );
         } catch (error) {
           console.error('[MultiPagePreview] Error rendering BlockquoteNew:', error);
           return <Box sx={{ p: 2, border: '1px dashed #ff0000', borderRadius: 1, mb: 2 }}>
@@ -1509,7 +1926,60 @@ const MultiPagePreview = ({
         }
       case 'list':
         try {
-          return <ListComponent {...elementProps} />;
+          // Если элемент редактируется, показываем его в режиме редактирования
+          if (isCurrentlyEditing) {
+            return (
+              <ListComponent 
+                {...elementProps}
+                isEditing={true}
+                onSave={handleElementSave}
+                onCancel={handleElementCancel}
+              />
+            );
+          }
+          
+          // В режиме просмотра показываем с карандашом
+          return (
+            <Box 
+              sx={{ 
+                position: 'relative',
+                '&:hover .edit-list-btn': {
+                  opacity: 1
+                }
+              }}
+            >
+              <ListComponent {...elementProps} />
+              {/* Иконка карандаша для редактирования */}
+              <Tooltip title="Редактировать">
+                <IconButton
+                  className="edit-list-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Запускаем редактирование для List
+                    setEditingElement({ id: element.id, sectionId, element });
+                  }}
+                  sx={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    color: '#1976d2',
+                    opacity: 0,
+                    transition: 'opacity 0.2s ease',
+                    zIndex: 10,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 1)',
+                      boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                    }
+                  }}
+                  size="small"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          );
         } catch (error) {
           console.error('[MultiPagePreview] Error rendering ListComponent:', error);
           return <Box sx={{ p: 2, border: '1px dashed #ff0000', borderRadius: 1, mb: 2 }}>
@@ -1518,7 +1988,60 @@ const MultiPagePreview = ({
         }
       case 'callout':
         try {
-          return <Callout key={elementKey} {...elementProps} />;
+          // Если элемент редактируется, показываем его в режиме редактирования
+          if (isCurrentlyEditing) {
+            return (
+              <Callout 
+                key={elementKey}
+                {...elementProps}
+                onSave={handleElementSave}
+                onCancel={handleElementCancel}
+              />
+            );
+          }
+          
+          // В режиме просмотра показываем с карандашом
+          return (
+            <Box 
+              sx={{ 
+                position: 'relative',
+                '&:hover .edit-callout-btn': {
+                  opacity: 1
+                }
+              }}
+            >
+              <Callout key={elementKey} {...elementProps} />
+              {/* Иконка карандаша для редактирования */}
+              <Tooltip title="Редактировать">
+                <IconButton
+                  className="edit-callout-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Запускаем редактирование для Callout
+                    setEditingElement({ id: element.id, sectionId, element });
+                  }}
+                  sx={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    color: '#1976d2',
+                    opacity: 0,
+                    transition: 'opacity 0.2s ease',
+                    zIndex: 10,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 1)',
+                      boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                    }
+                  }}
+                  size="small"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          );
         } catch (error) {
           console.error('[MultiPagePreview] Error rendering Callout:', error);
           return <Box sx={{ p: 2, border: '1px dashed #ff0000', borderRadius: 1, mb: 2 }}>
@@ -1529,7 +2052,59 @@ const MultiPagePreview = ({
       // Продвинутые текстовые элементы
       case 'gradient-text':
         try {
-          return <GradientText {...elementProps} />;
+          // Если элемент редактируется, показываем его в режиме редактирования
+          if (isCurrentlyEditing) {
+            return (
+              <GradientText 
+                {...elementProps}
+                onSave={handleElementSave}
+                onCancel={handleElementCancel}
+              />
+            );
+          }
+          
+          // В режиме просмотра показываем с карандашом
+          return (
+            <Box 
+              sx={{ 
+                position: 'relative',
+                '&:hover .edit-gradient-text-btn': {
+                  opacity: 1
+                }
+              }}
+            >
+              <GradientText {...elementProps} />
+              {/* Иконка карандаша для редактирования */}
+              <Tooltip title="Редактировать">
+                <IconButton
+                  className="edit-gradient-text-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Запускаем редактирование для GradientText
+                    setEditingElement({ id: element.id, sectionId, element });
+                  }}
+                  sx={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    color: '#1976d2',
+                    opacity: 0,
+                    transition: 'opacity 0.2s ease',
+                    zIndex: 10,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 1)',
+                      boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                    }
+                  }}
+                  size="small"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          );
         } catch (error) {
           console.error('[MultiPagePreview] Error rendering GradientText:', error);
           return <Box sx={{ p: 2, border: '1px dashed #ff0000', borderRadius: 1, mb: 2 }}>
@@ -1559,7 +2134,59 @@ const MultiPagePreview = ({
         }
       case 'animated-counter':
         try {
-          return <AnimatedCounter {...elementProps} />;
+          // Если элемент редактируется, показываем его в режиме редактирования
+          if (isCurrentlyEditing) {
+            return (
+              <AnimatedCounter 
+                {...elementProps}
+                onSave={handleElementSave}
+                onCancel={handleElementCancel}
+              />
+            );
+          }
+          
+          // В режиме просмотра показываем с карандашом
+          return (
+            <Box 
+              sx={{ 
+                position: 'relative',
+                '&:hover .edit-animated-counter-btn': {
+                  opacity: 1
+                }
+              }}
+            >
+              <AnimatedCounter {...elementProps} />
+              {/* Иконка карандаша для редактирования */}
+              <Tooltip title="Редактировать">
+                <IconButton
+                  className="edit-animated-counter-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Запускаем редактирование для AnimatedCounter
+                    setEditingElement({ id: element.id, sectionId, element });
+                  }}
+                  sx={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    color: '#1976d2',
+                    opacity: 0,
+                    transition: 'opacity 0.2s ease',
+                    zIndex: 10,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 1)',
+                      boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                    }
+                  }}
+                  size="small"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          );
         } catch (error) {
           console.error('[MultiPagePreview] Error rendering AnimatedCounter:', error);
           return <Box sx={{ p: 2, border: '1px dashed #ff0000', borderRadius: 1, mb: 2 }}>
@@ -1568,7 +2195,59 @@ const MultiPagePreview = ({
         }
       case 'typewriter-text':
         try {
-          return <TypewriterText {...elementProps} />;
+          // Если элемент редактируется, показываем его в режиме редактирования
+          if (isCurrentlyEditing) {
+            return (
+              <TypewriterText 
+                {...elementProps}
+                onSave={handleElementSave}
+                onCancel={handleElementCancel}
+              />
+            );
+          }
+          
+          // В режиме просмотра показываем с карандашом
+          return (
+            <Box 
+              sx={{ 
+                position: 'relative',
+                '&:hover .edit-typewriter-text-btn': {
+                  opacity: 1
+                }
+              }}
+            >
+              <TypewriterText {...elementProps} />
+              {/* Иконка карандаша для редактирования */}
+              <Tooltip title="Редактировать">
+                <IconButton
+                  className="edit-typewriter-text-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Запускаем редактирование для TypewriterText
+                    setEditingElement({ id: element.id, sectionId, element });
+                  }}
+                  sx={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    color: '#1976d2',
+                    opacity: 0,
+                    transition: 'opacity 0.2s ease',
+                    zIndex: 10,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 1)',
+                      boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                    }
+                  }}
+                  size="small"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          );
         } catch (error) {
           console.error('[MultiPagePreview] Error rendering TypewriterText:', error);
           return <Box sx={{ p: 2, border: '1px dashed #ff0000', borderRadius: 1, mb: 2 }}>
@@ -1577,7 +2256,59 @@ const MultiPagePreview = ({
         }
       case 'highlight-text':
         try {
-          return <HighlightText {...elementProps} />;
+          // Если элемент редактируется, показываем его в режиме редактирования
+          if (isCurrentlyEditing) {
+            return (
+              <HighlightText 
+                {...elementProps}
+                onSave={handleElementSave}
+                onCancel={handleElementCancel}
+              />
+            );
+          }
+          
+          // В режиме просмотра показываем с карандашом
+          return (
+            <Box 
+              sx={{ 
+                position: 'relative',
+                '&:hover .edit-highlight-text-btn': {
+                  opacity: 1
+                }
+              }}
+            >
+              <HighlightText {...elementProps} />
+              {/* Иконка карандаша для редактирования */}
+              <Tooltip title="Редактировать">
+                <IconButton
+                  className="edit-highlight-text-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Запускаем редактирование для HighlightText
+                    setEditingElement({ id: element.id, sectionId, element });
+                  }}
+                  sx={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    color: '#1976d2',
+                    opacity: 0,
+                    transition: 'opacity 0.2s ease',
+                    zIndex: 10,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 1)',
+                      boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                    }
+                  }}
+                  size="small"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          );
         } catch (error) {
           console.error('[MultiPagePreview] Error rendering HighlightText:', error);
           return <Box sx={{ p: 2, border: '1px dashed #ff0000', borderRadius: 1, mb: 2 }}>
@@ -1607,7 +2338,59 @@ const MultiPagePreview = ({
       case 'testimonial-card':
       case 'testimonial':
         try {
-          return <TestimonialCard {...elementProps} />;
+          // Если элемент редактируется, показываем его в режиме редактирования
+          if (isCurrentlyEditing) {
+            return (
+              <TestimonialCard 
+                {...elementProps}
+                onSave={handleElementSave}
+                onCancel={handleElementCancel}
+              />
+            );
+          }
+          
+          // В режиме просмотра показываем с карандашом
+          return (
+            <Box 
+              sx={{ 
+                position: 'relative',
+                '&:hover .edit-testimonial-card-btn': {
+                  opacity: 1
+                }
+              }}
+            >
+              <TestimonialCard {...elementProps} />
+              {/* Иконка карандаша для редактирования */}
+              <Tooltip title="Редактировать">
+                <IconButton
+                  className="edit-testimonial-card-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Запускаем редактирование для TestimonialCard
+                    setEditingElement({ id: element.id, sectionId, element });
+                  }}
+                  sx={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    color: '#1976d2',
+                    opacity: 0,
+                    transition: 'opacity 0.2s ease',
+                    zIndex: 10,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 1)',
+                      boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                    }
+                  }}
+                  size="small"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          );
         } catch (error) {
           console.error('[MultiPagePreview] Error rendering TestimonialCard:', error);
           return <Box sx={{ p: 2, border: '1px dashed #ff0000', borderRadius: 1, mb: 2 }}>
@@ -1616,7 +2399,59 @@ const MultiPagePreview = ({
         }
       case 'faq-section':
         try {
-          return <FAQSection {...elementProps} />;
+          // Если элемент редактируется, показываем его в режиме редактирования
+          if (isCurrentlyEditing) {
+            return (
+              <FAQSection 
+                {...elementProps}
+                onSave={handleElementSave}
+                onCancel={handleElementCancel}
+              />
+            );
+          }
+          
+          // В режиме просмотра показываем с карандашом
+          return (
+            <Box 
+              sx={{ 
+                position: 'relative',
+                '&:hover .edit-faq-section-btn': {
+                  opacity: 1
+                }
+              }}
+            >
+              <FAQSection {...elementProps} />
+              {/* Иконка карандаша для редактирования */}
+              <Tooltip title="Редактировать">
+                <IconButton
+                  className="edit-faq-section-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Запускаем редактирование для FAQSection
+                    setEditingElement({ id: element.id, sectionId, element });
+                  }}
+                  sx={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    color: '#1976d2',
+                    opacity: 0,
+                    transition: 'opacity 0.2s ease',
+                    zIndex: 10,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 1)',
+                      boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                    }
+                  }}
+                  size="small"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          );
         } catch (error) {
           console.error('[MultiPagePreview] Error rendering FAQSection:', error);
           return <Box sx={{ p: 2, border: '1px dashed #ff0000', borderRadius: 1, mb: 2 }}>
@@ -1625,7 +2460,59 @@ const MultiPagePreview = ({
         }
       case 'timeline-component':
         try {
-          return <TimelineComponent {...elementProps} />;
+          // Если элемент редактируется, показываем его в режиме редактирования
+          if (isCurrentlyEditing) {
+            return (
+              <TimelineComponent 
+                {...elementProps}
+                onSave={handleElementSave}
+                onCancel={handleElementCancel}
+              />
+            );
+          }
+          
+          // В режиме просмотра показываем с карандашом
+          return (
+            <Box 
+              sx={{ 
+                position: 'relative',
+                '&:hover .edit-timeline-component-btn': {
+                  opacity: 1
+                }
+              }}
+            >
+              <TimelineComponent {...elementProps} />
+              {/* Иконка карандаша для редактирования */}
+              <Tooltip title="Редактировать">
+                <IconButton
+                  className="edit-timeline-component-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Запускаем редактирование для TimelineComponent
+                    setEditingElement({ id: element.id, sectionId, element });
+                  }}
+                  sx={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    color: '#1976d2',
+                    opacity: 0,
+                    transition: 'opacity 0.2s ease',
+                    zIndex: 10,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 1)',
+                      boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                    }
+                  }}
+                  size="small"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          );
         } catch (error) {
           console.error('[MultiPagePreview] Error rendering TimelineComponent:', error);
           return <Box sx={{ p: 2, border: '1px dashed #ff0000', borderRadius: 1, mb: 2 }}>
@@ -1667,7 +2554,59 @@ const MultiPagePreview = ({
       // Карточки
       case 'basic-card':
         try {
-          return <BasicCard {...elementProps} />;
+          // Если элемент редактируется, показываем его в режиме редактирования
+          if (isCurrentlyEditing) {
+            return (
+              <BasicCard 
+                {...elementProps}
+                onSave={handleElementSave}
+                onCancel={handleElementCancel}
+              />
+            );
+          }
+          
+          // В режиме просмотра показываем с карандашом
+          return (
+            <Box 
+              sx={{ 
+                position: 'relative',
+                '&:hover .edit-basic-card-btn': {
+                  opacity: 1
+                }
+              }}
+            >
+              <BasicCard {...elementProps} />
+              {/* Иконка карандаша для редактирования */}
+              <Tooltip title="Редактировать">
+                <IconButton
+                  className="edit-basic-card-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Запускаем редактирование для BasicCard
+                    setEditingElement({ id: element.id, sectionId, element });
+                  }}
+                  sx={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    color: '#1976d2',
+                    opacity: 0,
+                    transition: 'opacity 0.2s ease',
+                    zIndex: 10,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 1)',
+                      boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                    }
+                  }}
+                  size="small"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          );
         } catch (error) {
           console.error('[MultiPagePreview] Error rendering BasicCard:', error);
           return <Box sx={{ p: 2, border: '1px dashed #ff0000', borderRadius: 1, mb: 2 }}>
@@ -1677,15 +2616,73 @@ const MultiPagePreview = ({
       case 'image-card':
       case 'imagecard':
         try {
-          return <ImageCard 
-            key={`${sectionId}-${element.id}`}
-            {...elementProps}
-            // 🔥 ИСПРАВЛЕНИЕ: Передаем правильные ID
-            id={element.id}
-            cardId={element.id}
-            sectionId={sectionId}
-            sectionTitle={section?.title || section?.data?.title}
-          />;
+          // Если элемент редактируется, показываем его в режиме редактирования
+          if (isCurrentlyEditing) {
+            return (
+              <ImageCard 
+                key={`${sectionId}-${element.id}`}
+                {...elementProps}
+                // 🔥 ИСПРАВЛЕНИЕ: Передаем правильные ID
+                id={element.id}
+                cardId={element.id}
+                sectionId={sectionId}
+                sectionTitle={section?.title || section?.data?.title}
+                onSave={handleElementSave}
+                onCancel={handleElementCancel}
+              />
+            );
+          }
+          
+          // В режиме просмотра показываем с карандашом
+          return (
+            <Box 
+              sx={{ 
+                position: 'relative',
+                '&:hover .edit-image-card-btn': {
+                  opacity: 1
+                }
+              }}
+            >
+              <ImageCard 
+                key={`${sectionId}-${element.id}`}
+                {...elementProps}
+                // 🔥 ИСПРАВЛЕНИЕ: Передаем правильные ID
+                id={element.id}
+                cardId={element.id}
+                sectionId={sectionId}
+                sectionTitle={section?.title || section?.data?.title}
+              />
+              {/* Иконка карандаша для редактирования */}
+              <Tooltip title="Редактировать">
+                <IconButton
+                  className="edit-image-card-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Запускаем редактирование для ImageCard
+                    setEditingElement({ id: element.id, sectionId, element });
+                  }}
+                  sx={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    color: '#1976d2',
+                    opacity: 0,
+                    transition: 'opacity 0.2s ease',
+                    zIndex: 10,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 1)',
+                      boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                    }
+                  }}
+                  size="small"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          );
         } catch (error) {
           console.error('[MultiPagePreview] Error rendering ImageCard:', error);
           return <Box sx={{ p: 2, border: '1px dashed #ff0000', borderRadius: 1, mb: 2 }}>
@@ -1776,11 +2773,11 @@ const MultiPagePreview = ({
           />
         ) : (
           <Box
-            onClick={handleElementClick}
-            onDoubleClick={handleElementDoubleClick}
             sx={{ 
               position: 'relative',
-              cursor: 'pointer',
+              '&:hover .edit-multiple-cards-btn': {
+                opacity: 1
+              },
               '&:hover': {
                 outline: '2px solid #1976d2',
                 borderRadius: 1
@@ -1813,29 +2810,35 @@ const MultiPagePreview = ({
                 }
               }}
             />
-            {/* Подсказка о возможности редактирования */}
-            <Box
-              sx={{
-                position: 'absolute',
-                top: -4,
-                right: -4,
-                backgroundColor: 'rgba(25, 118, 210, 0.9)',
-                color: 'white',
-                borderRadius: '4px',
-                padding: '2px 6px',
-                fontSize: '10px',
-                fontWeight: 'bold',
-                zIndex: 10,
-                opacity: 0,
-                transition: 'opacity 0.3s ease',
-                pointerEvents: 'none',
-                '&:hover': {
-                  opacity: 1
-                }
-              }}
-            >
-              Двойной клик для редактирования
-            </Box>
+            {/* Иконка карандаша для редактирования */}
+            <Tooltip title="Редактировать">
+              <IconButton
+                className="edit-multiple-cards-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // Запускаем редактирование для MultipleCards
+                  setEditingElement({ id: element.id, sectionId, element });
+                }}
+                sx={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 8,
+                  backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                  color: '#1976d2',
+                  opacity: 0,
+                  transition: 'opacity 0.2s ease',
+                  zIndex: 10,
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 255, 255, 1)',
+                    boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                  }
+                }}
+                size="small"
+              >
+                <EditIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
           </Box>
         );
         
@@ -1854,7 +2857,60 @@ const MultiPagePreview = ({
           
           console.log('[MultiPagePreview] AccordionComponent props:', accordionProps);
           
-          return <AccordionComponent key={elementKey} {...accordionProps} />;
+          // Если элемент редактируется, показываем его в режиме редактирования
+          if (isCurrentlyEditing) {
+            return (
+              <AccordionComponent 
+                key={elementKey}
+                {...accordionProps}
+                onSave={handleElementSave}
+                onCancel={handleElementCancel}
+              />
+            );
+          }
+          
+          // В режиме просмотра показываем с карандашом
+          return (
+            <Box 
+              sx={{ 
+                position: 'relative',
+                '&:hover .edit-accordion-btn': {
+                  opacity: 1
+                }
+              }}
+            >
+              <AccordionComponent key={elementKey} {...accordionProps} />
+              {/* Иконка карандаша для редактирования */}
+              <Tooltip title="Редактировать">
+                <IconButton
+                  className="edit-accordion-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Запускаем редактирование для AccordionComponent
+                    setEditingElement({ id: element.id, sectionId, element });
+                  }}
+                  sx={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    color: '#1976d2',
+                    opacity: 0,
+                    transition: 'opacity 0.2s ease',
+                    zIndex: 10,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 1)',
+                      boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                    }
+                  }}
+                  size="small"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          );
         } catch (error) {
           console.error('[MultiPagePreview] Error rendering AccordionComponent:', error);
           return <Box sx={{ p: 2, border: '1px dashed #ff0000', borderRadius: 1, mb: 2 }}>
@@ -1890,7 +2946,59 @@ const MultiPagePreview = ({
         }
       case 'rating':
         try {
-          return <RatingComponent {...elementProps} />;
+          // Если элемент редактируется, показываем его в режиме редактирования
+          if (isCurrentlyEditing) {
+            return (
+              <RatingComponent 
+                {...elementProps}
+                onSave={handleElementSave}
+                onCancel={handleElementCancel}
+              />
+            );
+          }
+          
+          // В режиме просмотра показываем с карандашом
+          return (
+            <Box 
+              sx={{ 
+                position: 'relative',
+                '&:hover .edit-rating-btn': {
+                  opacity: 1
+                }
+              }}
+            >
+              <RatingComponent {...elementProps} />
+              {/* Иконка карандаша для редактирования */}
+              <Tooltip title="Редактировать">
+                <IconButton
+                  className="edit-rating-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Запускаем редактирование для RatingComponent
+                    setEditingElement({ id: element.id, sectionId, element });
+                  }}
+                  sx={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    color: '#1976d2',
+                    opacity: 0,
+                    transition: 'opacity 0.2s ease',
+                    zIndex: 10,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 1)',
+                      boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                    }
+                  }}
+                  size="small"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          );
         } catch (error) {
           console.error('[MultiPagePreview] Error rendering RatingComponent:', error);
           return <Box sx={{ p: 2, border: '1px dashed #ff0000', borderRadius: 1, mb: 2 }}>
@@ -1926,7 +3034,59 @@ const MultiPagePreview = ({
         }
       case 'progress-bars':
         try {
-          return <ProgressBars {...elementProps} />;
+          // Если элемент редактируется, показываем его в режиме редактирования
+          if (isCurrentlyEditing) {
+            return (
+              <ProgressBars 
+                {...elementProps}
+                onSave={handleElementSave}
+                onCancel={handleElementCancel}
+              />
+            );
+          }
+          
+          // В режиме просмотра показываем с карандашом
+          return (
+            <Box 
+              sx={{ 
+                position: 'relative',
+                '&:hover .edit-progress-bars-btn': {
+                  opacity: 1
+                }
+              }}
+            >
+              <ProgressBars {...elementProps} />
+              {/* Иконка карандаша для редактирования */}
+              <Tooltip title="Редактировать">
+                <IconButton
+                  className="edit-progress-bars-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Запускаем редактирование для ProgressBars
+                    setEditingElement({ id: element.id, sectionId, element });
+                  }}
+                  sx={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    color: '#1976d2',
+                    opacity: 0,
+                    transition: 'opacity 0.2s ease',
+                    zIndex: 10,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 1)',
+                      boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                    }
+                  }}
+                  size="small"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          );
         } catch (error) {
           console.error('[MultiPagePreview] Error rendering ProgressBars:', error);
           return <Box sx={{ p: 2, border: '1px dashed #ff0000', borderRadius: 1, mb: 2 }}>
@@ -1958,9 +3118,59 @@ const MultiPagePreview = ({
             }) : []
           };
           
-
+          // Если элемент редактируется, показываем его в режиме редактирования
+          if (isCurrentlyEditing) {
+            return (
+              <DataTable 
+                {...tableProps}
+                onSave={handleElementSave}
+                onCancel={handleElementCancel}
+              />
+            );
+          }
           
-          return <DataTable {...tableProps} />;
+          // В режиме просмотра показываем с карандашом
+          return (
+            <Box 
+              sx={{ 
+                position: 'relative',
+                '&:hover .edit-data-table-btn': {
+                  opacity: 1
+                }
+              }}
+            >
+              <DataTable {...tableProps} />
+              {/* Иконка карандаша для редактирования */}
+              <Tooltip title="Редактировать">
+                <IconButton
+                  className="edit-data-table-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Запускаем редактирование для DataTable
+                    setEditingElement({ id: element.id, sectionId, element });
+                  }}
+                  sx={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    color: '#1976d2',
+                    opacity: 0,
+                    transition: 'opacity 0.2s ease',
+                    zIndex: 10,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 1)',
+                      boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                    }
+                  }}
+                  size="small"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          );
         } catch (error) {
           console.error('[MultiPagePreview] Error rendering DataTable:', error);
           return <Box sx={{ p: 2, border: '1px dashed #ff0000', borderRadius: 1, mb: 2 }}>
@@ -1972,7 +3182,59 @@ const MultiPagePreview = ({
       case 'bar-chart':
       case 'chart':
         try {
-          return <BarChart {...elementProps} />;
+          // Если элемент редактируется, показываем его в режиме редактирования
+          if (isCurrentlyEditing) {
+            return (
+              <BarChart 
+                {...elementProps}
+                onSave={handleElementSave}
+                onCancel={handleElementCancel}
+              />
+            );
+          }
+          
+          // В режиме просмотра показываем с карандашом
+          return (
+            <Box 
+              sx={{ 
+                position: 'relative',
+                '&:hover .edit-bar-chart-btn': {
+                  opacity: 1
+                }
+              }}
+            >
+              <BarChart {...elementProps} />
+              {/* Иконка карандаша для редактирования */}
+              <Tooltip title="Редактировать">
+                <IconButton
+                  className="edit-bar-chart-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Запускаем редактирование для BarChart
+                    setEditingElement({ id: element.id, sectionId, element });
+                  }}
+                  sx={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    color: '#1976d2',
+                    opacity: 0,
+                    transition: 'opacity 0.2s ease',
+                    zIndex: 10,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 1)',
+                      boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                    }
+                  }}
+                  size="small"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          );
         } catch (error) {
           console.error('[MultiPagePreview] Error rendering BarChart:', error);
           return <Box sx={{ p: 2, border: '1px dashed #ff0000', borderRadius: 1, mb: 2 }}>
@@ -1993,7 +3255,11 @@ const MultiPagePreview = ({
             
             // Поддержка colorSettings с fallback на старые настройки
             colorSettings: elementProps.colorSettings || element.colorSettings || element.data?.colorSettings || {},
-            lineColors: elementProps.lineColors || element.lineColors || element.data?.lineColors || ['#8884d8', '#82ca9d'],
+            // 🔥 ИСПРАВЛЕНИЕ: Приоритет textFields.line1/line2 для цветов линий
+            lineColors: elementProps.lineColors || [
+              element.colorSettings?.textFields?.line1 || element.colorSettings?.lineColors?.line1 || element.lineColors?.[0] || element.data?.lineColors?.[0] || '#8884d8',
+              element.colorSettings?.textFields?.line2 || element.colorSettings?.lineColors?.line2 || element.lineColors?.[1] || element.data?.lineColors?.[1] || '#82ca9d'
+            ],
             titleColor: elementProps.titleColor || element.titleColor || element.data?.titleColor || '#1976d2',
             backgroundColor: elementProps.backgroundColor || element.backgroundColor || element.data?.backgroundColor || '#ffffff',
             gridColor: elementProps.gridColor || element.gridColor || element.data?.gridColor || '#e0e0e0',
@@ -2014,7 +3280,59 @@ const MultiPagePreview = ({
           
           console.log('[MultiPagePreview] AdvancedLineChart props:', lineChartProps);
           
-          return <AdvancedLineChart {...lineChartProps} />;
+          // Если элемент редактируется, показываем его в режиме редактирования
+          if (isCurrentlyEditing) {
+            return (
+              <AdvancedLineChart 
+                {...lineChartProps}
+                onSave={handleElementSave}
+                onCancel={handleElementCancel}
+              />
+            );
+          }
+          
+          // В режиме просмотра показываем с карандашом
+          return (
+            <Box 
+              sx={{ 
+                position: 'relative',
+                '&:hover .edit-advanced-line-chart-btn': {
+                  opacity: 1
+                }
+              }}
+            >
+              <AdvancedLineChart {...lineChartProps} />
+              {/* Иконка карандаша для редактирования */}
+              <Tooltip title="Редактировать">
+                <IconButton
+                  className="edit-advanced-line-chart-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Запускаем редактирование для AdvancedLineChart
+                    setEditingElement({ id: element.id, sectionId, element });
+                  }}
+                  sx={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    color: '#1976d2',
+                    opacity: 0,
+                    transition: 'opacity 0.2s ease',
+                    zIndex: 10,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 1)',
+                      boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                    }
+                  }}
+                  size="small"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          );
         } catch (error) {
           console.error('[MultiPagePreview] Error rendering AdvancedLineChart:', error);
           return <Box sx={{ p: 2, border: '1px dashed #ff0000', borderRadius: 1, mb: 2 }}>
@@ -2023,7 +3341,59 @@ const MultiPagePreview = ({
         }
       case 'advanced-bar-chart':
         try {
-          return <AdvancedBarChart {...elementProps} />;
+          // Если элемент редактируется, показываем его в режиме редактирования
+          if (isCurrentlyEditing) {
+            return (
+              <AdvancedBarChart 
+                {...elementProps}
+                onSave={handleElementSave}
+                onCancel={handleElementCancel}
+              />
+            );
+          }
+          
+          // В режиме просмотра показываем с карандашом
+          return (
+            <Box 
+              sx={{ 
+                position: 'relative',
+                '&:hover .edit-advanced-bar-chart-btn': {
+                  opacity: 1
+                }
+              }}
+            >
+              <AdvancedBarChart {...elementProps} />
+              {/* Иконка карандаша для редактирования */}
+              <Tooltip title="Редактировать">
+                <IconButton
+                  className="edit-advanced-bar-chart-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Запускаем редактирование для AdvancedBarChart
+                    setEditingElement({ id: element.id, sectionId, element });
+                  }}
+                  sx={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    color: '#1976d2',
+                    opacity: 0,
+                    transition: 'opacity 0.2s ease',
+                    zIndex: 10,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 1)',
+                      boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                    }
+                  }}
+                  size="small"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          );
         } catch (error) {
           console.error('[MultiPagePreview] Error rendering AdvancedBarChart:', error);
           return <Box sx={{ p: 2, border: '1px dashed #ff0000', borderRadius: 1, mb: 2 }}>
@@ -2065,7 +3435,59 @@ const MultiPagePreview = ({
           
           console.log('[MultiPagePreview] AdvancedPieChart props:', pieChartProps);
           
-          return <AdvancedPieChart {...pieChartProps} />;
+          // Если элемент редактируется, показываем его в режиме редактирования
+          if (isCurrentlyEditing) {
+            return (
+              <AdvancedPieChart 
+                {...pieChartProps}
+                onSave={handleElementSave}
+                onCancel={handleElementCancel}
+              />
+            );
+          }
+          
+          // В режиме просмотра показываем с карандашом
+          return (
+            <Box 
+              sx={{ 
+                position: 'relative',
+                '&:hover .edit-advanced-pie-chart-btn': {
+                  opacity: 1
+                }
+              }}
+            >
+              <AdvancedPieChart {...pieChartProps} />
+              {/* Иконка карандаша для редактирования */}
+              <Tooltip title="Редактировать">
+                <IconButton
+                  className="edit-advanced-pie-chart-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Запускаем редактирование для AdvancedPieChart
+                    setEditingElement({ id: element.id, sectionId, element });
+                  }}
+                  sx={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    color: '#1976d2',
+                    opacity: 0,
+                    transition: 'opacity 0.2s ease',
+                    zIndex: 10,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 1)',
+                      boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                    }
+                  }}
+                  size="small"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          );
         } catch (error) {
           console.error('[MultiPagePreview] Error rendering AdvancedPieChart:', error);
           return <Box sx={{ p: 2, border: '1px dashed #ff0000', borderRadius: 1, mb: 2 }}>
@@ -2107,7 +3529,59 @@ const MultiPagePreview = ({
           
           console.log('[MultiPagePreview] AdvancedAreaChart props:', areaChartProps);
           
-          return <AdvancedAreaChart {...areaChartProps} />;
+          // Если элемент редактируется, показываем его в режиме редактирования
+          if (isCurrentlyEditing) {
+            return (
+              <AdvancedAreaChart 
+                {...areaChartProps}
+                onSave={handleElementSave}
+                onCancel={handleElementCancel}
+              />
+            );
+          }
+          
+          // В режиме просмотра показываем с карандашом
+          return (
+            <Box 
+              sx={{ 
+                position: 'relative',
+                '&:hover .edit-advanced-area-chart-btn': {
+                  opacity: 1
+                }
+              }}
+            >
+              <AdvancedAreaChart {...areaChartProps} />
+              {/* Иконка карандаша для редактирования */}
+              <Tooltip title="Редактировать">
+                <IconButton
+                  className="edit-advanced-area-chart-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Запускаем редактирование для AdvancedAreaChart
+                    setEditingElement({ id: element.id, sectionId, element });
+                  }}
+                  sx={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    color: '#1976d2',
+                    opacity: 0,
+                    transition: 'opacity 0.2s ease',
+                    zIndex: 10,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 1)',
+                      boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                    }
+                  }}
+                  size="small"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          );
         } catch (error) {
           console.error('[MultiPagePreview] Error rendering AdvancedAreaChart:', error);
           return <Box sx={{ p: 2, border: '1px dashed #ff0000', borderRadius: 1, mb: 2 }}>

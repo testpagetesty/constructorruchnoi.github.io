@@ -427,6 +427,8 @@ export const TestimonialCard = ({
               rating: '#ffc107'
             }
           }}
+          hideCardBackground={true}
+          hideAreaColors={true}
         />
 
         <Accordion defaultExpanded={false}>
@@ -866,6 +868,8 @@ export const FAQSection = ({
                 accordionBg: '#fafafa',
                 accordionHover: '#f0f0f0'
               }}
+              hideCardBackground={true}
+              hideAreaColors={true}
             />
           </Box>
 
@@ -1217,6 +1221,8 @@ export const TimelineComponent = ({
                 inProgress: '#ff9800',
                 pending: '#2196f3'
               }}
+              hideCardBackground={true}
+              hideAreaColors={true}
             />
           </Box>
 

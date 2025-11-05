@@ -4288,8 +4288,8 @@ const generateContentElementHTML = async (element, sectionId = null) => {
       const chartLineTextColor = chartLineColorSettings.textFields?.axis || chartLineStyles.textColor || '#ffffff';
       const chartLineTitleColor = chartLineColorSettings.textFields?.title || chartLineStyles.titleColor || '#ffffff';
       
-      // Извлекаем настройки линий
-      const chartStrokeColor = element.data?.lineColors?.[0] || element.lineColors?.[0] || elementData.strokeColor || elementData.lineColors?.[0] || '#8884d8';
+      // 🔥 ИСПРАВЛЕНИЕ: Извлекаем настройки линий с приоритетом textFields.line1/line2
+      const chartStrokeColor = chartLineColorSettings.textFields?.line1 || chartLineColorSettings.lineColors?.line1 || element.data?.lineColors?.[0] || element.lineColors?.[0] || elementData.strokeColor || elementData.lineColors?.[0] || '#8884d8';
       const chartFillColor = elementData.fillColor || 'rgba(136, 132, 216, 0.3)';
       const chartGridColor = chartLineColorSettings.textFields?.grid || element.data?.gridColor || element.gridColor || elementData.gridColor || 'rgba(255,255,255,0.1)';
       
@@ -4367,10 +4367,10 @@ const generateContentElementHTML = async (element, sectionId = null) => {
               </defs>
               
               ${(() => {
-                // Получаем цвета линий
+                // 🔥 ИСПРАВЛЕНИЕ: Получаем цвета линий с приоритетом textFields.line1/line2
                 const lineColors = [
-                  chartLineColorSettings.lineColors?.line1 || element.data?.lineColors?.[0] || element.lineColors?.[0] || elementData.lineColors?.[0] || '#8884d8',
-                  chartLineColorSettings.lineColors?.line2 || element.data?.lineColors?.[1] || element.lineColors?.[1] || elementData.lineColors?.[1] || '#82ca9d'
+                  chartLineColorSettings.textFields?.line1 || chartLineColorSettings.lineColors?.line1 || element.data?.lineColors?.[0] || element.lineColors?.[0] || elementData.lineColors?.[0] || '#8884d8',
+                  chartLineColorSettings.textFields?.line2 || chartLineColorSettings.lineColors?.line2 || element.data?.lineColors?.[1] || element.lineColors?.[1] || elementData.lineColors?.[1] || '#82ca9d'
                 ];
                 const lineNames = element.data?.lineNames || element.lineNames || elementData.lineNames || ['Линия 1', 'Линия 2'];
                 
@@ -4451,7 +4451,7 @@ const generateContentElementHTML = async (element, sectionId = null) => {
                   <path d="${areaPath}" fill="url(#areaGradient-${elementId})" />
                   
                   <!-- Первая линия -->
-                  <path d="${pathData1}" fill="none" stroke="${chartLineColorSettings.lineColors?.line1 || element.data?.lineColors?.[0] || element.lineColors?.[0] || elementData.lineColors?.[0] || '#8884d8'}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="${pathData1}" fill="none" stroke="${chartLineColorSettings.textFields?.line1 || chartLineColorSettings.lineColors?.line1 || element.data?.lineColors?.[0] || element.lineColors?.[0] || elementData.lineColors?.[0] || '#8884d8'}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
                   
                                        <!-- Точки первой линии -->
                      ${points1.map((point, index) => {
@@ -4462,7 +4462,7 @@ const generateContentElementHTML = async (element, sectionId = null) => {
                          : `${point.name}\n${element.data?.lineNames?.[0] || element.lineNames?.[0] || elementData.lineNames?.[0] || 'Линия 1'}: ${point.value}`;
                        
                        return `
-                         <circle cx="${point.x}" cy="${point.y}" r="4" fill="${chartLineColorSettings.lineColors?.line1 || element.data?.lineColors?.[0] || element.lineColors?.[0] || elementData.lineColors?.[0] || '#8884d8'}" stroke="white" stroke-width="2" />
+                         <circle cx="${point.x}" cy="${point.y}" r="4" fill="${chartLineColorSettings.textFields?.line1 || chartLineColorSettings.lineColors?.line1 || element.data?.lineColors?.[0] || element.lineColors?.[0] || elementData.lineColors?.[0] || '#8884d8'}" stroke="white" stroke-width="2" />
                          <circle cx="${point.x}" cy="${point.y}" r="8" fill="transparent" stroke="transparent" stroke-width="6" class="chart-point-1" data-index="${index}" data-name="${point.name}" data-value="${point.value}" data-value2="${secondLineValue || ''}">
                          </circle>
                          <!-- Невидимая область для лучшего взаимодействия с tooltip -->
@@ -4473,7 +4473,7 @@ const generateContentElementHTML = async (element, sectionId = null) => {
                   
                                       ${hasSecondLine ? `
                       <!-- Вторая линия -->
-                      <path d="${pathData2}" fill="none" stroke="${chartLineColorSettings.lineColors?.line2 || element.data?.lineColors?.[1] || element.lineColors?.[1] || elementData.lineColors?.[1] || '#82ca9d'}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+                      <path d="${pathData2}" fill="none" stroke="${chartLineColorSettings.textFields?.line2 || chartLineColorSettings.lineColors?.line2 || element.data?.lineColors?.[1] || element.lineColors?.[1] || elementData.lineColors?.[1] || '#82ca9d'}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
                       
                       <!-- Точки второй линии -->
                       ${points2.map((point, index) => {
@@ -4484,7 +4484,7 @@ const generateContentElementHTML = async (element, sectionId = null) => {
                           : `${point.name}\n${element.data?.lineNames?.[1] || element.lineNames?.[1] || elementData.lineNames?.[1] || 'Линия 2'}: ${point.value}`;
                         
                         return `
-                          <circle cx="${point.x}" cy="${point.y}" r="4" fill="${chartLineColorSettings.lineColors?.line2 || element.data?.lineColors?.[1] || element.lineColors?.[1] || elementData.lineColors?.[1] || '#82ca9d'}" stroke="white" stroke-width="2" />
+                          <circle cx="${point.x}" cy="${point.y}" r="4" fill="${chartLineColorSettings.textFields?.line2 || chartLineColorSettings.lineColors?.line2 || element.data?.lineColors?.[1] || element.lineColors?.[1] || elementData.lineColors?.[1] || '#82ca9d'}" stroke="white" stroke-width="2" />
                           <circle cx="${point.x}" cy="${point.y}" r="8" fill="transparent" stroke="transparent" stroke-width="6" class="chart-point-2" data-index="${index}" data-name="${point.name}" data-value="${point.value}" data-value2="${firstLineValue || ''}">
                           </circle>
                           <!-- Невидимая область для лучшего взаимодействия с tooltip -->
@@ -4504,11 +4504,11 @@ const generateContentElementHTML = async (element, sectionId = null) => {
                   <!-- Легенда внизу (вертикально) -->
                   <g transform="translate(80, 320)">
                     <!-- Первая линия -->
-                    <rect x="0" y="0" width="15" height="3" fill="${chartLineColorSettings.lineColors?.line1 || element.data?.lineColors?.[0] || element.lineColors?.[0] || elementData.lineColors?.[0] || '#8884d8'}"/>
+                    <rect x="0" y="0" width="15" height="3" fill="${chartLineColorSettings.textFields?.line1 || chartLineColorSettings.lineColors?.line1 || element.data?.lineColors?.[0] || element.lineColors?.[0] || elementData.lineColors?.[0] || '#8884d8'}"/>
                     <text x="20" y="8" fill="${chartLineTextColor}" font-size="12" font-family="Montserrat">${element.data?.lineNames?.[0] || element.lineNames?.[0] || elementData.lineNames?.[0] || 'Линия 1'}</text>
                     ${hasSecondLine ? `
                       <!-- Вторая линия (под первой) -->
-                      <rect x="0" y="20" width="15" height="3" fill="${chartLineColorSettings.lineColors?.line2 || element.data?.lineColors?.[1] || element.lineColors?.[1] || elementData.lineColors?.[1] || '#82ca9d'}"/>
+                      <rect x="0" y="20" width="15" height="3" fill="${chartLineColorSettings.textFields?.line2 || chartLineColorSettings.lineColors?.line2 || element.data?.lineColors?.[1] || element.lineColors?.[1] || elementData.lineColors?.[1] || '#82ca9d'}"/>
                       <text x="20" y="28" fill="${chartLineTextColor}" font-size="12" font-family="Montserrat">${element.data?.lineNames?.[1] || element.lineNames?.[1] || elementData.lineNames?.[1] || 'Линия 2'}</text>
                     ` : ''}
                   </g>

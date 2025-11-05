@@ -630,6 +630,8 @@ const DataTable = ({
               { name: 'hover', label: 'При наведении', description: 'Цвет при наведении на строки', defaultColor: 'rgba(196,30,58,0.15)' },
               { name: 'text', label: 'Текст', description: 'Цвет основного текста в ячейках', defaultColor: '#fff' }
             ]}
+            hideCardBackground={true}
+            hideAreaColors={true}
           />
 
           {/* Редактирование колонок */}

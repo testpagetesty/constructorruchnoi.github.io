@@ -1056,6 +1056,8 @@ export const RatingComponent = ({
                     star: '#ffc107',
                     emptyStar: '#e0e0e0'
                   }}
+                  hideCardBackground={true}
+                  hideAreaColors={true}
                 />
               </Box>
 
@@ -2112,6 +2114,8 @@ export const ProgressBars = ({
                     background: '#e0e0e0',
                     progress: '#1976d2'
                   }}
+                  hideCardBackground={true}
+                  hideAreaColors={true}
                 />
               </Box>
 

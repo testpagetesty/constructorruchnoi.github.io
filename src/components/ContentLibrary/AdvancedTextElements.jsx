@@ -249,6 +249,8 @@ export const GradientText = ({
                 gradient2: '#4ecdc4'
               }
             }}
+            hideCardBackground={true}
+            hideAreaColors={true}
           />
           
           <Box sx={{ display: 'flex', gap: 1 }}>
@@ -496,6 +498,8 @@ export const AnimatedCounter = ({
                 author: '#666666'
               }
             }}
+            hideCardBackground={true}
+            hideAreaColors={true}
           />
 
           <Box sx={{ display: 'flex', gap: 1 }}>
@@ -957,6 +961,8 @@ export const TypewriterText = ({
                 content: '#333333'
               }
             }}
+            hideCardBackground={true}
+            hideAreaColors={true}
           />
           
           <Box sx={{ display: 'flex', gap: 1 }}>
@@ -1198,6 +1204,8 @@ export const HighlightText = ({
                 highlight: '#ffeb3b'
               }
             }}
+            hideCardBackground={true}
+            hideAreaColors={true}
           />
 
           <Box sx={{ display: 'flex', gap: 1 }}>

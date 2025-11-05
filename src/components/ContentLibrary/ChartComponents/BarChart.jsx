@@ -386,35 +386,6 @@ const BarChart = ({
           })
         }}
       >
-        {/* Overlay для редактирования */}
-        {editable && !isCurrentlyEditing && (
-          <Box
-            className="chart-overlay"
-            sx={{
-              position: 'absolute',
-              top: 8,
-              right: 8,
-              transition: 'opacity 0.2s ease',
-              zIndex: 10
-            }}
-          >
-            <Tooltip title="Редактировать диаграмму">
-              <IconButton
-                size="small"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsEditingInternal(true);
-                }}
-                sx={{
-                  backgroundColor: 'rgba(255,255,255,0.9)',
-                  '&:hover': { backgroundColor: 'rgba(255,255,255,1)' }
-                }}
-              >
-                <EditIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        )}
 
         {/* Заголовок */}
         <Typography 
@@ -886,6 +857,8 @@ const BarChart = ({
                   grid: 'rgba(0,0,0,0.1)',
                   legend: '#1976d2'
                 }}
+                hideCardBackground={true}
+                hideAreaColors={true}
               />
               
               {/* Настройки цветов столбцов */}
@@ -1178,6 +1151,8 @@ const BarChart = ({
                   grid: 'rgba(0,0,0,0.1)',
                   legend: '#1976d2'
                 }}
+                hideCardBackground={true}
+                hideAreaColors={true}
                 />
                 
                 {/* Настройки цветов столбцов */}

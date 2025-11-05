@@ -234,29 +234,72 @@ const CardModal = ({
     // Приоритет: переданные пропсы > colorSettings > customStyles > значения по умолчанию
     const titleColor = card.titleColor || colorSettings.textFields?.cardTitle || colorSettings.textFields?.title || customStyles.titleColor || '#333333';
     const textColor = card.contentColor || colorSettings.textFields?.cardText || colorSettings.textFields?.text || customStyles.textColor || '#666666';
-    const backgroundColor = card.backgroundColor || 
-      (colorSettings.cardBackground?.enabled
-        ? (colorSettings.cardBackground.useGradient
-            ? `linear-gradient(${colorSettings.cardBackground.gradientDirection || 'to right'}, ${colorSettings.cardBackground.gradientColor1 || '#ffffff'}, ${colorSettings.cardBackground.gradientColor2 || '#f5f5f5'})`
-            : colorSettings.cardBackground.solidColor || '#ffffff')
-        : colorSettings.sectionBackground?.enabled
-        ? (colorSettings.sectionBackground.useGradient
-            ? `linear-gradient(${colorSettings.sectionBackground.gradientDirection || 'to right'}, ${colorSettings.sectionBackground.gradientColor1 || '#ffffff'}, ${colorSettings.sectionBackground.gradientColor2 || '#f5f5f5'})`
-            : colorSettings.sectionBackground.solidColor || '#ffffff')
-        : customStyles.backgroundColor || '#ffffff');
+    
+    // Определяем фон карточки с приоритетом cardBackground > sectionBackground
+    let backgroundColor = card.backgroundColor;
+    let backgroundStyle = {};
+    
+    if (!backgroundColor) {
+      if (colorSettings.cardBackground?.enabled) {
+        if (colorSettings.cardBackground.useGradient) {
+          backgroundColor = `linear-gradient(${colorSettings.cardBackground.gradientDirection || 'to right'}, ${colorSettings.cardBackground.gradientColor1 || '#ffffff'}, ${colorSettings.cardBackground.gradientColor2 || '#f5f5f5'})`;
+          backgroundStyle = {
+            background: backgroundColor,
+            opacity: colorSettings.cardBackground.opacity !== undefined ? colorSettings.cardBackground.opacity : 1
+          };
+        } else {
+          backgroundColor = colorSettings.cardBackground.solidColor || '#ffffff';
+          backgroundStyle = {
+            backgroundColor: backgroundColor,
+            opacity: colorSettings.cardBackground.opacity !== undefined ? colorSettings.cardBackground.opacity : 1
+          };
+        }
+      } else if (colorSettings.sectionBackground?.enabled) {
+        if (colorSettings.sectionBackground.useGradient) {
+          backgroundColor = `linear-gradient(${colorSettings.sectionBackground.gradientDirection || 'to right'}, ${colorSettings.sectionBackground.gradientColor1 || '#ffffff'}, ${colorSettings.sectionBackground.gradientColor2 || '#f5f5f5'})`;
+          backgroundStyle = {
+            background: backgroundColor,
+            opacity: colorSettings.sectionBackground.opacity !== undefined ? colorSettings.sectionBackground.opacity : 1
+          };
+        } else {
+          backgroundColor = colorSettings.sectionBackground.solidColor || '#ffffff';
+          backgroundStyle = {
+            backgroundColor: backgroundColor,
+            opacity: colorSettings.sectionBackground.opacity !== undefined ? colorSettings.sectionBackground.opacity : 1
+          };
+        }
+      } else {
+        backgroundColor = customStyles.backgroundColor || '#ffffff';
+        backgroundStyle = {
+          backgroundColor: backgroundColor
+        };
+      }
+    } else {
+      // Если backgroundColor передан через пропсы, проверяем, это градиент или цвет
+      if (typeof backgroundColor === 'string' && backgroundColor.startsWith('linear-gradient')) {
+        backgroundStyle = {
+          background: backgroundColor
+        };
+      } else {
+        backgroundStyle = {
+          backgroundColor: backgroundColor
+        };
+      }
+    }
+    
     const borderColor = card.borderColor || colorSettings.textFields?.border || customStyles.borderColor || '#e0e0e0';
     const borderRadius = colorSettings.borderRadius || customStyles.borderRadius || 8;
     const borderWidth = colorSettings.borderWidth || customStyles.borderWidth || 1;
     
-    // Дефолтные стили контейнера
+    // Дефолтные стили контейнера с правильным применением фона
     const containerStyles = {
       textAlign: card.alignment || 'left',
       color: textColor,
-      padding: '24px',
+      padding: colorSettings.padding ? `${colorSettings.padding}px` : '24px',
       borderRadius: `${borderRadius}px`,
       border: `${borderWidth}px solid ${borderColor}`,
-      backgroundColor: backgroundColor,
-      boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+      ...backgroundStyle,
+      boxShadow: colorSettings.boxShadow || customStyles.boxShadow ? '0 2px 8px rgba(0,0,0,0.1)' : 'none'
     };
     
     return (

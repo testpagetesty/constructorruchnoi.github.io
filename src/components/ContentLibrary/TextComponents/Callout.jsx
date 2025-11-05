@@ -364,13 +364,14 @@ const Callout = ({
     setCurrentSize(size);
     setShowCalloutIcon(showIcon);
     setIsDismissible(dismissible);
-    setUseCustomColors(customColors);
-    setCurrentBgColor(backgroundColor);
-    setCurrentBorderColor(borderColor);
-    setCurrentTextColor(textColor);
+    // 🔥 ИСПРАВЛЕНИЕ: customColors, backgroundColor, borderColor, textColor не в пропсах, используем значения по умолчанию
+    setUseCustomColors(false);
+    setCurrentBgColor('');
+    setCurrentBorderColor('');
+    setCurrentTextColor('');
     setIsCustomType(isCustomType);
     setCustomTypeName(customTypeName);
-    setCurrentAnimationSettings(animationSettings);
+    setCurrentAnimationSettings(animationSettings || {});
     
     if (onCancel) {
       onCancel();
@@ -754,6 +755,8 @@ const Callout = ({
               type: '#1976d2',
               footnote: '#888888'
             }}
+            hideCardBackground={true}
+            hideAreaColors={true}
           />
 
           {/* Кнопки */}
